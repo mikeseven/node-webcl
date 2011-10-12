@@ -1,0 +1,1157 @@
+/*
+** This file contains proprietary software owned by Motorola Mobility, Inc. **
+** No rights, expressed or implied, whatsoever to this software are provided by Motorola Mobility, Inc. hereunder. **
+**
+** (c) Copyright 2011 Motorola Mobility, Inc.  All Rights Reserved.  **
+*/
+
+#include "WebCLCommandQueue.h"
+#include "WebCLPlatform.h"
+#include "WebCLContext.h"
+#include "WebCLDevice.h"
+#include "WebCLMemory.h"
+#include "WebCLEvent.h"
+#include "WebCLKernel.h"
+#include "WebCLMappedRegion.h"
+
+#include "node_buffer.h"
+
+#include <iostream>
+using namespace std;
+
+using namespace v8;
+using namespace webcl;
+
+Persistent<FunctionTemplate> WebCLCommandQueue::constructor_template;
+
+// e.g. IsUint32Array(v)
+#define IS_BUFFER_FUNC(name, type)\
+    bool Is##name(v8::Handle<v8::Value> val) {\
+  if (!val->IsObject()) return false;\
+  v8::Local<v8::Object> obj = val->ToObject();\
+  if (obj->GetIndexedPropertiesExternalArrayDataType() == type)\
+  return true;\
+  return false;\
+}
+
+IS_BUFFER_FUNC(Int8Array, kExternalByteArray);
+IS_BUFFER_FUNC(Uint8Array, kExternalUnsignedByteArray);
+IS_BUFFER_FUNC(Int16Array, kExternalShortArray);
+IS_BUFFER_FUNC(Uint16Array, kExternalUnsignedShortArray);
+IS_BUFFER_FUNC(Int32Array, kExternalIntArray);
+IS_BUFFER_FUNC(Uint32Array, kExternalUnsignedIntArray);
+IS_BUFFER_FUNC(Float32Array, kExternalFloatArray);
+
+/* static  */
+void WebCLCommandQueue::Init(Handle<Object> target)
+{
+  HandleScope scope;
+
+  Local<FunctionTemplate> t = FunctionTemplate::New(WebCLCommandQueue::New);
+  constructor_template = Persistent<FunctionTemplate>::New(t);
+
+  constructor_template->InstanceTemplate()->SetInternalFieldCount(1);
+  constructor_template->SetClassName(String::NewSymbol("WebCLCommandQueue"));
+
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "getInfo", getInfo);
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "enqueueNDRangeKernel", enqueueNDRangeKernel);
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "enqueueTask", enqueueTask);
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "enqueueWriteBuffer", enqueueWriteBuffer);
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "enqueueReadBuffer", enqueueReadBuffer);
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "enqueueCopyBuffer", enqueueCopyImage);
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "enqueueWriteBufferRect", enqueueWriteBufferRect);
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "enqueueReadBufferRect", enqueueReadBufferRect);
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "enqueueCopyBufferRect", enqueueCopyImage);
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "enqueueWriteImage", enqueueWriteBuffer);
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "enqueueReadImage", enqueueReadBuffer);
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "enqueueCopyImage", enqueueCopyImage);
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "enqueueCopyImageToBuffer", enqueueCopyImageToBuffer);
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "enqueueCopyBufferToImage", enqueueCopyBufferToImage);
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "enqueueMapBuffer", enqueueMapBuffer);
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "enqueueMapImage", enqueueMapImage);
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "enqueueUnmapMemObject", enqueueUnmapMemObject);
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "enqueueMarker", enqueueMarker);
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "enqueueWaitForEvents", enqueueWaitForEvents);
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "enqueueBarrier", enqueueBarrier);
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "flush", flush);
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "finish", finish);
+
+  target->Set(String::NewSymbol("WebCLCommandQueue"), constructor_template->GetFunction());
+}
+
+WebCLCommandQueue::WebCLCommandQueue(Handle<Object> wrapper) : command_queue(0)
+{
+}
+
+WebCLCommandQueue::~WebCLCommandQueue()
+{
+  if (command_queue) delete command_queue;
+}
+
+/* static */
+JS_METHOD(WebCLCommandQueue::getInfo)
+{
+  HandleScope scope;
+  WebCLCommandQueue *cq = ObjectWrap::Unwrap<WebCLCommandQueue>(args.This());
+  Local<Value> v = args[0];
+  cl_command_queue_info param_name = v->NumberValue();
+
+  switch (param_name) {
+  case CL_QUEUE_CONTEXT: {
+    cl_context ctx=0;
+    cl_int ret=cq->getCommandQueue()->getInfo(param_name,&ctx);
+    if (ret != CL_SUCCESS) {
+      WEBCL_COND_RETURN_THROW(CL_INVALID_COMMAND_QUEUE);
+      WEBCL_COND_RETURN_THROW(CL_INVALID_VALUE);
+      WEBCL_COND_RETURN_THROW(CL_OUT_OF_RESOURCES);
+      WEBCL_COND_RETURN_THROW(CL_OUT_OF_HOST_MEMORY);
+      return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+    }
+    cl::Context *cw = new cl::Context(ctx);
+    return scope.Close(WebCLContext::New(cw)->handle_);
+  }
+  case CL_QUEUE_DEVICE: {
+    cl_device_id dev=0;
+    cl_int ret=cq->getCommandQueue()->getInfo(param_name,&dev);
+    if (ret != CL_SUCCESS) {
+      WEBCL_COND_RETURN_THROW(CL_INVALID_COMMAND_QUEUE);
+      WEBCL_COND_RETURN_THROW(CL_INVALID_VALUE);
+      WEBCL_COND_RETURN_THROW(CL_OUT_OF_RESOURCES);
+      WEBCL_COND_RETURN_THROW(CL_OUT_OF_HOST_MEMORY);
+      return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+    }
+    cl::Device *cw = new cl::Device(dev);
+    return scope.Close(WebCLDevice::New(cw)->handle_);
+  }
+  case CL_QUEUE_REFERENCE_COUNT:
+  case CL_QUEUE_PROPERTIES: {
+    cl_uint param_value;
+    cl_int ret=cq->getCommandQueue()->getInfo(param_name,&param_value);
+    if (ret != CL_SUCCESS) {
+      WEBCL_COND_RETURN_THROW(CL_INVALID_COMMAND_QUEUE);
+      WEBCL_COND_RETURN_THROW(CL_INVALID_VALUE);
+      WEBCL_COND_RETURN_THROW(CL_OUT_OF_RESOURCES);
+      WEBCL_COND_RETURN_THROW(CL_OUT_OF_HOST_MEMORY);
+      return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+    }
+    return scope.Close(JS_INT(param_value));
+  }
+  default:
+    return ThrowException(Exception::Error(String::New("CL_INVALID_VALUE")));
+  }
+}
+
+/* static */
+JS_METHOD(WebCLCommandQueue::enqueueNDRangeKernel)
+{
+  HandleScope scope;
+  WebCLCommandQueue *cq = ObjectWrap::Unwrap<WebCLCommandQueue>(args.This());
+
+  // TODO: arg checking
+  WebCLKernel *k = ObjectWrap::Unwrap<WebCLKernel>(args[0]->ToObject());
+
+  Local<Array> arr = Array::Cast(*args[1]);
+  int num=arr->Length();
+  cl::NDRange *offset;
+  if(num==0)
+    offset=(cl::NDRange*) &cl::NullRange;
+  else if(num==1)
+    offset=new cl::NDRange(arr->Get(0)->Uint32Value());
+  else if(num==2)
+    offset=new cl::NDRange(arr->Get(0)->Uint32Value(),arr->Get(1)->Uint32Value());
+  else if(num==3)
+    offset=new cl::NDRange(arr->Get(0)->Uint32Value(),arr->Get(1)->Uint32Value(),arr->Get(2)->Uint32Value());
+
+  arr = Array::Cast(*args[2]);
+  num=arr->Length();
+  cl::NDRange *global;
+  if(num==0)
+    global=(cl::NDRange*) &cl::NullRange;
+  else if(num==1)
+    global=new cl::NDRange(arr->Get(0)->Uint32Value());
+  else if(num==2)
+    global=new cl::NDRange(arr->Get(0)->Uint32Value(),arr->Get(1)->Uint32Value());
+  else if(num==3)
+    global=new cl::NDRange(arr->Get(0)->Uint32Value(),arr->Get(1)->Uint32Value(),arr->Get(2)->Uint32Value());
+
+  arr = Array::Cast(*args[3]);
+  num=arr->Length();
+  cl::NDRange *local;
+  if(num==0)
+    local=(cl::NDRange*) &cl::NullRange;
+  else if(num==1)
+    local=new cl::NDRange(arr->Get(0)->Uint32Value());
+  else if(num==2)
+    local=new cl::NDRange(arr->Get(0)->Uint32Value(),arr->Get(1)->Uint32Value());
+  else if(num==3)
+    local=new cl::NDRange(arr->Get(0)->Uint32Value(),arr->Get(1)->Uint32Value(),arr->Get(2)->Uint32Value());
+
+  VECTOR_CLASS<cl::Event> *events=NULL;
+  Local<Array> eventWaitArray = Array::Cast(*args[4]);
+  if(!eventWaitArray->IsUndefined()) {
+    num=eventWaitArray->Length();
+    events=new VECTOR_CLASS<cl::Event>(num);
+    for (int i=0; i<num; i++) {
+      Local<Object> obj = eventWaitArray->Get(i)->ToObject();
+      WebCLEvent *e = ObjectWrap::Unwrap<WebCLEvent>(obj);
+      events->push_back(*e->getEvent() );
+    }
+  }
+
+  cl::Event *event=new cl::Event();
+  cl_int ret=cq->getCommandQueue()->enqueueNDRangeKernel(*k->getKernel(),
+      *offset,*global,*local,
+      events,event);
+  if(*offset!=cl::NullRange) delete offset;
+  if(*global!=cl::NullRange) delete global;
+  if(*local!=cl::NullRange) delete local;
+  if(events) delete events;
+
+  if (ret != CL_SUCCESS) {
+    WEBCL_COND_RETURN_THROW(CL_INVALID_PROGRAM_EXECUTABLE);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_COMMAND_QUEUE);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_KERNEL);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_CONTEXT);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_KERNEL_ARGS);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_WORK_DIMENSION);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_GLOBAL_OFFSET);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_WORK_GROUP_SIZE);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_WORK_ITEM_SIZE);
+    WEBCL_COND_RETURN_THROW(CL_MISALIGNED_SUB_BUFFER_OFFSET);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_IMAGE_SIZE);
+    WEBCL_COND_RETURN_THROW(CL_MEM_OBJECT_ALLOCATION_FAILURE);
+    WEBCL_COND_RETURN_THROW(CL_OUT_OF_RESOURCES);
+    WEBCL_COND_RETURN_THROW(CL_OUT_OF_HOST_MEMORY);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_EVENT_WAIT_LIST);
+    return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+  }
+
+  return scope.Close(WebCLEvent::New(event)->handle_);
+}
+
+/* static */
+JS_METHOD(WebCLCommandQueue::enqueueTask)
+{
+  HandleScope scope;
+  WebCLCommandQueue *cq = ObjectWrap::Unwrap<WebCLCommandQueue>(args.This());
+
+  // TODO: arg checking
+  WebCLKernel *k = ObjectWrap::Unwrap<WebCLKernel>(args[0]->ToObject());
+
+  VECTOR_CLASS<cl::Event> events;
+  Local<Array> eventWaitArray = Array::Cast(*args[1]);
+  for (int i=0; i<eventWaitArray->Length(); i++) {
+    Local<Object> obj = eventWaitArray->Get(i)->ToObject();
+    WebCLEvent *e = ObjectWrap::Unwrap<WebCLEvent>(obj);
+    events.push_back( *e->getEvent() );
+  }
+
+  cl::Event *event=new cl::Event();
+  cl_int ret=cq->getCommandQueue()->enqueueTask(*k->getKernel(),
+      &events,event);
+
+  if (ret != CL_SUCCESS) {
+    WEBCL_COND_RETURN_THROW(CL_INVALID_PROGRAM_EXECUTABLE);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_COMMAND_QUEUE);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_KERNEL);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_CONTEXT);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_KERNEL_ARGS);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_WORK_GROUP_SIZE);
+    WEBCL_COND_RETURN_THROW(CL_MISALIGNED_SUB_BUFFER_OFFSET);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_IMAGE_SIZE);
+    WEBCL_COND_RETURN_THROW(CL_MEM_OBJECT_ALLOCATION_FAILURE);
+    WEBCL_COND_RETURN_THROW(CL_OUT_OF_RESOURCES);
+    WEBCL_COND_RETURN_THROW(CL_OUT_OF_HOST_MEMORY);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_EVENT_WAIT_LIST);
+    return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+  }
+
+  return scope.Close(WebCLEvent::New(event)->handle_);
+}
+
+/* static */
+JS_METHOD(WebCLCommandQueue::enqueueWriteBuffer)
+{
+  HandleScope scope;
+  WebCLCommandQueue *cq = ObjectWrap::Unwrap<WebCLCommandQueue>(args.This());
+  WebCLMemory *mo = ObjectWrap::Unwrap<WebCLMemory>(args[0]->ToObject());
+
+  // TODO: arg checking
+  cl_bool blocking_write = args[1]->BooleanValue() ? CL_TRUE : CL_FALSE;
+  ::size_t offset = args[2]->Uint32Value();
+  ::size_t size = args[3]->Uint32Value();
+
+  void *ptr = args[4]->ToObject()->GetIndexedPropertiesExternalArrayData();
+
+  VECTOR_CLASS<cl::Event> events;
+  Local<Array> eventWaitArray = Array::Cast(*args[5]);
+  for (int i=0; i<eventWaitArray->Length(); i++) {
+    Local<Object> obj = eventWaitArray->Get(i)->ToObject();
+    WebCLEvent *e = ObjectWrap::Unwrap<WebCLEvent>(obj);
+    events.push_back( *e->getEvent() );
+  }
+
+  cl::Event *event=new cl::Event();
+  cl_int ret=cq->getCommandQueue()->enqueueWriteBuffer(
+      *(cl::Buffer*)mo->getMemory(),
+      blocking_write,offset,size,ptr,&events,event);
+  if (ret != CL_SUCCESS) {
+    WEBCL_COND_RETURN_THROW(CL_INVALID_COMMAND_QUEUE);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_CONTEXT);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_MEM_OBJECT);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_VALUE);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_EVENT_WAIT_LIST);
+    WEBCL_COND_RETURN_THROW(CL_MISALIGNED_SUB_BUFFER_OFFSET);
+    WEBCL_COND_RETURN_THROW(CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST);
+    WEBCL_COND_RETURN_THROW(CL_MEM_OBJECT_ALLOCATION_FAILURE);
+    WEBCL_COND_RETURN_THROW(CL_OUT_OF_RESOURCES);
+    WEBCL_COND_RETURN_THROW(CL_OUT_OF_HOST_MEMORY);
+    return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+  }
+
+  return scope.Close(WebCLEvent::New(event)->handle_);
+}
+
+/* static */
+JS_METHOD(WebCLCommandQueue::enqueueReadBuffer)
+{
+  HandleScope scope;
+  WebCLCommandQueue *cq = ObjectWrap::Unwrap<WebCLCommandQueue>(args.This());
+  WebCLMemory *mo = ObjectWrap::Unwrap<WebCLMemory>(args[0]->ToObject());
+
+  // TODO: arg checking
+  cl_bool blocking_read = args[1]->BooleanValue() ? CL_TRUE : CL_FALSE;
+  ::size_t offset = args[2]->NumberValue();
+  ::size_t size = args[3]->NumberValue();
+
+  void *ptr = args[4]->ToObject()->GetIndexedPropertiesExternalArrayData();
+
+  VECTOR_CLASS<cl::Event> events;
+  Local<Array> eventWaitArray = Array::Cast(*args[5]);
+  for (int i=0; i<eventWaitArray->Length(); i++) {
+    Local<Object> obj = eventWaitArray->Get(i)->ToObject();
+    WebCLEvent *e = ObjectWrap::Unwrap<WebCLEvent>(obj);
+    events.push_back( *e->getEvent() );
+  }
+
+  cl::Event *event=new cl::Event();
+  cl_int ret=cq->getCommandQueue()->enqueueReadBuffer(
+      *(cl::Buffer*)mo->getMemory(),
+      blocking_read, offset, size, ptr, &events, event);
+  if (ret != CL_SUCCESS) {
+    WEBCL_COND_RETURN_THROW(CL_INVALID_COMMAND_QUEUE);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_CONTEXT);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_MEM_OBJECT);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_VALUE);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_EVENT_WAIT_LIST);
+    WEBCL_COND_RETURN_THROW(CL_MISALIGNED_SUB_BUFFER_OFFSET);
+    WEBCL_COND_RETURN_THROW(CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST);
+    WEBCL_COND_RETURN_THROW(CL_MEM_OBJECT_ALLOCATION_FAILURE);
+    WEBCL_COND_RETURN_THROW(CL_OUT_OF_RESOURCES);
+    WEBCL_COND_RETURN_THROW(CL_OUT_OF_HOST_MEMORY);
+    return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+  }
+
+  return scope.Close(WebCLEvent::New(event)->handle_);
+}
+
+/* static */
+JS_METHOD(WebCLCommandQueue::enqueueCopyBuffer)
+{
+  HandleScope scope;
+  WebCLCommandQueue *cq = ObjectWrap::Unwrap<WebCLCommandQueue>(args.This());
+
+  WebCLMemory *mo_src = ObjectWrap::Unwrap<WebCLMemory>(args[0]->ToObject());
+  WebCLMemory *mo_dst = ObjectWrap::Unwrap<WebCLMemory>(args[1]->ToObject());
+
+  // TODO: arg checking
+  ::size_t src_offset = args[2]->NumberValue();
+  ::size_t dst_offset = args[3]->NumberValue();
+  ::size_t size = args[4]->NumberValue();
+
+  VECTOR_CLASS<cl::Event> events;
+  Local<Array> eventWaitArray = Array::Cast(*args[5]);
+  for (int i=0; i<eventWaitArray->Length(); i++) {
+    Local<Object> obj = eventWaitArray->Get(i)->ToObject();
+    WebCLEvent *e = ObjectWrap::Unwrap<WebCLEvent>(obj);
+    events.push_back( *e->getEvent() );
+  }
+
+  cl::Event *event=new cl::Event();
+  cl_int ret=cq->getCommandQueue()->enqueueCopyBuffer(
+      *(cl::Buffer*)mo_src->getMemory(), *(cl::Buffer*)mo_dst->getMemory(),
+      src_offset,dst_offset,size,&events,event);
+
+  if (ret != CL_SUCCESS) {
+    WEBCL_COND_RETURN_THROW(CL_INVALID_COMMAND_QUEUE);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_CONTEXT);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_MEM_OBJECT);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_VALUE);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_EVENT_WAIT_LIST);
+    WEBCL_COND_RETURN_THROW(CL_MISALIGNED_SUB_BUFFER_OFFSET);
+    WEBCL_COND_RETURN_THROW(CL_MEM_COPY_OVERLAP);
+    WEBCL_COND_RETURN_THROW(CL_MEM_OBJECT_ALLOCATION_FAILURE);
+    WEBCL_COND_RETURN_THROW(CL_OUT_OF_RESOURCES);
+    WEBCL_COND_RETURN_THROW(CL_OUT_OF_HOST_MEMORY);
+    return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+  }
+
+  return scope.Close(WebCLEvent::New(event)->handle_);
+}
+
+/* static */
+JS_METHOD(WebCLCommandQueue::enqueueWriteBufferRect)
+{
+  HandleScope scope;
+  WebCLCommandQueue *cq = ObjectWrap::Unwrap<WebCLCommandQueue>(args.This());
+  WebCLMemory *mo = ObjectWrap::Unwrap<WebCLMemory>(args[0]->ToObject());
+
+  // TODO: arg checking
+  cl_bool blocking_write = args[1]->BooleanValue() ? CL_TRUE : CL_FALSE;
+  cl::size_t<3> buffer_offset;
+  cl::size_t<3> host_offset;
+  cl::size_t<3> region;
+
+  Local<Array> bufferOrigin = Array::Cast(*args[2]);
+  for (int i=0; i<3; i++) {
+    size_t s = bufferOrigin->Get(i)->NumberValue();
+    buffer_offset[i] = s;
+  }
+
+  Local<Array> hostOrigin = Array::Cast(*args[3]);
+  for (int i=0; i<3; i++) {
+    size_t s = hostOrigin->Get(i)->NumberValue();
+    host_offset[i] = s;
+  }
+
+  Local<Array> regionArray = Array::Cast(*args[4]);
+  for (int i=0; i<3; i++) {
+    size_t s = regionArray->Get(i)->NumberValue();
+    region[i] = s;
+  }
+
+  size_t buffer_row_pitch = args[5]->NumberValue();
+  size_t buffer_slice_pitch = args[6]->NumberValue();
+  size_t host_row_pitch = args[7]->NumberValue();
+  size_t host_slice_pitch = args[8]->NumberValue();
+
+  // TODO use WebCLMappedRegion instead of ptr
+  void *ptr = args[9]->ToObject()->GetIndexedPropertiesExternalArrayData();
+
+  VECTOR_CLASS<cl::Event> events;
+  Local<Array> eventWaitArray = Array::Cast(*args[10]);
+  for (int i=0; i<eventWaitArray->Length(); i++) {
+    Local<Object> obj = eventWaitArray->Get(i)->ToObject();
+    WebCLEvent *e = ObjectWrap::Unwrap<WebCLEvent>(obj);
+    events.push_back( *e->getEvent() );
+  }
+
+  cl::Event *event=new cl::Event();
+  cl_int ret=cq->getCommandQueue()->enqueueWriteBufferRect(
+      *(cl::Buffer*)mo->getMemory(),
+      blocking_write,buffer_offset,host_offset,region,
+      buffer_row_pitch,buffer_slice_pitch,host_row_pitch,host_slice_pitch,
+      ptr,&events,event);
+  if (ret != CL_SUCCESS) {
+    WEBCL_COND_RETURN_THROW(CL_INVALID_COMMAND_QUEUE);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_CONTEXT);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_MEM_OBJECT);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_VALUE);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_EVENT_WAIT_LIST);
+    WEBCL_COND_RETURN_THROW(CL_MISALIGNED_SUB_BUFFER_OFFSET);
+    WEBCL_COND_RETURN_THROW(CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST);
+    WEBCL_COND_RETURN_THROW(CL_MEM_OBJECT_ALLOCATION_FAILURE);
+    WEBCL_COND_RETURN_THROW(CL_OUT_OF_RESOURCES);
+    WEBCL_COND_RETURN_THROW(CL_OUT_OF_HOST_MEMORY);
+    return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+  }
+
+  return scope.Close(WebCLEvent::New(event)->handle_);
+}
+
+/* static */
+JS_METHOD(WebCLCommandQueue::enqueueReadBufferRect)
+{
+  HandleScope scope;
+  WebCLCommandQueue *cq = ObjectWrap::Unwrap<WebCLCommandQueue>(args.This());
+  WebCLMemory *mo = ObjectWrap::Unwrap<WebCLMemory>(args[0]->ToObject());
+
+  // TODO: arg checking
+  cl_bool blocking_read = args[1]->BooleanValue() ? CL_TRUE : CL_FALSE;
+  cl::size_t<3> buffer_offset;
+  cl::size_t<3> host_offset;
+  cl::size_t<3> region;
+
+  Local<Array> bufferOrigin = Array::Cast(*args[2]);
+  for (int i=0; i<3; i++) {
+    size_t s = bufferOrigin->Get(i)->Uint32Value();
+    buffer_offset[i] = s;
+  }
+
+  Local<Array> hostOrigin = Array::Cast(*args[3]);
+  for (int i=0; i<3; i++) {
+    size_t s = hostOrigin->Get(i)->Uint32Value();
+    host_offset[i] = s;
+  }
+
+  Local<Array> regionArray = Array::Cast(*args[4]);
+  for (int i=0; i<3; i++) {
+    size_t s = regionArray->Get(i)->Uint32Value();
+    region[i] = s;
+  }
+
+  ::size_t buffer_row_pitch = args[5]->Uint32Value();
+  ::size_t buffer_slice_pitch = args[6]->Uint32Value();
+  ::size_t host_row_pitch = args[7]->Uint32Value();
+  ::size_t host_slice_pitch = args[8]->Uint32Value();
+
+  // TODO use WebCLMappedRegion instead of ptr
+  void *ptr = args[9]->ToObject()->GetIndexedPropertiesExternalArrayData();
+
+  VECTOR_CLASS<cl::Event> events;
+  Local<Array> eventWaitArray = Array::Cast(*args[10]);
+  for (int i=0; i<eventWaitArray->Length(); i++) {
+    Local<Object> obj = eventWaitArray->Get(i)->ToObject();
+    WebCLEvent *e = ObjectWrap::Unwrap<WebCLEvent>(obj);
+    events.push_back( *e->getEvent() );
+  }
+
+  cl::Event *event=new cl::Event();
+  cl_int ret=cq->getCommandQueue()->enqueueReadBufferRect(
+      *(cl::Buffer*) mo->getMemory(),
+      blocking_read, buffer_offset, host_offset, region,
+      buffer_row_pitch, buffer_slice_pitch, host_row_pitch, host_slice_pitch,
+      ptr, &events, event);
+  if (ret != CL_SUCCESS) {
+    WEBCL_COND_RETURN_THROW(CL_INVALID_COMMAND_QUEUE);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_CONTEXT);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_MEM_OBJECT);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_VALUE);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_EVENT_WAIT_LIST);
+    WEBCL_COND_RETURN_THROW(CL_MISALIGNED_SUB_BUFFER_OFFSET);
+    WEBCL_COND_RETURN_THROW(CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST);
+    WEBCL_COND_RETURN_THROW(CL_MEM_OBJECT_ALLOCATION_FAILURE);
+    WEBCL_COND_RETURN_THROW(CL_OUT_OF_RESOURCES);
+    WEBCL_COND_RETURN_THROW(CL_OUT_OF_HOST_MEMORY);
+    return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+  }
+
+  return scope.Close(WebCLEvent::New(event)->handle_);
+}
+
+/* static */
+JS_METHOD(WebCLCommandQueue::enqueueCopyBufferRect)
+{
+  HandleScope scope;
+  WebCLCommandQueue *cq = ObjectWrap::Unwrap<WebCLCommandQueue>(args.This());
+  WebCLMemory *mo_src = ObjectWrap::Unwrap<WebCLMemory>(args[0]->ToObject());
+  WebCLMemory *mo_dst = ObjectWrap::Unwrap<WebCLMemory>(args[1]->ToObject());
+
+  cl::size_t<3> src_origin;
+  cl::size_t<3> dst_origin;
+  cl::size_t<3> region;
+
+  Local<Array> srcOrigin = Array::Cast(*args[2]);
+  for (int i=0; i<3; i++) {
+    size_t s = srcOrigin->Get(i)->Uint32Value();
+    src_origin[i] = s;
+  }
+
+  Local<Array> dstOrigin = Array::Cast(*args[3]);
+  for (int i=0; i<3; i++) {
+    size_t s = dstOrigin->Get(i)->Uint32Value();
+    dst_origin[i] = s;
+  }
+
+  Local<Array> regionArray = Array::Cast(*args[4]);
+  for (int i=0; i<3; i++) {
+    size_t s = regionArray->Get(i)->Uint32Value();
+    region[i] = s;
+  }
+
+  ::size_t src_row_pitch = args[5]->Uint32Value();
+  ::size_t src_slice_pitch = args[6]->Uint32Value();
+  ::size_t dst_row_pitch = args[7]->Uint32Value();
+  ::size_t dst_slice_pitch = args[8]->Uint32Value();
+
+  VECTOR_CLASS<cl::Event> events;
+  Local<Array> eventWaitArray = Array::Cast(*args[10]);
+  for (int i=0; i<eventWaitArray->Length(); i++) {
+    Local<Object> obj = eventWaitArray->Get(i)->ToObject();
+    WebCLEvent *e = ObjectWrap::Unwrap<WebCLEvent>(obj);
+    events.push_back( *e->getEvent() );
+  }
+
+  cl::Event *event=new cl::Event();
+  cl_int ret=cq->getCommandQueue()->enqueueCopyBufferRect(
+      *(cl::Buffer*)mo_src->getMemory(), *(cl::Buffer*)mo_dst->getMemory(),
+      src_origin, dst_origin, region,
+      src_row_pitch, src_slice_pitch, dst_row_pitch, dst_slice_pitch,
+      &events, event);
+  if (ret != CL_SUCCESS) {
+    WEBCL_COND_RETURN_THROW(CL_INVALID_COMMAND_QUEUE);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_CONTEXT);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_MEM_OBJECT);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_VALUE);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_EVENT_WAIT_LIST);
+    WEBCL_COND_RETURN_THROW(CL_MEM_COPY_OVERLAP);
+    WEBCL_COND_RETURN_THROW(CL_MISALIGNED_SUB_BUFFER_OFFSET);
+    WEBCL_COND_RETURN_THROW(CL_MEM_OBJECT_ALLOCATION_FAILURE);
+    WEBCL_COND_RETURN_THROW(CL_OUT_OF_RESOURCES);
+    WEBCL_COND_RETURN_THROW(CL_OUT_OF_HOST_MEMORY);
+    return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+  }
+
+  return scope.Close(WebCLEvent::New(event)->handle_);
+}
+
+/* static */
+JS_METHOD(WebCLCommandQueue::enqueueWriteImage)
+{
+  HandleScope scope;
+  WebCLCommandQueue *cq = ObjectWrap::Unwrap<WebCLCommandQueue>(args.This());
+  WebCLMemory *mo = ObjectWrap::Unwrap<WebCLMemory>(args[0]->ToObject());
+
+  // TODO: arg checking
+  cl_bool blocking_write = args[1]->BooleanValue() ? CL_TRUE : CL_FALSE;
+  cl::size_t<3> origin;
+  cl::size_t<3> region;
+
+  Local<Array> originArray = Array::Cast(*args[2]);
+  for (int i=0; i<3; i++) {
+    size_t s = originArray->Get(i)->NumberValue();
+    origin[i] = s;
+  }
+
+  Local<Array> regionArray = Array::Cast(*args[3]);
+  for (int i=0; i<3; i++) {
+    size_t s = regionArray->Get(i)->NumberValue();
+    region[i] = s;
+  }
+
+  ::size_t row_pitch = args[4]->NumberValue();
+  ::size_t slice_pitch = args[5]->NumberValue();
+
+  void *ptr = args[6]->ToObject()->GetIndexedPropertiesExternalArrayData();
+
+  VECTOR_CLASS<cl::Event> events;
+  Local<Array> eventWaitArray = Array::Cast(*args[7]);
+  for (int i=0; i<eventWaitArray->Length(); i++) {
+    Local<Object> obj = eventWaitArray->Get(i)->ToObject();
+    WebCLEvent *e = ObjectWrap::Unwrap<WebCLEvent>(obj);
+    events.push_back( *e->getEvent() );
+  }
+
+  cl::Event *event=new cl::Event();
+  cl_int ret=cq->getCommandQueue()->enqueueWriteImage(
+      *(cl::Image*)mo->getMemory(),
+      blocking_write, origin, region, row_pitch, slice_pitch, ptr,
+      &events, event);
+  if (ret != CL_SUCCESS) {
+    WEBCL_COND_RETURN_THROW(CL_INVALID_COMMAND_QUEUE);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_CONTEXT);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_MEM_OBJECT);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_VALUE);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_EVENT_WAIT_LIST);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_IMAGE_SIZE);
+    WEBCL_COND_RETURN_THROW(CL_MEM_OBJECT_ALLOCATION_FAILURE);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_OPERATION);
+    WEBCL_COND_RETURN_THROW(CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST);
+    WEBCL_COND_RETURN_THROW(CL_OUT_OF_RESOURCES);
+    WEBCL_COND_RETURN_THROW(CL_OUT_OF_HOST_MEMORY);
+    return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+  }
+
+  return scope.Close(WebCLEvent::New(event)->handle_);
+}
+
+/* static */
+JS_METHOD(WebCLCommandQueue::enqueueReadImage)
+{
+  HandleScope scope;
+  WebCLCommandQueue *cq = ObjectWrap::Unwrap<WebCLCommandQueue>(args.This());
+  WebCLMemory *mo = ObjectWrap::Unwrap<WebCLMemory>(args[0]->ToObject());
+
+  // TODO: arg checking
+  cl_bool blocking_read = args[1]->BooleanValue() ? CL_TRUE : CL_FALSE;
+  cl::size_t<3> origin;
+  cl::size_t<3> region;
+
+  Local<Array> originArray = Array::Cast(*args[2]);
+  for (int i=0; i<3; i++) {
+    size_t s = originArray->Get(i)->Uint32Value();
+    origin[i] = s;
+  }
+
+  Local<Array> regionArray = Array::Cast(*args[3]);
+  for (int i=0; i<3; i++) {
+    size_t s = regionArray->Get(i)->Uint32Value();
+    region[i] = s;
+  }
+
+  size_t row_pitch = args[4]->Uint32Value();
+  size_t slice_pitch = args[5]->Uint32Value();
+
+  void *ptr = args[6]->ToObject()->GetIndexedPropertiesExternalArrayData();
+
+  VECTOR_CLASS<cl::Event> events;
+  Local<Array> eventWaitArray = Array::Cast(*args[7]);
+  for (int i=0; i<eventWaitArray->Length(); i++) {
+    Local<Object> obj = eventWaitArray->Get(i)->ToObject();
+    WebCLEvent *e = ObjectWrap::Unwrap<WebCLEvent>(obj);
+    events.push_back( *e->getEvent() );
+  }
+
+  cl::Event *event=new cl::Event();
+  cl_int ret=cq->getCommandQueue()->enqueueReadImage(
+      *(cl::Image*)mo->getMemory(),
+      blocking_read,origin,region,row_pitch,slice_pitch,
+      ptr, &events,
+      event);
+  if (ret != CL_SUCCESS) {
+    WEBCL_COND_RETURN_THROW(CL_INVALID_COMMAND_QUEUE);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_CONTEXT);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_MEM_OBJECT);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_VALUE);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_EVENT_WAIT_LIST);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_IMAGE_SIZE);
+    WEBCL_COND_RETURN_THROW(CL_MEM_OBJECT_ALLOCATION_FAILURE);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_OPERATION);
+    WEBCL_COND_RETURN_THROW(CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST);
+    WEBCL_COND_RETURN_THROW(CL_OUT_OF_RESOURCES);
+    WEBCL_COND_RETURN_THROW(CL_OUT_OF_HOST_MEMORY);
+    return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+  }
+
+  return scope.Close(WebCLEvent::New(event)->handle_);
+}
+
+/* static */
+JS_METHOD(WebCLCommandQueue::enqueueCopyImage)
+{   
+  HandleScope scope;
+  WebCLCommandQueue *cq = ObjectWrap::Unwrap<WebCLCommandQueue>(args.This());
+  WebCLMemory *mo_src = ObjectWrap::Unwrap<WebCLMemory>(args[0]->ToObject());
+  WebCLMemory *mo_dst = ObjectWrap::Unwrap<WebCLMemory>(args[1]->ToObject());
+
+  // TODO: arg checking
+  cl::size_t<3> src_origin;
+  cl::size_t<3> dst_origin;
+  cl::size_t<3> region;
+
+  Local<Array> srcOriginArray = Array::Cast(*args[2]);
+  for (int i=0; i<3; i++) {
+    size_t s = srcOriginArray->Get(i)->NumberValue();
+    src_origin[i] = s;
+  }
+
+  Local<Array> dstOriginArray = Array::Cast(*args[3]);
+  for (int i=0; i<3; i++) {
+    size_t s = dstOriginArray->Get(i)->NumberValue();
+    dst_origin[i] = s;
+  }
+
+  Local<Array> regionArray = Array::Cast(*args[4]);
+  for (int i=0; i<3; i++) {
+    size_t s = regionArray->Get(i)->NumberValue();
+    region[i] = s;
+  }
+
+  VECTOR_CLASS<cl::Event> events;
+  Local<Array> eventWaitArray = Array::Cast(*args[5]);
+  for (int i=0; i<eventWaitArray->Length(); i++) {
+    Local<Object> obj = eventWaitArray->Get(i)->ToObject();
+    WebCLEvent *e = ObjectWrap::Unwrap<WebCLEvent>(obj);
+    events.push_back( *e->getEvent() );
+  }
+
+  cl::Event *event=new cl::Event();
+  cl_int ret=cq->getCommandQueue()->enqueueCopyImage(
+      *(cl::Image*)mo_src->getMemory(),
+      *(cl::Image*)mo_dst->getMemory(),
+      src_origin, dst_origin, region,
+      &events,
+      event);
+  if (ret != CL_SUCCESS) {
+    WEBCL_COND_RETURN_THROW(CL_INVALID_COMMAND_QUEUE);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_CONTEXT);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_MEM_OBJECT);
+    WEBCL_COND_RETURN_THROW(CL_IMAGE_FORMAT_MISMATCH);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_VALUE);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_EVENT_WAIT_LIST);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_IMAGE_SIZE);
+    WEBCL_COND_RETURN_THROW(CL_MEM_OBJECT_ALLOCATION_FAILURE);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_OPERATION);
+    WEBCL_COND_RETURN_THROW(CL_MEM_COPY_OVERLAP);
+    WEBCL_COND_RETURN_THROW(CL_OUT_OF_RESOURCES);
+    WEBCL_COND_RETURN_THROW(CL_OUT_OF_HOST_MEMORY);
+    return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+  }
+
+  return scope.Close(WebCLEvent::New(event)->handle_);
+}
+
+/* static */
+JS_METHOD(WebCLCommandQueue::enqueueCopyImageToBuffer)
+{
+  HandleScope scope;
+  WebCLCommandQueue *cq = ObjectWrap::Unwrap<WebCLCommandQueue>(args.This());
+  WebCLMemory *mo_src = ObjectWrap::Unwrap<WebCLMemory>(args[0]->ToObject());
+  WebCLMemory *mo_dst = ObjectWrap::Unwrap<WebCLMemory>(args[1]->ToObject());
+
+  // TODO: arg checking
+  cl::size_t<3> src_origin;
+  cl::size_t<3> region;
+
+  Local<Array> srcOriginArray = Array::Cast(*args[2]);
+  for (int i=0; i<3; i++) {
+    size_t s = srcOriginArray->Get(i)->NumberValue();
+    src_origin[i] = s;
+  }
+
+  Local<Array> regionArray = Array::Cast(*args[3]);
+  for (int i=0; i<3; i++) {
+    size_t s = regionArray->Get(i)->NumberValue();
+    region[i] = s;
+  }
+
+  ::size_t dst_offset = args[4]->NumberValue();
+
+  VECTOR_CLASS<cl::Event> events;
+  Local<Array> eventWaitArray = Array::Cast(*args[5]);
+  for (int i=0; i<eventWaitArray->Length(); i++) {
+    Local<Object> obj = eventWaitArray->Get(i)->ToObject();
+    WebCLEvent *e = ObjectWrap::Unwrap<WebCLEvent>(obj);
+    events.push_back( *e->getEvent() );
+  }
+
+  cl::Event *event=new cl::Event();
+  cl_int ret=cq->getCommandQueue()->enqueueCopyImageToBuffer(
+      *(cl::Image*) mo_src->getMemory(),
+      *(cl::Buffer*) mo_dst->getMemory(),
+      src_origin, region, dst_offset,
+      &events, event);
+  if (ret != CL_SUCCESS) {
+    WEBCL_COND_RETURN_THROW(CL_INVALID_COMMAND_QUEUE);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_CONTEXT);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_MEM_OBJECT);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_VALUE);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_EVENT_WAIT_LIST);
+    WEBCL_COND_RETURN_THROW(CL_MISALIGNED_SUB_BUFFER_OFFSET);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_IMAGE_SIZE);
+    WEBCL_COND_RETURN_THROW(CL_MEM_OBJECT_ALLOCATION_FAILURE);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_OPERATION);
+    WEBCL_COND_RETURN_THROW(CL_OUT_OF_RESOURCES);
+    WEBCL_COND_RETURN_THROW(CL_OUT_OF_HOST_MEMORY);
+    return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+  }
+
+  return scope.Close(WebCLEvent::New(event)->handle_);
+}
+
+/* static */
+JS_METHOD(WebCLCommandQueue::enqueueCopyBufferToImage)
+{
+  HandleScope scope;
+  WebCLCommandQueue *cq = ObjectWrap::Unwrap<WebCLCommandQueue>(args.This());
+  WebCLMemory *mo_src = ObjectWrap::Unwrap<WebCLMemory>(args[0]->ToObject());
+  WebCLMemory *mo_dst = ObjectWrap::Unwrap<WebCLMemory>(args[1]->ToObject());
+
+  // TODO: arg checking
+  cl::size_t<3> dst_origin;
+  cl::size_t<3> region;
+
+  ::size_t src_offset = args[2]->NumberValue();
+
+  Local<Array> dstOriginArray = Array::Cast(*args[3]);
+  for (int i=0; i<3; i++) {
+    size_t s = dstOriginArray->Get(i)->NumberValue();
+    dst_origin[i] = s;
+  }
+
+  Local<Array> regionArray = Array::Cast(*args[4]);
+  for (int i=0; i<3; i++) {
+    size_t s = regionArray->Get(i)->NumberValue();
+    region[i] = s;
+  }
+
+  VECTOR_CLASS<cl::Event> events;
+  Local<Array> eventWaitArray = Array::Cast(*args[5]);
+  for (int i=0; i<eventWaitArray->Length(); i++) {
+    Local<Object> obj = eventWaitArray->Get(i)->ToObject();
+    WebCLEvent *e = ObjectWrap::Unwrap<WebCLEvent>(obj);
+    events.push_back( *e->getEvent() );
+  }
+
+  cl::Event *event=new cl::Event();
+  cl_int ret=cq->getCommandQueue()->enqueueCopyBufferToImage(
+      *(cl::Buffer*)mo_src->getMemory(),
+      *(cl::Image*)mo_dst->getMemory(),
+      src_offset, dst_origin, region, &events,
+      event);
+  if (ret != CL_SUCCESS) {
+    WEBCL_COND_RETURN_THROW(CL_INVALID_COMMAND_QUEUE);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_CONTEXT);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_MEM_OBJECT);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_VALUE);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_EVENT_WAIT_LIST);
+    WEBCL_COND_RETURN_THROW(CL_MISALIGNED_SUB_BUFFER_OFFSET);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_IMAGE_SIZE);
+    WEBCL_COND_RETURN_THROW(CL_MEM_OBJECT_ALLOCATION_FAILURE);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_OPERATION);
+    WEBCL_COND_RETURN_THROW(CL_OUT_OF_RESOURCES);
+    WEBCL_COND_RETURN_THROW(CL_OUT_OF_HOST_MEMORY);
+    return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+  }
+
+  return scope.Close(WebCLEvent::New(event)->handle_);
+}
+
+/* static */
+JS_METHOD(WebCLCommandQueue::enqueueMapBuffer)
+{
+  HandleScope scope;
+  WebCLCommandQueue *cq = ObjectWrap::Unwrap<WebCLCommandQueue>(args.This());
+
+  // TODO: arg checking
+  WebCLMemory *mo = ObjectWrap::Unwrap<WebCLMemory>(args[0]->ToObject());
+  cl_bool blocking = args[1]->BooleanValue() ? CL_TRUE : CL_FALSE;
+  cl_map_flags flags = args[2]->Uint32Value();
+  ::size_t offset = args[3]->Uint32Value();
+  ::size_t size = args[4]->Uint32Value();
+
+  VECTOR_CLASS<cl::Event> *events=NULL;
+  Local<Array> eventWaitArray = Array::Cast(*args[5]);
+  if(!eventWaitArray->IsUndefined()) {
+    for (int i=0; i<eventWaitArray->Length(); i++) {
+      Local<Object> obj = eventWaitArray->Get(i)->ToObject();
+      WebCLEvent *e = ObjectWrap::Unwrap<WebCLEvent>(obj);
+      events->push_back( *e->getEvent() );
+    }
+  }
+  cl_int ret=CL_SUCCESS;
+  cl::Event *event=new cl::Event(); // TODO should we create an Event
+  void *result=cq->getCommandQueue()->enqueueMapBuffer(*(cl::Buffer*)mo->getMemory(),
+      blocking, flags,
+      offset, size, events,
+      event,&ret);
+  if(events) delete events;
+
+  _MappedRegion *mapped_region=new _MappedRegion();
+  mapped_region->buffer=node::Buffer::New((char*)result, size);
+  mapped_region->mapped_ptr=(ulong) result;
+  return scope.Close(WebCLMappedRegion::New(mapped_region)->handle_);
+}
+
+/* static */
+JS_METHOD(WebCLCommandQueue::enqueueMapImage)
+{
+  HandleScope scope;
+  WebCLCommandQueue *cq = ObjectWrap::Unwrap<WebCLCommandQueue>(args.This());
+
+  // TODO: arg checking
+  WebCLMemory *mo = ObjectWrap::Unwrap<WebCLMemory>(args[0]->ToObject());
+  cl_bool blocking = args[1]->BooleanValue() ? CL_TRUE : CL_FALSE;
+  cl_map_flags flags = args[2]->Uint32Value();
+
+  cl::size_t<3> origin;
+  cl::size_t<3> region;
+
+  Local<Array> originArray = Array::Cast(*args[3]);
+  for (int i=0; i<3; i++) {
+    ::size_t s = originArray->Get(i)->Uint32Value();
+    origin[i] = s;
+  }
+
+  Local<Array> regionArray = Array::Cast(*args[4]);
+  for (int i=0; i<3; i++) {
+    ::size_t s = regionArray->Get(i)->Uint32Value();
+    region[i] = s;
+  }
+
+  VECTOR_CLASS<cl::Event> events;
+  Local<Array> eventWaitArray = Array::Cast(*args[5]);
+  for (int i=0; i<eventWaitArray->Length(); i++) {
+    Local<Object> obj = eventWaitArray->Get(i)->ToObject();
+    WebCLEvent *e = ObjectWrap::Unwrap<WebCLEvent>(obj);
+    events.push_back( *e->getEvent() );
+  }
+
+  ::size_t row_pitch;
+  ::size_t slice_pitch;
+
+  cl::Event *event=0;
+  cl_int ret=CL_SUCCESS;
+  void *result=cq->getCommandQueue()->enqueueMapImage(*(cl::Image*)mo->getMemory(),
+      blocking,flags,
+      origin,region,
+      &row_pitch,&slice_pitch,&events,event,&ret);
+
+  // TODO: return image_row_pitch, image_slice_pitch?
+
+  size_t nbytes = region[0] * region[1] * region[2];
+  return scope.Close(node::Buffer::New((char*)result, nbytes)->handle_);
+}
+
+/* static */
+JS_METHOD(WebCLCommandQueue::enqueueUnmapMemObject)
+{
+  HandleScope scope;
+  WebCLCommandQueue *cq = ObjectWrap::Unwrap<WebCLCommandQueue>(args.This());
+
+  // TODO: arg checking
+  WebCLMemory *mo = ObjectWrap::Unwrap<WebCLMemory>(args[0]->ToObject());
+  WebCLMappedRegion *region = ObjectWrap::Unwrap<WebCLMappedRegion>(args[1]->ToObject());
+  void *mapped_ptr=(void*) region->getMappedRegion()->mapped_ptr;
+
+  VECTOR_CLASS<cl::Event> *events=NULL;
+  Local<Array> eventWaitArray = Array::Cast(*args[2]);
+  if(!eventWaitArray->IsUndefined()) {
+    for (int i=0; i<eventWaitArray->Length(); i++) {
+      Local<Object> obj = eventWaitArray->Get(i)->ToObject();
+      WebCLEvent *e = ObjectWrap::Unwrap<WebCLEvent>(obj);
+      events->push_back( *e->getEvent() );
+    }
+  }
+
+  // TODO should we create the Event or allow user to specify it?
+  cl::Event *event=new cl::Event();
+  cl_int ret=cq->getCommandQueue()->enqueueUnmapMemObject(*mo->getMemory(),mapped_ptr,events,event);
+  if(events) delete events;
+  if (ret != CL_SUCCESS) {
+    WEBCL_COND_RETURN_THROW(CL_INVALID_COMMAND_QUEUE);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_MEM_OBJECT);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_VALUE);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_CONTEXT);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_EVENT_WAIT_LIST);
+    WEBCL_COND_RETURN_THROW(CL_OUT_OF_RESOURCES);
+    WEBCL_COND_RETURN_THROW(CL_OUT_OF_HOST_MEMORY);
+    return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+  }
+
+  return scope.Close(WebCLEvent::New(event)->handle_);
+}
+
+/* static */
+JS_METHOD(WebCLCommandQueue::enqueueMarker)
+{
+  HandleScope scope;
+  WebCLCommandQueue *cq = ObjectWrap::Unwrap<WebCLCommandQueue>(args.This());
+
+  cl::Event *event=new cl::Event();
+  cl_int ret = cq->getCommandQueue()->enqueueMarker(event);
+
+  if (ret != CL_SUCCESS) {
+    WEBCL_COND_RETURN_THROW(CL_INVALID_COMMAND_QUEUE);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_VALUE);
+    WEBCL_COND_RETURN_THROW(CL_OUT_OF_RESOURCES);
+    WEBCL_COND_RETURN_THROW(CL_OUT_OF_HOST_MEMORY);
+    return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+  }
+
+  return scope.Close(WebCLEvent::New(event)->handle_);
+}
+
+/* static */
+JS_METHOD(WebCLCommandQueue::enqueueWaitForEvents)
+{
+  HandleScope scope;
+  WebCLCommandQueue *cq = ObjectWrap::Unwrap<WebCLCommandQueue>(args.This());
+
+  VECTOR_CLASS<cl::Event> event_wait_list;
+  Local<Array> eventWaitArray = Array::Cast(*args[0]);
+  for (int i=0; i<eventWaitArray->Length(); i++) {
+    Local<Object> obj = eventWaitArray->Get(i)->ToObject();
+    WebCLEvent *e = ObjectWrap::Unwrap<WebCLEvent>(obj);
+    event_wait_list.push_back( *e->getEvent() );
+  }
+
+  cl_int ret = cq->getCommandQueue()->enqueueWaitForEvents(event_wait_list);
+
+  if (ret != CL_SUCCESS) {
+    WEBCL_COND_RETURN_THROW(CL_INVALID_COMMAND_QUEUE);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_VALUE);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_CONTEXT);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_EVENT);
+    WEBCL_COND_RETURN_THROW(CL_OUT_OF_RESOURCES);
+    WEBCL_COND_RETURN_THROW(CL_OUT_OF_HOST_MEMORY);
+    return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+  }
+
+  return Undefined();
+}
+
+/* static */
+JS_METHOD(WebCLCommandQueue::enqueueBarrier)
+{
+  HandleScope scope;
+  WebCLCommandQueue *cq = ObjectWrap::Unwrap<WebCLCommandQueue>(args.This());
+  cl_int ret = cq->getCommandQueue()->enqueueBarrier();
+
+  if (ret != CL_SUCCESS) {
+    WEBCL_COND_RETURN_THROW(CL_INVALID_COMMAND_QUEUE);
+    WEBCL_COND_RETURN_THROW(CL_OUT_OF_RESOURCES);
+    WEBCL_COND_RETURN_THROW(CL_OUT_OF_HOST_MEMORY);
+    return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+  }
+
+  return Undefined();
+}
+
+/* static */
+JS_METHOD(WebCLCommandQueue::finish)
+{
+  HandleScope scope;
+  WebCLCommandQueue *cq = ObjectWrap::Unwrap<WebCLCommandQueue>(args.This());
+  cl_int ret = cq->getCommandQueue()->finish();
+
+  if (ret != CL_SUCCESS) {
+    WEBCL_COND_RETURN_THROW(CL_INVALID_COMMAND_QUEUE);
+    WEBCL_COND_RETURN_THROW(CL_OUT_OF_RESOURCES);
+    WEBCL_COND_RETURN_THROW(CL_OUT_OF_HOST_MEMORY);
+    return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+  }
+
+  return Undefined();
+}
+
+/* static */
+JS_METHOD(WebCLCommandQueue::flush)
+{
+  HandleScope scope;
+  WebCLCommandQueue *cq = ObjectWrap::Unwrap<WebCLCommandQueue>(args.This());
+  cl_int ret = cq->getCommandQueue()->flush();
+
+  if (ret != CL_SUCCESS) {
+    WEBCL_COND_RETURN_THROW(CL_INVALID_COMMAND_QUEUE);
+    WEBCL_COND_RETURN_THROW(CL_OUT_OF_RESOURCES);
+    WEBCL_COND_RETURN_THROW(CL_OUT_OF_HOST_MEMORY);
+    return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+  }
+
+  return Undefined();
+}
+
+/* static  */
+JS_METHOD(WebCLCommandQueue::New)
+{
+  HandleScope scope;
+  WebCLCommandQueue *cl = new WebCLCommandQueue(args.This());
+  cl->Wrap(args.This());
+  return scope.Close(args.This());
+}
+
+/* static  */
+WebCLCommandQueue *WebCLCommandQueue::New(cl::CommandQueue* cw)
+{
+
+  HandleScope scope;
+
+  Local<Value> arg = Integer::NewFromUnsigned(0);
+  Local<Object> obj = constructor_template->GetFunction()->NewInstance(1, &arg);
+
+  WebCLCommandQueue *commandqueue = ObjectWrap::Unwrap<WebCLCommandQueue>(obj);
+  commandqueue->command_queue = cw;
+
+  return commandqueue;
+}
