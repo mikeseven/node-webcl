@@ -27,6 +27,7 @@ public:
   static JS_METHOD(createProgramWithSource);
   static JS_METHOD(createCommandQueue);
   static JS_METHOD(createBuffer);
+  static JS_METHOD(createBufferGL);
   static JS_METHOD(createImage2D);
   static JS_METHOD(createImage3D);
   static JS_METHOD(createSampler);

@@ -157,6 +157,8 @@ JS_METHOD(WebCLProgram::getBuildInfo)
   }
 }
 
+static char STR_EMPTY[]="";
+
 JS_METHOD(WebCLProgram::build)
 {
   HandleScope scope;
@@ -168,18 +170,23 @@ JS_METHOD(WebCLProgram::build)
     ThrowException(Exception::Error(String::New("CL_INVALID_VALUE")));
 
   Local<Array> deviceArray = Array::Cast(*args[0]);
-  Local<Value> optionString = args[1];
   VECTOR_CLASS<cl::Device> devices;
   for (int i=0; i<deviceArray->Length(); i++) {
     Local<Object> obj = deviceArray->Get(i)->ToObject();
     WebCLDevice *d = ObjectWrap::Unwrap<WebCLDevice>(obj);
     devices.push_back( *d->getDevice() );
   }
-  Local<String> str = args[1]->ToString();
-  String::AsciiValue options(str);
+
+  char *options=STR_EMPTY;
+  if(!args[0]->IsUndefined()) {
+    Local<Value> optionString = args[1];
+    Local<String> str = args[1]->ToString();
+    String::AsciiValue _options(str);
+    options = *_options;
+  }
 
   cl_int ret = CL_SUCCESS;
-  prog->getProgram()->build(devices,*options,NULL,NULL);
+  prog->getProgram()->build(devices,options,NULL,NULL);
   if (ret != CL_SUCCESS) {
     WEBCL_COND_RETURN_THROW(CL_INVALID_PROGRAM);
     WEBCL_COND_RETURN_THROW(CL_INVALID_VALUE);
@@ -206,7 +213,7 @@ JS_METHOD(WebCLProgram::createKernel)
   String::AsciiValue astr(str);
 
   cl_int ret = CL_SUCCESS;
-  cl::Kernel *kw=new cl::Kernel(*prog->getProgram(),*astr,&ret);
+  cl::Kernel *kw=new cl::Kernel(*prog->getProgram(),(const char*) *astr,&ret);
 
   if (ret != CL_SUCCESS) {
     WEBCL_COND_RETURN_THROW(CL_INVALID_PROGRAM);

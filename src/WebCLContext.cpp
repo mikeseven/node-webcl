@@ -39,6 +39,7 @@ void WebCLContext::Init(Handle<Object> target)
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "createProgramWithSource", createProgramWithSource);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "createCommandQueue", createCommandQueue);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "createBuffer", createBuffer);
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "createBufferGL", createBufferGL);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "createImage2D", createImage2D);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "createImage3D", createImage3D);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "createSampler", createSampler);
@@ -165,6 +166,29 @@ JS_METHOD(WebCLContext::createBuffer)
 
   cl_int ret=CL_SUCCESS;
   cl::Memory *mw = new cl::Buffer(*context->getContext(),flags,size,host_ptr,&ret);
+
+  if (ret != CL_SUCCESS) {
+    WEBCL_COND_RETURN_THROW(CL_INVALID_VALUE);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_BUFFER_SIZE);
+    WEBCL_COND_RETURN_THROW(CL_INVALID_HOST_PTR);
+    WEBCL_COND_RETURN_THROW(CL_MEM_OBJECT_ALLOCATION_FAILURE);
+    WEBCL_COND_RETURN_THROW(CL_OUT_OF_RESOURCES);
+    WEBCL_COND_RETURN_THROW(CL_OUT_OF_HOST_MEMORY);
+    return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+  }
+
+  return scope.Close(WebCLMemory::New(mw)->handle_);
+}
+
+JS_METHOD(WebCLContext::createBufferGL)
+{
+  HandleScope scope;
+  WebCLContext *context = node::ObjectWrap::Unwrap<WebCLContext>(args.This());
+  cl_mem_flags flags = args[0]->Uint32Value();
+  GLuint bufobj=args[1]->Uint32Value(); // TODO use WebGLBuffer instead
+
+  cl_int ret=CL_SUCCESS;
+  cl::Memory *mw = new cl::BufferGL(*context->getContext(),flags,bufobj,&ret);
 
   if (ret != CL_SUCCESS) {
     WEBCL_COND_RETURN_THROW(CL_INVALID_VALUE);

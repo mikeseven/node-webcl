@@ -45,8 +45,7 @@ function VectorAdd() {
   devices = context.getInfo(WebCL.CL_CONTEXT_DEVICES);
 
   kernelSourceCode = [
-"__kernel void                                                               ",
-"vadd(__global int * a, __global int * b, __global int * c)                  ",
+"__kernel void vadd(__global int * a, __global int * b, __global int * c)     ",
 "{                                                                           ",
 "    size_t i =  get_global_id(0);                                           ",
 "                                                                            ",

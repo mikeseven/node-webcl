@@ -190,6 +190,13 @@ JS_METHOD(WebCLKernel::setArg)
 
   // TODO check types other than MEMORY_OBJECT
   switch (type) {
+  case -1: { // TODO is it true for all __local args?
+    cl_float arg = args[1]->NumberValue();
+    arg_value = NULL;
+    arg_size = sizeof(arg);
+    ret = kernelObject->getKernel()->setArg(arg_index, arg_size, arg_value);
+  }
+  break;
   case webcl::types::MEMORY_OBJECT: {
     cl_mem mem;
     if (args[1]->IsUint32()) {
