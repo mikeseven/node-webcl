@@ -24,6 +24,8 @@ void WebCLMappedRegion::Init(Handle<Object> target)
   constructor_template->InstanceTemplate()->SetInternalFieldCount(1);
   constructor_template->SetClassName(String::NewSymbol("MappedRegion"));
 
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "getBuffer", getBuffer);
+
   target->Set(String::NewSymbol("MappedRegion"), constructor_template->GetFunction());
 }
 
@@ -60,3 +62,10 @@ WebCLMappedRegion *WebCLMappedRegion::New(_MappedRegion* region)
   return mapped_region;
 }
 
+JS_METHOD(WebCLMappedRegion::getBuffer)
+{
+  HandleScope scope;
+  WebCLMappedRegion *region = node::ObjectWrap::Unwrap<WebCLMappedRegion>(args.This());
+
+  return scope.Close(region->getMappedRegion()->buffer->handle_);
+}

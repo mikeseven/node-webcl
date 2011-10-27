@@ -29,7 +29,7 @@ public:
   static WebCLMappedRegion *New(_MappedRegion* region);
   static JS_METHOD(New);
 
-  static JS_METHOD(getInfo);
+  static JS_METHOD(getBuffer);
 
   _MappedRegion *getMappedRegion() { return region; }
 

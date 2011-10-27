@@ -47,6 +47,6 @@
                   String::New("Argument " #I " must be a function")));  \
   Local<Function> VAR = Local<Function>::Cast(args[I]);
 
-#define WEBCL_COND_RETURN_THROW(error) if (ret == error) return ThrowException(Exception::Error(String::New(#error)));
+#define REQ_ERROR_THROW(error) if (ret == error) return ThrowException(Exception::Error(String::New(#error)));
 
 #endif

@@ -55,10 +55,10 @@ JS_METHOD(WebCLMemory::getInfo)
     cl_uint param_value=0;
     cl_int ret=mo->getMemory()->getInfo(param_name,&param_value);
     if (ret != CL_SUCCESS) {
-      WEBCL_COND_RETURN_THROW(CL_INVALID_VALUE);
-      WEBCL_COND_RETURN_THROW(CL_INVALID_MEM_OBJECT);
-      WEBCL_COND_RETURN_THROW(CL_OUT_OF_RESOURCES);
-      WEBCL_COND_RETURN_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(CL_INVALID_VALUE);
+      REQ_ERROR_THROW(CL_INVALID_MEM_OBJECT);
+      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
       return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
     }
 
@@ -69,10 +69,10 @@ JS_METHOD(WebCLMemory::getInfo)
     std:size_t param_value=0;
     cl_int ret=mo->getMemory()->getInfo(param_name,&param_value);
     if (ret != CL_SUCCESS) {
-      WEBCL_COND_RETURN_THROW(CL_INVALID_VALUE);
-      WEBCL_COND_RETURN_THROW(CL_INVALID_MEM_OBJECT);
-      WEBCL_COND_RETURN_THROW(CL_OUT_OF_RESOURCES);
-      WEBCL_COND_RETURN_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(CL_INVALID_VALUE);
+      REQ_ERROR_THROW(CL_INVALID_MEM_OBJECT);
+      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
       return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
     }
 
@@ -82,10 +82,10 @@ JS_METHOD(WebCLMemory::getInfo)
     cl::Memory *param_value=new cl::Memory();
     cl_int ret=mo->getMemory()->getInfo(param_name,param_value);
     if (ret != CL_SUCCESS) {
-      WEBCL_COND_RETURN_THROW(CL_INVALID_VALUE);
-      WEBCL_COND_RETURN_THROW(CL_INVALID_MEM_OBJECT);
-      WEBCL_COND_RETURN_THROW(CL_OUT_OF_RESOURCES);
-      WEBCL_COND_RETURN_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(CL_INVALID_VALUE);
+      REQ_ERROR_THROW(CL_INVALID_MEM_OBJECT);
+      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
       return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
     }
 
@@ -100,10 +100,10 @@ JS_METHOD(WebCLMemory::getInfo)
         param_value,
         &param_value_size_ret);
     if (ret != CL_SUCCESS) {
-      WEBCL_COND_RETURN_THROW(CL_INVALID_VALUE);
-      WEBCL_COND_RETURN_THROW(CL_INVALID_MEM_OBJECT);
-      WEBCL_COND_RETURN_THROW(CL_OUT_OF_RESOURCES);
-      WEBCL_COND_RETURN_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(CL_INVALID_VALUE);
+      REQ_ERROR_THROW(CL_INVALID_MEM_OBJECT);
+      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
       return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
     }
     size_t nbytes = *(size_t*)param_value;
@@ -131,10 +131,10 @@ JS_METHOD(WebCLMemory::getImageInfo)
     std::size_t param_value=0;
     cl_int ret=((cl::Image*) mo->getMemory())->getImageInfo(param_name,&param_value);
     if (ret != CL_SUCCESS) {
-      WEBCL_COND_RETURN_THROW(CL_INVALID_VALUE);
-      WEBCL_COND_RETURN_THROW(CL_INVALID_MEM_OBJECT);
-      WEBCL_COND_RETURN_THROW(CL_OUT_OF_RESOURCES);
-      WEBCL_COND_RETURN_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(CL_INVALID_VALUE);
+      REQ_ERROR_THROW(CL_INVALID_MEM_OBJECT);
+      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
       return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
     }
     return scope.Close(JS_INT(param_value));
@@ -143,10 +143,10 @@ JS_METHOD(WebCLMemory::getImageInfo)
     cl::ImageFormat param_value;
     cl_int ret=((cl::Image*) mo->getMemory())->getImageInfo(param_name,&param_value);
     if (ret != CL_SUCCESS) {
-      WEBCL_COND_RETURN_THROW(CL_INVALID_VALUE);
-      WEBCL_COND_RETURN_THROW(CL_INVALID_MEM_OBJECT);
-      WEBCL_COND_RETURN_THROW(CL_OUT_OF_RESOURCES);
-      WEBCL_COND_RETURN_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(CL_INVALID_VALUE);
+      REQ_ERROR_THROW(CL_INVALID_MEM_OBJECT);
+      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
       return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
     }
     cl_channel_order channel_order = param_value.image_channel_order;
@@ -180,12 +180,12 @@ JS_METHOD(WebCLMemory::createSubBuffer)
   cl_int ret=CL_SUCCESS;
   cl::Buffer sub_buffer=((cl::Buffer*) mo->getMemory())->createSubBuffer(flags,buffer_create_type,&region,&ret);
   if (ret != CL_SUCCESS) {
-    WEBCL_COND_RETURN_THROW(CL_INVALID_VALUE);
-    WEBCL_COND_RETURN_THROW(CL_INVALID_BUFFER_SIZE);
-    WEBCL_COND_RETURN_THROW(CL_INVALID_HOST_PTR);
-    WEBCL_COND_RETURN_THROW(CL_MEM_OBJECT_ALLOCATION_FAILURE);
-    WEBCL_COND_RETURN_THROW(CL_OUT_OF_RESOURCES);
-    WEBCL_COND_RETURN_THROW(CL_OUT_OF_HOST_MEMORY);
+    REQ_ERROR_THROW(CL_INVALID_VALUE);
+    REQ_ERROR_THROW(CL_INVALID_BUFFER_SIZE);
+    REQ_ERROR_THROW(CL_INVALID_HOST_PTR);
+    REQ_ERROR_THROW(CL_MEM_OBJECT_ALLOCATION_FAILURE);
+    REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
     return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
   }
 

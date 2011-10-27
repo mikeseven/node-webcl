@@ -45,10 +45,10 @@ function VectorAdd() {
   devices = context.getInfo(WebCL.CL_CONTEXT_DEVICES);
 
   kernelSourceCode = [
-"__kernel void vadd(__global int * a, __global int * b, __global int * c)     ",
+"__kernel void vadd(__global int * a, __global int * b, __global int * c, int iNumElements) ",
 "{                                                                           ",
 "    size_t i =  get_global_id(0);                                           ",
-"                                                                            ",
+"    if(i > iNumElements) return;                                            ",
 "    c[i] = a[i] + b[i];                                                     ",
 "}                                                                           "
 ].join("\n");
@@ -77,12 +77,13 @@ function VectorAdd() {
   kernel.setArg(0, aBuffer, WebCL.types.MEM);
   kernel.setArg(1, bBuffer, WebCL.types.MEM);
   kernel.setArg(2, cBuffer, WebCL.types.MEM);
+  kernel.setArg(3, BUFFER_SIZE, WebCL.types.UINT);
 
   //Create command queue
   queue=context.createCommandQueue(devices[0], 0);
 
   // Init ND-range
-  var localWS = [6];
+  var localWS = [20];
   var globalWS = [Math.ceil (BUFFER_SIZE / localWS) * localWS];
 
   log("Global work item size: " + globalWS);

@@ -21,8 +21,7 @@ __kernel void mono(__global const uchar3* src,
   int i = y * width + x;
 
   uchar3 color = src[i];
-  //uchar lum = (uchar)(0.30f * color.x + 0.59f * color.y + 0.11f * color.z);
-  uchar lum = (uchar) ((color.x + color.y + color.z)/3);
+  uchar lum = (uchar)(0.30f * color.x + 0.59f * color.y + 0.11f * color.z);
   dst[i] = (uchar3)(lum, lum, lum);
 }
         

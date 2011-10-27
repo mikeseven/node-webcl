@@ -59,10 +59,10 @@ JS_METHOD(WebCLProgram::getInfo)
     cl_uint value=0;
     cl_int ret=prog->getProgram()->getInfo(param_name, &value);
     if (ret != CL_SUCCESS) {
-      WEBCL_COND_RETURN_THROW(CL_INVALID_VALUE);
-      WEBCL_COND_RETURN_THROW(CL_INVALID_PROGRAM);
-      WEBCL_COND_RETURN_THROW(CL_OUT_OF_RESOURCES);
-      WEBCL_COND_RETURN_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(CL_INVALID_VALUE);
+      REQ_ERROR_THROW(CL_INVALID_PROGRAM);
+      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
       return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
     }
     return scope.Close(Integer::NewFromUnsigned(value));
@@ -71,10 +71,10 @@ JS_METHOD(WebCLProgram::getInfo)
     cl::Context value;;
     cl_int ret=prog->getProgram()->getInfo(param_name, &value);
     if (ret != CL_SUCCESS) {
-      WEBCL_COND_RETURN_THROW(CL_INVALID_VALUE);
-      WEBCL_COND_RETURN_THROW(CL_INVALID_PROGRAM);
-      WEBCL_COND_RETURN_THROW(CL_OUT_OF_RESOURCES);
-      WEBCL_COND_RETURN_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(CL_INVALID_VALUE);
+      REQ_ERROR_THROW(CL_INVALID_PROGRAM);
+      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
       return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
     }
     cl::Context *cw = new cl::Context(value);
@@ -84,10 +84,10 @@ JS_METHOD(WebCLProgram::getInfo)
     VECTOR_CLASS<cl_device_id> devices;
     cl_int ret=prog->getProgram()->getInfo(param_name, &devices);
     if (ret != CL_SUCCESS) {
-      WEBCL_COND_RETURN_THROW(CL_INVALID_VALUE);
-      WEBCL_COND_RETURN_THROW(CL_INVALID_PROGRAM);
-      WEBCL_COND_RETURN_THROW(CL_OUT_OF_RESOURCES);
-      WEBCL_COND_RETURN_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(CL_INVALID_VALUE);
+      REQ_ERROR_THROW(CL_INVALID_PROGRAM);
+      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
       return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
     }
     std::size_t num_devices=devices.size();
@@ -103,10 +103,10 @@ JS_METHOD(WebCLProgram::getInfo)
     STRING_CLASS source;
     cl_int ret=prog->getProgram()->getInfo(param_name, &source);
     if (ret != CL_SUCCESS) {
-      WEBCL_COND_RETURN_THROW(CL_INVALID_VALUE);
-      WEBCL_COND_RETURN_THROW(CL_INVALID_PROGRAM);
-      WEBCL_COND_RETURN_THROW(CL_OUT_OF_RESOURCES);
-      WEBCL_COND_RETURN_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(CL_INVALID_VALUE);
+      REQ_ERROR_THROW(CL_INVALID_PROGRAM);
+      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
       return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
     }
     return scope.Close(String::New(source.c_str(),source.length()));
@@ -132,11 +132,11 @@ JS_METHOD(WebCLProgram::getBuildInfo)
     cl_build_status param_value;
     cl_int ret=prog->getProgram()->getBuildInfo(*(dev->getDevice()), param_name, &param_value);
     if (ret != CL_SUCCESS) {
-      WEBCL_COND_RETURN_THROW(CL_INVALID_DEVICE);
-      WEBCL_COND_RETURN_THROW(CL_INVALID_VALUE);
-      WEBCL_COND_RETURN_THROW(CL_INVALID_PROGRAM);
-      WEBCL_COND_RETURN_THROW(CL_OUT_OF_RESOURCES);
-      WEBCL_COND_RETURN_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(CL_INVALID_DEVICE);
+      REQ_ERROR_THROW(CL_INVALID_VALUE);
+      REQ_ERROR_THROW(CL_INVALID_PROGRAM);
+      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
       return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
     }
     return scope.Close(Integer::NewFromUnsigned(param_value));
@@ -145,11 +145,11 @@ JS_METHOD(WebCLProgram::getBuildInfo)
     STRING_CLASS param_value;
     cl_int ret=prog->getProgram()->getBuildInfo(*(dev->getDevice()), param_name, &param_value);
     if (ret != CL_SUCCESS) {
-      WEBCL_COND_RETURN_THROW(CL_INVALID_DEVICE);
-      WEBCL_COND_RETURN_THROW(CL_INVALID_VALUE);
-      WEBCL_COND_RETURN_THROW(CL_INVALID_PROGRAM);
-      WEBCL_COND_RETURN_THROW(CL_OUT_OF_RESOURCES);
-      WEBCL_COND_RETURN_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(CL_INVALID_DEVICE);
+      REQ_ERROR_THROW(CL_INVALID_VALUE);
+      REQ_ERROR_THROW(CL_INVALID_PROGRAM);
+      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
       return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
     }
     return scope.Close(JS_STR(param_value.c_str(),param_value.length()));
@@ -188,16 +188,16 @@ JS_METHOD(WebCLProgram::build)
   cl_int ret = CL_SUCCESS;
   prog->getProgram()->build(devices,options,NULL,NULL);
   if (ret != CL_SUCCESS) {
-    WEBCL_COND_RETURN_THROW(CL_INVALID_PROGRAM);
-    WEBCL_COND_RETURN_THROW(CL_INVALID_VALUE);
-    WEBCL_COND_RETURN_THROW(CL_INVALID_DEVICE);
-    WEBCL_COND_RETURN_THROW(CL_INVALID_BINARY);
-    WEBCL_COND_RETURN_THROW(CL_INVALID_BUILD_OPTIONS);
-    WEBCL_COND_RETURN_THROW(CL_INVALID_OPERATION);
-    WEBCL_COND_RETURN_THROW(CL_COMPILER_NOT_AVAILABLE);
-    WEBCL_COND_RETURN_THROW(CL_BUILD_PROGRAM_FAILURE);
-    WEBCL_COND_RETURN_THROW(CL_OUT_OF_RESOURCES);
-    WEBCL_COND_RETURN_THROW(CL_OUT_OF_HOST_MEMORY);
+    REQ_ERROR_THROW(CL_INVALID_PROGRAM);
+    REQ_ERROR_THROW(CL_INVALID_VALUE);
+    REQ_ERROR_THROW(CL_INVALID_DEVICE);
+    REQ_ERROR_THROW(CL_INVALID_BINARY);
+    REQ_ERROR_THROW(CL_INVALID_BUILD_OPTIONS);
+    REQ_ERROR_THROW(CL_INVALID_OPERATION);
+    REQ_ERROR_THROW(CL_COMPILER_NOT_AVAILABLE);
+    REQ_ERROR_THROW(CL_BUILD_PROGRAM_FAILURE);
+    REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
     return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
   }
 
@@ -216,13 +216,13 @@ JS_METHOD(WebCLProgram::createKernel)
   cl::Kernel *kw=new cl::Kernel(*prog->getProgram(),(const char*) *astr,&ret);
 
   if (ret != CL_SUCCESS) {
-    WEBCL_COND_RETURN_THROW(CL_INVALID_PROGRAM);
-    WEBCL_COND_RETURN_THROW(CL_INVALID_PROGRAM_EXECUTABLE);
-    WEBCL_COND_RETURN_THROW(CL_INVALID_KERNEL_NAME);
-    WEBCL_COND_RETURN_THROW(CL_INVALID_KERNEL_DEFINITION);
-    WEBCL_COND_RETURN_THROW(CL_INVALID_VALUE);
-    WEBCL_COND_RETURN_THROW(CL_OUT_OF_RESOURCES);
-    WEBCL_COND_RETURN_THROW(CL_OUT_OF_HOST_MEMORY);
+    REQ_ERROR_THROW(CL_INVALID_PROGRAM);
+    REQ_ERROR_THROW(CL_INVALID_PROGRAM_EXECUTABLE);
+    REQ_ERROR_THROW(CL_INVALID_KERNEL_NAME);
+    REQ_ERROR_THROW(CL_INVALID_KERNEL_DEFINITION);
+    REQ_ERROR_THROW(CL_INVALID_VALUE);
+    REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
     return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
   }
 
@@ -244,10 +244,10 @@ JS_METHOD(WebCLProgram::New)
   cl_int ret = CL_SUCCESS;
   cl::Program *pw = new cl::Program(*context->getContext(),sources,&ret);
   if (ret != CL_SUCCESS) {
-    WEBCL_COND_RETURN_THROW(CL_INVALID_CONTEXT);
-    WEBCL_COND_RETURN_THROW(CL_INVALID_VALUE);
-    WEBCL_COND_RETURN_THROW(CL_OUT_OF_RESOURCES);
-    WEBCL_COND_RETURN_THROW(CL_OUT_OF_HOST_MEMORY);
+    REQ_ERROR_THROW(CL_INVALID_CONTEXT);
+    REQ_ERROR_THROW(CL_INVALID_VALUE);
+    REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
     return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
   }
 

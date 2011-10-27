@@ -54,10 +54,10 @@ JS_METHOD(WebCLSampler::getInfo)
     cl_uint param_value=0;
     cl_int ret=sampler->getSampler()->getInfo(param_name,&param_value);
     if (ret != CL_SUCCESS) {
-      WEBCL_COND_RETURN_THROW(CL_INVALID_VALUE);
-      WEBCL_COND_RETURN_THROW(CL_INVALID_SAMPLER);
-      WEBCL_COND_RETURN_THROW(CL_OUT_OF_RESOURCES);
-      WEBCL_COND_RETURN_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(CL_INVALID_VALUE);
+      REQ_ERROR_THROW(CL_INVALID_SAMPLER);
+      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
       return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
     }
     return scope.Close(Integer::NewFromUnsigned(param_value));
@@ -66,10 +66,10 @@ JS_METHOD(WebCLSampler::getInfo)
     cl_context param_value=0;
     cl_int ret=sampler->getSampler()->getInfo(param_name,&param_value);
     if (ret != CL_SUCCESS) {
-      WEBCL_COND_RETURN_THROW(CL_INVALID_VALUE);
-      WEBCL_COND_RETURN_THROW(CL_INVALID_SAMPLER);
-      WEBCL_COND_RETURN_THROW(CL_OUT_OF_RESOURCES);
-      WEBCL_COND_RETURN_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(CL_INVALID_VALUE);
+      REQ_ERROR_THROW(CL_INVALID_SAMPLER);
+      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
       return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
     }
     cl::Context *cw = new cl::Context(param_value);
