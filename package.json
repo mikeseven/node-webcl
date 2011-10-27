@@ -1,0 +1,40 @@
+{
+   "name": "node-webcl",
+   "version": "0.1.0",
+   "description": "A WebCL implementation for desktops with NodeJS",
+   "main": "lib/webcl.js",
+   "author": "Mikael Bourges-Sevenier <msevenier@motorola.com>",
+   "keywords": [ "webcl", "opencl" ],
+   "maintainers": [
+       {
+           "name": "Mikael Bourges-Sevenier",
+           "email": "msevenier@motorola.com",
+           "web": "http://www.motorola.com",
+           "twitter": "msevenier"
+       }
+   ],
+   "licenses": [
+       {
+           "type": "Commercial Motorola"
+       }
+   ],
+   "repositories": [
+       {
+           "type": "git",
+           "url": "https://mikeseven@github.com/Motorola-Mobility/node-webgl.git" 
+       } 
+   ],
+   "directories": {
+       "src": "src",
+       "lib": "lib",
+       "docs": "docs"
+       "examples": "examples"
+   },
+   "engines": {
+       "node": ">=0.5.5"
+   },
+   "scripts": {
+       "install": "node-waf configure clean build"
+   }
+}
+
