@@ -157,16 +157,12 @@ JS_METHOD(WebCLProgram::getBuildInfo)
   }
 }
 
-static char STR_EMPTY[]="";
-
 JS_METHOD(WebCLProgram::build)
 {
   HandleScope scope;
   WebCLProgram *prog = node::ObjectWrap::Unwrap<WebCLProgram>(args.This());
 
   if (!args[0]->IsArray())
-    ThrowException(Exception::Error(String::New("CL_INVALID_VALUE")));
-  if (!args[1]->IsString())
     ThrowException(Exception::Error(String::New("CL_INVALID_VALUE")));
 
   Local<Array> deviceArray = Array::Cast(*args[0]);
@@ -177,16 +173,17 @@ JS_METHOD(WebCLProgram::build)
     devices.push_back( *d->getDevice() );
   }
 
-  char *options=STR_EMPTY;
-  if(!args[0]->IsUndefined()) {
-    Local<Value> optionString = args[1];
+  char *options=NULL;
+  if(!args[1]->IsUndefined() && args[1]->IsString()) {
     Local<String> str = args[1]->ToString();
     String::AsciiValue _options(str);
-    options = *_options;
+    options = strdup(*_options);
   }
 
   cl_int ret = CL_SUCCESS;
   prog->getProgram()->build(devices,options,NULL,NULL);
+  if(options) free(options);
+
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(CL_INVALID_PROGRAM);
     REQ_ERROR_THROW(CL_INVALID_VALUE);
@@ -207,7 +204,7 @@ JS_METHOD(WebCLProgram::build)
 JS_METHOD(WebCLProgram::createKernel)
 {
   HandleScope scope;
-  WebCLProgram *prog = node::ObjectWrap::Unwrap<WebCLProgram>(args.This());
+  WebCLProgram *prog = UnwrapThis<WebCLProgram>(args);
 
   Local<String> str = args[0]->ToString();
   String::AsciiValue astr(str);
@@ -233,7 +230,7 @@ JS_METHOD(WebCLProgram::createKernel)
 JS_METHOD(WebCLProgram::New)
 {
   HandleScope scope;
-  WebCLContext *context = ObjectWrap::Unwrap<WebCLContext>(args[0]->ToObject());
+  /*WebCLContext *context = ObjectWrap::Unwrap<WebCLContext>(args[0]->ToObject());
 
   Local<String> str = args[1]->ToString();
   String::AsciiValue astr(str);
@@ -249,10 +246,10 @@ JS_METHOD(WebCLProgram::New)
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
     return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
-  }
+  }*/
 
   WebCLProgram *cl = new WebCLProgram(args.This());
-  cl->program=pw;
+  //cl->program=pw;
   cl->Wrap(args.This());
   return scope.Close(args.This());
 }
@@ -260,7 +257,6 @@ JS_METHOD(WebCLProgram::New)
 /* static  */
 WebCLProgram *WebCLProgram::New(cl::Program* pw)
 {
-
   HandleScope scope;
 
   Local<Value> arg = Integer::NewFromUnsigned(0);

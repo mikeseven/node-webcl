@@ -30,7 +30,7 @@ var file = __dirname+'/mike_scooter.jpg';
 log('Loading image '+file);
 var img=Image.load(file);
 image=img.convertTo32Bits();
-img.unload();
+//img.unload();
 log('Image '+file+': \n'+util.inspect(image));
 
 image.size = image.height*image.pitch;
@@ -40,29 +40,31 @@ image.unload();
 
 function ImageFilter(image) {
   var out=new Uint8Array(image.size);
+  for(var i=0;i<image.size;i++)
+    out[i]=0;
 
   //Pick platform
   var platformList=WebCL.getPlatformIDs();
   platform=platformList[0];
 
   //Pick first platform
-  context=new WebCL.WebCLContext(WebCL.CL_DEVICE_TYPE_GPU, [WebCL.CL_CONTEXT_PLATFORM, platform]);
+  context=WebCL.createContextFromType(WebCL.CL_DEVICE_TYPE_GPU, [WebCL.CL_CONTEXT_PLATFORM, platform]);
 
   //Query the set of devices attached to the context
   devices = context.getInfo(WebCL.CL_CONTEXT_DEVICES);
   
-  kernelSourceCode = fs.readFileSync(__dirname+'/swapRB.cl');
+  kernelSourceCode = fs.readFileSync(__dirname+'/swapRB.cl','ascii');
   
   //Create and program from source
-  program=new WebCL.WebCLProgram(context, kernelSourceCode);
-
+  program=context.createProgram(kernelSourceCode);
+  
   //Build program
-  program.build(devices,"");
+  program.build(devices);
 
   // create device buffers
   try {
-    inputBuffer = context.createBuffer(WebCL.CL_MEM_READ_ONLY,image.size);
-    outputBuffer = context.createBuffer(WebCL.CL_MEM_WRITE_ONLY, image.size);
+    cmPinnedBufIn = context.createBuffer(WebCL.CL_MEM_READ_ONLY | WebCL.CL_MEM_ALLOC_HOST_PTR,image.size);
+    cmPinnedBufOut = context.createBuffer(WebCL.CL_MEM_WRITE_ONLY | WebCL.CL_MEM_ALLOC_HOST_PTR, image.size);
     //coefs_ver = context.createBuffer(WebCL.CL_MEM_READ_ONLY,  COEFS_SIZE);
     //coefs_hor = context.createBuffer(WebCL.CL_MEM_READ_ONLY,  COEFS_SIZE);
   }
@@ -80,8 +82,8 @@ function ImageFilter(image) {
   }
 
   // Set the arguments to our compute kernel
-  kernel.setArg(0, inputBuffer, WebCL.types.MEM);
-  kernel.setArg(1, outputBuffer, WebCL.types.MEM);
+  kernel.setArg(0, cmPinnedBufIn, WebCL.types.MEM);
+  kernel.setArg(1, cmPinnedBufOut, WebCL.types.MEM);
   kernel.setArg(2, image.width, WebCL.types.UINT);
   kernel.setArg(3, image.height, WebCL.types.UINT);
 
@@ -103,9 +105,9 @@ function ImageFilter(image) {
       localWS);
   
 
-  // Write our data set into the input array in device memory 
-  queue.enqueueWriteBuffer(inputBuffer, false, 0, image.size, image.buffer, []);
-  queue.enqueueReadBuffer(outputBuffer, false, 0, out.length, out, [] );
+  // Write our data set into the input array in device memory asynchronously
+  queue.enqueueWriteBuffer(cmPinnedBufIn, false, 0, image.size, image.buffer, []);
+  queue.enqueueReadBuffer(cmPinnedBufOut, false, 0, out.length, out, [] );
   /*output=queue.enqueueMapBuffer(
       outputBuffer,
       WebCL.CL_TRUE, // block 
@@ -121,6 +123,7 @@ function ImageFilter(image) {
   
   queue.finish (); //Finish all the operations
   
+  // PNG uses 32-bit images, JPG can only work on 24-bit images
   if(!Image.save('out.png',out, image.width,image.height, image.pitch, image.bpp, 0xFF0000, 0xFF00, 0xFF))
     log("Error saving image");
 }

@@ -39,9 +39,9 @@ function VectorAdd() {
 
 
   //Pick first platform
-  context=new WebCL.WebCLContext(WebCL.CL_DEVICE_TYPE_GPU, [WebCL.CL_CONTEXT_PLATFORM, platform]);
+  context=WebCL.createContextFromType(WebCL.CL_DEVICE_TYPE_GPU, [WebCL.CL_CONTEXT_PLATFORM, platform]);
 
-  //Query the set of devices attched to the context
+  //Query the set of devices attached to the context
   devices = context.getInfo(WebCL.CL_CONTEXT_DEVICES);
 
   kernelSourceCode = [
@@ -54,7 +54,7 @@ function VectorAdd() {
 ].join("\n");
 
   //Create and program from source
-  program=new WebCL.WebCLProgram(context, kernelSourceCode);
+  program=context.createProgram(kernelSourceCode);
 
   //Build program
   program.build(devices,"");
@@ -71,8 +71,13 @@ function VectorAdd() {
   cBuffer = context.createBuffer(WebCL.CL_MEM_WRITE_ONLY, size);
 
   //Create kernel object
-  kernel= program.createKernel("vadd");
-
+  try {
+    kernel= program.createKernel("vadd");
+  }
+  catch(err) {
+    console.log(program.getBuildInfo(devices[0],WebCL.CL_PROGRAM_BUILD_LOG));
+  }
+  
   //Set kernel args
   kernel.setArg(0, aBuffer, WebCL.types.MEM);
   kernel.setArg(1, bBuffer, WebCL.types.MEM);

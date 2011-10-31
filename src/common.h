@@ -47,6 +47,11 @@
                   String::New("Argument " #I " must be a function")));  \
   Local<Function> VAR = Local<Function>::Cast(args[I]);
 
+template <typename T>
+static T* UnwrapThis(const v8::Arguments& args) {
+  return node::ObjectWrap::Unwrap<T>(args.This());
+}
+
 #define REQ_ERROR_THROW(error) if (ret == error) return ThrowException(Exception::Error(String::New(#error)));
 
 #endif

@@ -6,6 +6,7 @@
 */
 
 #include "WebCLMemory.h"
+#include <node_buffer.h>
 
 using namespace v8;
 using namespace webcl;
@@ -91,14 +92,12 @@ JS_METHOD(WebCLMemory::getInfo)
 
     return scope.Close(WebCLMemory::New(param_value)->handle_);
   }
-  /* TODO case CL_MEM_HOST_PTR: {
-    char *ptr = *((char**)param_value);
+  case CL_MEM_HOST_PTR: {
+    char *param_value=NULL;
     param_name = CL_MEM_SIZE;
-    ret = MemoryObjectWrapper::memoryObjectInfoHelper(mo->getMemoryObject(),
+    cl_int ret = mo->getMemory()->getInfo(
         param_name,
-        sizeof(param_value),
-        param_value,
-        &param_value_size_ret);
+        &param_value);
     if (ret != CL_SUCCESS) {
       REQ_ERROR_THROW(CL_INVALID_VALUE);
       REQ_ERROR_THROW(CL_INVALID_MEM_OBJECT);
@@ -107,8 +106,8 @@ JS_METHOD(WebCLMemory::getInfo)
       return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
     }
     size_t nbytes = *(size_t*)param_value;
-    return scope.Close(node::Buffer::New(ptr, nbytes)->handle_);
-  }*/
+    return scope.Close(node::Buffer::New(param_value, nbytes)->handle_);
+  }
   default:
     return ThrowException(Exception::Error(String::New("UNKNOWN param_name")));
   }

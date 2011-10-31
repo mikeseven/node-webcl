@@ -113,10 +113,11 @@ JS_METHOD(WebCL::createContext) {
 /*static*/
 JS_METHOD(WebCL::createContextFromType) {
   HandleScope scope;
-  if (!args[0]->IsArray())
+  /*if (!args[0]->IsArray())
     ThrowException(Exception::Error(String::New("CL_INVALID_VALUE")));
 
-  Local<Array> propertiesArray = Array::Cast(*args[0]);
+  cl_device_type device_type = args[0]->Uint32Value();
+  Local<Array> propertiesArray = Array::Cast(*args[1]);
   cl_context_properties *properties = new cl_context_properties[propertiesArray->Length()+1];
   for (int i=0; i<propertiesArray->Length(); i+=2) {
     Local<Object> obj = propertiesArray->Get(i+1)->ToObject();
@@ -125,10 +126,30 @@ JS_METHOD(WebCL::createContextFromType) {
     properties[i]=propertiesArray->Get(i)->NumberValue();
   }
 
-  cl_device_type device_type = args[1]->Uint32Value();
   cl_int ret=CL_SUCCESS;
   cl::Context *cw=new cl::Context(device_type,properties,NULL,NULL,&ret);
-  delete[] properties;
+  delete[] properties;*/
+  if (!args[1]->IsArray()) {
+    ThrowException(Exception::Error(String::New("CL_INVALID_VALUE")));
+  }
+
+  cl_device_type device_type = args[0]->Uint32Value();
+
+  Local<Array> propertiesArray = Array::Cast(*args[1]);
+  int num=propertiesArray->Length();
+  cl_context_properties *properties=new cl_context_properties[num+1];
+  for (int i=0; i<num; i+=2) {
+
+    properties[i]=propertiesArray->Get(i)->Uint32Value();
+
+    Local<Object> obj = propertiesArray->Get(i+1)->ToObject();
+    WebCLPlatform *platform = ObjectWrap::Unwrap<WebCLPlatform>(obj);
+    properties[i+1]=(cl_context_properties) platform->getPlatform()->operator ()();
+  }
+  properties[num]=0;
+
+  cl_int ret=CL_SUCCESS;
+  cl::Context *cw = new cl::Context(device_type,properties,NULL,NULL,&ret);
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(CL_INVALID_PLATFORM);
     REQ_ERROR_THROW(CL_INVALID_PROPERTY);

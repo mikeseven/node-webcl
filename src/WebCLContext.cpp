@@ -13,6 +13,7 @@
 #include "WebCLEvent.h"
 #include "WebCLSampler.h"
 #include "WebCLPlatform.h"
+#include <node_buffer.h>
 
 #include <iostream>
 using namespace std;
@@ -36,7 +37,7 @@ void WebCLContext::Init(Handle<Object> target)
   constructor_template->SetClassName(String::NewSymbol("WebCLContext"));
 
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "getInfo", getInfo);
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "createProgramWithSource", createProgramWithSource);
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "createProgram", createProgram);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "createCommandQueue", createCommandQueue);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "createBuffer", createBuffer);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "createBufferGL", createBufferGL);
@@ -107,28 +108,69 @@ JS_METHOD(WebCLContext::getInfo)
   }
 }
 
-// TODO change to createProgram(String) and createProgram(Buffer)
-JS_METHOD(WebCLContext::createProgramWithSource)
+JS_METHOD(WebCLContext::createProgram)
 {
   HandleScope scope;
-  WebCLContext *context = node::ObjectWrap::Unwrap<WebCLContext>(args.This());
-  Local<String> str = args[0]->ToString();
-  String::AsciiValue astr(str);
-  cl::Program::Sources sources;
-  std::pair<const char*, ::size_t> source((*astr),astr.length());
-  sources.push_back(source);
-
+  WebCLContext *context = UnwrapThis<WebCLContext>(args);
+  cl::Program *pw=NULL;
   cl_int ret = CL_SUCCESS;
-  cl::Program *pw=new cl::Program(*context->getContext(),sources,&ret);
-  if (ret != CL_SUCCESS) {
-    REQ_ERROR_THROW(CL_INVALID_CONTEXT);
-    REQ_ERROR_THROW(CL_INVALID_VALUE);
-    REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+
+  // either we pass a code (string) or binary buffers
+  if(args[0]->IsString()) {
+    Local<String> str = args[0]->ToString();
+    String::AsciiValue astr(str);
+    cl::Program::Sources sources;
+    std::pair<const char*, ::size_t> source((*astr),astr.length());
+    sources.push_back(source);
+
+    pw=new cl::Program(*context->getContext(),sources,&ret);
+
+    if (ret != CL_SUCCESS) {
+      REQ_ERROR_THROW(CL_INVALID_CONTEXT);
+      REQ_ERROR_THROW(CL_INVALID_VALUE);
+      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+    }
+    return scope.Close(WebCLProgram::New(pw)->handle_);
+  }
+  else if(args[0]->IsArray()){
+    Local<Array> devArray = Array::Cast(*args[0]);
+    uint32_t num=devArray->Length();
+    VECTOR_CLASS<Device> devices;
+
+    for (int i=0; i<num; i++) {
+      WebCLDevice *device = ObjectWrap::Unwrap<WebCLDevice>(devArray->Get(i)->ToObject());
+      devices.push_back(*device->getDevice());
+    }
+
+    Local<Array> binArray = Array::Cast(*args[1]);
+    num=binArray->Length();
+    cl::Program::Binaries binaries;
+
+    for(int i=0;i<num;i++) {
+      void *ptr = binArray->Get(i)->ToObject()->GetIndexedPropertiesExternalArrayData();
+      std::pair<void*, ::size_t> binary(ptr,binArray->Get(i)->ToObject()->GetIndexedPropertiesExternalArrayDataLength());
+      binaries.push_back(binary);
+    }
+
+    VECTOR_CLASS<cl_int> binaryStatus(devArray->Length());
+    pw=new cl::Program(*context->getContext(),devices,binaries,&binaryStatus,&ret);
+    if (ret != CL_SUCCESS) {
+      REQ_ERROR_THROW(CL_INVALID_CONTEXT);
+      REQ_ERROR_THROW(CL_INVALID_VALUE);
+      REQ_ERROR_THROW(CL_INVALID_DEVICE);
+      REQ_ERROR_THROW(CL_INVALID_BINARY);
+      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+    }
+
+    // TODO should we return binaryStatus?
+    return scope.Close(WebCLProgram::New(pw)->handle_);
   }
 
-  return scope.Close(WebCLProgram::New(pw)->handle_);
+  return Undefined();
 }
 
 /* static */
@@ -162,7 +204,9 @@ JS_METHOD(WebCLContext::createBuffer)
   WebCLContext *context = node::ObjectWrap::Unwrap<WebCLContext>(args.This());
   cl_mem_flags flags = args[0]->Uint32Value();
   ::size_t size = args[1]->Uint32Value();
-  void *host_ptr=0; //node::ObjectWrap::Unwrap<CLContext>(args[0]->ToObject()); // TODO what is this host_ptr? a TypedArray?
+  void *host_ptr = NULL;
+  if(!args[2]->IsUndefined())
+    host_ptr=args[2]->ToObject()->GetIndexedPropertiesExternalArrayData();
 
   cl_int ret=CL_SUCCESS;
   cl::Memory *mw = new cl::Buffer(*context->getContext(),flags,size,host_ptr,&ret);
@@ -342,7 +386,7 @@ JS_METHOD(WebCLContext::createUserEvent)
 JS_METHOD(WebCLContext::New)
 {
   HandleScope scope;
-  if (!args[1]->IsArray()) {
+  /*if (!args[1]->IsArray()) {
     ThrowException(Exception::Error(String::New("CL_INVALID_VALUE")));
   }
 
@@ -374,10 +418,10 @@ JS_METHOD(WebCLContext::New)
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
     return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
-  }
+  }*/
 
   WebCLContext *cl = new WebCLContext(args.This());
-  cl->context=cw;
+  //cl->context=cw;
   cl->Wrap(args.This());
   return scope.Close(args.This());
 }
