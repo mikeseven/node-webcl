@@ -84,8 +84,8 @@ function ImageFilter(image) {
   // Set the arguments to our compute kernel
   kernel.setArg(0, cmPinnedBufIn, WebCL.types.MEM);
   kernel.setArg(1, cmPinnedBufOut, WebCL.types.MEM);
-  kernel.setArg(2, image.width, WebCL.types.UINT);
-  kernel.setArg(3, image.height, WebCL.types.UINT);
+  kernel.setArg(2, image.width, WebCL.types.INT | WebCL.types.UNSIGNED);
+  kernel.setArg(3, image.height, WebCL.types.INT | WebCL.types.UNSIGNED);
 
   //Create command queue
   queue=context.createCommandQueue(devices[0], 0);

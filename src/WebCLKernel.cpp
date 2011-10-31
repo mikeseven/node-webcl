@@ -189,15 +189,13 @@ JS_METHOD(WebCLKernel::setArg)
   type = args[2]->Uint32Value();
 
   // TODO check types other than MEMORY_OBJECT
-  switch (type) {
-  case -1: { // TODO is it true for all __local args?
+  if(type & webcl::types::LOCAL) { // TODO is it true for all __local args?
     cl_float arg = args[1]->NumberValue();
     arg_value = NULL;
     arg_size = sizeof(arg);
     ret = kernelObject->getKernel()->setArg(arg_index, arg_size, arg_value);
   }
-  break;
-  case webcl::types::MEMORY_OBJECT: {
+  else if(type & webcl::types::MEM) {
     cl_mem mem;
     if (args[1]->IsUint32()) {
       cl_uint ptr = args[1]->Uint32Value();
@@ -211,103 +209,82 @@ JS_METHOD(WebCLKernel::setArg)
     arg_value=&mem;
     arg_size=sizeof(mem);
     ret = kernelObject->getKernel()->setArg(arg_index, arg_size, arg_value);
-    break;
   }
-  case webcl::types::UINT: {
-    if (!args[1]->IsUint32())
+  else if(type & webcl::types::INT) {
+    if (((type & webcl::types::UNSIGNED) && !args[1]->IsUint32()) || !args[1]->IsInt32())
       return JS_EXCEPTION("ARG is not of specified type");
-    cl_uint arg = args[1]->Uint32Value();
-    arg_value = &arg;
-    arg_size = sizeof(arg);
-    ret = kernelObject->getKernel()->setArg(arg_index, arg_size, arg_value);
-    break;
+    if(type & webcl::types::UNSIGNED) {
+      cl_uint arg=args[1]->Uint32Value();
+      arg_value = &arg;
+      arg_size = sizeof(arg);
+    }
+    else {
+      cl_int arg=args[1]->Int32Value();
+      arg_value = &arg;
+      arg_size = sizeof(arg);
+    }
   }
-  case webcl::types::INT: {
-    if (!args[1]->IsInt32())
-      return JS_EXCEPTION("ARG is not of specified type");
-    cl_uint arg = args[1]->Int32Value();
-    arg_value = &arg;
-    arg_size = sizeof(arg);
-    ret = kernelObject->getKernel()->setArg(arg_index, arg_size, arg_value);
-    break;
-  }
-  case webcl::types::ULONG: {
+  else if(type & webcl::types::LONG) {
     if (!args[1]->IsNumber())
       return JS_EXCEPTION("ARG is not of specified type");
-    cl_ulong arg = args[1]->NumberValue();
-    arg_value = &arg;
-    arg_size = sizeof(arg);
-    ret = kernelObject->getKernel()->setArg(arg_index, arg_size, arg_value);
-    break;
+    if(type & webcl::types::UNSIGNED) {
+      cl_ulong arg = args[1]->NumberValue();
+      arg_value = &arg;
+      arg_size = sizeof(arg);
+    }
+    else {
+      cl_long arg = args[1]->NumberValue();
+      arg_value = &arg;
+      arg_size = sizeof(arg);
+    }
   }
-  case webcl::types::LONG: {
-    if (!args[1]->IsNumber())
-      return JS_EXCEPTION("ARG is not of specified type");
-    cl_long arg = args[1]->NumberValue();
-    arg_value = &arg;
-    arg_size = sizeof(arg);
-    ret = kernelObject->getKernel()->setArg(arg_index, arg_size, arg_value);
-    break;
-  }
-  case webcl::types::FLOAT: {
+  else if(type && webcl::types::FLOAT) {
     if (!args[1]->IsNumber())
       return JS_EXCEPTION("ARG is not of specified type");
     cl_float arg = args[1]->NumberValue();
     arg_value = &arg;
     arg_size = sizeof(arg);
-    ret = kernelObject->getKernel()->setArg(arg_index, arg_size, arg_value);
-    break;
   }
-  case webcl::types::HALF: {
+  else if(type & webcl::types::HALF_FLOAT) {
     if (!args[1]->IsNumber())
       return JS_EXCEPTION("ARG is not of specified type");
     cl_half arg = args[1]->NumberValue();
     arg_value = &arg;
     arg_size = sizeof(arg);
-    ret = kernelObject->getKernel()->setArg(arg_index, arg_size, arg_value);
-    break;
   }
-  case webcl::types::SHORT: {
+  else if(type & webcl::types::SHORT) {
     if (!args[1]->IsNumber())
       return JS_EXCEPTION("ARG is not of specified type");
-    cl_short arg = args[1]->NumberValue();
-    arg_value = &arg;
-    arg_size = sizeof(arg);
-    ret = kernelObject->getKernel()->setArg(arg_index, arg_size, arg_value);
-    break;
+    if(type & webcl::types::UNSIGNED) {
+      cl_ushort arg = args[1]->NumberValue();
+      arg_value = &arg;
+      arg_size = sizeof(arg);
+    }
+    else {
+      cl_short arg = args[1]->NumberValue();
+      arg_value = &arg;
+      arg_size = sizeof(arg);
+    }
   }
-  case webcl::types::USHORT: {
+  else if(type & webcl::types::CHAR) {
     if (!args[1]->IsNumber())
       return JS_EXCEPTION("ARG is not of specified type");
-    cl_ushort arg = args[1]->NumberValue();
-    arg_value = &arg;
-    arg_size = sizeof(arg);
-    ret = kernelObject->getKernel()->setArg(arg_index, arg_size, arg_value);
-    break;
+    if(type & webcl::types::UNSIGNED) {
+      cl_uchar arg = args[1]->NumberValue();
+      arg_value = &arg;
+      arg_size = sizeof(arg);
+    }
+    else {
+      cl_char arg = args[1]->NumberValue();
+      arg_value = &arg;
+      arg_size = sizeof(arg);
+    }
   }
-  case webcl::types::UCHAR: {
-    if (!args[1]->IsNumber())
-      return JS_EXCEPTION("ARG is not of specified type");
-    cl_uchar arg = args[1]->NumberValue();
-    arg_value = &arg;
-    arg_size = sizeof(arg);
-    ret = kernelObject->getKernel()->setArg(arg_index, arg_size, arg_value);
-    break;
-  }
-  case webcl::types::CHAR: {
-    if (!args[1]->IsNumber())
-      return JS_EXCEPTION("ARG is not of specified type");
-    cl_char arg = args[1]->NumberValue();
-    arg_value = &arg;
-    arg_size = sizeof(arg);
-    ret = kernelObject->getKernel()->setArg(arg_index, arg_size, arg_value);
-    break;
-  }
-  case webcl::types::UNKNOWN:
-  default:
+  else {
     return JS_EXCEPTION("UNKNOWN TYPE");
   }
 
+  ret = kernelObject->getKernel()->setArg(arg_index, arg_size, arg_value);
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(CL_INVALID_KERNEL);
     REQ_ERROR_THROW(CL_INVALID_ARG_INDEX);
