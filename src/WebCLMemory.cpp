@@ -60,7 +60,7 @@ JS_METHOD(WebCLMemory::getInfo)
       REQ_ERROR_THROW(CL_INVALID_MEM_OBJECT);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+      return JS_EXCEPTION("UNKNOWN ERROR");
     }
 
     return scope.Close(Integer::NewFromUnsigned(param_value));
@@ -74,7 +74,7 @@ JS_METHOD(WebCLMemory::getInfo)
       REQ_ERROR_THROW(CL_INVALID_MEM_OBJECT);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+      return JS_EXCEPTION("UNKNOWN ERROR");
     }
 
     return scope.Close(JS_INT(param_value));
@@ -87,7 +87,7 @@ JS_METHOD(WebCLMemory::getInfo)
       REQ_ERROR_THROW(CL_INVALID_MEM_OBJECT);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+      return JS_EXCEPTION("UNKNOWN ERROR");
     }
 
     return scope.Close(WebCLMemory::New(param_value)->handle_);
@@ -103,13 +103,13 @@ JS_METHOD(WebCLMemory::getInfo)
       REQ_ERROR_THROW(CL_INVALID_MEM_OBJECT);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+      return JS_EXCEPTION("UNKNOWN ERROR");
     }
     size_t nbytes = *(size_t*)param_value;
     return scope.Close(node::Buffer::New(param_value, nbytes)->handle_);
   }
   default:
-    return ThrowException(Exception::Error(String::New("UNKNOWN param_name")));
+    return JS_EXCEPTION("UNKNOWN param_name");
   }
 }
 
@@ -134,7 +134,7 @@ JS_METHOD(WebCLMemory::getImageInfo)
       REQ_ERROR_THROW(CL_INVALID_MEM_OBJECT);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+      return JS_EXCEPTION("UNKNOWN ERROR");
     }
     return scope.Close(JS_INT(param_value));
   }
@@ -146,7 +146,7 @@ JS_METHOD(WebCLMemory::getImageInfo)
       REQ_ERROR_THROW(CL_INVALID_MEM_OBJECT);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+      return JS_EXCEPTION("UNKNOWN ERROR");
     }
     cl_channel_order channel_order = param_value.image_channel_order;
     cl_channel_type channel_type = param_value.image_channel_data_type;
@@ -156,7 +156,7 @@ JS_METHOD(WebCLMemory::getImageInfo)
     return scope.Close(obj);
   }
   default:
-    return ThrowException(Exception::Error(String::New("UNKNOWN param_name")));
+    return JS_EXCEPTION("UNKNOWN param_name");
   }
 }
 
@@ -169,7 +169,7 @@ JS_METHOD(WebCLMemory::createSubBuffer)
   cl_buffer_create_type buffer_create_type = args[1]->Uint32Value();
 
   if (buffer_create_type != CL_BUFFER_CREATE_TYPE_REGION)
-    return ThrowException(Exception::Error(String::New("CL_INVALID_VALUE")));
+    return JS_EXCEPTION("CL_INVALID_VALUE");
 
   cl_buffer_region region;
   Local<Object> obj = args[1]->ToObject();
@@ -185,7 +185,7 @@ JS_METHOD(WebCLMemory::createSubBuffer)
     REQ_ERROR_THROW(CL_MEM_OBJECT_ALLOCATION_FAILURE);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+    return JS_EXCEPTION("UNKNOWN ERROR");
   }
 
   return scope.Close(WebCLMemory::New(new cl::Buffer(sub_buffer))->handle_);

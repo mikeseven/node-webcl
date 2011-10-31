@@ -69,7 +69,7 @@ JS_METHOD(WebCLEvent::getInfo)
     return scope.Close(Integer::NewFromUnsigned(param_value));
   }
   default:
-    return ThrowException(Exception::Error(String::New("UNKNOWN param_name")));
+    return JS_EXCEPTION("UNKNOWN param_name");
   }
 
 }
@@ -91,7 +91,7 @@ JS_METHOD(WebCLEvent::getProfilingInfo)
     return scope.Close(Integer::New(param_value));
   }
   default:
-    return ThrowException(Exception::Error(String::New("UNKNOWN param_name")));
+    return JS_EXCEPTION("UNKNOWN param_name");
   }
 }
 
@@ -108,7 +108,7 @@ JS_METHOD(WebCLEvent::setUserEventStatus)
     REQ_ERROR_THROW(CL_INVALID_OPERATION);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+    return JS_EXCEPTION("UNKNOWN ERROR");
   }
 
   return Undefined();

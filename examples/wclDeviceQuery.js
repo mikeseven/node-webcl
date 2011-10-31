@@ -38,7 +38,7 @@ for(var i in platforms) {
   }
   
   //Create a context for the devices
-  var cxGPUContext = webcl.createContextFromType(webcl.CL_DEVICE_TYPE_GPU, [webcl.CL_CONTEXT_PLATFORM, p]);
+  var cxGPUContext = webcl.createContext(webcl.CL_DEVICE_TYPE_GPU, [webcl.CL_CONTEXT_PLATFORM, p]);
   var ctxDevices=cxGPUContext.getInfo(webcl.CL_CONTEXT_DEVICES);
   log("Found "+ctxDevices.length+" devices in context");
   for(var i=0;i<ctxDevices.length;i++)

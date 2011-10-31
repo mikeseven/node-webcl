@@ -76,7 +76,7 @@ JS_METHOD(WebCLContext::getInfo)
       REQ_ERROR_THROW(CL_INVALID_VALUE);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+      return JS_EXCEPTION("UNKNOWN ERROR");
     }
     return scope.Close(JS_INT(param_value));
   }
@@ -104,7 +104,7 @@ JS_METHOD(WebCLContext::getInfo)
     return scope.Close(arr);
   }
   default:
-    return ThrowException(Exception::Error(String::New("UNKNOWN param_name")));
+    return JS_EXCEPTION("UNKNOWN param_name");
   }
 }
 
@@ -130,7 +130,7 @@ JS_METHOD(WebCLContext::createProgram)
       REQ_ERROR_THROW(CL_INVALID_VALUE);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+      return JS_EXCEPTION("UNKNOWN ERROR");
     }
     return scope.Close(WebCLProgram::New(pw)->handle_);
   }
@@ -163,7 +163,7 @@ JS_METHOD(WebCLContext::createProgram)
       REQ_ERROR_THROW(CL_INVALID_BINARY);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+      return JS_EXCEPTION("UNKNOWN ERROR");
     }
 
     // TODO should we return binaryStatus?
@@ -191,7 +191,7 @@ JS_METHOD(WebCLContext::createCommandQueue)
     REQ_ERROR_THROW(CL_INVALID_QUEUE_PROPERTIES);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+    return JS_EXCEPTION("UNKNOWN ERROR");
   }
 
   return scope.Close(WebCLCommandQueue::New(cw)->handle_);
@@ -218,7 +218,7 @@ JS_METHOD(WebCLContext::createBuffer)
     REQ_ERROR_THROW(CL_MEM_OBJECT_ALLOCATION_FAILURE);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+    return JS_EXCEPTION("UNKNOWN ERROR");
   }
 
   return scope.Close(WebCLMemory::New(mw)->handle_);
@@ -241,7 +241,7 @@ JS_METHOD(WebCLContext::createBufferGL)
     REQ_ERROR_THROW(CL_MEM_OBJECT_ALLOCATION_FAILURE);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+    return JS_EXCEPTION("UNKNOWN ERROR");
   }
 
   return scope.Close(WebCLMemory::New(mw)->handle_);
@@ -276,7 +276,7 @@ JS_METHOD(WebCLContext::createImage2D)
     REQ_ERROR_THROW(CL_INVALID_OPERATION);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+    return JS_EXCEPTION("UNKNOWN ERROR");
   }
 
   return scope.Close(WebCLMemory::New(mw)->handle_);
@@ -313,7 +313,7 @@ JS_METHOD(WebCLContext::createImage3D)
     REQ_ERROR_THROW(CL_INVALID_OPERATION);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+    return JS_EXCEPTION("UNKNOWN ERROR");
   }
 
   return scope.Close(WebCLMemory::New(mw)->handle_);
@@ -336,7 +336,7 @@ JS_METHOD(WebCLContext::createSampler)
     REQ_ERROR_THROW(CL_INVALID_OPERATION);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+    return JS_EXCEPTION("UNKNOWN ERROR");
   }
 
   return scope.Close(WebCLSampler::New(sw)->handle_);
@@ -358,7 +358,7 @@ JS_METHOD(WebCLContext::getSupportedImageFormats)
     REQ_ERROR_THROW(CL_INVALID_VALUE);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+    return JS_EXCEPTION("UNKNOWN ERROR");
   }
 
   Local<Array> imageFormats = Array::New();
@@ -386,42 +386,7 @@ JS_METHOD(WebCLContext::createUserEvent)
 JS_METHOD(WebCLContext::New)
 {
   HandleScope scope;
-  /*if (!args[1]->IsArray()) {
-    ThrowException(Exception::Error(String::New("CL_INVALID_VALUE")));
-  }
-
-  cl_device_type device_type = args[0]->Uint32Value();
-
-  Local<Array> propertiesArray = Array::Cast(*args[1]);
-  int num=propertiesArray->Length();
-  cl_context_properties *properties=new cl_context_properties[num+1];
-  for (int i=0; i<num; i+=2) {
-
-    properties[i]=propertiesArray->Get(i)->Uint32Value();
-
-    Local<Object> obj = propertiesArray->Get(i+1)->ToObject();
-    WebCLPlatform *platform = ObjectWrap::Unwrap<WebCLPlatform>(obj);
-    properties[i+1]=(cl_context_properties) platform->getPlatform()->operator ()();
-  }
-  properties[num]=0;
-
-  cl_int ret=CL_SUCCESS;
-  cl::Context *cw = new cl::Context(device_type,properties,NULL,NULL,&ret);
-
-  if (ret != CL_SUCCESS) {
-    REQ_ERROR_THROW(CL_INVALID_PLATFORM);
-    REQ_ERROR_THROW(CL_INVALID_PROPERTY);
-    REQ_ERROR_THROW(CL_INVALID_VALUE);
-    REQ_ERROR_THROW(CL_INVALID_DEVICE_TYPE);
-    REQ_ERROR_THROW(CL_DEVICE_NOT_AVAILABLE);
-    REQ_ERROR_THROW(CL_DEVICE_NOT_FOUND);
-    REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
-  }*/
-
   WebCLContext *cl = new WebCLContext(args.This());
-  //cl->context=cw;
   cl->Wrap(args.This());
   return scope.Close(args.This());
 }

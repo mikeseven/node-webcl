@@ -65,7 +65,7 @@ JS_METHOD(WebCLKernel::getInfo)
       REQ_ERROR_THROW(CL_INVALID_KERNEL);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+      return JS_EXCEPTION("UNKNOWN ERROR");
     }
     return scope.Close(JS_STR(param_value.c_str(),param_value.length()));
   }
@@ -77,7 +77,7 @@ JS_METHOD(WebCLKernel::getInfo)
       REQ_ERROR_THROW(CL_INVALID_KERNEL);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+      return JS_EXCEPTION("UNKNOWN ERROR");
     }
     return scope.Close(WebCLContext::New(param_value)->handle_);
   }
@@ -89,7 +89,7 @@ JS_METHOD(WebCLKernel::getInfo)
       REQ_ERROR_THROW(CL_INVALID_KERNEL);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+      return JS_EXCEPTION("UNKNOWN ERROR");
     }
     return scope.Close(WebCLProgram::New(param_value)->handle_);
   }
@@ -102,12 +102,12 @@ JS_METHOD(WebCLKernel::getInfo)
       REQ_ERROR_THROW(CL_INVALID_KERNEL);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+      return JS_EXCEPTION("UNKNOWN ERROR");
     }
     return scope.Close(JS_INT(param_value));
   }
   default:
-    return ThrowException(Exception::Error(String::New("UNKNOWN param_name")));
+    return JS_EXCEPTION("UNKNOWN param_name");
   }
 }
 
@@ -130,7 +130,7 @@ JS_METHOD(WebCLKernel::getWorkGroupInfo)
       REQ_ERROR_THROW(CL_INVALID_KERNEL);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+      return JS_EXCEPTION("UNKNOWN ERROR");
     }
     return scope.Close(JS_INT(param_value));
   }
@@ -144,7 +144,7 @@ JS_METHOD(WebCLKernel::getWorkGroupInfo)
       REQ_ERROR_THROW(CL_INVALID_KERNEL);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+      return JS_EXCEPTION("UNKNOWN ERROR");
     }
     return scope.Close(JS_INT(param_value));
   }
@@ -157,7 +157,7 @@ JS_METHOD(WebCLKernel::getWorkGroupInfo)
       REQ_ERROR_THROW(CL_INVALID_KERNEL);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+      return JS_EXCEPTION("UNKNOWN ERROR");
     }
 
     Local<Array> sizeArray = Array::New(3);
@@ -167,7 +167,7 @@ JS_METHOD(WebCLKernel::getWorkGroupInfo)
     return scope.Close(sizeArray);
   }
   default:
-    return ThrowException(Exception::Error(String::New("UNKNOWN param_name")));
+    return JS_EXCEPTION("UNKNOWN param_name");
   }
 }
 
@@ -177,7 +177,7 @@ JS_METHOD(WebCLKernel::setArg)
   HandleScope scope;
 
   if (!args[0]->IsUint32())
-    return ThrowException(Exception::Error(String::New("CL_INVALID_ARG_INDEX")));
+    return JS_EXCEPTION("CL_INVALID_ARG_INDEX");
 
   WebCLKernel *kernelObject = ObjectWrap::Unwrap<WebCLKernel>(args.This());
   cl_uint arg_index = args[0]->Uint32Value();
@@ -202,7 +202,7 @@ JS_METHOD(WebCLKernel::setArg)
     if (args[1]->IsUint32()) {
       cl_uint ptr = args[1]->Uint32Value();
       if (ptr)
-        return ThrowException(Exception::Error(String::New("ARG is not of specified type")));
+        return JS_EXCEPTION("ARG is not of specified type");
       mem = 0;
     } else {
       WebCLMemory *mo = ObjectWrap::Unwrap<WebCLMemory>(args[1]->ToObject());
@@ -215,7 +215,7 @@ JS_METHOD(WebCLKernel::setArg)
   }
   case webcl::types::UINT: {
     if (!args[1]->IsUint32())
-      return ThrowException(Exception::Error(String::New("ARG is not of specified type")));
+      return JS_EXCEPTION("ARG is not of specified type");
     cl_uint arg = args[1]->Uint32Value();
     arg_value = &arg;
     arg_size = sizeof(arg);
@@ -224,7 +224,7 @@ JS_METHOD(WebCLKernel::setArg)
   }
   case webcl::types::INT: {
     if (!args[1]->IsInt32())
-      return ThrowException(Exception::Error(String::New("ARG is not of specified type")));
+      return JS_EXCEPTION("ARG is not of specified type");
     cl_uint arg = args[1]->Int32Value();
     arg_value = &arg;
     arg_size = sizeof(arg);
@@ -233,7 +233,7 @@ JS_METHOD(WebCLKernel::setArg)
   }
   case webcl::types::ULONG: {
     if (!args[1]->IsNumber())
-      return ThrowException(Exception::Error(String::New("ARG is not of specified type")));
+      return JS_EXCEPTION("ARG is not of specified type");
     cl_ulong arg = args[1]->NumberValue();
     arg_value = &arg;
     arg_size = sizeof(arg);
@@ -242,7 +242,7 @@ JS_METHOD(WebCLKernel::setArg)
   }
   case webcl::types::LONG: {
     if (!args[1]->IsNumber())
-      return ThrowException(Exception::Error(String::New("ARG is not of specified type")));
+      return JS_EXCEPTION("ARG is not of specified type");
     cl_long arg = args[1]->NumberValue();
     arg_value = &arg;
     arg_size = sizeof(arg);
@@ -251,7 +251,7 @@ JS_METHOD(WebCLKernel::setArg)
   }
   case webcl::types::FLOAT: {
     if (!args[1]->IsNumber())
-      return ThrowException(Exception::Error(String::New("ARG is not of specified type")));
+      return JS_EXCEPTION("ARG is not of specified type");
     cl_float arg = args[1]->NumberValue();
     arg_value = &arg;
     arg_size = sizeof(arg);
@@ -260,7 +260,7 @@ JS_METHOD(WebCLKernel::setArg)
   }
   case webcl::types::HALF: {
     if (!args[1]->IsNumber())
-      return ThrowException(Exception::Error(String::New("ARG is not of specified type")));
+      return JS_EXCEPTION("ARG is not of specified type");
     cl_half arg = args[1]->NumberValue();
     arg_value = &arg;
     arg_size = sizeof(arg);
@@ -269,7 +269,7 @@ JS_METHOD(WebCLKernel::setArg)
   }
   case webcl::types::SHORT: {
     if (!args[1]->IsNumber())
-      return ThrowException(Exception::Error(String::New("ARG is not of specified type")));
+      return JS_EXCEPTION("ARG is not of specified type");
     cl_short arg = args[1]->NumberValue();
     arg_value = &arg;
     arg_size = sizeof(arg);
@@ -278,7 +278,7 @@ JS_METHOD(WebCLKernel::setArg)
   }
   case webcl::types::USHORT: {
     if (!args[1]->IsNumber())
-      return ThrowException(Exception::Error(String::New("ARG is not of specified type")));
+      return JS_EXCEPTION("ARG is not of specified type");
     cl_ushort arg = args[1]->NumberValue();
     arg_value = &arg;
     arg_size = sizeof(arg);
@@ -287,7 +287,7 @@ JS_METHOD(WebCLKernel::setArg)
   }
   case webcl::types::UCHAR: {
     if (!args[1]->IsNumber())
-      return ThrowException(Exception::Error(String::New("ARG is not of specified type")));
+      return JS_EXCEPTION("ARG is not of specified type");
     cl_uchar arg = args[1]->NumberValue();
     arg_value = &arg;
     arg_size = sizeof(arg);
@@ -296,7 +296,7 @@ JS_METHOD(WebCLKernel::setArg)
   }
   case webcl::types::CHAR: {
     if (!args[1]->IsNumber())
-      return ThrowException(Exception::Error(String::New("ARG is not of specified type")));
+      return JS_EXCEPTION("ARG is not of specified type");
     cl_char arg = args[1]->NumberValue();
     arg_value = &arg;
     arg_size = sizeof(arg);
@@ -305,7 +305,7 @@ JS_METHOD(WebCLKernel::setArg)
   }
   case webcl::types::UNKNOWN:
   default:
-    return ThrowException(Exception::Error(String::New("UNKNOWN TYPE")));
+    return JS_EXCEPTION("UNKNOWN TYPE");
   }
 
   if (ret != CL_SUCCESS) {
@@ -317,7 +317,7 @@ JS_METHOD(WebCLKernel::setArg)
     REQ_ERROR_THROW(CL_INVALID_ARG_SIZE);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+    return JS_EXCEPTION("UNKNOWN ERROR");
   }
 
   return Undefined();

@@ -61,7 +61,7 @@ JS_METHOD(WebCLPlatform::getDevices)
     REQ_ERROR_THROW(CL_DEVICE_NOT_FOUND);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+    return JS_EXCEPTION("UNKNOWN ERROR");
   }
 
   Local<Array> deviceArray = Array::New(devices.size());
@@ -86,7 +86,7 @@ JS_METHOD(WebCLPlatform::getInfo)
     REQ_ERROR_THROW(CL_INVALID_PLATFORM);
     REQ_ERROR_THROW(CL_INVALID_VALUE);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+    return JS_EXCEPTION("UNKNOWN ERROR");
   }
 
   return scope.Close(String::New(param_value.c_str(),param_value.length()));

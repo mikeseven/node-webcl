@@ -64,7 +64,7 @@ JS_METHOD(WebCLDevice::getInfo)
       REQ_ERROR_THROW(CL_INVALID_VALUE);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+      return JS_EXCEPTION("UNKNOWN ERROR");
     }
     return scope.Close(JS_STR(param_value.c_str(),param_value.length()));
   }
@@ -77,7 +77,7 @@ JS_METHOD(WebCLDevice::getInfo)
       REQ_ERROR_THROW(CL_INVALID_VALUE);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+      return JS_EXCEPTION("UNKNOWN ERROR");
     }
     return scope.Close(JS_INT((ulong)param_value));
   }
@@ -90,7 +90,7 @@ JS_METHOD(WebCLDevice::getInfo)
       REQ_ERROR_THROW(CL_INVALID_VALUE);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+      return JS_EXCEPTION("UNKNOWN ERROR");
     }
     return scope.Close(JS_INT((ulong)param_value));
   }
@@ -121,7 +121,7 @@ JS_METHOD(WebCLDevice::getInfo)
       REQ_ERROR_THROW(CL_INVALID_VALUE);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+      return JS_EXCEPTION("UNKNOWN ERROR");
     }
     return scope.Close(JS_INT(param_value));
   }

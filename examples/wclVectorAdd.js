@@ -39,7 +39,7 @@ function VectorAdd() {
 
 
   //Pick first platform
-  context=WebCL.createContextFromType(WebCL.CL_DEVICE_TYPE_GPU, [WebCL.CL_CONTEXT_PLATFORM, platform]);
+  context=WebCL.createContext(WebCL.CL_DEVICE_TYPE_GPU, [WebCL.CL_CONTEXT_PLATFORM, platform]);
 
   //Query the set of devices attached to the context
   devices = context.getInfo(WebCL.CL_CONTEXT_DEVICES);

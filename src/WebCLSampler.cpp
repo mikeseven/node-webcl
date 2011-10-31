@@ -58,7 +58,7 @@ JS_METHOD(WebCLSampler::getInfo)
       REQ_ERROR_THROW(CL_INVALID_SAMPLER);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+      return JS_EXCEPTION("UNKNOWN ERROR");
     }
     return scope.Close(Integer::NewFromUnsigned(param_value));
   }
@@ -70,13 +70,13 @@ JS_METHOD(WebCLSampler::getInfo)
       REQ_ERROR_THROW(CL_INVALID_SAMPLER);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowException(Exception::Error(String::New("UNKNOWN ERROR")));
+      return JS_EXCEPTION("UNKNOWN ERROR");
     }
     cl::Context *cw = new cl::Context(param_value);
     return scope.Close(WebCLContext::New(cw)->handle_);
   }
   default:
-    return ThrowException(Exception::Error(String::New("UNKNOWN param_name")));
+    return JS_EXCEPTION("UNKNOWN param_name");
   }
 
 }
