@@ -79,10 +79,10 @@ function VectorAdd() {
   }
   
   //Set kernel args
-  kernel.setArg(0, aBuffer, WebCL.types.MEM);
-  kernel.setArg(1, bBuffer, WebCL.types.MEM);
-  kernel.setArg(2, cBuffer, WebCL.types.MEM);
-  kernel.setArg(3, BUFFER_SIZE, WebCL.types.INT | WebCL.types.UNSIGNED);
+  kernel.setArg(0, aBuffer, WebCL.type.MEM);
+  kernel.setArg(1, bBuffer, WebCL.type.MEM);
+  kernel.setArg(2, cBuffer, WebCL.type.MEM);
+  kernel.setArg(3, BUFFER_SIZE, WebCL.type.INT | WebCL.type.UNSIGNED);
 
   //Create command queue
   queue=context.createCommandQueue(devices[0], 0);
