@@ -81,8 +81,6 @@
     Here is an ECMAScript example showing how to add 2 vectors.
 
     <pre>
-var log=console.log;
-
 function VectorAdd() {
   //First check if the WebCL extension is installed at all 
   if (WebCL == undefined) {
@@ -106,17 +104,17 @@ function VectorAdd() {
   platform=platformList[0]; // select the first platform
 
   // create GPU context for this platform
-  context=new WebCL.WebCLContext(WebCL.CL_DEVICE_TYPE_GPU, [WebCL.CL_CONTEXT_PLATFORM, platform]);
+  context = WebCL.createContext(WebCL.CL_DEVICE_TYPE_GPU, [WebCL.CL_CONTEXT_PLATFORM, platform]);
 
   //Query the set of devices attched to the context
   devices = context.getInfo(WebCL.CL_CONTEXT_DEVICES);
 
   kernelSource = [
 "__kernel void                                                               ",
-"vadd(__global int * a, __global int * b, __global int * c)                  ",
+"vadd(__global int * a, __global int * b, __global int * c, int iNumElements)",
 "{                                                                           ",
 "    size_t i =  get_global_id(0);                                           ",
-"                                                                            ",
+"    if(i > iNumElements) return;                                            ",
 "    c[i] = a[i] + b[i];                                                     ",
 "}                                                                           "
 ].join("\n");
@@ -143,9 +141,10 @@ function VectorAdd() {
   kernel= program.createKernel("vadd");
 
   // Set kernel args
-  kernel.setArg(0, aBuffer);
-  kernel.setArg(1, bBuffer);
-  kernel.setArg(2, cBuffer);
+  kernel.setArg(0, aBuffer, WebCL.types.MEM);
+  kernel.setArg(1, bBuffer, WebCL.types.MEM);
+  kernel.setArg(2, cBuffer, WebCL.types.MEM);
+  kernel.setArg(3, BUFFER_SIZE, WebCL.types.INT | WebCL.types.UNSIGNED);
 
   // Create command queue
   queue=context.createCommandQueue(devices[0], 0);
@@ -154,11 +153,11 @@ function VectorAdd() {
   var localWS = [6];
   var globalWS = [Math.ceil (BUFFER_SIZE / localWS) * localWS];
 
-  log("Global work item size: " + globalWS);
-  log("Local work item size: " + localWS);
+  //log("Global work item size: " + globalWS);
+  //log("Local work item size: " + localWS);
 
   // Execute (enqueue) kernel
-  log("using enqueueNDRangeKernel");
+  //log("using enqueueNDRangeKernel");
   queue.enqueueNDRangeKernel(kernel,
       [],
       [globalWS],
@@ -179,7 +178,7 @@ function VectorAdd() {
 
     <pre>
 
-  log("using enqueueMapBuffer");
+  //log("using enqueueMapBuffer");
   // Map cBuffer to host pointer. This enforces a sync with 
   // the host backing space, remember we choose GPU device.
   output=queue.enqueueMapBuffer(
@@ -256,8 +255,7 @@ interface ImageFormat {
     <p>
         The <code>WebCL</code> interface contains general methods defined by OpenCL.
     </p>
-    <pre class="idl">[Callback] interface <dfn id="WebCL">WebCL</dfn> {
-  [Constructor] WebCL New();
+    <pre class="idl">interface <dfn id="WebCL">WebCL</dfn> {
   WebCLPlatform[] getPlatformIDs();
   WebCLPlatform[] getPlatformIDs();
   WebCLContext createContext(int properties[], WebCLDevice devices[]);
@@ -273,16 +271,17 @@ interface ImageFormat {
         use. For each parameter the default value is shown. 
     </p>
     <dl class="methods">
-        <dt class="idl-code">WebCL New()</dt>
-            <dd>                
-            </dd>
         <dt class="idl-code">WebCLPlatform[] getPlatformIDs()</dt>
             <dd>                
             </dd>
-        <dt class="idl-code">WebCLContext createContext(int properties[], WebCLDevice devices[])</dt>
-            <dd>                
+        <dt class="idl-code">WebCLContext createContext(WebCLDevice devices[], int properties[])</dt>
+            <dd>
+            properties are defined as in OpenCL specification but there is no need to terminate the list by 0.
+            This is an array of values in the form { &lt;parameter name&gt;, &lt;parameter value&gt; }.
+            For example:
+            [ webcl.CL_CONTEXT_PLATFORM, my_WebCLPlatform_object ]
             </dd>
-        <dt class="idl-code">WebCLContext createContext(int properties[], int device_type)</dt>
+        <dt class="idl-code">WebCLContext createContext(int device_type, int properties[])</dt>
             <dd>                
             </dd>
         <dt class="idl-code">void waitForEvents(WebCLEvent events[])</dt>
@@ -300,9 +299,7 @@ interface ImageFormat {
         Instead of using long list of arguments, as defined in OpenCL 1.1 specification, the following methods use the 
         associative array WebCLRegion to specify the area being read or written within an ArrayBuffer/WebCLMemory.
     </p>
-    <pre class="idl">[Callback] interface <dfn id="WebCLCommandQueue">WebCL</dfn> {
-  [Constructor] WebCLCommandQueue New();
-  
+    <pre class="idl">interface <dfn id="WebCLCommandQueue">WebCL</dfn> {
   Object getInfo(int name);
   
   WebCLEvent enqueueNDRangeKernel(WebCLKernel kernel[], 
@@ -357,9 +354,6 @@ interface ImageFormat {
         
     </p>
     <dl class="methods">
-        <dt class="idl-code">WebCLCommandQueue New()</dt>
-            <dd>                
-            </dd>
         <dt class="idl-code">Object getInfo(int name)</dt>
             <dd>     
             Return the value for the passed name. The type returned is the natural type for the
@@ -442,8 +436,7 @@ interface ImageFormat {
     <p>
         The <code>WebCLContext</code> interface contain methods defined by OpenCL for Context
     </p>
-    <pre class="idl">[Callback] interface <dfn id="WebCLContext">WebCLContext</dfn> {
-  [Constructor] WebCLContext New(int device_type, Object properties[]);
+    <pre class="idl">interface <dfn id="WebCLContext">WebCLContext</dfn> {
   Object getInfo(int name);
   WebCLProgram createProgram(String source);
   WebCLCommandQueue createCommandQueue(WebCLDevice device, int properties[]);
@@ -468,13 +461,6 @@ interface ImageFormat {
         use. Default values for different parameters are shown below. 
     </p>
     <dl class="methods">
-        <dt class="idl-code">WebCLContext New(int device_type, Object properties[])</dt>
-            <dd>
-            properties are defined as in OpenCL specification but there is no need to terminate the list by 0.
-            This is an array of values in the form { &lt;parameter name&gt;, &lt;parameter value&gt; }.
-            For example:
-            [ webcl.CL_CONTEXT_PLATFORM, my_WebCLPlatform_object ]
-            </dd>
         <dt class="idl-code">Object getInfo(int name)</dt>
             <dd>
             Return the value for the passed name. The type returned is the natural type for the
@@ -538,8 +524,7 @@ interface ImageFormat {
     <p>
         The <code>WebCLDevice</code> interface contain methods defined by OpenCL for Device
     </p>
-    <pre class="idl">[Callback] interface <dfn id="WebCLDevice">WebCLDevice</dfn> {
-  [Constructor] WebCLDevice New()
+    <pre class="idl">interface <dfn id="WebCLDevice">WebCLDevice</dfn> {
   Object getInfo(int name);
 };</pre>
 
@@ -547,9 +532,6 @@ interface ImageFormat {
     <p>
     </p>
     <dl class="methods">
-        <dt class="idl-code">WebCLDevice New()</dt>
-            <dd>
-            </dd>
         <dt class="idl-code">getInfo(int name)</dt>
             <dd>
             Return the value for the passed name. The type returned is the natural type for the
@@ -624,8 +606,7 @@ interface ImageFormat {
     <p>
         The <code>WebCLEvent</code> interface contain methods defined by OpenCL for Event
     </p>
-    <pre class="idl">[Callback] interface <dfn id="WebCLEvent">WebCLEvent</dfn> {
-  [Constructor] WebCLEvent New();
+    <pre class="idl">interface <dfn id="WebCLEvent">WebCLEvent</dfn> {
   Object getInfo(int name);
   Object getProfilingInfo(int name);
   void setUserEventStatus(int status);
@@ -636,9 +617,6 @@ interface ImageFormat {
     Note: OpenCL's Event and UserEvent are merged into this WebCLEvent class.
     </p>
     <dl class="methods">
-        <dt class="idl-code">WebCLEvent New()</dt>
-            <dd>
-            </dd>
         <dt class="idl-code">Object getInfo(int name)</dt>
             <dd>
             Return the value for the passed name. The type returned is the natural type for the
@@ -675,8 +653,7 @@ interface ImageFormat {
     <p>
         The <code>WebCLKernel</code> interface contain methods defined by OpenCL for Kernel.
     </p>
-    <pre class="idl">[Callback] interface <dfn id="WebCLKernel">WebCLKernel</dfn> {
-  [Constructor] WebCLKernel New();
+    <pre class="idl">interface <dfn id="WebCLKernel">WebCLKernel</dfn> {
   Object getInfo(int name);
   Object getWorkgroupInfo(int name);
   void setArg(int index, Object value, int type);
@@ -686,9 +663,6 @@ interface ImageFormat {
     <p>
     </p>
     <dl class="methods">
-        <dt class="idl-code">WebCLKernel New()</dt>
-            <dd>
-            </dd>
         <dt class="idl-code">Object getInfo(int name)</dt>
             <dd>
             Return the value for the passed name. The type returned is the natural type for the
@@ -750,8 +724,7 @@ interface ImageFormat {
     <p>
         The <code>WebCLMemory</code> interface contain methods defined by OpenCL for memory objects.
     </p>
-    <pre class="idl">[Callback] interface <dfn id="WebCLMemory">WebCLMemory</dfn> {
-  [Constructor] WebCLMemory New();
+    <pre class="idl">interface <dfn id="WebCLMemory">WebCLMemory</dfn> {
   Object getInfo(int name);
   Object getImageInfo(int name);
   WebCLMemory createSubBuffer(int flags, int type, Object region);
@@ -763,10 +736,6 @@ interface ImageFormat {
     <p>
     </p>
     <dl class="methods">
-        <dt class="idl-code">WebCLMemory New()</dt>
-            <dd>
-            </dd>
-        </dt>
         <dt class="idl-code">Object getInfo(int name)</dt>
             <dd>
             Return the value for the passed name. The type returned is the natural type for the
@@ -784,22 +753,18 @@ interface ImageFormat {
                 <tr><td>CL_MEM_OFFSET</td><td>Integer</td></tr>
             </table><br>
             </dd>
-        </dt>
         <dt class="idl-code">Object getImageInfo(int name)</dt>
             <dd>
             return Integer, or ImageFormat depending on the name queried.
             </dd>
-        </dt>
         <dt class="idl-code">WebCLMemory createSubBuffer(int flags, int type, Object region)</dt>
             <dd>
             The region object is an associative array { origin: int, size: int } and is only valid for CL_BUFFER_CREATE_TYPE_REGION type.
             </dd>
-        </dt>
         <dt class="idl-code">WebGLObject getGLObjectInfo()</dt>
             <dd>
             Returns the WebGLObject that was used to create this OpenCL memory object.
             </dd>
-        </dt>
         <dt class="idl-code">Object getGLTextureInfo(int name)</dt>
             <dd>
             Return the value for the passed name for an OpenCL memory object created from a WebGLTexture object. The type returned is the natural type for the
@@ -810,7 +775,6 @@ interface ImageFormat {
                 <tr><td>CL_GL_MIPMAP_LEVEL</td><td>Integer</td></tr>
             </table><br>
             </dd>
-        </dt>
     </dl>
 <!-- ======================================================================================================= -->
     <h3><a name="WebCLPlatform">WebCLPlatform</a></h3>
@@ -818,8 +782,7 @@ interface ImageFormat {
     <p>
         The <code>WebCLPlatform</code> interface contain methods defined by OpenCL for Platform.
     </p>
-    <pre class="idl">[Callback] interface <dfn id="WebCLPlatform">WebCLPlatform</dfn> {
-  [Constructor] WebCLPlatform New();
+    <pre class="idl">interface <dfn id="WebCLPlatform">WebCLPlatform</dfn> {
   Object getInfo(int name);
   WebCLDevice[] getDevices(int device_type);
 };</pre>
@@ -828,10 +791,6 @@ interface ImageFormat {
     <p>
     </p>
     <dl class="methods">
-        <dt class="idl-code">WebCLPlatform New()</dt>
-            <dd>
-            </dd>
-        </dt>
         <dt class="idl-code">Object getInfo(int name)</dt>
             <dd>
             Return the value for the passed name. The type returned is the natural type for the
@@ -845,11 +804,9 @@ interface ImageFormat {
                 <tr><td>CL_PLATFORM_EXTENSIONS</td><td>String</td></tr>
             </table><br>
             </dd>
-        </dt>
         <dt class="idl-code">WebCLDevice[] getDevices(int device_type)</dt>
             <dd>
             </dd>
-        </dt>
     </dl>
 <!-- ======================================================================================================= -->
 
@@ -858,9 +815,7 @@ interface ImageFormat {
     <p>
         The <code>WebCLProgram</code> interface contain methods defined by OpenCL for Program.
     </p>
-    <pre class="idl">[Callback] interface <dfn id="WebCLProgram">WebCLProgram</dfn> {
-  [Constructor] WebCLProgram New(String source);
-  [Constructor] WebCLProgram New(ArrayBuffer binary);
+    <pre class="idl">interface <dfn id="WebCLProgram">WebCLProgram</dfn> {
   Object getInfo(int name);
   Object getBuildInfo(WebCLDevice device, int name);
   void build(WebCLDevice devices[], String options);
@@ -871,14 +826,6 @@ interface ImageFormat {
     <p>
     </p>
     <dl class="methods">
-        <dt class="idl-code">WebCLProgram New(String source)</dt>
-            <dd>
-            </dd>
-        </dt>
-        <dt class="idl-code">WebCLProgram New(ArrayBuffer binary)</dt>
-            <dd>
-            </dd>
-        </dt>
         <dt class="idl-code">Object getInfo(int name)</dt>
             <dd>
             Return the value for the passed name. The type returned is the natural type for the
@@ -916,8 +863,7 @@ interface ImageFormat {
     <p>
         The <code>WebCLSampler</code> interface contain methods defined by OpenCL for Sampler.
     </p>
-    <pre class="idl">[Callback] interface <dfn id="WebCLSampler">WebCLSampler</dfn> {
-  [Constructor] WebCLSampler New();
+    <pre class="idl">interface <dfn id="WebCLSampler">WebCLSampler</dfn> {
   Object getInfo(int name);
 };</pre>
 
@@ -925,10 +871,6 @@ interface ImageFormat {
     <p>
     </p>
     <dl class="methods">
-        <dt class="idl-code">WebCLSampler New()</dt>
-            <dd>
-            </dd>
-        </dt>
         <dt class="idl-code">Object getInfo(int name)</dt>
             <dd>
             Return the value for the passed name. The type returned is the natural type for the
