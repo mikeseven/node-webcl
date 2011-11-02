@@ -106,8 +106,18 @@ function ImageFilter(image) {
   
 
   // Write our data set into the input array in device memory asynchronously
-  queue.enqueueWriteBuffer(cmPinnedBufIn, false, 0, image.size, image.buffer, []);
-  queue.enqueueReadBuffer(cmPinnedBufOut, false, 0, out.length, out, [] );
+  queue.enqueueWriteBuffer(cmPinnedBufIn, false, {
+    offset: 0, 
+    size: image.size, 
+    buffer: image.buffer},
+    []);
+
+  queue.enqueueReadBuffer(cmPinnedBufOut, false, {
+    offset: 0, 
+    size: out.length, 
+    buffer: out},
+    [] );
+
   /*output=queue.enqueueMapBuffer(
       outputBuffer,
       WebCL.CL_TRUE, // block 

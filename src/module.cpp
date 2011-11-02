@@ -18,6 +18,11 @@
 #include "WebCL.h"
 #include "WebCLMappedRegion.h"
 
+#define NODE_DEFINE_CONSTANT_VALUE(target, name, value)                   \
+  (target)->Set(v8::String::NewSymbol(name),                         \
+                v8::Integer::New(value),                               \
+                static_cast<v8::PropertyAttribute>(v8::ReadOnly|v8::DontDelete))
+
 //
 extern "C" {
 using namespace webcl;
@@ -35,6 +40,18 @@ static void init (v8::Handle<v8::Object> target)
   WebCLEvent::Init(target);
   WebCLSampler::Init(target);
   WebCLMappedRegion::Init(target);
+
+  /**
+   * Platform-dependent byte sizes
+   */
+  NODE_DEFINE_CONSTANT_VALUE(target, "CHAR", sizeof(char));
+  NODE_DEFINE_CONSTANT_VALUE(target, "SHORT", sizeof(short));
+  NODE_DEFINE_CONSTANT_VALUE(target, "INT", sizeof(int));
+  NODE_DEFINE_CONSTANT_VALUE(target, "LONG", sizeof(long));
+  NODE_DEFINE_CONSTANT_VALUE(target, "FLOAT", sizeof(float));
+  NODE_DEFINE_CONSTANT_VALUE(target, "DOUBLE", sizeof(double));
+  NODE_DEFINE_CONSTANT_VALUE(target, "HALF", sizeof(float) >> 1);
+
 }
 
 NODE_MODULE(_webcl, init);

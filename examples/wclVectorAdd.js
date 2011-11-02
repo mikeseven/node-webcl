@@ -102,10 +102,23 @@ function VectorAdd() {
       [localWS]);
   
   //Do the work
-  queue.enqueueWriteBuffer (aBuffer, false, 0, A.length*4, A, []);
-  queue.enqueueWriteBuffer (bBuffer, false, 0, B.length*4, B, []);
+  queue.enqueueWriteBuffer (aBuffer, false, {
+    buffer: A,
+    origin: 0,
+    size: A.length*WebCL.size.INT},
+    []);
 
-  queue.enqueueReadBuffer (cBuffer, false, 0, C.length*4, C, []);
+  queue.enqueueWriteBuffer (bBuffer, false, {
+    buffer: B,
+    offset: 0,
+    size: B.length*WebCL.size.INT},
+    []);
+
+  queue.enqueueReadBuffer (cBuffer, false, {
+    buffer: C,
+    offset: 0, 
+    size: C.length*WebCL.size.INT}, 
+    []);
   queue.finish (); //Finish all the operations
 
   printResults(A,B,C);

@@ -279,17 +279,31 @@ JS_METHOD(WebCLCommandQueue::enqueueWriteBuffer)
 
   // TODO: arg checking
   cl_bool blocking_write = args[1]->BooleanValue() ? CL_TRUE : CL_FALSE;
-  ::size_t offset = args[2]->Uint32Value();
-  ::size_t size = args[3]->Uint32Value();
 
-  void *ptr = args[4]->ToObject()->GetIndexedPropertiesExternalArrayData();
 
-  MakeEventWaitList(args[5]);
+  Local<Array> region=Array::Cast(*args[2]);
+  Local<Value> vbuffer=region->Get(JS_STR("buffer"));
+  void *ptr=NULL;
+  if(!vbuffer->IsUndefined())
+    ptr = vbuffer->ToObject()->GetIndexedPropertiesExternalArrayData();
+
+  size_t offset=0;
+  Local<Value> voffset=region->Get(JS_STR("offset"));
+  if(!voffset->IsUndefined())
+    offset=voffset->Uint32Value();
+
+  size_t size=0;
+  Local<Value> vsize=region->Get(JS_STR("size"));
+  if(!vsize->IsUndefined())
+    size=vsize->Uint32Value();
+
+  MakeEventWaitList(args[3]);
 
   cl::Event *event=new cl::Event();
   cl_int ret=cq->getCommandQueue()->enqueueWriteBuffer(
       *(cl::Buffer*)mo->getMemory(),
       blocking_write,offset,size,ptr,pevents,event);
+
   if (ret != CL_SUCCESS) {
     delete event;
     REQ_ERROR_THROW(CL_INVALID_COMMAND_QUEUE);
@@ -317,12 +331,24 @@ JS_METHOD(WebCLCommandQueue::enqueueReadBuffer)
 
   // TODO: arg checking
   cl_bool blocking_read = args[1]->BooleanValue() ? CL_TRUE : CL_FALSE;
-  ::size_t offset = args[2]->NumberValue();
-  ::size_t size = args[3]->NumberValue();
 
-  void *ptr = args[4]->ToObject()->GetIndexedPropertiesExternalArrayData();
+  Local<Array> region=Array::Cast(*args[2]);
+  Local<Value> vbuffer=region->Get(JS_STR("buffer"));
+  void *ptr=NULL;
+  if(!vbuffer->IsUndefined())
+    ptr = vbuffer->ToObject()->GetIndexedPropertiesExternalArrayData();
 
-  MakeEventWaitList(args[5]);
+  size_t offset=0;
+  Local<Value> voffset=region->Get(JS_STR("offset"));
+  if(!voffset->IsUndefined())
+    offset=voffset->Uint32Value();
+
+  size_t size=0;
+  Local<Value> vsize=region->Get(JS_STR("size"));
+  if(!vsize->IsUndefined())
+    size=vsize->Uint32Value();
+
+  MakeEventWaitList(args[3]);
 
   cl::Event *event=new cl::Event();
   cl_int ret=cq->getCommandQueue()->enqueueReadBuffer(
@@ -347,6 +373,7 @@ JS_METHOD(WebCLCommandQueue::enqueueReadBuffer)
 }
 
 /* static */
+// TODO update with regions
 JS_METHOD(WebCLCommandQueue::enqueueCopyBuffer)
 {
   HandleScope scope;
@@ -421,7 +448,6 @@ JS_METHOD(WebCLCommandQueue::enqueueWriteBufferRect)
   size_t host_row_pitch = args[7]->NumberValue();
   size_t host_slice_pitch = args[8]->NumberValue();
 
-  // TODO use WebCLMappedRegion instead of ptr
   void *ptr = args[9]->ToObject()->GetIndexedPropertiesExternalArrayData();
 
   MakeEventWaitList(args[10]);

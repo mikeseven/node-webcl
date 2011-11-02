@@ -240,7 +240,7 @@ interface ImageFormat {
     </p>
     <pre class="idl">interface <dfn id="WebCLRegion">WebCLRegion</dfn> {
       ArrayBuffer buffer;         // buffer to be read or written
-      int origin[1..3]={0,...,0}; // offset in bytes of the region in each dimension
+      int offset[1..3]={0,...,0}; // offset in bytes of the region in each dimension
       int slice_pitch = 0;        // pitch in bytes of a 2D slice
       int row_pitch = 0;          // pitch in bytes of a row
       int size[1..3]={1,...,1}    // size in bytes of the region
@@ -262,9 +262,8 @@ interface ImageFormat {
     </p>
     <pre class="idl">interface <dfn id="WebCL">WebCL</dfn> {
   WebCLPlatform[] getPlatformIDs();
-  WebCLPlatform[] getPlatformIDs();
-  WebCLContext createContext(int properties[], WebCLDevice devices[]);
-  WebCLContext createContext(int properties[], int device_type);
+  WebCLContext createContext(WebCLDevice devices[],int properties[]);
+  WebCLContext createContext(int device_type, int properties[]);
   void waitForEvents(WebCLEvent events[]);
   void unloadCompiler();
 };</pre>

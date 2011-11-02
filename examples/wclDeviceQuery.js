@@ -5,12 +5,10 @@
 ** (c) Copyright 2011 Motorola Mobility, Inc.  All Rights Reserved.  **
 */
 
-var webcl=require("../lib/webcl"),
-sys=require('util'),
-clu=require('../lib/clUtils.js');
-
-var WebCLPlatform=new webcl.WebCLPlatform();
-var log=console.log;
+var webcl=require("../lib/webcl"), WebCL=require("../lib/webcl").WebCL,
+    sys=require('util'),
+    clu=require('../lib/clUtils.js'),
+    log=console.log;
 
 //list of platforms
 log("OpenCL SW Info:\n");
@@ -40,10 +38,6 @@ for(var i in platforms) {
   //Create a context for the devices
   var cxGPUContext = webcl.createContext(webcl.CL_DEVICE_TYPE_GPU, [webcl.CL_CONTEXT_PLATFORM, p]);
   var ctxDevices=cxGPUContext.getInfo(webcl.CL_CONTEXT_DEVICES);
-  log("Found "+ctxDevices.length+" devices in context");
-  for(var i=0;i<ctxDevices.length;i++)
-    log("CL_CONTEXT_DEVICES\t\t"+ctxDevices[i]);
-  
   
   // Determine and show image format support 
   // 2D
@@ -77,6 +71,15 @@ for(var i in platforms) {
         oclImageFormatString(ImageFormats[i].data_type)));
   }
   log(""); 
+
+  // Size of basic types
+  log("  size of char: \t"+webcl.size.CHAR);
+  log("  size of short: \t"+webcl.size.SHORT);
+  log("  size of int: \t"+webcl.size.INT);
+  log("  size of long: \t"+webcl.size.LONG);
+  log("  size of float: \t"+webcl.size.FLOAT);
+  log("  size of double: \t"+webcl.size.DOUBLE);
+  log("  size of half: \t"+webcl.size.HALF);
 }
 
 function printDeviceInfo(device)
@@ -115,6 +118,29 @@ function printDeviceInfo(device)
   log("  CL_DEVICE_LOCAL_MEM_TYPE:\t\t"+(device.getInfo(webcl.CL_DEVICE_LOCAL_MEM_TYPE) == 1 ? "local" : "global"));
   log("  CL_DEVICE_LOCAL_MEM_SIZE:\t\t"+(device.getInfo(webcl.CL_DEVICE_LOCAL_MEM_SIZE) / 1024)+" KBytes");
   log("  CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE:\t"+(device.getInfo(webcl.CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE) / 1024)+" KBytes");
+  log("  CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE:\t"+(device.getInfo(webcl.CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE) / 1024)+" KBytes");
+
+  log("  CL_DEVICE_MAX_SAMPLERS:\t"+device.getInfo(webcl.CL_DEVICE_MAX_SAMPLERS));
+  log("  CL_DEVICE_MAX_PARAMETER_SIZE:\t"+device.getInfo(webcl.CL_DEVICE_MAX_PARAMETER_SIZE));
+  log("  CL_DEVICE_MEM_BASE_ADDR_ALIGN:\t"+device.getInfo(webcl.CL_DEVICE_MEM_BASE_ADDR_ALIGN));
+  log("  CL_DEVICE_MIN_DATA_TYPE_ALIGN_SIZE:\t"+device.getInfo(webcl.CL_DEVICE_MIN_DATA_TYPE_ALIGN_SIZE));
+
+  var cache_type=device.getInfo(webcl.CL_DEVICE_GLOBAL_MEM_CACHE_TYPE);
+  if( cache_type & webcl.CL_NONE)
+    log("  CL_DEVICE_GLOBAL_MEM_CACHE_TYPE:\t\tCL_NONE");
+  if( cache_type & webcl.CL_READ_ONLY_CACHE)
+    log("  CL_DEVICE_GLOBAL_MEM_CACHE_TYPE:\t\tCL_READ_ONLY_CACHE");
+  if( cache_type & webcl.CL_READ_WRITE_CACHE)
+    log("  CL_DEVICE_GLOBAL_MEM_CACHE_TYPE:\t\tCL_READ_WRITE_CACHE");
+    
+  log("  CL_DEVICE_MAX_CONSTANT_ARGS:\t"+device.getInfo(webcl.CL_DEVICE_MAX_CONSTANT_ARGS));
+  log("  CL_DEVICE_HOST_UNIFIED_MEMORY:\t"+device.getInfo(webcl.CL_DEVICE_HOST_UNIFIED_MEMORY));
+  log("  CL_DEVICE_PROFILING_TIMER_RESOLUTION:\t"+device.getInfo(webcl.CL_DEVICE_PROFILING_TIMER_RESOLUTION));
+  log("  CL_DEVICE_ENDIAN_LITTLE:\t"+device.getInfo(webcl.CL_DEVICE_ENDIAN_LITTLE));
+
+  log("  CL_DEVICE_AVAILABLE:\t"+device.getInfo(webcl.CL_DEVICE_AVAILABLE));
+  log("  CL_DEVICE_COMPILER_AVAILABLE:\t"+device.getInfo(webcl.CL_DEVICE_COMPILER_AVAILABLE));
+  log("  CL_DEVICE_EXECUTION_CAPABILITIES:\t"+device.getInfo(webcl.CL_DEVICE_EXECUTION_CAPABILITIES));
 
   // CL_DEVICE_QUEUE_PROPERTIES
   var queue_properties=device.getInfo(webcl.CL_DEVICE_QUEUE_PROPERTIES);
