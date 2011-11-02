@@ -35,8 +35,6 @@ function VectorAdd() {
   //Pick platform
   var platformList=WebCL.getPlatformIDs();
   platform=platformList[0];
-  log("platform: "+platform);
-
 
   //Pick first platform
   context=WebCL.createContext(WebCL.CL_DEVICE_TYPE_GPU, [WebCL.CL_CONTEXT_PLATFORM, platform]);
@@ -59,8 +57,9 @@ function VectorAdd() {
   //Build program
   program.build(devices,"");
 
-  size=BUFFER_SIZE*4; // size in bytes
-
+  size=BUFFER_SIZE*Uint32Array.BYTES_PER_ELEMENT; // size in bytes
+  log("buffer size in bytes: "+size);
+  
   //Create buffer for A and copy host contents
   aBuffer = context.createBuffer(WebCL.CL_MEM_READ_ONLY, size);
 
@@ -104,20 +103,20 @@ function VectorAdd() {
   //Do the work
   queue.enqueueWriteBuffer (aBuffer, false, {
     buffer: A,
-    origin: 0,
-    size: A.length*WebCL.size.INT},
+    origin: [0],
+    size: [A.length*Uint32Array.BYTES_PER_ELEMENT]},
     []);
 
   queue.enqueueWriteBuffer (bBuffer, false, {
     buffer: B,
     offset: 0,
-    size: B.length*WebCL.size.INT},
+    size: B.length*Uint32Array.BYTES_PER_ELEMENT},
     []);
 
   queue.enqueueReadBuffer (cBuffer, false, {
     buffer: C,
     offset: 0, 
-    size: C.length*WebCL.size.INT}, 
+    size: C.length*Uint32Array.BYTES_PER_ELEMENT}, 
     []);
   queue.finish (); //Finish all the operations
 
@@ -134,7 +133,7 @@ function VectorAdd() {
       WebCL.CL_TRUE, // block 
       WebCL.CL_MAP_READ,
       0,
-      BUFFER_SIZE * 4);
+      BUFFER_SIZE * Uint32Array.BYTES_PER_ELEMENT);
   printResults(A,B,C);
   queue.enqueueUnmapMemObject(
       cBuffer,

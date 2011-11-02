@@ -94,9 +94,9 @@ function VectorAdd() {
   }
 
   BUFFER_SIZE=10; // for example
-  var A=new Uint32Array(BUFFER_SIZE);
-  var B=new Uint32Array(BUFFER_SIZE);
-  var C=new Uint32Array(BUFFER_SIZE);
+  var A = new Uint32Array(BUFFER_SIZE);
+  var B = new Uint32Array(BUFFER_SIZE);
+  var C = new Uint32Array(BUFFER_SIZE);
 
   for (var i = 0; i < BUFFER_SIZE; i++) {
     A[i] = i;
@@ -131,7 +131,7 @@ function VectorAdd() {
   program.build(devices); // note: no compilation flags given
 
   // Create device buffers
-  size=BUFFER_SIZE*4; // size in bytes
+  size=BUFFER_SIZE * Uint32Array.BYTES_PER_ELEMENT; // size in bytes
 
   // Create buffer for A and copy host contents
   aBuffer = context.createBuffer(WebCL.CL_MEM_READ_ONLY, size);
@@ -169,9 +169,9 @@ function VectorAdd() {
       [localWS]);
   
   // Do the work
-  queue.enqueueWriteBuffer (aBuffer, false, { buffer: A, size: [A.length*4] });
-  queue.enqueueWriteBuffer (bBuffer, false, { buffer: B, size: [B.length*4] });
-  queue.enqueueReadBuffer  (cBuffer, false, { buffer: C, size: [C.length*4] });
+  queue.enqueueWriteBuffer (aBuffer, false, { buffer: A, size: [A.length * Uint32Array.BYTES_PER_ELEMENT] });
+  queue.enqueueWriteBuffer (bBuffer, false, { buffer: B, size: [B.length * Uint32Array.BYTES_PER_ELEMENT] });
+  queue.enqueueReadBuffer  (cBuffer, false, { buffer: C, size: [C.length * Uint32Array.BYTES_PER_ELEMENT] });
   queue.finish (); //Finish all the operations
   
   // print results
@@ -187,7 +187,7 @@ function VectorAdd() {
   // Map cBuffer to host pointer. This enforces a sync with 
   // the host backing space, remember we choose GPU device.
   output=queue.enqueueMapBuffer(
-      { buffer: cBuffer, size: [BUFFER_SIZE*4] },
+      { buffer: cBuffer, size: [BUFFER_SIZE * Uint32Array.BYTES_PER_ELEMENT] },
       true, // block 
       WebCL.CL_MAP_READ);
   
@@ -266,7 +266,8 @@ interface ImageFormat {
   WebCLContext createContext(int device_type, int properties[]);
   void waitForEvents(WebCLEvent events[]);
   void unloadCompiler();
-};</pre>
+};
+</pre>
 
     <h4>Semantic</h4>
 
@@ -303,7 +304,7 @@ interface ImageFormat {
         Instead of using long list of arguments, as defined in OpenCL 1.1 specification, the following methods use the 
         associative array WebCLRegion to specify the area being read or written within an ArrayBuffer/WebCLMemory.
     </p>
-    <pre class="idl">interface <dfn id="WebCLCommandQueue">WebCL</dfn> {
+    <pre class="idl">interface <dfn id="WebCLCommandQueue">WebCLCommandQueue</dfn> {
   Object getInfo(int name);
   
   WebCLEvent enqueueNDRangeKernel(WebCLKernel kernel[], 
