@@ -53,7 +53,7 @@ WebCLKernel::~WebCLKernel()
 JS_METHOD(WebCLKernel::getInfo)
 {
   HandleScope scope;
-  WebCLKernel *kernelObject = ObjectWrap::Unwrap<WebCLKernel>(args.This());
+  WebCLKernel *kernelObject = UnwrapThis<WebCLKernel>(args);
   cl_kernel_info param_name = args[0]->Uint32Value();
 
   switch (param_name) {
@@ -65,7 +65,7 @@ JS_METHOD(WebCLKernel::getInfo)
       REQ_ERROR_THROW(CL_INVALID_KERNEL);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return JS_EXCEPTION("UNKNOWN ERROR");
+      return ThrowError("UNKNOWN ERROR");
     }
     return scope.Close(JS_STR(param_value.c_str(),param_value.length()));
   }
@@ -77,7 +77,7 @@ JS_METHOD(WebCLKernel::getInfo)
       REQ_ERROR_THROW(CL_INVALID_KERNEL);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return JS_EXCEPTION("UNKNOWN ERROR");
+      return ThrowError("UNKNOWN ERROR");
     }
     return scope.Close(WebCLContext::New(param_value)->handle_);
   }
@@ -89,7 +89,7 @@ JS_METHOD(WebCLKernel::getInfo)
       REQ_ERROR_THROW(CL_INVALID_KERNEL);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return JS_EXCEPTION("UNKNOWN ERROR");
+      return ThrowError("UNKNOWN ERROR");
     }
     return scope.Close(WebCLProgram::New(param_value)->handle_);
   }
@@ -102,12 +102,12 @@ JS_METHOD(WebCLKernel::getInfo)
       REQ_ERROR_THROW(CL_INVALID_KERNEL);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return JS_EXCEPTION("UNKNOWN ERROR");
+      return ThrowError("UNKNOWN ERROR");
     }
     return scope.Close(JS_INT(param_value));
   }
   default:
-    return JS_EXCEPTION("UNKNOWN param_name");
+    return ThrowError("UNKNOWN param_name");
   }
 }
 
@@ -115,7 +115,7 @@ JS_METHOD(WebCLKernel::getInfo)
 JS_METHOD(WebCLKernel::getWorkGroupInfo)
 {
   HandleScope scope;
-  WebCLKernel *kernelObject = ObjectWrap::Unwrap<WebCLKernel>(args.This());
+  WebCLKernel *kernelObject = UnwrapThis<WebCLKernel>(args);
   WebCLDevice *device = ObjectWrap::Unwrap<WebCLDevice>(args[0]->ToObject());
   cl_kernel_work_group_info param_name = args[1]->NumberValue();
 
@@ -130,7 +130,7 @@ JS_METHOD(WebCLKernel::getWorkGroupInfo)
       REQ_ERROR_THROW(CL_INVALID_KERNEL);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return JS_EXCEPTION("UNKNOWN ERROR");
+      return ThrowError("UNKNOWN ERROR");
     }
     return scope.Close(JS_INT(param_value));
   }
@@ -144,7 +144,7 @@ JS_METHOD(WebCLKernel::getWorkGroupInfo)
       REQ_ERROR_THROW(CL_INVALID_KERNEL);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return JS_EXCEPTION("UNKNOWN ERROR");
+      return ThrowError("UNKNOWN ERROR");
     }
     return scope.Close(JS_INT(param_value));
   }
@@ -157,7 +157,7 @@ JS_METHOD(WebCLKernel::getWorkGroupInfo)
       REQ_ERROR_THROW(CL_INVALID_KERNEL);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return JS_EXCEPTION("UNKNOWN ERROR");
+      return ThrowError("UNKNOWN ERROR");
     }
 
     Local<Array> sizeArray = Array::New(3);
@@ -167,7 +167,7 @@ JS_METHOD(WebCLKernel::getWorkGroupInfo)
     return scope.Close(sizeArray);
   }
   default:
-    return JS_EXCEPTION("UNKNOWN param_name");
+    return ThrowError("UNKNOWN param_name");
   }
 }
 
@@ -177,9 +177,9 @@ JS_METHOD(WebCLKernel::setArg)
   HandleScope scope;
 
   if (!args[0]->IsUint32())
-    return JS_EXCEPTION("CL_INVALID_ARG_INDEX");
+    return ThrowError("CL_INVALID_ARG_INDEX");
 
-  WebCLKernel *kernelObject = ObjectWrap::Unwrap<WebCLKernel>(args.This());
+  WebCLKernel *kernelObject = UnwrapThis<WebCLKernel>(args);
   cl_uint arg_index = args[0]->Uint32Value();
   std::size_t arg_size = 0;
   cl_uint type = 0;
@@ -200,7 +200,7 @@ JS_METHOD(WebCLKernel::setArg)
     if (args[1]->IsUint32()) {
       cl_uint ptr = args[1]->Uint32Value();
       if (ptr)
-        return JS_EXCEPTION("ARG is not of specified type");
+        return ThrowError("ARG is not of specified type");
       mem = 0;
     } else {
       WebCLMemory *mo = ObjectWrap::Unwrap<WebCLMemory>(args[1]->ToObject());
@@ -212,7 +212,7 @@ JS_METHOD(WebCLKernel::setArg)
   }
   else if(type & webcl::types::INT) {
     if (((type & webcl::types::UNSIGNED) && !args[1]->IsUint32()) || !args[1]->IsInt32())
-      return JS_EXCEPTION("ARG is not of specified type");
+      return ThrowError("ARG is not of specified type");
     if(type & webcl::types::UNSIGNED) {
       cl_uint arg=args[1]->Uint32Value();
       arg_value = &arg;
@@ -226,7 +226,7 @@ JS_METHOD(WebCLKernel::setArg)
   }
   else if(type & webcl::types::LONG) {
     if (!args[1]->IsNumber())
-      return JS_EXCEPTION("ARG is not of specified type");
+      return ThrowError("ARG is not of specified type");
     if(type & webcl::types::UNSIGNED) {
       cl_ulong arg = args[1]->NumberValue();
       arg_value = &arg;
@@ -240,21 +240,21 @@ JS_METHOD(WebCLKernel::setArg)
   }
   else if(type && webcl::types::FLOAT) {
     if (!args[1]->IsNumber())
-      return JS_EXCEPTION("ARG is not of specified type");
+      return ThrowError("ARG is not of specified type");
     cl_float arg = args[1]->NumberValue();
     arg_value = &arg;
     arg_size = sizeof(arg);
   }
   else if(type & webcl::types::HALF_FLOAT) {
     if (!args[1]->IsNumber())
-      return JS_EXCEPTION("ARG is not of specified type");
+      return ThrowError("ARG is not of specified type");
     cl_half arg = args[1]->NumberValue();
     arg_value = &arg;
     arg_size = sizeof(arg);
   }
   else if(type & webcl::types::SHORT) {
     if (!args[1]->IsNumber())
-      return JS_EXCEPTION("ARG is not of specified type");
+      return ThrowError("ARG is not of specified type");
     if(type & webcl::types::UNSIGNED) {
       cl_ushort arg = args[1]->NumberValue();
       arg_value = &arg;
@@ -268,7 +268,7 @@ JS_METHOD(WebCLKernel::setArg)
   }
   else if(type & webcl::types::CHAR) {
     if (!args[1]->IsNumber())
-      return JS_EXCEPTION("ARG is not of specified type");
+      return ThrowError("ARG is not of specified type");
     if(type & webcl::types::UNSIGNED) {
       cl_uchar arg = args[1]->NumberValue();
       arg_value = &arg;
@@ -281,7 +281,7 @@ JS_METHOD(WebCLKernel::setArg)
     }
   }
   else {
-    return JS_EXCEPTION("UNKNOWN TYPE");
+    return ThrowError("UNKNOWN TYPE");
   }
 
   ret = kernelObject->getKernel()->setArg(arg_index, arg_size, arg_value);
@@ -294,7 +294,7 @@ JS_METHOD(WebCLKernel::setArg)
     REQ_ERROR_THROW(CL_INVALID_ARG_SIZE);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return JS_EXCEPTION("UNKNOWN ERROR");
+    return ThrowError("UNKNOWN ERROR");
   }
 
   return Undefined();
@@ -303,6 +303,9 @@ JS_METHOD(WebCLKernel::setArg)
 /* static  */
 JS_METHOD(WebCLKernel::New)
 {
+  if (!args.IsConstructCall())
+    return ThrowTypeError("Constructor cannot be called as a function.");
+
   HandleScope scope;
   WebCLKernel *cl = new WebCLKernel(args.This());
   cl->Wrap(args.This());

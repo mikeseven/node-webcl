@@ -59,15 +59,6 @@ function VectorAdd() {
 
   size=BUFFER_SIZE*Uint32Array.BYTES_PER_ELEMENT; // size in bytes
   
-  //Create buffer for A and copy host contents
-  aBuffer = context.createBuffer(WebCL.CL_MEM_READ_ONLY, size);
-
-  //Create buffer for B and copy host contents
-  bBuffer = context.createBuffer(WebCL.CL_MEM_READ_ONLY, size);
-
-  //Create buffer for that uses the host ptr C
-  cBuffer = context.createBuffer(WebCL.CL_MEM_WRITE_ONLY, size);
-
   //Create kernel object
   try {
     kernel= program.createKernel("vadd");
@@ -76,14 +67,36 @@ function VectorAdd() {
     console.log(program.getBuildInfo(devices[0],WebCL.CL_PROGRAM_BUILD_LOG));
   }
   
+  //Create command queue
+  queue=context.createCommandQueue(devices[0], 0);
+
+  //Create buffer for A and copy host contents
+  //aBuffer = context.createBuffer(WebCL.CL_MEM_READ_ONLY, size);
+  aBuffer = context.createBuffer(WebCL.CL_MEM_READ_WRITE, size);
+  map=queue.enqueueMapBuffer(aBuffer, WebCL.CL_TRUE, WebCL.CL_MAP_WRITE, 0, BUFFER_SIZE * Uint32Array.BYTES_PER_ELEMENT);
+  var buf=new DataView(map.getBuffer());
+  for(var i=0;i<BUFFER_SIZE;i++) {
+    buf.setUint32(i,A[i]);
+  }
+  queue.enqueueUnmapMemObject(aBuffer, map);
+
+  //Create buffer for B and copy host contents
+  //bBuffer = context.createBuffer(WebCL.CL_MEM_READ_ONLY, size);
+  bBuffer = context.createBuffer(WebCL.CL_MEM_READ_WRITE, size);
+  map=queue.enqueueMapBuffer(bBuffer, WebCL.CL_TRUE, WebCL.CL_MAP_WRITE, 0, BUFFER_SIZE * Uint32Array.BYTES_PER_ELEMENT);
+  for(var i=0;i<BUFFER_SIZE;i++) {
+    map.getBuffer()[i]=B[i];
+  }
+  queue.enqueueUnmapMemObject(bBuffer, map);
+
+  //Create buffer for that uses the host ptr C
+  cBuffer = context.createBuffer(WebCL.CL_MEM_READ_WRITE, size);
+
   //Set kernel args
   kernel.setArg(0, aBuffer, WebCL.type.MEM);
   kernel.setArg(1, bBuffer, WebCL.type.MEM);
   kernel.setArg(2, cBuffer, WebCL.type.MEM);
   kernel.setArg(3, BUFFER_SIZE, WebCL.type.INT | WebCL.type.UNSIGNED);
-
-  //Create command queue
-  queue=context.createCommandQueue(devices[0], 0);
 
   // Init ND-range
   var localWS = [5];
@@ -99,32 +112,12 @@ function VectorAdd() {
       [globalWS],
       [localWS]);
   
-  //Do the work
-  queue.enqueueWriteBuffer (aBuffer, false, {
-    buffer: A,
-    origin: [0],
-    size: [A.length*Uint32Array.BYTES_PER_ELEMENT]},
-    []);
-
-  queue.enqueueWriteBuffer (bBuffer, false, {
-    buffer: B,
-    offset: 0,
-    size: B.length*Uint32Array.BYTES_PER_ELEMENT},
-    []);
-
-  queue.enqueueReadBuffer (cBuffer, false, {
-    buffer: C,
-    offset: 0, 
-    size: C.length*Uint32Array.BYTES_PER_ELEMENT}, 
-    []);
-  queue.finish (); //Finish all the operations
-
-  printResults(A,B,C);
+  //printResults(A,B,C);
   //There is no need to perform a finish on the final unmap
   //or release any objects as this all happens implicitly with
   //the C++ Wrapper API.
   
-  /*log("using enqueueMapBuffer");
+  log("using enqueueMapBuffer");
   // Map cBuffer to host pointer. This enforces a sync with 
   // the host backing space, remember we choose GPU device.
   map=queue.enqueueMapBuffer(
@@ -134,16 +127,15 @@ function VectorAdd() {
       0,
       BUFFER_SIZE * Uint32Array.BYTES_PER_ELEMENT);
   
-  queue.enqueueUnmapMemObject(cBuffer, map);
-  queue.finish (); //Finish all the operations
-  
-  var cb=new Uint32Array(map.getBuffer());
   for(var i=0;i<BUFFER_SIZE;i++) {
-    C[i]=cb[i];
+    C[i]=map.getBuffer()[i];
   }
+
+  queue.enqueueUnmapMemObject(cBuffer, map);
   
+  queue.finish (); //Finish all the operations
+
   printResults(A,B,C);
-  log(map.getBuffer());*/
 }
 
 function printResults(A,B,C) {

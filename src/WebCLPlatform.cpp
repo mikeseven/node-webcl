@@ -49,7 +49,7 @@ JS_METHOD(WebCLPlatform::getDevices)
 {
   HandleScope scope;
 
-  WebCLPlatform *platform = ObjectWrap::Unwrap<WebCLPlatform>(args.This());
+  WebCLPlatform *platform = UnwrapThis<WebCLPlatform>(args);
   cl_device_type device_type = args[0]->Uint32Value();
 
   VECTOR_CLASS<cl::Device> devices;
@@ -61,12 +61,13 @@ JS_METHOD(WebCLPlatform::getDevices)
     REQ_ERROR_THROW(CL_DEVICE_NOT_FOUND);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return JS_EXCEPTION("UNKNOWN ERROR");
+    return ThrowError("UNKNOWN ERROR");
   }
 
   Local<Array> deviceArray = Array::New(devices.size());
   for (int i=0; i<devices.size(); i++) {
     cl::Device *device=new cl::Device(devices[i]);
+    cout<<"Found device: "<<hex<<device<<dec<<endl;
     deviceArray->Set(i, WebCLDevice::New(device)->handle_);
   }
 
@@ -77,7 +78,7 @@ JS_METHOD(WebCLPlatform::getDevices)
 JS_METHOD(WebCLPlatform::getInfo)
 {
   HandleScope scope;
-  WebCLPlatform *platform = ObjectWrap::Unwrap<WebCLPlatform>(args.This());
+  WebCLPlatform *platform = UnwrapThis<WebCLPlatform>(args);
   cl_platform_info param_name = args[0]->Uint32Value();
   STRING_CLASS param_value;
   cl_int ret=platform->getPlatform()->getInfo(param_name,&param_value);
@@ -86,7 +87,7 @@ JS_METHOD(WebCLPlatform::getInfo)
     REQ_ERROR_THROW(CL_INVALID_PLATFORM);
     REQ_ERROR_THROW(CL_INVALID_VALUE);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return JS_EXCEPTION("UNKNOWN ERROR");
+    return ThrowError("UNKNOWN ERROR");
   }
 
   return scope.Close(String::New(param_value.c_str(),param_value.length()));
@@ -95,6 +96,9 @@ JS_METHOD(WebCLPlatform::getInfo)
 /* static  */
 JS_METHOD(WebCLPlatform::New)
 {
+  if (!args.IsConstructCall())
+    return ThrowTypeError("Constructor cannot be called as a function.");
+
   HandleScope scope;
   WebCLPlatform *cl = new WebCLPlatform(args.This());
   cl->Wrap(args.This());

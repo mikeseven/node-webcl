@@ -63,7 +63,7 @@ WebCLContext::~WebCLContext()
 JS_METHOD(WebCLContext::getInfo)
 {
   HandleScope scope;
-  WebCLContext *context = node::ObjectWrap::Unwrap<WebCLContext>(args.This());
+  WebCLContext *context = UnwrapThis<WebCLContext>(args);
   cl_context_info param_name = args[0]->Uint32Value();
 
   switch (param_name) {
@@ -76,7 +76,7 @@ JS_METHOD(WebCLContext::getInfo)
       REQ_ERROR_THROW(CL_INVALID_VALUE);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return JS_EXCEPTION("UNKNOWN ERROR");
+      return ThrowError("UNKNOWN ERROR");
     }
     return scope.Close(JS_INT(param_value));
   }
@@ -104,7 +104,7 @@ JS_METHOD(WebCLContext::getInfo)
     return scope.Close(arr);
   }
   default:
-    return JS_EXCEPTION("UNKNOWN param_name");
+    return ThrowError("UNKNOWN param_name");
   }
 }
 
@@ -130,7 +130,7 @@ JS_METHOD(WebCLContext::createProgram)
       REQ_ERROR_THROW(CL_INVALID_VALUE);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return JS_EXCEPTION("UNKNOWN ERROR");
+      return ThrowError("UNKNOWN ERROR");
     }
     return scope.Close(WebCLProgram::New(pw)->handle_);
   }
@@ -163,7 +163,7 @@ JS_METHOD(WebCLContext::createProgram)
       REQ_ERROR_THROW(CL_INVALID_BINARY);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return JS_EXCEPTION("UNKNOWN ERROR");
+      return ThrowError("UNKNOWN ERROR");
     }
 
     // TODO should we return binaryStatus?
@@ -177,7 +177,7 @@ JS_METHOD(WebCLContext::createProgram)
 JS_METHOD(WebCLContext::createCommandQueue)
 {
   HandleScope scope;
-  WebCLContext *context = ObjectWrap::Unwrap<WebCLContext>(args.This());
+  WebCLContext *context = UnwrapThis<WebCLContext>(args);
   cl::Device *device = ObjectWrap::Unwrap<WebCLDevice>(args[0]->ToObject())->getDevice();
   cl_command_queue_properties properties = args[1]->NumberValue();
 
@@ -191,7 +191,7 @@ JS_METHOD(WebCLContext::createCommandQueue)
     REQ_ERROR_THROW(CL_INVALID_QUEUE_PROPERTIES);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return JS_EXCEPTION("UNKNOWN ERROR");
+    return ThrowError("UNKNOWN ERROR");
   }
 
   return scope.Close(WebCLCommandQueue::New(cw)->handle_);
@@ -201,7 +201,7 @@ JS_METHOD(WebCLContext::createCommandQueue)
 JS_METHOD(WebCLContext::createBuffer)
 {
   HandleScope scope;
-  WebCLContext *context = node::ObjectWrap::Unwrap<WebCLContext>(args.This());
+  WebCLContext *context = UnwrapThis<WebCLContext>(args);
   cl_mem_flags flags = args[0]->Uint32Value();
   ::size_t size = args[1]->Uint32Value();
   void *host_ptr = NULL;
@@ -218,7 +218,7 @@ JS_METHOD(WebCLContext::createBuffer)
     REQ_ERROR_THROW(CL_MEM_OBJECT_ALLOCATION_FAILURE);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return JS_EXCEPTION("UNKNOWN ERROR");
+    return ThrowError("UNKNOWN ERROR");
   }
 
   return scope.Close(WebCLMemory::New(mw)->handle_);
@@ -227,7 +227,7 @@ JS_METHOD(WebCLContext::createBuffer)
 JS_METHOD(WebCLContext::createBufferGL)
 {
   HandleScope scope;
-  WebCLContext *context = node::ObjectWrap::Unwrap<WebCLContext>(args.This());
+  WebCLContext *context = UnwrapThis<WebCLContext>(args);
   cl_mem_flags flags = args[0]->Uint32Value();
   GLuint bufobj=args[1]->Uint32Value(); // TODO use WebGLBuffer instead
 
@@ -241,7 +241,7 @@ JS_METHOD(WebCLContext::createBufferGL)
     REQ_ERROR_THROW(CL_MEM_OBJECT_ALLOCATION_FAILURE);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return JS_EXCEPTION("UNKNOWN ERROR");
+    return ThrowError("UNKNOWN ERROR");
   }
 
   return scope.Close(WebCLMemory::New(mw)->handle_);
@@ -251,7 +251,7 @@ JS_METHOD(WebCLContext::createBufferGL)
 JS_METHOD(WebCLContext::createImage2D)
 {
   HandleScope scope;
-  WebCLContext *context = node::ObjectWrap::Unwrap<WebCLContext>(args.This());
+  WebCLContext *context = UnwrapThis<WebCLContext>(args);
   cl_mem_flags flags = args[0]->NumberValue();
 
   cl::ImageFormat image_format;
@@ -276,7 +276,7 @@ JS_METHOD(WebCLContext::createImage2D)
     REQ_ERROR_THROW(CL_INVALID_OPERATION);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return JS_EXCEPTION("UNKNOWN ERROR");
+    return ThrowError("UNKNOWN ERROR");
   }
 
   return scope.Close(WebCLMemory::New(mw)->handle_);
@@ -286,7 +286,7 @@ JS_METHOD(WebCLContext::createImage2D)
 JS_METHOD(WebCLContext::createImage3D)
 {
   HandleScope scope;
-  WebCLContext *context = node::ObjectWrap::Unwrap<WebCLContext>(args.This());
+  WebCLContext *context = UnwrapThis<WebCLContext>(args);
   cl_mem_flags flags = args[0]->NumberValue();
 
   cl::ImageFormat image_format;
@@ -313,7 +313,7 @@ JS_METHOD(WebCLContext::createImage3D)
     REQ_ERROR_THROW(CL_INVALID_OPERATION);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return JS_EXCEPTION("UNKNOWN ERROR");
+    return ThrowError("UNKNOWN ERROR");
   }
 
   return scope.Close(WebCLMemory::New(mw)->handle_);
@@ -323,7 +323,7 @@ JS_METHOD(WebCLContext::createImage3D)
 JS_METHOD(WebCLContext::createSampler)
 {
   HandleScope scope;
-  WebCLContext *context = node::ObjectWrap::Unwrap<WebCLContext>(args.This());
+  WebCLContext *context = UnwrapThis<WebCLContext>(args);
   cl_bool norm_coords = args[0]->BooleanValue() ? CL_TRUE : CL_FALSE;
   cl_addressing_mode addr_mode = args[1]->NumberValue();
   cl_filter_mode filter_mode = args[2]->NumberValue();
@@ -336,7 +336,7 @@ JS_METHOD(WebCLContext::createSampler)
     REQ_ERROR_THROW(CL_INVALID_OPERATION);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return JS_EXCEPTION("UNKNOWN ERROR");
+    return ThrowError("UNKNOWN ERROR");
   }
 
   return scope.Close(WebCLSampler::New(sw)->handle_);
@@ -346,7 +346,7 @@ JS_METHOD(WebCLContext::createSampler)
 JS_METHOD(WebCLContext::getSupportedImageFormats)
 {
   HandleScope scope;
-  WebCLContext *context = node::ObjectWrap::Unwrap<WebCLContext>(args.This());
+  WebCLContext *context = UnwrapThis<WebCLContext>(args);
   cl_mem_flags flags = args[0]->NumberValue();
   cl_mem_object_type image_type = args[1]->NumberValue();
   VECTOR_CLASS<cl::ImageFormat> image_formats;
@@ -358,7 +358,7 @@ JS_METHOD(WebCLContext::getSupportedImageFormats)
     REQ_ERROR_THROW(CL_INVALID_VALUE);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return JS_EXCEPTION("UNKNOWN ERROR");
+    return ThrowError("UNKNOWN ERROR");
   }
 
   Local<Array> imageFormats = Array::New();
@@ -376,7 +376,7 @@ JS_METHOD(WebCLContext::getSupportedImageFormats)
 JS_METHOD(WebCLContext::createUserEvent)
 {
   HandleScope scope;
-  WebCLContext *context = node::ObjectWrap::Unwrap<WebCLContext>(args.This());
+  WebCLContext *context = UnwrapThis<WebCLContext>(args);
 
   cl::UserEvent *ew=new cl::UserEvent();
   return scope.Close(WebCLEvent::New(ew)->handle_);
@@ -385,6 +385,9 @@ JS_METHOD(WebCLContext::createUserEvent)
 /* static  */
 JS_METHOD(WebCLContext::New)
 {
+  if (!args.IsConstructCall())
+    return ThrowTypeError("Constructor cannot be called as a function.");
+
   HandleScope scope;
   WebCLContext *cl = new WebCLContext(args.This());
   cl->Wrap(args.This());

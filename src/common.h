@@ -16,12 +16,13 @@
 #include <node_object_wrap.h>
 #include <v8.h>
 
+namespace {
 #define JS_STR(...) v8::String::New(__VA_ARGS__)
 #define JS_INT(val) v8::Integer::New(val)
 #define JS_FLOAT(val) v8::Number::New(val)
 #define JS_BOOL(val) v8::Boolean::New(val)
 #define JS_METHOD(name) v8::Handle<v8::Value> name(const v8::Arguments& args)
-#define JS_EXCEPTION(reason) v8::ThrowException(v8::Exception::Error(JS_STR(reason)))
+//#define JS_EXCEPTION(reason) v8::ThrowException(v8::Exception::Error(JS_STR(reason)))
 #define JS_RETHROW(tc) v8::Local<v8::Value>::New(tc.Exception());
 
 #define REQ_ARGS(N)                                                     \
@@ -47,11 +48,25 @@
                   String::New("Argument " #I " must be a function")));  \
   Local<Function> VAR = Local<Function>::Cast(args[I]);
 
+#define REQ_ERROR_THROW(error) if (ret == error) return ThrowException(Exception::Error(String::New(#error)));
+
 template <typename T>
 static T* UnwrapThis(const v8::Arguments& args) {
   return node::ObjectWrap::Unwrap<T>(args.This());
 }
 
-#define REQ_ERROR_THROW(error) if (ret == error) return ThrowException(Exception::Error(String::New(#error)));
+v8::Handle<v8::Value> ThrowError(const char* msg) {
+  return v8::ThrowException(v8::Exception::Error(v8::String::New(msg)));
+}
+
+v8::Handle<v8::Value> ThrowTypeError(const char* msg) {
+  return v8::ThrowException(v8::Exception::TypeError(v8::String::New(msg)));
+}
+
+v8::Handle<v8::Value> ThrowRangeError(const char* msg) {
+  return v8::ThrowException(v8::Exception::RangeError(v8::String::New(msg)));
+}
+
+}
 
 #endif

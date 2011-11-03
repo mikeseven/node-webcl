@@ -12,7 +12,7 @@ var webcl=require("../lib/webcl"), WebCL=require("../lib/webcl").WebCL,
 
 //list of platforms
 log("OpenCL SW Info:\n");
-var platforms=webcl.getPlatformIDs();
+var platforms=webcl.getPlatforms();
 console.log('Found '+platforms.length+' plaforms');
 for(var i in platforms) {
   var p=platforms[i];

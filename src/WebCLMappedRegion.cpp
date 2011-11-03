@@ -65,7 +65,7 @@ WebCLMappedRegion *WebCLMappedRegion::New(_MappedRegion* region)
 JS_METHOD(WebCLMappedRegion::getBuffer)
 {
   HandleScope scope;
-  WebCLMappedRegion *region = node::ObjectWrap::Unwrap<WebCLMappedRegion>(args.This());
+  WebCLMappedRegion *region = UnwrapThis<WebCLMappedRegion>(args);
 
   return scope.Close(region->getMappedRegion()->buffer->handle_);
 }

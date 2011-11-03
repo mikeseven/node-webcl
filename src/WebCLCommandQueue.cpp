@@ -120,7 +120,7 @@ JS_METHOD(WebCLCommandQueue::getInfo)
       REQ_ERROR_THROW(CL_INVALID_VALUE);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return JS_EXCEPTION("UNKNOWN ERROR");
+      return ThrowError("UNKNOWN ERROR");
     }
     cl::Context *cw = new cl::Context(ctx);
     return scope.Close(WebCLContext::New(cw)->handle_);
@@ -133,7 +133,7 @@ JS_METHOD(WebCLCommandQueue::getInfo)
       REQ_ERROR_THROW(CL_INVALID_VALUE);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return JS_EXCEPTION("UNKNOWN ERROR");
+      return ThrowError("UNKNOWN ERROR");
     }
     cl::Device *cw = new cl::Device(dev);
     return scope.Close(WebCLDevice::New(cw)->handle_);
@@ -147,12 +147,12 @@ JS_METHOD(WebCLCommandQueue::getInfo)
       REQ_ERROR_THROW(CL_INVALID_VALUE);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return JS_EXCEPTION("UNKNOWN ERROR");
+      return ThrowError("UNKNOWN ERROR");
     }
     return scope.Close(JS_INT(param_value));
   }
   default:
-    return JS_EXCEPTION("CL_INVALID_VALUE");
+    return ThrowError("CL_INVALID_VALUE");
   }
 }
 
@@ -228,7 +228,7 @@ JS_METHOD(WebCLCommandQueue::enqueueNDRangeKernel)
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
     REQ_ERROR_THROW(CL_INVALID_EVENT_WAIT_LIST);
-    return JS_EXCEPTION("UNKNOWN ERROR");
+    return ThrowError("UNKNOWN ERROR");
   }
 
   return scope.Close(WebCLEvent::New(event)->handle_);
@@ -238,7 +238,7 @@ JS_METHOD(WebCLCommandQueue::enqueueNDRangeKernel)
 JS_METHOD(WebCLCommandQueue::enqueueTask)
 {
   HandleScope scope;
-  WebCLCommandQueue *cq = ObjectWrap::Unwrap<WebCLCommandQueue>(args.This());
+  WebCLCommandQueue *cq = UnwrapThis<WebCLCommandQueue>(args);
 
   REQ_ARGS(1);
 
@@ -264,7 +264,7 @@ JS_METHOD(WebCLCommandQueue::enqueueTask)
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
     REQ_ERROR_THROW(CL_INVALID_EVENT_WAIT_LIST);
-    return JS_EXCEPTION("UNKNOWN ERROR");
+    return ThrowError("UNKNOWN ERROR");
   }
 
   return scope.Close(WebCLEvent::New(event)->handle_);
@@ -274,7 +274,7 @@ JS_METHOD(WebCLCommandQueue::enqueueTask)
 JS_METHOD(WebCLCommandQueue::enqueueWriteBuffer)
 {
   HandleScope scope;
-  WebCLCommandQueue *cq = ObjectWrap::Unwrap<WebCLCommandQueue>(args.This());
+  WebCLCommandQueue *cq = UnwrapThis<WebCLCommandQueue>(args);
   WebCLMemory *mo = ObjectWrap::Unwrap<WebCLMemory>(args[0]->ToObject());
 
   // TODO: arg checking
@@ -316,7 +316,7 @@ JS_METHOD(WebCLCommandQueue::enqueueWriteBuffer)
     REQ_ERROR_THROW(CL_MEM_OBJECT_ALLOCATION_FAILURE);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return JS_EXCEPTION("UNKNOWN ERROR");
+    return ThrowError("UNKNOWN ERROR");
   }
 
   return scope.Close(WebCLEvent::New(event)->handle_);
@@ -326,7 +326,7 @@ JS_METHOD(WebCLCommandQueue::enqueueWriteBuffer)
 JS_METHOD(WebCLCommandQueue::enqueueReadBuffer)
 {
   HandleScope scope;
-  WebCLCommandQueue *cq = ObjectWrap::Unwrap<WebCLCommandQueue>(args.This());
+  WebCLCommandQueue *cq = UnwrapThis<WebCLCommandQueue>(args);
   WebCLMemory *mo = ObjectWrap::Unwrap<WebCLMemory>(args[0]->ToObject());
 
   // TODO: arg checking
@@ -366,7 +366,7 @@ JS_METHOD(WebCLCommandQueue::enqueueReadBuffer)
     REQ_ERROR_THROW(CL_MEM_OBJECT_ALLOCATION_FAILURE);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return JS_EXCEPTION("UNKNOWN ERROR");
+    return ThrowError("UNKNOWN ERROR");
   }
 
   return scope.Close(WebCLEvent::New(event)->handle_);
@@ -377,7 +377,7 @@ JS_METHOD(WebCLCommandQueue::enqueueReadBuffer)
 JS_METHOD(WebCLCommandQueue::enqueueCopyBuffer)
 {
   HandleScope scope;
-  WebCLCommandQueue *cq = ObjectWrap::Unwrap<WebCLCommandQueue>(args.This());
+  WebCLCommandQueue *cq = UnwrapThis<WebCLCommandQueue>(args);
 
   WebCLMemory *mo_src = ObjectWrap::Unwrap<WebCLMemory>(args[0]->ToObject());
   WebCLMemory *mo_dst = ObjectWrap::Unwrap<WebCLMemory>(args[1]->ToObject());
@@ -406,7 +406,7 @@ JS_METHOD(WebCLCommandQueue::enqueueCopyBuffer)
     REQ_ERROR_THROW(CL_MEM_OBJECT_ALLOCATION_FAILURE);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return JS_EXCEPTION("UNKNOWN ERROR");
+    return ThrowError("UNKNOWN ERROR");
   }
 
   return scope.Close(WebCLEvent::New(event)->handle_);
@@ -416,7 +416,7 @@ JS_METHOD(WebCLCommandQueue::enqueueCopyBuffer)
 JS_METHOD(WebCLCommandQueue::enqueueWriteBufferRect)
 {
   HandleScope scope;
-  WebCLCommandQueue *cq = ObjectWrap::Unwrap<WebCLCommandQueue>(args.This());
+  WebCLCommandQueue *cq = UnwrapThis<WebCLCommandQueue>(args);
   WebCLMemory *mo = ObjectWrap::Unwrap<WebCLMemory>(args[0]->ToObject());
 
   // TODO: arg checking
@@ -470,7 +470,7 @@ JS_METHOD(WebCLCommandQueue::enqueueWriteBufferRect)
     REQ_ERROR_THROW(CL_MEM_OBJECT_ALLOCATION_FAILURE);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return JS_EXCEPTION("UNKNOWN ERROR");
+    return ThrowError("UNKNOWN ERROR");
   }
 
   return scope.Close(WebCLEvent::New(event)->handle_);
@@ -480,7 +480,7 @@ JS_METHOD(WebCLCommandQueue::enqueueWriteBufferRect)
 JS_METHOD(WebCLCommandQueue::enqueueReadBufferRect)
 {
   HandleScope scope;
-  WebCLCommandQueue *cq = ObjectWrap::Unwrap<WebCLCommandQueue>(args.This());
+  WebCLCommandQueue *cq = UnwrapThis<WebCLCommandQueue>(args);
   WebCLMemory *mo = ObjectWrap::Unwrap<WebCLMemory>(args[0]->ToObject());
 
   // TODO: arg checking
@@ -535,7 +535,7 @@ JS_METHOD(WebCLCommandQueue::enqueueReadBufferRect)
     REQ_ERROR_THROW(CL_MEM_OBJECT_ALLOCATION_FAILURE);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return JS_EXCEPTION("UNKNOWN ERROR");
+    return ThrowError("UNKNOWN ERROR");
   }
 
   return scope.Close(WebCLEvent::New(event)->handle_);
@@ -545,7 +545,7 @@ JS_METHOD(WebCLCommandQueue::enqueueReadBufferRect)
 JS_METHOD(WebCLCommandQueue::enqueueCopyBufferRect)
 {
   HandleScope scope;
-  WebCLCommandQueue *cq = ObjectWrap::Unwrap<WebCLCommandQueue>(args.This());
+  WebCLCommandQueue *cq = UnwrapThis<WebCLCommandQueue>(args);
   WebCLMemory *mo_src = ObjectWrap::Unwrap<WebCLMemory>(args[0]->ToObject());
   WebCLMemory *mo_dst = ObjectWrap::Unwrap<WebCLMemory>(args[1]->ToObject());
 
@@ -596,7 +596,7 @@ JS_METHOD(WebCLCommandQueue::enqueueCopyBufferRect)
     REQ_ERROR_THROW(CL_MEM_OBJECT_ALLOCATION_FAILURE);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return JS_EXCEPTION("UNKNOWN ERROR");
+    return ThrowError("UNKNOWN ERROR");
   }
 
   return scope.Close(WebCLEvent::New(event)->handle_);
@@ -606,7 +606,7 @@ JS_METHOD(WebCLCommandQueue::enqueueCopyBufferRect)
 JS_METHOD(WebCLCommandQueue::enqueueWriteImage)
 {
   HandleScope scope;
-  WebCLCommandQueue *cq = ObjectWrap::Unwrap<WebCLCommandQueue>(args.This());
+  WebCLCommandQueue *cq = UnwrapThis<WebCLCommandQueue>(args);
   WebCLMemory *mo = ObjectWrap::Unwrap<WebCLMemory>(args[0]->ToObject());
 
   // TODO: arg checking
@@ -651,7 +651,7 @@ JS_METHOD(WebCLCommandQueue::enqueueWriteImage)
     REQ_ERROR_THROW(CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return JS_EXCEPTION("UNKNOWN ERROR");
+    return ThrowError("UNKNOWN ERROR");
   }
 
   return scope.Close(WebCLEvent::New(event)->handle_);
@@ -661,7 +661,7 @@ JS_METHOD(WebCLCommandQueue::enqueueWriteImage)
 JS_METHOD(WebCLCommandQueue::enqueueReadImage)
 {
   HandleScope scope;
-  WebCLCommandQueue *cq = ObjectWrap::Unwrap<WebCLCommandQueue>(args.This());
+  WebCLCommandQueue *cq = UnwrapThis<WebCLCommandQueue>(args);
   WebCLMemory *mo = ObjectWrap::Unwrap<WebCLMemory>(args[0]->ToObject());
 
   // TODO: arg checking
@@ -707,7 +707,7 @@ JS_METHOD(WebCLCommandQueue::enqueueReadImage)
     REQ_ERROR_THROW(CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return JS_EXCEPTION("UNKNOWN ERROR");
+    return ThrowError("UNKNOWN ERROR");
   }
 
   return scope.Close(WebCLEvent::New(event)->handle_);
@@ -717,7 +717,7 @@ JS_METHOD(WebCLCommandQueue::enqueueReadImage)
 JS_METHOD(WebCLCommandQueue::enqueueCopyImage)
 {   
   HandleScope scope;
-  WebCLCommandQueue *cq = ObjectWrap::Unwrap<WebCLCommandQueue>(args.This());
+  WebCLCommandQueue *cq = UnwrapThis<WebCLCommandQueue>(args);
   WebCLMemory *mo_src = ObjectWrap::Unwrap<WebCLMemory>(args[0]->ToObject());
   WebCLMemory *mo_dst = ObjectWrap::Unwrap<WebCLMemory>(args[1]->ToObject());
 
@@ -767,7 +767,7 @@ JS_METHOD(WebCLCommandQueue::enqueueCopyImage)
     REQ_ERROR_THROW(CL_MEM_COPY_OVERLAP);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return JS_EXCEPTION("UNKNOWN ERROR");
+    return ThrowError("UNKNOWN ERROR");
   }
 
   return scope.Close(WebCLEvent::New(event)->handle_);
@@ -777,7 +777,7 @@ JS_METHOD(WebCLCommandQueue::enqueueCopyImage)
 JS_METHOD(WebCLCommandQueue::enqueueCopyImageToBuffer)
 {
   HandleScope scope;
-  WebCLCommandQueue *cq = ObjectWrap::Unwrap<WebCLCommandQueue>(args.This());
+  WebCLCommandQueue *cq = UnwrapThis<WebCLCommandQueue>(args);
   WebCLMemory *mo_src = ObjectWrap::Unwrap<WebCLMemory>(args[0]->ToObject());
   WebCLMemory *mo_dst = ObjectWrap::Unwrap<WebCLMemory>(args[1]->ToObject());
 
@@ -820,7 +820,7 @@ JS_METHOD(WebCLCommandQueue::enqueueCopyImageToBuffer)
     REQ_ERROR_THROW(CL_INVALID_OPERATION);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return JS_EXCEPTION("UNKNOWN ERROR");
+    return ThrowError("UNKNOWN ERROR");
   }
 
   return scope.Close(WebCLEvent::New(event)->handle_);
@@ -830,7 +830,7 @@ JS_METHOD(WebCLCommandQueue::enqueueCopyImageToBuffer)
 JS_METHOD(WebCLCommandQueue::enqueueCopyBufferToImage)
 {
   HandleScope scope;
-  WebCLCommandQueue *cq = ObjectWrap::Unwrap<WebCLCommandQueue>(args.This());
+  WebCLCommandQueue *cq = UnwrapThis<WebCLCommandQueue>(args);
   WebCLMemory *mo_src = ObjectWrap::Unwrap<WebCLMemory>(args[0]->ToObject());
   WebCLMemory *mo_dst = ObjectWrap::Unwrap<WebCLMemory>(args[1]->ToObject());
 
@@ -873,7 +873,7 @@ JS_METHOD(WebCLCommandQueue::enqueueCopyBufferToImage)
     REQ_ERROR_THROW(CL_INVALID_OPERATION);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return JS_EXCEPTION("UNKNOWN ERROR");
+    return ThrowError("UNKNOWN ERROR");
   }
 
   return scope.Close(WebCLEvent::New(event)->handle_);
@@ -883,16 +883,34 @@ JS_METHOD(WebCLCommandQueue::enqueueCopyBufferToImage)
 JS_METHOD(WebCLCommandQueue::enqueueMapBuffer)
 {
   HandleScope scope;
-  WebCLCommandQueue *cq = ObjectWrap::Unwrap<WebCLCommandQueue>(args.This());
+  WebCLCommandQueue *cq = UnwrapThis<WebCLCommandQueue>(args);
 
   // TODO: arg checking
   WebCLMemory *mo = ObjectWrap::Unwrap<WebCLMemory>(args[0]->ToObject());
   cl_bool blocking = args[1]->BooleanValue() ? CL_TRUE : CL_FALSE;
   cl_map_flags flags = args[2]->Uint32Value();
-  ::size_t offset = args[3]->Uint32Value();
-  ::size_t size = args[4]->Uint32Value();
+  size_t offset = args[3]->Uint32Value();
+  size_t size = args[4]->Uint32Value();
 
   MakeEventWaitList(args[5]);
+
+  /*Local<Array> region=Array::Cast(*args[0]);
+  Local<Value> vbuffer=region->Get(JS_STR("buffer"));
+  WebCLMemory *mo=NULL;
+  if(!vbuffer->IsUndefined())
+    mo = ObjectWrap::Unwrap<WebCLMemory>(vbuffer->ToObject());
+
+  size_t offset=0;
+  Local<Value> voffset=region->Get(JS_STR("offset"));
+  if(!voffset->IsUndefined())
+    offset=voffset->Uint32Value();
+
+  size_t size=0;
+  Local<Value> vsize=region->Get(JS_STR("size"));
+  if(!vsize->IsUndefined())
+    size=vsize->Uint32Value();
+
+  MakeEventWaitList(args[3]);*/
 
   cl_int ret=CL_SUCCESS;
   cl::Event *event=new cl::Event(); // TODO should we create an Event
@@ -901,12 +919,33 @@ JS_METHOD(WebCLCommandQueue::enqueueMapBuffer)
       offset, size,
       pevents, event,&ret);
 
-  //TODO check errors
-  //     delete event;
+  if (ret != CL_SUCCESS) {
+    delete event;
+    REQ_ERROR_THROW(CL_INVALID_COMMAND_QUEUE);
+    REQ_ERROR_THROW(CL_INVALID_CONTEXT);
+    REQ_ERROR_THROW(CL_INVALID_MEM_OBJECT);
+    REQ_ERROR_THROW(CL_INVALID_VALUE);
+    REQ_ERROR_THROW(CL_INVALID_EVENT_WAIT_LIST);
+    REQ_ERROR_THROW(CL_MISALIGNED_SUB_BUFFER_OFFSET);
+    REQ_ERROR_THROW(CL_MAP_FAILURE);
+    REQ_ERROR_THROW(CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST);
+    REQ_ERROR_THROW(CL_MEM_OBJECT_ALLOCATION_FAILURE);
+    REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+    return ThrowError("UNKNOWN ERROR");
+  }
+
+  cout<<"enqueueMapBuffer"<<endl;
+  for(int i=0;i<size;i++) {
+    cout<<(int)((char*)result)[i]<<" ";
+  }
+  cout<<endl;
 
   _MappedRegion *mapped_region=new _MappedRegion();
-  mapped_region->buffer=node::Buffer::New((char*)result, size);
+  mapped_region->buffer=Buffer::New((char*) result,size);
   mapped_region->mapped_ptr=(ulong) result; // TODO use SetHiddenValue on buffer
+  mapped_region->event=WebCLEvent::New(event); // TODO check if this event can be correctly used? and deleted?
+
   return scope.Close(WebCLMappedRegion::New(mapped_region)->handle_);
 }
 
@@ -914,7 +953,7 @@ JS_METHOD(WebCLCommandQueue::enqueueMapBuffer)
 JS_METHOD(WebCLCommandQueue::enqueueMapImage)
 {
   HandleScope scope;
-  WebCLCommandQueue *cq = ObjectWrap::Unwrap<WebCLCommandQueue>(args.This());
+  WebCLCommandQueue *cq = UnwrapThis<WebCLCommandQueue>(args);
 
   // TODO: arg checking
   WebCLMemory *mo = ObjectWrap::Unwrap<WebCLMemory>(args[0]->ToObject());
@@ -960,12 +999,19 @@ JS_METHOD(WebCLCommandQueue::enqueueMapImage)
 JS_METHOD(WebCLCommandQueue::enqueueUnmapMemObject)
 {
   HandleScope scope;
-  WebCLCommandQueue *cq = ObjectWrap::Unwrap<WebCLCommandQueue>(args.This());
+  WebCLCommandQueue *cq = UnwrapThis<WebCLCommandQueue>(args);
 
   // TODO: arg checking
   WebCLMemory *mo = ObjectWrap::Unwrap<WebCLMemory>(args[0]->ToObject());
   WebCLMappedRegion *region = ObjectWrap::Unwrap<WebCLMappedRegion>(args[1]->ToObject());
-  void *mapped_ptr=(void*) region->getMappedRegion()->mapped_ptr;
+  char *mapped_ptr=(char*) region->getMappedRegion()->mapped_ptr;
+
+  cout<<"enqueueUnmapMemObject"<<endl;
+  for(int i=0;i<Buffer::Length(region->getMappedRegion()->buffer);i++) {
+    mapped_ptr[i]=Buffer::Data(region->getMappedRegion()->buffer)[i];
+    cout<<(int) mapped_ptr[i]<<" ";
+  }
+  cout<<endl;
 
   MakeEventWaitList(args[2]);
 
@@ -982,7 +1028,7 @@ JS_METHOD(WebCLCommandQueue::enqueueUnmapMemObject)
     REQ_ERROR_THROW(CL_INVALID_EVENT_WAIT_LIST);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return JS_EXCEPTION("UNKNOWN ERROR");
+    return ThrowError("UNKNOWN ERROR");
   }
 
   return scope.Close(WebCLEvent::New(event)->handle_);
@@ -992,7 +1038,7 @@ JS_METHOD(WebCLCommandQueue::enqueueUnmapMemObject)
 JS_METHOD(WebCLCommandQueue::enqueueMarker)
 {
   HandleScope scope;
-  WebCLCommandQueue *cq = ObjectWrap::Unwrap<WebCLCommandQueue>(args.This());
+  WebCLCommandQueue *cq = UnwrapThis<WebCLCommandQueue>(args);
 
   cl::Event *event=new cl::Event();
   cl_int ret = cq->getCommandQueue()->enqueueMarker(event);
@@ -1002,7 +1048,7 @@ JS_METHOD(WebCLCommandQueue::enqueueMarker)
     REQ_ERROR_THROW(CL_INVALID_VALUE);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return JS_EXCEPTION("UNKNOWN ERROR");
+    return ThrowError("UNKNOWN ERROR");
   }
 
   return scope.Close(WebCLEvent::New(event)->handle_);
@@ -1012,7 +1058,7 @@ JS_METHOD(WebCLCommandQueue::enqueueMarker)
 JS_METHOD(WebCLCommandQueue::enqueueWaitForEvents)
 {
   HandleScope scope;
-  WebCLCommandQueue *cq = ObjectWrap::Unwrap<WebCLCommandQueue>(args.This());
+  WebCLCommandQueue *cq = UnwrapThis<WebCLCommandQueue>(args);
 
   VECTOR_CLASS<cl::Event> event_wait_list;
   Local<Array> eventWaitArray = Array::Cast(*args[0]);
@@ -1031,7 +1077,7 @@ JS_METHOD(WebCLCommandQueue::enqueueWaitForEvents)
     REQ_ERROR_THROW(CL_INVALID_EVENT);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return JS_EXCEPTION("UNKNOWN ERROR");
+    return ThrowError("UNKNOWN ERROR");
   }
 
   return Undefined();
@@ -1041,14 +1087,14 @@ JS_METHOD(WebCLCommandQueue::enqueueWaitForEvents)
 JS_METHOD(WebCLCommandQueue::enqueueBarrier)
 {
   HandleScope scope;
-  WebCLCommandQueue *cq = ObjectWrap::Unwrap<WebCLCommandQueue>(args.This());
+  WebCLCommandQueue *cq = UnwrapThis<WebCLCommandQueue>(args);
   cl_int ret = cq->getCommandQueue()->enqueueBarrier();
 
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(CL_INVALID_COMMAND_QUEUE);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return JS_EXCEPTION("UNKNOWN ERROR");
+    return ThrowError("UNKNOWN ERROR");
   }
 
   return Undefined();
@@ -1058,14 +1104,14 @@ JS_METHOD(WebCLCommandQueue::enqueueBarrier)
 JS_METHOD(WebCLCommandQueue::finish)
 {
   HandleScope scope;
-  WebCLCommandQueue *cq = ObjectWrap::Unwrap<WebCLCommandQueue>(args.This());
+  WebCLCommandQueue *cq = UnwrapThis<WebCLCommandQueue>(args);
   cl_int ret = cq->getCommandQueue()->finish();
 
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(CL_INVALID_COMMAND_QUEUE);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return JS_EXCEPTION("UNKNOWN ERROR");
+    return ThrowError("UNKNOWN ERROR");
   }
 
   return Undefined();
@@ -1075,14 +1121,14 @@ JS_METHOD(WebCLCommandQueue::finish)
 JS_METHOD(WebCLCommandQueue::flush)
 {
   HandleScope scope;
-  WebCLCommandQueue *cq = ObjectWrap::Unwrap<WebCLCommandQueue>(args.This());
+  WebCLCommandQueue *cq = UnwrapThis<WebCLCommandQueue>(args);
   cl_int ret = cq->getCommandQueue()->flush();
 
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(CL_INVALID_COMMAND_QUEUE);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return JS_EXCEPTION("UNKNOWN ERROR");
+    return ThrowError("UNKNOWN ERROR");
   }
 
   return Undefined();

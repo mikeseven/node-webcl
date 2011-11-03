@@ -20,6 +20,9 @@ using namespace v8;
 using namespace node;
 using namespace webcl;
 
+#include <iostream>
+using namespace std;
+
 Persistent<FunctionTemplate> WebCL::constructor_template;
 
 /*static*/
@@ -32,7 +35,7 @@ void WebCL::Init(Handle<Object> target) {
   constructor_template->InstanceTemplate()->SetInternalFieldCount(1);
   constructor_template->SetClassName(String::NewSymbol("WebCL"));
 
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "getPlatformIDs", getPlatformIDs);
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "getPlatforms", getPlatforms);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "createContext", createContext);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "waitForEvents", waitForEvents);
 
@@ -48,14 +51,14 @@ JS_METHOD(WebCL::New) {
 }
 
 /*static*/
-JS_METHOD(WebCL::getPlatformIDs) {
+JS_METHOD(WebCL::getPlatforms) {
   HandleScope scope;
   VECTOR_CLASS<cl::Platform> platforms;
   cl_int ret=cl::Platform::get(&platforms);
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(CL_INVALID_VALUE);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return JS_EXCEPTION("UNKNOWN ERROR");
+    return ThrowError("UNKNOWN ERROR");
   }
 
   Local<Array> platformArray = Array::New(platforms.size());
@@ -75,23 +78,29 @@ JS_METHOD(WebCL::createContext) {
 
   if (args[0]->IsArray()) {
     if (!args[1]->IsArray())
-      JS_EXCEPTION("CL_INVALID_VALUE");
+      ThrowError("CL_INVALID_VALUE");
 
     Local<Array> deviceArray = Array::Cast(*args[0]);
     VECTOR_CLASS<cl::Device> devices;
     for (int i=0; i<deviceArray->Length(); i++) {
       Local<Object> obj = deviceArray->Get(i)->ToObject();
       WebCLDevice *d = ObjectWrap::Unwrap<WebCLDevice>(obj);
+      cout<<"adding device "<<hex<<d->getDevice()<<dec<<endl;
       devices.push_back(*d->getDevice());
     }
 
     Local<Array> propertiesArray = Array::Cast(*args[1]);
-    cl_context_properties *properties = new cl_context_properties[propertiesArray->Length()+1];
+    int num=propertiesArray->Length();
+    cl_context_properties *properties=new cl_context_properties[num+1];
+    for (int i=0; i<num; i+=2) {
 
-    for (int i=0; i<propertiesArray->Length(); i+=2) {
-      properties[i] = (cl_context_properties)propertiesArray->Get(i)->NumberValue();
+      properties[i]=propertiesArray->Get(i)->Uint32Value();
+
+      Local<Object> obj = propertiesArray->Get(i+1)->ToObject();
+      WebCLPlatform *platform = ObjectWrap::Unwrap<WebCLPlatform>(obj);
+      properties[i+1]=(cl_context_properties) platform->getPlatform()->operator ()();
     }
-    properties[propertiesArray->Length()] = 0;
+    properties[num]=0;
 
     // TODO handle callback arg
 
@@ -100,7 +109,7 @@ JS_METHOD(WebCL::createContext) {
   }
   else if(args[0]->IsNumber()) {
     if (!args[1]->IsArray()) {
-      JS_EXCEPTION("CL_INVALID_VALUE");
+      ThrowError("CL_INVALID_VALUE");
     }
 
     cl_device_type device_type = args[0]->Uint32Value();
@@ -121,7 +130,7 @@ JS_METHOD(WebCL::createContext) {
     cw = new cl::Context(device_type,properties,NULL,NULL,&ret);
   }
   else
-    return JS_EXCEPTION("CL_INVALID_VALUE for argument 0");
+    return ThrowError("CL_INVALID_VALUE for argument 0");
 
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(CL_INVALID_PLATFORM);
@@ -132,7 +141,7 @@ JS_METHOD(WebCL::createContext) {
     REQ_ERROR_THROW(CL_DEVICE_NOT_FOUND);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return JS_EXCEPTION("UNKNOWN ERROR");
+    return ThrowError("UNKNOWN ERROR");
   }
 
   return scope.Close(WebCLContext::New(cw)->handle_);
@@ -140,14 +149,18 @@ JS_METHOD(WebCL::createContext) {
 
 /*static*/
 JS_METHOD(WebCL::waitForEvents) {
+  HandleScope scope;
+
   if (!args[0]->IsArray())
-    JS_EXCEPTION("CL_INVALID_VALUE");
+    ThrowError("CL_INVALID_VALUE");
 
   Local<Array> eventsArray = Array::Cast(*args[0]);
   VECTOR_CLASS<cl::Event> events;
   for (int i=0; i<eventsArray->Length(); i++) {
     Local<Object> obj = eventsArray->Get(i)->ToObject();
-    cl::Event *e = ObjectWrap::Unwrap<WebCLEvent>(obj)->getEvent();
+    cout<<"obj internalFieldCount = "<<obj->InternalFieldCount()<<endl;
+    WebCLEvent *we=ObjectWrap::Unwrap<WebCLEvent>(obj);
+    cl::Event *e = we->getEvent();
     events.push_back(*e);
   }
   cl_int ret=cl::Event::waitForEvents(events);
@@ -158,7 +171,7 @@ JS_METHOD(WebCL::waitForEvents) {
     REQ_ERROR_THROW(CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return JS_EXCEPTION("UNKNOWN ERROR");
+    return ThrowError("UNKNOWN ERROR");
   }
 
   return Undefined();
@@ -170,7 +183,7 @@ JS_METHOD(WebCL::unloadCompiler) {
   cl_int ret = cl::UnloadCompiler();
 
   if (ret != CL_SUCCESS) {
-    return JS_EXCEPTION("UNKNOWN ERROR");
+    return ThrowError("UNKNOWN ERROR");
   }
 
   return Undefined();

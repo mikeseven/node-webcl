@@ -56,7 +56,7 @@ public:
   ~WebCL() {}
 
   static JS_METHOD(New);
-  static JS_METHOD(getPlatformIDs);
+  static JS_METHOD(getPlatforms);
   static JS_METHOD(createContext);
   static JS_METHOD(waitForEvents);
   static JS_METHOD(unloadCompiler);

@@ -25,13 +25,13 @@ void WebCLEvent::Init(Handle<Object> target)
   constructor_template = Persistent<FunctionTemplate>::New(t);
 
   constructor_template->InstanceTemplate()->SetInternalFieldCount(1);
-  constructor_template->SetClassName(String::NewSymbol("WebCLEvent"));
+  constructor_template->SetClassName(JS_STR("WebCLEvent"));
 
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "getInfo", getInfo);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "getProfilingInfo", getProfilingInfo);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "setUserEventStatus", setUserEventStatus);
 
-  target->Set(String::NewSymbol("WebCLEvent"), constructor_template->GetFunction());
+  target->Set(JS_STR("WebCLEvent"), constructor_template->GetFunction());
 }
 
 WebCLEvent::WebCLEvent(Handle<Object> wrapper) : event(0)
@@ -47,7 +47,7 @@ WebCLEvent::~WebCLEvent()
 JS_METHOD(WebCLEvent::getInfo)
 {
   HandleScope scope;
-  WebCLEvent *e = ObjectWrap::Unwrap<WebCLEvent>(args.This());
+  WebCLEvent *e = UnwrapThis<WebCLEvent>(args);
   cl_event_info param_name = args[0]->NumberValue();
 
   switch (param_name) {
@@ -69,7 +69,7 @@ JS_METHOD(WebCLEvent::getInfo)
     return scope.Close(Integer::NewFromUnsigned(param_value));
   }
   default:
-    return JS_EXCEPTION("UNKNOWN param_name");
+    return ThrowError("UNKNOWN param_name");
   }
 
 }
@@ -78,7 +78,7 @@ JS_METHOD(WebCLEvent::getInfo)
 JS_METHOD(WebCLEvent::getProfilingInfo)
 {
   HandleScope scope;
-  WebCLEvent *e = ObjectWrap::Unwrap<WebCLEvent>(args.This());
+  WebCLEvent *e = UnwrapThis<WebCLEvent>(args);
   cl_event_info param_name = args[0]->NumberValue();
 
   switch (param_name) {
@@ -91,7 +91,7 @@ JS_METHOD(WebCLEvent::getProfilingInfo)
     return scope.Close(Integer::New(param_value));
   }
   default:
-    return JS_EXCEPTION("UNKNOWN param_name");
+    return ThrowError("UNKNOWN param_name");
   }
 }
 
@@ -99,7 +99,7 @@ JS_METHOD(WebCLEvent::getProfilingInfo)
 JS_METHOD(WebCLEvent::setUserEventStatus)
 {
   HandleScope scope;
-  WebCLEvent *e = ObjectWrap::Unwrap<WebCLEvent>(args.This());
+  WebCLEvent *e = UnwrapThis<WebCLEvent>(args);
 
   cl_int ret=((cl::UserEvent*) e->getEvent())->setStatus((cl_int)args[0]->IntegerValue());
   if (ret != CL_SUCCESS) {
@@ -108,7 +108,7 @@ JS_METHOD(WebCLEvent::setUserEventStatus)
     REQ_ERROR_THROW(CL_INVALID_OPERATION);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return JS_EXCEPTION("UNKNOWN ERROR");
+    return ThrowError("UNKNOWN ERROR");
   }
 
   return Undefined();
@@ -126,7 +126,6 @@ JS_METHOD(WebCLEvent::New)
 /* static  */
 WebCLEvent *WebCLEvent::New(cl::Event* ew)
 {
-
   HandleScope scope;
 
   Local<Value> arg = Integer::NewFromUnsigned(0);

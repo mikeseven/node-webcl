@@ -46,7 +46,7 @@ WebCLDevice::~WebCLDevice()
 JS_METHOD(WebCLDevice::getInfo)
 {
   HandleScope scope;
-  WebCLDevice *device = ObjectWrap::Unwrap<WebCLDevice>(args.This());
+  WebCLDevice *device = UnwrapThis<WebCLDevice>(args);
   cl_device_info param_name = args[0]->Uint32Value();
 
   switch (param_name) {
@@ -64,7 +64,7 @@ JS_METHOD(WebCLDevice::getInfo)
       REQ_ERROR_THROW(CL_INVALID_VALUE);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return JS_EXCEPTION("UNKNOWN ERROR");
+      return ThrowError("UNKNOWN ERROR");
     }
     return scope.Close(JS_STR(param_value.c_str(),param_value.length()));
   }
@@ -77,7 +77,7 @@ JS_METHOD(WebCLDevice::getInfo)
       REQ_ERROR_THROW(CL_INVALID_VALUE);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return JS_EXCEPTION("UNKNOWN ERROR");
+      return ThrowError("UNKNOWN ERROR");
     }
     return scope.Close(JS_INT((ulong)param_value));
   }
@@ -90,7 +90,7 @@ JS_METHOD(WebCLDevice::getInfo)
       REQ_ERROR_THROW(CL_INVALID_VALUE);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return JS_EXCEPTION("UNKNOWN ERROR");
+      return ThrowError("UNKNOWN ERROR");
     }
     return scope.Close(JS_INT((ulong)param_value));
   }
@@ -102,7 +102,7 @@ JS_METHOD(WebCLDevice::getInfo)
         REQ_ERROR_THROW(CL_INVALID_PLATFORM);
         REQ_ERROR_THROW(CL_INVALID_VALUE);
         REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-        return JS_EXCEPTION("UNKNOWN ERROR");
+        return ThrowError("UNKNOWN ERROR");
       }
 
       int n=workitem_size.size();
@@ -121,7 +121,7 @@ JS_METHOD(WebCLDevice::getInfo)
       REQ_ERROR_THROW(CL_INVALID_VALUE);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return JS_EXCEPTION("UNKNOWN ERROR");
+      return ThrowError("UNKNOWN ERROR");
     }
     return scope.Close(JS_INT(param_value));
   }
@@ -131,6 +131,9 @@ JS_METHOD(WebCLDevice::getInfo)
 /* static  */
 JS_METHOD(WebCLDevice::New)
 {
+  if (!args.IsConstructCall())
+    return ThrowTypeError("Constructor cannot be called as a function.");
+
   HandleScope scope;
   WebCLDevice *cl = new WebCLDevice(args.This());
   cl->Wrap(args.This());

@@ -44,7 +44,7 @@ function ImageFilter(image) {
     out[i]=0;
 
   //Pick platform
-  var platformList=WebCL.getPlatformIDs();
+  var platformList=WebCL.getPlatforms();
   platform=platformList[0];
 
   //Pick first platform

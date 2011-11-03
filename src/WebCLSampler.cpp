@@ -43,7 +43,7 @@ WebCLSampler::~WebCLSampler()
 JS_METHOD(WebCLSampler::getInfo)
 {
   HandleScope scope;
-  WebCLSampler *sampler = ObjectWrap::Unwrap<WebCLSampler>(args.This());
+  WebCLSampler *sampler = UnwrapThis<WebCLSampler>(args);
   cl_sampler_info param_name = args[0]->Uint32Value();
 
   switch (param_name) {
@@ -58,7 +58,7 @@ JS_METHOD(WebCLSampler::getInfo)
       REQ_ERROR_THROW(CL_INVALID_SAMPLER);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return JS_EXCEPTION("UNKNOWN ERROR");
+      return ThrowError("UNKNOWN ERROR");
     }
     return scope.Close(Integer::NewFromUnsigned(param_value));
   }
@@ -70,13 +70,13 @@ JS_METHOD(WebCLSampler::getInfo)
       REQ_ERROR_THROW(CL_INVALID_SAMPLER);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return JS_EXCEPTION("UNKNOWN ERROR");
+      return ThrowError("UNKNOWN ERROR");
     }
     cl::Context *cw = new cl::Context(param_value);
     return scope.Close(WebCLContext::New(cw)->handle_);
   }
   default:
-    return JS_EXCEPTION("UNKNOWN param_name");
+    return ThrowError("UNKNOWN param_name");
   }
 
 }
@@ -84,6 +84,9 @@ JS_METHOD(WebCLSampler::getInfo)
 /* static  */
 JS_METHOD(WebCLSampler::New)
 {
+  if (!args.IsConstructCall())
+    return ThrowTypeError("Constructor cannot be called as a function.");
+
   HandleScope scope;
   WebCLSampler *cl = new WebCLSampler(args.This());
   cl->Wrap(args.This());

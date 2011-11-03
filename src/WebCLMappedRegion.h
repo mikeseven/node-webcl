@@ -13,9 +13,12 @@
 
 namespace webcl {
 
+class WebCLEvent;
+
 typedef struct _MappedRegion {
   node::Buffer *buffer;
   ulong mapped_ptr;
+  WebCLEvent *event;
 } _MappedRegion;
 
 class WebCLMappedRegion : public node::ObjectWrap

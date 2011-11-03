@@ -73,6 +73,7 @@
     
     <h2 class="no-toc">History</h2>
     <ul>
+		<li>2011-10-31 -- renamed getPlatformIDs to getPlatforms</li>
 		<li>2011-10-27 -- following discussions: removed New() methods from all interfaces, removed [callback] from all interfaces. Updated example with kernel.setArg() types.</li>
 		<li>2011-10-10 -- Proposed to WebCL working group</li>
     </ul>
@@ -105,7 +106,7 @@ function VectorAdd() {
   }
 
   //Pick platform
-  var platformList=WebCL.getPlatformIDs();
+  var platformList=WebCL.getPlatforms();
   platform=platformList[0]; // select the first platform
 
   // create GPU context for this platform
@@ -261,7 +262,7 @@ interface ImageFormat {
         The <code>WebCL</code> interface contains general methods defined by OpenCL.
     </p>
     <pre class="idl">interface <dfn id="WebCL">WebCL</dfn> {
-  WebCLPlatform[] getPlatformIDs();
+  WebCLPlatform[] getPlatforms();
   WebCLContext createContext(WebCLDevice devices[],int properties[]);
   WebCLContext createContext(int device_type, int properties[]);
   void waitForEvents(WebCLEvent events[]);
@@ -276,7 +277,7 @@ interface ImageFormat {
         use. For each parameter the default value is shown. 
     </p>
     <dl class="methods">
-        <dt class="idl-code">WebCLPlatform[] getPlatformIDs()</dt>
+        <dt class="idl-code">WebCLPlatform[] getPlatforms()</dt>
             <dd>                
             </dd>
         <dt class="idl-code">WebCLContext createContext(WebCLDevice devices[], int properties[])</dt>

@@ -50,7 +50,7 @@ WebCLProgram::~WebCLProgram()
 JS_METHOD(WebCLProgram::getInfo)
 {
   HandleScope scope;
-  WebCLProgram *prog = node::ObjectWrap::Unwrap<WebCLProgram>(args.This());
+  WebCLProgram *prog = UnwrapThis<WebCLProgram>(args);
   cl_program_info param_name = args[1]->NumberValue();
 
   switch (param_name) {
@@ -63,7 +63,7 @@ JS_METHOD(WebCLProgram::getInfo)
       REQ_ERROR_THROW(CL_INVALID_PROGRAM);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return JS_EXCEPTION("UNKNOWN ERROR");
+      return ThrowError("UNKNOWN ERROR");
     }
     return scope.Close(Integer::NewFromUnsigned(value));
   }
@@ -75,7 +75,7 @@ JS_METHOD(WebCLProgram::getInfo)
       REQ_ERROR_THROW(CL_INVALID_PROGRAM);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return JS_EXCEPTION("UNKNOWN ERROR");
+      return ThrowError("UNKNOWN ERROR");
     }
     cl::Context *cw = new cl::Context(value);
     return scope.Close(WebCLContext::New(cw)->handle_);
@@ -88,7 +88,7 @@ JS_METHOD(WebCLProgram::getInfo)
       REQ_ERROR_THROW(CL_INVALID_PROGRAM);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return JS_EXCEPTION("UNKNOWN ERROR");
+      return ThrowError("UNKNOWN ERROR");
     }
     std::size_t num_devices=devices.size();
     Local<Array> deviceArray = Array::New(num_devices);
@@ -107,23 +107,23 @@ JS_METHOD(WebCLProgram::getInfo)
       REQ_ERROR_THROW(CL_INVALID_PROGRAM);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return JS_EXCEPTION("UNKNOWN ERROR");
+      return ThrowError("UNKNOWN ERROR");
     }
     return scope.Close(String::New(source.c_str(),source.length()));
   }
   case CL_PROGRAM_BINARY_SIZES:
-    return JS_EXCEPTION("CL_PROGRAM_BINARY_SIZES unimplemented");
+    return ThrowError("CL_PROGRAM_BINARY_SIZES unimplemented");
   case CL_PROGRAM_BINARIES:
-    return JS_EXCEPTION("CL_PROGRAM_BINARIES unimplemented");
+    return ThrowError("CL_PROGRAM_BINARIES unimplemented");
   default:
-    return JS_EXCEPTION("UNKNOWN param_name");
+    return ThrowError("UNKNOWN param_name");
   }
 }
 
 JS_METHOD(WebCLProgram::getBuildInfo)
 {
   HandleScope scope;
-  WebCLProgram *prog = node::ObjectWrap::Unwrap<WebCLProgram>(args.This());
+  WebCLProgram *prog = UnwrapThis<WebCLProgram>(args);
   WebCLDevice *dev = ObjectWrap::Unwrap<WebCLDevice>(args[0]->ToObject());
   cl_program_info param_name = args[1]->Uint32Value();
 
@@ -137,7 +137,7 @@ JS_METHOD(WebCLProgram::getBuildInfo)
       REQ_ERROR_THROW(CL_INVALID_PROGRAM);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return JS_EXCEPTION("UNKNOWN ERROR");
+      return ThrowError("UNKNOWN ERROR");
     }
     return scope.Close(Integer::NewFromUnsigned(param_value));
   }
@@ -150,7 +150,7 @@ JS_METHOD(WebCLProgram::getBuildInfo)
       REQ_ERROR_THROW(CL_INVALID_PROGRAM);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return JS_EXCEPTION("UNKNOWN ERROR");
+      return ThrowError("UNKNOWN ERROR");
     }
     return scope.Close(JS_STR(param_value.c_str(),param_value.length()));
   }
@@ -160,10 +160,10 @@ JS_METHOD(WebCLProgram::getBuildInfo)
 JS_METHOD(WebCLProgram::build)
 {
   HandleScope scope;
-  WebCLProgram *prog = node::ObjectWrap::Unwrap<WebCLProgram>(args.This());
+  WebCLProgram *prog = UnwrapThis<WebCLProgram>(args);
 
   if (!args[0]->IsArray())
-    JS_EXCEPTION("CL_INVALID_VALUE");
+    ThrowError("CL_INVALID_VALUE");
 
   Local<Array> deviceArray = Array::Cast(*args[0]);
   VECTOR_CLASS<cl::Device> devices;
@@ -195,7 +195,7 @@ JS_METHOD(WebCLProgram::build)
     REQ_ERROR_THROW(CL_BUILD_PROGRAM_FAILURE);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return JS_EXCEPTION("UNKNOWN ERROR");
+    return ThrowError("UNKNOWN ERROR");
   }
 
   return Undefined();
@@ -220,7 +220,7 @@ JS_METHOD(WebCLProgram::createKernel)
     REQ_ERROR_THROW(CL_INVALID_VALUE);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return JS_EXCEPTION("UNKNOWN ERROR");
+    return ThrowError("UNKNOWN ERROR");
   }
 
   return scope.Close(WebCLKernel::New(kw)->handle_);
@@ -229,6 +229,9 @@ JS_METHOD(WebCLProgram::createKernel)
 /* static  */
 JS_METHOD(WebCLProgram::New)
 {
+  if (!args.IsConstructCall())
+    return ThrowTypeError("Constructor cannot be called as a function.");
+
   HandleScope scope;
   /*WebCLContext *context = ObjectWrap::Unwrap<WebCLContext>(args[0]->ToObject());
 
@@ -245,7 +248,7 @@ JS_METHOD(WebCLProgram::New)
     REQ_ERROR_THROW(CL_INVALID_VALUE);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return JS_EXCEPTION("UNKNOWN ERROR");
+    return ThrowError("UNKNOWN ERROR");
   }*/
 
   WebCLProgram *cl = new WebCLProgram(args.This());
