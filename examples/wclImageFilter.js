@@ -8,7 +8,6 @@
 var util    = require("util"),
     fs     = require("fs"),
     Image  = require("node-image").Image,
-    Jpeg  = require("jpeg").Jpeg,
     Buffer = require('buffer').Buffer,
     textureBuffer;
 

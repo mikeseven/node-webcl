@@ -65,6 +65,7 @@ JS_METHOD(WebCL::getPlatforms) {
   for (int i=0; i<platforms.size(); i++) {
     cl::Platform *platform=new cl::Platform(platforms[i]);
     platformArray->Set(i, WebCLPlatform::New(platform)->handle_);
+    //cout<<"Creating platform id: "<<hex<<platform->operator()()<<endl;
   }
 
   return scope.Close(platformArray);
@@ -113,6 +114,7 @@ JS_METHOD(WebCL::createContext) {
     }
 
     cl_device_type device_type = args[0]->Uint32Value();
+    cout<<"Creating context for device: "<<device_type<<endl;
 
     Local<Array> propertiesArray = Array::Cast(*args[1]);
     int num=propertiesArray->Length();
@@ -123,7 +125,8 @@ JS_METHOD(WebCL::createContext) {
 
       Local<Object> obj = propertiesArray->Get(i+1)->ToObject();
       WebCLPlatform *platform = ObjectWrap::Unwrap<WebCLPlatform>(obj);
-      properties[i+1]=(cl_context_properties) platform->getPlatform()->operator ()();
+      properties[i+1]=(cl_context_properties) platform->getPlatform()->operator()();
+      //cout<<"platform id: "<<hex<<properties[i+1]<<dec<<endl;
     }
     properties[num]=0;
 
