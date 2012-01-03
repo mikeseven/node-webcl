@@ -1,0 +1,559 @@
+/*
+ * webcl.idl
+ *
+ * WebCL IDL definitions scraped from the Khronos specification.
+ *
+ * Original Khronos Working Draft:
+ *
+ *   https://www.khronos.org/registry/webcl/specs/latest/
+ */
+
+// This module depends on the typedarrays module defined at:
+// https://www.khronos.org/registry/typedarray/specs/latest/typedarrays.idl
+
+module webcl {
+
+typedef events::Event Event;
+typedef html::HTMLCanvasElement HTMLCanvasElement;
+typedef html::HTMLImageElement HTMLImageElement;
+typedef html::HTMLVideoElement HTMLVideoElement;
+typedef html::ImageData ImageData;
+typedef typedarrays::ArrayBuffer ArrayBuffer;
+typedef typedarrays::ArrayBufferView ArrayBufferView;
+typedef typedarrays::FloatArray FloatArray;
+typedef typedarrays::Int32Array Int32Array;
+
+typedef unsigned long  CLenum;
+
+interface WebCLRegion {
+};
+
+dictionary WebCLBufferRegion : WebCLRegion {
+    attribute WebCLBuffer buffer;
+    attribute int origin;
+    attribute int size;
+}
+
+dictionary WebCLImageRegion : WebCLRegion {
+    attribute WebCLImage buffer;
+    attribute int[2..3] origin;
+    attribute int[2..3] size;
+    attribute int rowPitch;
+    attribute int slicePitch;
+}
+
+interface WebCLObject {
+};
+
+interface WebCLMemoryObject : WebCLObject {
+    any getMemoryObjectInfo(CLenum name);
+    WebCLMemoryObject createSubBuffer(CLenum flags, CLenum type, WebCLRegion region);
+  
+    // WebGL interop
+    // The following function is available only if this WebCLMemoryObject
+    // was created using one of the createFromGL* functions in WebCLContext
+
+    //any getGLObjectInfo();  // Returns a WebGLTexture, WebGLBuffer, or WebGLRenderbuffer
+};
+
+interface WebCLBuffer : WebCLMemoryObject {
+};
+
+interface WebCLImage : WebCLMemoryObject {
+    any getImageInfo(CLenum name);
+    any getGLTextureInfo(CLenum name);
+};
+    
+interface WebCLSampler : WebCLObject {
+    any getSamplerInfo(CLenum name);
+};
+
+interface WebCLEvent : WebCLObject {
+    any getEventInfo(CLenum name);
+    any getEventProfilingInfo(CLenum name);
+    void setUserEventStatus(CLenum executionStatus);
+}
+
+interface WebCLComputingContext {
+  
+    /* Error Codes */
+    const CLenum SUCCESS                                  =0;
+    const CLenum DEVICE_NOT_FOUND                         =-1;
+    const CLenum DEVICE_NOT_AVAILABLE                     =-2;
+    const CLenum COMPILER_NOT_AVAILABLE                   =-3;
+    const CLenum MEM_OBJECT_ALLOCATION_FAILURE            =-4;
+    const CLenum OUT_OF_RESOURCES                         =-5;
+    const CLenum OUT_OF_HOST_MEMORY                       =-6;
+    const CLenum PROFILING_INFO_NOT_AVAILABLE             =-7;
+    const CLenum MEM_COPY_OVERLAP                         =-8;
+    const CLenum IMAGE_FORMAT_MISMATCH                    =-9;
+    const CLenum IMAGE_FORMAT_NOT_SUPPORTED               =-10;
+    const CLenum BUILD_PROGRAM_FAILURE                    =-11;
+    const CLenum MAP_FAILURE                              =-12;
+    const CLenum MISALIGNED_SUB_BUFFER_OFFSET             -13;
+    const CLenum EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST =-14;
+  
+    const CLenum INVALID_VALUE                            =-30;
+    const CLenum INVALID_DEVICE_TYPE                      =-31;
+    const CLenum INVALID_PLATFORM                         =-32;
+    const CLenum INVALID_DEVICE                           =-33;
+    const CLenum INVALID_CONTEXT                          =-34;
+    const CLenum INVALID_QUEUE_PROPERTIES                 =-35;
+    const CLenum INVALID_COMMAND_QUEUE                    =-36;
+    const CLenum INVALID_HOST_PTR                         =-37;
+    const CLenum INVALID_MEM_OBJECT                       =-38;
+    const CLenum INVALID_IMAGE_FORMAT_DESCRIPTOR          =-39;
+    const CLenum INVALID_IMAGE_SIZE                       =-40;
+    const CLenum INVALID_SAMPLER                          =-41;
+    const CLenum INVALID_BINARY                           =-42;
+    const CLenum INVALID_BUILD_OPTIONS                    =-43;
+    const CLenum INVALID_PROGRAM                          =-44;
+    const CLenum INVALID_PROGRAM_EXECUTABLE               =-45;
+    const CLenum INVALID_KERNEL_NAME                      =-46;
+    const CLenum INVALID_KERNEL_DEFINITION                =-47;
+    const CLenum INVALID_KERNEL                           =-48;
+    const CLenum INVALID_ARG_INDEX                        =-49;
+    const CLenum INVALID_ARG_VALUE                        =-50;
+    const CLenum INVALID_ARG_SIZE                         =-51;
+    const CLenum INVALID_KERNEL_ARGS                      =-52;
+    const CLenum INVALID_WORK_DIMENSION                   =-53;
+    const CLenum INVALID_WORK_GROUP_SIZE                  =-54;
+    const CLenum INVALID_WORK_ITEM_SIZE                   =-55;
+    const CLenum INVALID_GLOBAL_OFFSET                    =-56;
+    const CLenum INVALID_EVENT_WAIT_LIST                  =-57;
+    const CLenum INVALID_EVENT                            =-58;
+    const CLenum INVALID_OPERATION                        =-59;
+    const CLenum INVALID_GL_OBJECT                        =-60;
+    const CLenum INVALID_BUFFER_SIZE                      =-61;
+    const CLenum INVALID_MIP_LEVEL                        =-62;
+    const CLenum INVALID_GLOBAL_WORK_SIZE                 =-63;
+    const CLenum INVALID_PROPERTY                         =-64;
+  
+    /* OpenCL Version */
+    const CLenum VERSION_1_0                              =1;
+    const CLenum VERSION_1_1                              =1;
+  
+    /* cl_bool */
+    const CLenum FALSE                                    =0;
+    const CLenum TRUE                                     =1;
+  
+    /* cl_platform_info */
+    const CLenum PLATFORM_PROFILE                         =0x0900;
+    const CLenum PLATFORM_VERSION                         =0x0901;
+    const CLenum PLATFORM_NAME                            =0x0902;
+    const CLenum PLATFORM_VENDOR                          =0x0903;
+    const CLenum PLATFORM_EXTENSIONS                      =0x0904;
+  
+    /* cl_device_type - bitfield */
+    const CLenum DEVICE_TYPE_DEFAULT                      =(1 << 0);
+    const CLenum DEVICE_TYPE_CPU                          =(1 << 1);
+    const CLenum DEVICE_TYPE_GPU                          =(1 << 2);
+    const CLenum DEVICE_TYPE_ACCELERATOR                  =(1 << 3);
+    const CLenum DEVICE_TYPE_ALL                          =0xFFFFFFFF;
+  
+    /* cl_device_info */
+    const CLenum DEVICE_TYPE                              =0x1000;
+    const CLenum DEVICE_VENDOR_ID                         =0x1001;
+    const CLenum DEVICE_MAX_COMPUTE_UNITS                 =0x1002;
+    const CLenum DEVICE_MAX_WORK_ITEM_DIMENSIONS          =0x1003;
+    const CLenum DEVICE_MAX_WORK_GROUP_SIZE               =0x1004;
+    const CLenum DEVICE_MAX_WORK_ITEM_SIZES               =0x1005;
+    const CLenum DEVICE_PREFERRED_VECTOR_WIDTH_CHAR       =0x1006;
+    const CLenum DEVICE_PREFERRED_VECTOR_WIDTH_SHORT      =0x1007;
+    const CLenum DEVICE_PREFERRED_VECTOR_WIDTH_INT        =0x1008;
+    const CLenum DEVICE_PREFERRED_VECTOR_WIDTH_LONG       =0x1009;
+    const CLenum DEVICE_PREFERRED_VECTOR_WIDTH_FLOAT      =0x100A;
+    const CLenum DEVICE_PREFERRED_VECTOR_WIDTH_DOUBLE     =0x100B;
+    const CLenum DEVICE_MAX_CLOCK_FREQUENCY               =0x100C;
+    const CLenum DEVICE_ADDRESS_BITS                      =0x100D;
+    const CLenum DEVICE_MAX_READ_IMAGE_ARGS               =0x100E;
+    const CLenum DEVICE_MAX_WRITE_IMAGE_ARGS              =0x100F;
+    const CLenum DEVICE_MAX_MEM_ALLOC_SIZE                =0x1010;
+    const CLenum DEVICE_IMAGE2D_MAX_WIDTH                 =0x1011;
+    const CLenum DEVICE_IMAGE2D_MAX_HEIGHT                =0x1012;
+    const CLenum DEVICE_IMAGE3D_MAX_WIDTH                 =0x1013;
+    const CLenum DEVICE_IMAGE3D_MAX_HEIGHT                =0x1014;
+    const CLenum DEVICE_IMAGE3D_MAX_DEPTH                 =0x1015;
+    const CLenum DEVICE_IMAGE_SUPPORT                     =0x1016;
+    const CLenum DEVICE_MAX_PARAMETER_SIZE                =0x1017;
+    const CLenum DEVICE_MAX_SAMPLERS                      =0x1018;
+    const CLenum DEVICE_MEM_BASE_ADDR_ALIGN               =0x1019;
+    const CLenum DEVICE_MIN_DATA_TYPE_ALIGN_SIZE          =0x101A;
+    const CLenum DEVICE_SINGLE_FP_CONFIG                  =0x101B;
+    const CLenum DEVICE_GLOBAL_MEM_CACHE_TYPE             =0x101C;
+    const CLenum DEVICE_GLOBAL_MEM_CACHELINE_SIZE         =0x101D;
+    const CLenum DEVICE_GLOBAL_MEM_CACHE_SIZE             =0x101E;
+    const CLenum DEVICE_GLOBAL_MEM_SIZE                   =0x101F;
+    const CLenum DEVICE_MAX_CONSTANT_BUFFER_SIZE          =0x1020;
+    const CLenum DEVICE_MAX_CONSTANT_ARGS                 =0x1021;
+    const CLenum DEVICE_LOCAL_MEM_TYPE                    =0x1022;
+    const CLenum DEVICE_LOCAL_MEM_SIZE                    =0x1023;
+    const CLenum DEVICE_ERROR_CORRECTION_SUPPORT          =0x1024;
+    const CLenum DEVICE_PROFILING_TIMER_RESOLUTION        =0x1025;
+    const CLenum DEVICE_ENDIAN_LITTLE                     =0x1026;
+    const CLenum DEVICE_AVAILABLE                         =0x1027;
+    const CLenum DEVICE_COMPILER_AVAILABLE                =0x1028;
+    const CLenum DEVICE_EXECUTION_CAPABILITIES            =0x1029;
+    const CLenum DEVICE_QUEUE_PROPERTIES                  =0x102A;
+    const CLenum DEVICE_NAME                              =0x102B;
+    const CLenum DEVICE_VENDOR                            =0x102C;
+    const CLenum DRIVER_VERSION                           =0x102D;
+    const CLenum DEVICE_PROFILE                           =0x102E;
+    const CLenum DEVICE_VERSION                           =0x102F;
+    const CLenum DEVICE_EXTENSIONS                        =0x1030;
+    const CLenum DEVICE_PLATFORM                          =0x1031;
+    const CLenum DEVICE_DOUBLE_FP_CONFIG                  =0x1032;
+    const CLenum DEVICE_HALF_FP_CONFIG                    =0x1033;
+    const CLenum DEVICE_PREFERRED_VECTOR_WIDTH_HALF       =0x1034;
+    const CLenum DEVICE_HOST_UNIFIED_MEMORY               =0x1035;
+    const CLenum DEVICE_NATIVE_VECTOR_WIDTH_CHAR          =0x1036;
+    const CLenum DEVICE_NATIVE_VECTOR_WIDTH_SHORT         =0x1037;
+    const CLenum DEVICE_NATIVE_VECTOR_WIDTH_INT           =0x1038;
+    const CLenum DEVICE_NATIVE_VECTOR_WIDTH_LONG          =0x1039;
+    const CLenum DEVICE_NATIVE_VECTOR_WIDTH_FLOAT         =0x103A;
+    const CLenum DEVICE_NATIVE_VECTOR_WIDTH_DOUBLE        =0x103B;
+    const CLenum DEVICE_NATIVE_VECTOR_WIDTH_HALF          =0x103C;
+    const CLenum DEVICE_OPENCL_C_VERSION                  =0x103D;
+  
+    /* cl_device_fp_config - bitfield */
+    const CLenum FP_DENORM                                =(1 << 0);
+    const CLenum FP_INF_NAN                               =(1 << 1);
+    const CLenum FP_ROUND_TO_NEAREST                      =(1 << 2);
+    const CLenum FP_ROUND_TO_ZERO                         =(1 << 3);
+    const CLenum FP_ROUND_TO_INF                          =(1 << 4);
+    const CLenum FP_FMA                                   =(1 << 5);
+    const CLenum FP_SOFT_FLOAT                            =(1 << 6);
+  
+    /* cl_device_mem_cache_type */
+    const CLenum NONE                                     =0x0;
+    const CLenum READ_ONLY_CACHE                          =0x1;
+    const CLenum READ_WRITE_CACHE                         =0x2;
+  
+    /* cl_device_local_mem_type */
+    const CLenum LOCAL                                    =0x1;
+    const CLenum GLOBAL                                   =0x2;
+  
+    /* cl_device_exec_capabilities - bitfield */
+    const CLenum EXEC_KERNEL                              =(1 << 0);
+    const CLenum EXEC_NATIVE_KERNEL                       =(1 << 1);
+  
+    /* cl_command_queue_properties - bitfield */
+    const CLenum QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE      =(1 << 0);
+    const CLenum QUEUE_PROFILING_ENABLE                   =(1 << 1);
+  
+    /* cl_context_info  */
+    const CLenum CONTEXT_REFERENCE_COUNT                  =0x1080;
+    const CLenum CONTEXT_DEVICES                          =0x1081;
+    const CLenum CONTEXT_PROPERTIES                       =0x1082;
+    const CLenum CONTEXT_NUM_DEVICES                      =0x1083;
+  
+    /* cl_context_info + cl_context_properties */
+    const CLenum CONTEXT_PLATFORM                         =0x1084;
+  
+    /* cl_command_queue_info */
+    const CLenum QUEUE_CONTEXT                            =0x1090;
+    const CLenum QUEUE_DEVICE                             =0x1091;
+    const CLenum QUEUE_REFERENCE_COUNT                    =0x1092;
+    const CLenum QUEUE_PROPERTIES                         =0x1093;
+  
+    /* cl_mem_flags - bitfield */
+    const CLenum MEM_READ_WRITE                           =(1 << 0);
+    const CLenum MEM_WRITE_ONLY                           =(1 << 1);
+    const CLenum MEM_READ_ONLY                            =(1 << 2);
+    const CLenum MEM_USE_HOST_PTR                         =(1 << 3);
+    const CLenum MEM_ALLOC_HOST_PTR                       =(1 << 4);
+    const CLenum MEM_COPY_HOST_PTR                        =(1 << 5);
+  
+    /* cl_channel_order */
+    const CLenum R                                        =0x10B0;
+    const CLenum A                                        =0x10B1;
+    const CLenum RG                                       =0x10B2;
+    const CLenum RA                                       =0x10B3;
+    const CLenum RGB                                      =0x10B4;
+    const CLenum RGBA                                     =0x10B5;
+    const CLenum BGRA                                     =0x10B6;
+    const CLenum ARGB                                     =0x10B7;
+    const CLenum INTENSITY                                =0x10B8;
+    const CLenum LUMINANCE                                =0x10B9;
+    const CLenum Rx                                       =0x10BA;
+    const CLenum RGx                                      =0x10BB;
+    const CLenum RGBx                                     =0x10BC;
+  
+    /* cl_channel_type */
+    const CLenum SNORM_INT8                               =0x10D0;
+    const CLenum SNORM_INT16                              =0x10D1;
+    const CLenum UNORM_INT8                               =0x10D2;
+    const CLenum UNORM_INT16                              =0x10D3;
+    const CLenum UNORM_SHORT_565                          =0x10D4;
+    const CLenum UNORM_SHORT_555                          =0x10D5;
+    const CLenum UNORM_INT_101010                         =0x10D6;
+    const CLenum SIGNED_INT8                              =0x10D7;
+    const CLenum SIGNED_INT16                             =0x10D8;
+    const CLenum SIGNED_INT32                             =0x10D9;
+    const CLenum UNSIGNED_INT8                            =0x10DA;
+    const CLenum UNSIGNED_INT16                           =0x10DB;
+    const CLenum UNSIGNED_INT32                           =0x10DC;
+    const CLenum HALF_FLOAT                               =0x10DD;
+    const CLenum FLOAT                                    =0x10DE;
+  
+    /* cl_mem_object_type */
+    const CLenum MEM_OBJECT_BUFFER                        =0x10F0;
+    const CLenum MEM_OBJECT_IMAGE2D                       =0x10F1;
+    const CLenum MEM_OBJECT_IMAGE3D                       =0x10F2;
+  
+    /* cl_mem_info */
+    const CLenum MEM_TYPE                                 =0x1100;
+    const CLenum MEM_FLAGS                                =0x1101;
+    const CLenum MEM_SIZE                                 =0x1102;
+    const CLenum MEM_HOST_PTR                             =0x1103;
+    const CLenum MEM_MAP_COUNT                            =0x1104;
+    const CLenum MEM_REFERENCE_COUNT                      =0x1105;
+    const CLenum MEM_CONTEXT                              =0x1106;
+    const CLenum MEM_ASSOCIATED_MEMOBJECT                 =0x1107;
+    const CLenum MEM_OFFSET                               =0x1108;
+  
+    /* cl_image_info */
+    const CLenum IMAGE_FORMAT                             =0x1110;
+    const CLenum IMAGE_ELEMENT_SIZE                       =0x1111;
+    const CLenum IMAGE_ROW_PITCH                          =0x1112;
+    const CLenum IMAGE_SLICE_PITCH                        =0x1113;
+    const CLenum IMAGE_WIDTH                              =0x1114;
+    const CLenum IMAGE_HEIGHT                             =0x1115;
+    const CLenum IMAGE_DEPTH                              =0x1116;
+  
+    /* cl_addressing_mode */
+    const CLenum ADDRESS_NONE                             =0x1130;
+    const CLenum ADDRESS_CLAMP_TO_EDGE                    =0x1131;
+    const CLenum ADDRESS_CLAMP                            =0x1132;
+    const CLenum ADDRESS_REPEAT                           =0x1133;
+    const CLenum ADDRESS_MIRRORED_REPEAT                  =0x1134;
+  
+    /* cl_filter_mode */
+    const CLenum FILTER_NEAREST                           =0x1140;
+    const CLenum FILTER_LINEAR                            =0x1141;
+  
+    /* cl_sampler_info */
+    const CLenum SAMPLER_REFERENCE_COUNT                  =0x1150;
+    const CLenum SAMPLER_CONTEXT                          =0x1151;
+    const CLenum SAMPLER_NORMALIZED_COORDS                =0x1152;
+    const CLenum SAMPLER_ADDRESSING_MODE                  =0x1153;
+    const CLenum SAMPLER_FILTER_MODE                      =0x1154;
+  
+    /* cl_map_flags - bitfield */
+    const CLenum MAP_READ                                 =(1 << 0);
+    const CLenum MAP_WRITE                                =(1 << 1);
+  
+    /* cl_program_info */
+    const CLenum PROGRAM_REFERENCE_COUNT                  =0x1160;
+    const CLenum PROGRAM_CONTEXT                          =0x1161;
+    const CLenum PROGRAM_NUM_DEVICES                      =0x1162;
+    const CLenum PROGRAM_DEVICES                          =0x1163;
+    const CLenum PROGRAM_SOURCE                           =0x1164;
+    const CLenum PROGRAM_BINARY_SIZES                     =0x1165;
+    const CLenum PROGRAM_BINARIES                         =0x1166;
+  
+    /* cl_program_build_info */
+    const CLenum PROGRAM_BUILD_STATUS                     =0x1181;
+    const CLenum PROGRAM_BUILD_OPTIONS                    =0x1182;
+    const CLenum PROGRAM_BUILD_LOG                        =0x1183;
+  
+    /* cl_build_status */
+    const CLenum BUILD_SUCCESS                             =0;
+    const CLenum BUILD_NONE                                =1;
+    const CLenum BUILD_ERROR                              =-2;
+    const CLenum BUILD_IN_PROGRESS                        =-3;
+  
+    /* cl_kernel_info */
+    const CLenum KERNEL_FUNCTION_NAME                     =0x1190;
+    const CLenum KERNEL_NUM_ARGS                          =0x1191;
+    const CLenum KERNEL_REFERENCE_COUNT                   =0x1192;
+    const CLenum KERNEL_CONTEXT                           =0x1193;
+    const CLenum KERNEL_PROGRAM                           =0x1194;
+  
+    /* cl_kernel_work_group_info */
+    const CLenum KERNEL_WORK_GROUP_SIZE                   =0x11B0;
+    const CLenum KERNEL_COMPILE_WORK_GROUP_SIZE           =0x11B1;
+    const CLenum KERNEL_LOCAL_MEM_SIZE                    =0x11B2;
+    const CLenum KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE =0x11B3;
+    const CLenum KERNEL_PRIVATE_MEM_SIZE                  =0x11B4;
+  
+    /* cl_event_info  */
+    const CLenum EVENT_COMMAND_QUEUE                      =0x11D0;
+    const CLenum EVENT_COMMAND_TYPE                       =0x11D1;
+    const CLenum EVENT_REFERENCE_COUNT                    =0x11D2;
+    const CLenum EVENT_COMMAND_EXECUTION_STATUS           =0x11D3;
+    const CLenum EVENT_CONTEXT                            =0x11D4;
+  
+    /* cl_command_type */
+    const CLenum COMMAND_NDRANGE_KERNEL                   =0x11F0;
+    const CLenum COMMAND_TASK                             =0x11F1;
+    const CLenum COMMAND_NATIVE_KERNEL                    =0x11F2;
+    const CLenum COMMAND_READ_BUFFER                      =0x11F3;
+    const CLenum COMMAND_WRITE_BUFFER                     =0x11F4;
+    const CLenum COMMAND_COPY_BUFFER                      =0x11F5;
+    const CLenum COMMAND_READ_IMAGE                       =0x11F6;
+    const CLenum COMMAND_WRITE_IMAGE                      =0x11F7;
+    const CLenum COMMAND_COPY_IMAGE                       =0x11F8;
+    const CLenum COMMAND_COPY_IMAGE_TO_BUFFER             =0x11F9;
+    const CLenum COMMAND_COPY_BUFFER_TO_IMAGE             =0x11FA;
+    const CLenum COMMAND_MAP_BUFFER                       =0x11FB;
+    const CLenum COMMAND_MAP_IMAGE                        =0x11FC;
+    const CLenum COMMAND_UNMAP_MEM_OBJECT                 =0x11FD;
+    const CLenum COMMAND_MARKER                           =0x11FE;
+    const CLenum COMMAND_ACQUIRE_GL_OBJECTS               =0x11FF;
+    const CLenum COMMAND_RELEASE_GL_OBJECTS               =0x1200;
+    const CLenum COMMAND_READ_BUFFER_RECT                 =0x1201;
+    const CLenum COMMAND_WRITE_BUFFER_RECT                =0x1202;
+    const CLenum COMMAND_COPY_BUFFER_RECT                 =0x1203;
+    const CLenum COMMAND_USER                             =0x1204;
+  
+    /* command execution status */
+    const CLenum COMPLETE                                 =0x0;
+    const CLenum RUNNING                                  =0x1;
+    const CLenum SUBMITTED                                =0x2;
+    const CLenum QUEUED                                   =0x3;
+    
+    /* cl_buffer_create_type  */
+    const CLenum BUFFER_CREATE_TYPE_REGION                =0x1220;
+  
+    /* cl_profiling_info  */
+    const CLenum PROFILING_COMMAND_QUEUED                 =0x1280;
+    const CLenum PROFILING_COMMAND_SUBMIT                 =0x1281;
+    const CLenum PROFILING_COMMAND_START                  =0x1282;
+    const CLenum PROFILING_COMMAND_END                    =0x1283;
+
+    WebCLPlatform[] getPlatforms();
+    WebCLContext createContext(WebCLDevice devices[], optional CLenum properties[]);
+    WebCLContext createContextFromType(CLenum deviceType, optional CLenum properties[]);
+    void waitForEvents(WebCLEvent[] eventList);
+    void unloadCompiler();
+
+    // Simplified context creation (other possibilities exist)
+    WebCLContext createContextFromPlatform(optinal WebCLPlatform platform, optional CLenum deviceType);
+
+    // Creates a WebCL context that can share resources with the given WebGL context.
+    WebCLContext createContextFromGL(WebGLRenderingContext gl, optional WebCLPlatform platform, optional CLenum deviceType);
+};
+
+interface WebCLPlatform {
+    any getPlatformInfo(CLenum name);
+    WebCLDevice[] getDevices(CLenum deviceType);
+}
+
+interface WebCLDevice {
+    any getDeviceInfo(CLenum name);
+    any getExtension(CLenum name);
+}
+
+interface WebCLContext {
+
+    any getContextInfo(CLenum name);
+
+    WebCLProgram createProgramWithSource(DOMString source);
+
+    WebCLCommandQueue createCommandQueue(WebCLDevice device, CLenum properties);
+
+    WebCLBuffer createBuffer(CLenum memFlags, long sizeInBytes);
+
+    WebCLImage createImage2D(CLenum memFlags,
+                             WebCLImageFormat imageFormat,
+                             long width,
+                             long height,
+                             optional long rowPitch);
+
+    WebCLImage createImage3D(CLenum memFlags,
+                             WebCLImageFormat imageFormat,
+                             long width,
+                             long height,
+                             long depth,
+                             optional long rowPitch,
+                             optional long slicePitch);
+
+    WebCLSampler createSampler(boolean normalizedCoords,
+                               CLenum addressingMode,
+                               CLenum filterMode);
+
+    WebCLImageFormat[] getSupportedImageFormats(CLenum memFlags,
+                                                CLenum imageType);
+
+    WebCLEvent createUserEvent();
+
+    // The following functions are available only if this WebCLContext
+    // was created from a WebGLRenderingContext
+
+    WebCLBuffer createFromGLBuffer(CLenum memFlags, WebGLBuffer buffer);
+    WebCLImage createFromGLTexture2D(CLenum memFlags, GLenum textureTarget, GLint miplevel, WebGLTexture texture);  // GL_TEXTURE_RECTANGLE not allowed as textureTarget
+    WebCLImage createFromGLTexture3D(...);
+    WebCLImage createFromGLRenderbuffer(CLenum memFlags, WebGLRenderbuffer renderbuffer);
+}
+
+interface WebCLProgram {
+    any getProgramInfo(CLenum name);
+    any getProgramBuildInfo(WebCLDevice device, CLenum name);
+    void buildProgram(WebCLDevice[] devices, DOMString options);
+    WebCLKernel createKernel(DOMString kernelName);
+    WebCLKernel[] createKernelsInProgram();
+}
+
+interface WebCLCommandQueue {
+  any getInfo(int name);
+  
+  WebCLEvent enqueueNDRangeKernel(WebCLKernel kernel[], 
+    int offsets[1..3], int globals[1..3], int locals[1..3], 
+    optional WebCLEvent[] event_wait_list);
+  
+  WebCLEvent enqueueTask(WebCLKernel kernel, optional WebCLEvent[] events);
+  
+  WebCLEvent enqueueWriteBuffer(WebCLMemory buffer, boolean blocking_write, 
+    WebCLRegion array, optinal WebCLEvent[] event_wait_list);
+  
+  WebCLEvent enqueueReadBuffer(WebCLMemory buffer, boolean blocking_read, 
+    WebCLRegion array, optional WebCLEvent[] event_wait_list);
+  
+  WebCLEvent enqueueCopyBuffer(WebCLRegion src, WebCLRegion dst, optional WebCLEvent[] event_wait_list);
+  
+  WebCLEvent enqueueCopyImageToBuffer(WebCLRegion src_image, WebCLMemory dst_buffer, 
+    optional WebCLEvent[] event_wait_list);
+  
+  WebCLEvent enqueueCopyBufferToImage(WebCLMemory src_buffer, WebCLRegion dst_image, 
+    optional WebCLEvent[] event_wait_list);
+  
+  WebCLMappedRegion enqueueMapBuffer(WebCLRegion buffer, boolean blocking_map, cl_map map_flags, optional WebCLEvent[] event_wait_list);
+  
+  WebCLEvent enqueueUnmapMemObject(WebCLMemory memory, WebCLMappedRegion mapped_region, optional WebCLEvent[] event_wait_list);
+  
+  WebCLEvent enqueueMarker();
+  
+  WebCLEvent enqueueWaitForEvents(WebCLEvent[] event_wait_list);
+  
+  void enqueueBarrier();
+  
+  void finish();
+  
+  void flush();
+    
+  // WebGL interop. (this is a subset of OpenGL interop. extensions)
+  WebCLEvent enqueueAcquireGLObjects(WebCLMemory[] objects, optional WebCLEvent[] event_wait_list);
+  
+  WebCLEvent enqueueReleaseGLObjects(WebCLMemory[] objects, optional WebCLEvent[] event_wait_list);
+};
+
+interface WebCLKernel {
+    any getKernelInfo(CLenum name);
+    any getKernelWorkGroupInfo(WebCLDevice device, CLenum name);
+    void setKernelArg(long index, Object value, CLtype type);
+    void setKernelArgLocal(long index, unsigned long size);
+}
+
+// TBD
+//[Constructor(DOMString type, optional WebGLContextEventInit eventInit)]
+//interface WebGLContextEvent : Event {
+//    readonly attribute DOMString statusMessage;
+//};
+
+// EventInit is defined in the DOM4 specification.
+//dictionary WebGLContextEventInit : EventInit {
+//    DOMString statusMessage;
+//};
+
+};

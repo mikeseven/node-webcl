@@ -8,10 +8,13 @@
 #define WEBCL_COMMON_H_
 
 // OpenCL includes
-//#define __NO_STD_VECTOR // cl::vector instead of STL version. Don't use! cl::vector doesn't grow!!!
-//#define __CL_ENABLE_EXCEPTIONS // C++ exceptions
-#include "cl.hpp"
+#if defined (__APPLE__) || defined(MACOSX)
+    #include <OpenCL/opencl.h>
+#else
+    #include <CL/opencl.h>
+#endif
 
+// Node includes
 #include <node.h>
 #include <node_object_wrap.h>
 #include <v8.h>
@@ -19,7 +22,7 @@
 namespace {
 #define JS_STR(...) v8::String::New(__VA_ARGS__)
 #define JS_INT(val) v8::Integer::New(val)
-#define JS_FLOAT(val) v8::Number::New(val)
+#define JS_NUM(val) v8::Number::New(val)
 #define JS_BOOL(val) v8::Boolean::New(val)
 #define JS_METHOD(name) v8::Handle<v8::Value> name(const v8::Arguments& args)
 //#define JS_EXCEPTION(reason) v8::ThrowException(v8::Exception::Error(JS_STR(reason)))
@@ -69,4 +72,17 @@ v8::Handle<v8::Value> ThrowRangeError(const char* msg) {
 
 }
 
+namespace webcl {
+class WebCLObject {
+protected:
+  virtual ~WebCLObject() { Destructor(); }
+
+public:
+  virtual void Destructor() {}
+};
+
+void registerCLObj(WebCLObject* obj);
+void unregisterCLObj(WebCLObject* obj);
+void AtExit();
+}
 #endif

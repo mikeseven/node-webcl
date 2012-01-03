@@ -24,15 +24,14 @@ def configure(conf):
 
 def build(bld):
   obj = bld.new_task_gen("cxx", "shlib", "node_addon")
-  obj.target = "_webcl"
-  obj.source  = bld.path.ant_glob('src/*.cpp')
-  obj.cxxflags = ["-g", "-I"+OPENCL_PATH+"/include", 
-                  "-D_FILE_OFFSET_BITS=64", "-D_LARGEFILE_SOURCE","-fPIC"]
-  obj.ldflags = [ "-lOpenCL"]
+  obj.target = "webcl"
+  obj.source  = bld.path.ant_glob('src/*.cc')
+  obj.cxxflags = ["-g", "-D_FILE_OFFSET_BITS=64", "-D_LARGEFILE_SOURCE","-fPIC"]
+  obj.ldflags = [ "-lOpenCL" ]
 
 def shutdown():
   if Options.commands['clean']:
-    if exists('_webcl.node'): unlink('_webcl.node')
+    if exists('node-webcl.node'): unlink('node-webcl.node')
   else:
-    if exists('build/Release/_webcl.node') and not exists('_webcl.node'):
-      symlink('build/Release/_webcl.node', '_webcl.node')
+    if exists('build/Release/node-webcl.node') and not exists('node-webcl.node'):
+      symlink('build/Release/node-webcl.node', 'node-webcl.node')
