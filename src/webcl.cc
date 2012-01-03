@@ -131,7 +131,7 @@ JS_METHOD(createContext) {
     }
 
     // TODO handle callback arg
-    cw = ::clCreateContext(&properties.front(), devices.size(), &devices.front(), NULL /*notifyFptr*/, NULL /*data*/, &ret);
+    cw = ::clCreateContext(properties.size() ? &properties.front() : NULL, devices.size(), &devices.front(), NULL /*notifyFptr*/, NULL /*data*/, &ret);
   }
   else if(args[0]->IsNumber()) {
     if (!args[1]->IsArray()) {

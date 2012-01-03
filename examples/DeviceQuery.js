@@ -25,7 +25,7 @@ for(var i in platforms) {
 
   //list for devices for a platform
   log("OpenCL Device Info:\n");
-  var devices=p.getDevices(cl.DEVICE_TYPE_ALL);
+  var devices = p.getDevices(cl.DEVICE_TYPE_ALL);
   log('Found '+devices.length+' devices');
   for(i=0;i<devices.length;i++) {
     var device=devices[i];
@@ -38,9 +38,10 @@ for(var i in platforms) {
   //Create a context for the devices
   var context;
   try {
-    context = cl.createContext(device);; //cl.createContext(cl.DEVICE_TYPE_DEFAULT, [cl.CONTEXT_PLATFORM, p]);
+    context = cl.createContext(device); //cl.createContext(cl.DEVICE_TYPE_DEFAULT, [cl.CONTEXT_PLATFORM, p]);
   }
-  finally {
+  catch(ex) {
+    log("createContext() exception: "+ex);
     log();
     log("*************************************************");
     log("* ERROR: Can NOT create context for this device *");
