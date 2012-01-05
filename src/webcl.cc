@@ -112,7 +112,7 @@ JS_METHOD(createContext) {
     if(!(args[1]->IsUndefined() || args[1]->IsNull())) {
       Local<Array> propertiesArray = Array::Cast(*args[1]);
       num=propertiesArray->Length();
-      for (int i=0; i<num; i+=2) {
+      for(int i=0; i<num; i+=2) {
         uint32_t prop=propertiesArray->Get(i)->Uint32Value();
         properties.push_back(prop);
 

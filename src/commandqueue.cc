@@ -641,7 +641,6 @@ JS_METHOD(CommandQueue::enqueueWriteImage)
   HandleScope scope;
   CommandQueue *cq = UnwrapThis<CommandQueue>(args);
   MemoryObject *mo = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
-  cout<<"enqueue image "<<hex<<mo->getMemory()<<dec<<endl;
 
   // TODO: arg checking
   cl_bool blocking_write = args[1]->BooleanValue() ? CL_TRUE : CL_FALSE;
@@ -661,7 +660,15 @@ JS_METHOD(CommandQueue::enqueueWriteImage)
   size_t row_pitch = args[4]->NumberValue();
   size_t slice_pitch = args[5]->NumberValue();
 
-  void *ptr = args[6]->ToObject()->GetIndexedPropertiesExternalArrayData();
+  void *ptr = NULL;
+  if (!args[6]->IsNull()) {
+    Local<Object> obj = Local<Object>::Cast(args[6]);
+    if (!obj->IsObject())
+      ThrowException(JS_STR("Bad enqueueWriteImage argument"));
+
+    ptr = obj->GetIndexedPropertiesExternalArrayData();
+    cout<<"enqueue image "<<hex<<ptr<<dec<<endl;
+  }
 
   //MakeEventWaitList(args[7]);
 

@@ -1,4 +1,5 @@
 var cl = module.exports = require('./build/Release/webcl.node');
+var WebGL=require('webgl');
 
 cl.size = {};
 cl.size.CHAR=cl.size_CHAR;
@@ -505,6 +506,13 @@ cl.Device.prototype.getDeviceInfo=function (param_name) {
   return this._getDeviceInfo(param_name);
 }
 
+cl.Device.prototype.getExtension=function (param_name) {
+  if (!(arguments.length === 1 && typeof param_name === 'number')) {
+    throw new TypeError('Expected WebCLDevice.getExtension(CLenum param_name)');
+  }
+  return this._getExtension(param_name);
+}
+
 //////////////////////////////
 //WebCLEvent object
 //////////////////////////////
@@ -645,3 +653,32 @@ cl.Sampler.prototype.getSamplerInfo=function (param_name) {
   return this._getSamplerInfo(param_name);
 }
 
+//////////////////////////////
+// OpenGL object
+//////////////////////////////
+cl.EXTGL.prototype.createFromGLBuffer=function (context, flags, buffer) {
+  console.log("buffer instanceof "+require('util').inspect(buffer));
+  if (!(arguments.length === 3 && typeof context === 'object' && typeof flags === 'number'
+    && typeof buffer ==='object')) {
+    throw new TypeError('Expected WebCLGL.createFromGLBuffer(WebCLContext context, CLenum flags, WebGLBuffer buffer)');
+  }
+  return this._createFromGLBuffer(context, flags, buffer ? buffer._ : 0);
+}
+
+cl.EXTGL.prototype.enqueueAcquireGLObjects=function (queue, mem_objects, events) {
+  if (!(arguments.length >= 2 && typeof queue === 'object' && 
+      typeof mem_objects === 'object' && 
+      (typeof events==='undefined' || typeof events === 'object'))) {
+    throw new TypeError('Expected WebCLGL.enqueueAcquireGLObjects(WebCLCommandQueue cq, WebCLMemoryObject[] mem_objects, WebCLEvent[] events)');
+  }
+  return this._enqueueAcquireGLObjects(queue, mem_objects, events);
+}
+
+cl.EXTGL.prototype.enqueueReleaseGLObjects=function (queue, mem_objects, events) {
+  if (!(arguments.length >= 2 && typeof queue === 'object' && 
+      typeof mem_objects === 'object' && 
+      (typeof events==='undefined' || typeof events === 'object'))) {
+    throw new TypeError('Expected WebCLGL.enqueueReleaseGLObjects(WebCLCommandQueue cq, WebCLMemoryObject[] mem_objects, WebCLEvent[] events)');
+  }
+  return this._enqueueReleaseGLObjects(queue, mem_objects, events);
+}

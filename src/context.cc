@@ -260,9 +260,13 @@ JS_METHOD(Context::createImage2D)
   size_t width = args[2]->NumberValue();
   size_t height = args[3]->NumberValue();
   size_t row_pitch = args[4]->NumberValue();
-  void *host_ptr=args[5]->IsUndefined() ? NULL : args[5]->ToObject()->GetIndexedPropertiesExternalArrayData();
-  //cout<<"Creating image: { order: "<<image_format.image_channel_order<<", datatype: "<<image_format.image_channel_data_type<<"} "
-  //    <<"dim: "<<width<<"x"<<height<<" pitch "<<row_pitch<<endl;
+  void *host_ptr=NULL;
+
+  if(!args[5]->IsUndefined()) {
+    host_ptr = args[5]->ToObject()->GetIndexedPropertiesExternalArrayData();
+    //cout<<"Creating image: { order: "<<image_format.image_channel_order<<", datatype: "<<image_format.image_channel_data_type<<"} "
+    //    <<"dim: "<<width<<"x"<<height<<" pitch "<<row_pitch<<endl;
+  }
   cl_int ret=CL_SUCCESS;
   cl_mem mw = ::clCreateImage2D(
       context->getContext(), flags,&image_format,

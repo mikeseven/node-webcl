@@ -6,6 +6,7 @@
  */
 
 #include "device.h"
+#include "ext_gl.h"
 
 #include <iostream>
 using namespace std;
@@ -27,6 +28,7 @@ void Device::Init(Handle<Object> target)
   constructor_template->SetClassName(String::NewSymbol("Device"));
 
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getDeviceInfo", getDeviceInfo);
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getExtension", getExtension);
 
   target->Set(String::NewSymbol("Device"), constructor_template->GetFunction());
 }
@@ -124,6 +126,19 @@ JS_METHOD(Device::getDeviceInfo)
     return scope.Close(JS_INT(param_value));
   }
   }
+}
+
+JS_METHOD(Device::getExtension)
+{
+  HandleScope scope;
+  Device *device = UnwrapThis<Device>(args);
+  cl_device_info param_name = args[0]->Uint32Value();
+
+  if(param_name==CL_GL_CONTEXT_KHR) {
+    return scope.Close(EXTGL::New()->handle_);
+  }
+
+  return Undefined();
 }
 
 JS_METHOD(Device::New)

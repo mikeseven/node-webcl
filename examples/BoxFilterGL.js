@@ -13,7 +13,8 @@ var cl = require('../webcl'),
     document = WebGL.document(),
     Image = WebGL.Image,
     nodejs=true,
-    log=console.log;
+    log=console.log,
+    requestAnimationFrame = document.requestAnimationFrame;
 
 //Read and eval library for mat/vec operations
 eval(fs.readFileSync(__dirname+ '/glMatrix-0.9.5.min.js','utf8'));
@@ -41,11 +42,14 @@ var szBuffBytes;              // Size of main image buffers
 var szGlobalWorkSize=[0,0];      // global # of work items
 var szLocalWorkSize= [0,0];       // work group # of work items 
 var szMaxWorkgroupSize = 512; // initial max # of work items
+var cmCL_PBO=0;          // OpenCL representation of GL pixel buffer 
+var clgl; // CL's OpenGL extensions
 
 // GL variables
-var gl;
-var pbo;
-var tex_screen;
+var gl;                       // GL Context
+var pbo;                      // Pixel buffer
+var tex_screen;               // WebGLTexture
+var image;                    // Image
 var mvMatrix = mat4.create(); // model-view matrix
 var pMatrix = mat4.create();  // projection matrix
 var squareVertexPositionBuffer;
@@ -79,9 +83,10 @@ document.setTitle("BoxFilterGL");
 requestAnimFrame = document.requestAnimationFrame;
 
 WebGLStart();
-WebCLStart();
+WebCLStart(gl);
+tick();
 
-function WebCLStart() {
+function WebCLStart(gl) {
   //Pick platform
   var platformList=cl.getPlatforms();
   var platform=platformList[0];
@@ -101,6 +106,8 @@ function WebCLStart() {
   var hasGLSupport = extensions.search(/gl.sharing/i) >= 0;
   log(hasGLSupport ? "GL-CL extension available ;-)" : "No GL support");
   if(!hasGLSupport) return;
+  clgl=device.getExtension(cl.GL_CONTEXT_KHR);
+  if(clgl==undefined) return;
   
   var numComputeUnits=device.getDeviceInfo(cl.DEVICE_MAX_COMPUTE_UNITS);
   log('  # of Compute Units = '+numComputeUnits);
@@ -114,8 +121,7 @@ function WebCLStart() {
   }
   else
     context=cl.createContext(device);
-  return;
-/*  
+
   // Create a command-queue 
   queue=context.createCommandQueue(device, 0);
   
@@ -126,8 +132,9 @@ function WebCLStart() {
   };
   
   //2D Image (Texture) on device
+  log("Image: "+image.width+"x"+image.height+" pitch: "+image.pitch);
   cmDevBufIn = context.createImage2D(cl.MEM_READ_ONLY | cl.MEM_USE_HOST_PTR, InputFormat, 
-      image.width, image.height, image.pitch , image.buffer);
+      image.width, image.height, image.pitch , image);
   
   RowSampler = context.createSampler(false, cl.ADDRESS_CLAMP, cl.FILTER_NEAREST);
   
@@ -135,6 +142,9 @@ function WebCLStart() {
   cmDevBufTemp = context.createBuffer(cl.MEM_READ_WRITE, szBuffBytes);
   cmDevBufOut = context.createBuffer(cl.MEM_WRITE_ONLY, szBuffBytes);
   
+  // Create OpenCL representation of OpenGL PBO
+  cmCL_PBO = clgl.createFromGLBuffer(context, cl.MEM_WRITE_ONLY, pbo);
+
   //Create the program 
   sourceCL = fs.readFileSync(__dirname+'/BoxFilter.cl','ascii');
   cpProgram = context.createProgram(sourceCL);
@@ -148,7 +158,9 @@ function WebCLStart() {
   
   // set the kernel args
   ResetKernelArgs(image.width, image.height, iRadius, fScale);
-  
+}
+
+function renderToImage() {
   // Warmup call to assure OpenCL driver is awake
   BoxFilterGPU (image, cmDevBufOut, iRadius, fScale);
   queue.finish();
@@ -168,7 +180,6 @@ function WebCLStart() {
   // PNG uses 32-bit images, JPG can only work on 24-bit images
   if(!Image.save('out_'+iRadius+'.png',uiOutput, image.width,image.height, image.pitch, image.bpp, 0xFF0000, 0x00FF00, 0xFF))
     log("Error saving image");
-  */
 }
 
 function ResetKernelArgs(width, height, r, fScale)
@@ -196,14 +207,16 @@ function ResetKernelArgs(width, height, r, fScale)
 //*****************************************************************************
 function BoxFilterGPU(image, cmOutputBuffer, r, fScale)
 {
+  log('BoxFilterGPU');
+  
   // Setup Kernel Args
   ckBoxColumns.setArg(1, cmOutputBuffer, cl.type.MEM);
 
   // Copy input data from host to device 
   var szTexOrigin = [0, 0, 0];                // Offset of input texture origin relative to host image
   var szTexRegion = [image.width, image.height, 1];   // Size of texture region to operate on
-  log('enqueue image: origin='+szTexOrigin+", region="+szTexRegion);
-  queue.enqueueWriteImage(cmDevBufIn, cl.TRUE, szTexOrigin, szTexRegion, 0, 0, image.buffer);
+  log('  enqueue image: origin='+szTexOrigin+", region="+szTexRegion);
+  queue.enqueueWriteImage(cmDevBufIn, cl.TRUE, szTexOrigin, szTexRegion, 0, 0, image);
 
   // Set global and local work sizes for row kernel
   szLocalWorkSize[0] = uiNumOutputPix;
@@ -223,7 +236,7 @@ function BoxFilterGPU(image, cmOutputBuffer, r, fScale)
   szLocalWorkSize[1] = 1;
   szGlobalWorkSize[0] = szLocalWorkSize[0] * clu.DivUp(image.width, szLocalWorkSize[0]);
   szGlobalWorkSize[1] = 1;
-  log("column kernel work sizes: global="+szGlobalWorkSize+" local="+szLocalWorkSize);
+  log("  column kernel work sizes: global="+szGlobalWorkSize+" local="+szLocalWorkSize);
 
   //Launch column kernel
   queue.enqueueNDRangeKernel(ckBoxColumns, null, szGlobalWorkSize, szLocalWorkSize);
@@ -237,6 +250,24 @@ function BoxFilterGPU(image, cmOutputBuffer, r, fScale)
 //              WebGL section
 //
 /////////////////////////////////////////////////////////////////////////
+function createPBO(image_width, image_height)
+{
+    // set up data parameter
+    var num_texels = image_width * image_height;
+    var num_values = num_texels * 4;
+    var size_tex_data = Int8Array.BYTES_PER_ELEMENT * num_values;
+
+    // create pixel buffer object
+    var pbo = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, pbo);
+
+    // buffer data
+    gl.bufferData(gl.ARRAY_BUFFER, size_tex_data, gl.DYNAMIC_DRAW);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    
+    return pbo;
+}
+
 function initGL(canvas) {
   try {
     gl = canvas.getContext("experimental-webgl");
@@ -247,6 +278,7 @@ function initGL(canvas) {
   if (!gl) {
     alert("Could not initialise WebGL, sorry :-(");
   }
+  
 }
 
 
@@ -329,26 +361,27 @@ function initShaders() {
 function handleLoadedTexture(texture) {
   gl.bindTexture(gl.TEXTURE_2D, texture);
   gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-//gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, texture.image);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, texture.image.width,texture.image.height,0,gl.RGBA, gl.UNSIGNED_BYTE, texture.image);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, texture.image.width,texture.image.height,
+      0,gl.RGBA, gl.UNSIGNED_BYTE, null /*texture.image*/);
   gl.bindTexture(gl.TEXTURE_2D, null);
 }
 
 
-var lena;
-
 function initTexture() {
-  lena = gl.createTexture();
-  lena.image = new Image();
-  lena.image.onload(function (s) { // [MBS] was onload() event
+  tex_screen = gl.createTexture();
+  image=tex_screen.image = new Image();
+  tex_screen.image.onload(function (s) { // [MBS] was onload() event
     console.log("Loaded image: "+s);
-    console.log("size: "+lena.image.width+"x"+lena.image.height);
-    handleLoadedTexture(lena)
+    console.log("size: "+tex_screen.image.width+"x"+tex_screen.image.height);
+    szBuffBytes = image.height*image.pitch;
+    handleLoadedTexture(tex_screen)
   });
 
-  lena.image.src = nodejs ? __dirname+"/lenaRGB.jpg" : "lenaRGB.jpg";
+  tex_screen.image.src = nodejs ? __dirname+"/lenaRGB.jpg" : "lenaRGB.jpg";
 }
 
 
@@ -423,8 +456,36 @@ function initBuffers() {
 
 
 function drawScene() {
+  log('drawScene');
+  // Sync GL and acquire buffer from GL
+  log('  Sync GL and acquire buffer from GL');
+  gl.finish();
+  clgl.enqueueAcquireGLObjects(queue, [cmCL_PBO]);
+
+  // Compute on GPU
+  log('  Compute on GPU');
+  BoxFilterGPU (image, cmCL_PBO, iRadius, fScale);
+
+  // Release buffer
+  log('  Release buffer');
+  clgl.enqueueReleaseGLObjects(queue, [cmCL_PBO]);
+  queue.finish();
+
+  // Update the texture from the pbo
+  log('  Update the texture from the pbo');
+  gl.bindTexture(gl.TEXTURE_2D, tex_screen);
+  gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, pbo);
+  gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, image.width, image.height, gl.RGBA, gl.UNSIGNED_BYTE, null);
+  gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, null);
+  gl.bindTexture(gl.TEXTURE_2D, null);
+  
+  // Draw processed image
+  log('  Draw processed image');
   gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+  gl.enable(gl.TEXTURE_2D);
+  gl.bindTexture(gl.TEXTURE_2D, tex_screen);
 
   mat4.ortho(-1.0, 1.0, -1.0, 1.0, -1.0, 1.0, pMatrix);
 
@@ -436,21 +497,16 @@ function drawScene() {
   gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexTextureCoordBuffer);
   gl.vertexAttribPointer(shaderProgram.textureCoordAttribute, cubeVertexTextureCoordBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
-  gl.activeTexture(gl.TEXTURE0);
-  gl.bindTexture(gl.TEXTURE_2D, lena);
   gl.uniform1i(shaderProgram.samplerUniform, 0);
 
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeVertexIndexBuffer);
   setMatrixUniforms();
   gl.drawElements(gl.TRIANGLES, cubeVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
-}
 
+  gl.disable(gl.TEXTURE_2D);
+  gl.bindTexture(gl.TEXTURE_2D, null);
 
-function tick() {
-  drawScene();
-
-  if(nodejs) document.flip();
-  requestAnimFrame(tick);
+  requestAnimFrame(drawScene);
 }
 
 
@@ -461,9 +517,10 @@ function WebGLStart() {
   initBuffers();
   initTexture();
 
+  // pixel buffer for WebCL
+  pbo = createPBO(image.width, image.height);
+
   gl.clearColor(0.0, 0.0, 0.0, 1.0);
   gl.enable(gl.DEPTH_TEST);
-
-  //tick();
 }
 
