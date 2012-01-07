@@ -144,10 +144,12 @@ JS_METHOD(Program::getBuildInfo)
     return scope.Close(Integer::NewFromUnsigned(param_value));
   }
   default: {
-    char param_value[1024];
     size_t param_value_size_ret=0;
-    cl_int ret=::clGetProgramBuildInfo(prog->getProgram(), dev->getDevice(), param_name, sizeof(char)*1024,
-        &param_value, &param_value_size_ret);
+    cl_int ret=::clGetProgramBuildInfo(prog->getProgram(), dev->getDevice(), param_name, 0,
+        NULL, &param_value_size_ret);
+    char *param_value=new char[param_value_size_ret];
+    ret=::clGetProgramBuildInfo(prog->getProgram(), dev->getDevice(), param_name, param_value_size_ret,
+        param_value, NULL);
     if (ret != CL_SUCCESS) {
       REQ_ERROR_THROW(CL_INVALID_DEVICE);
       REQ_ERROR_THROW(CL_INVALID_VALUE);
@@ -156,7 +158,9 @@ JS_METHOD(Program::getBuildInfo)
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
       return ThrowError("UNKNOWN ERROR");
     }
-    return scope.Close(JS_STR(param_value,param_value_size_ret));
+    Local<Value> obj = scope.Close(JS_STR(param_value,param_value_size_ret));
+    delete[] param_value;
+    return obj;
   }
   }
 }

@@ -198,7 +198,7 @@ JS_METHOD(CommandQueue::enqueueNDRangeKernel)
 
   //MakeEventWaitList(args[4]);
   cl_event event=NULL;
-  cout<<"ND Range dimension="<<num_globals<<endl;
+  //cout<<"ND Range dimension="<<num_globals<<endl;
   cl_int ret=::clEnqueueNDRangeKernel(
       cq->getCommandQueue(), kernel->getKernel(),
       num_globals, // work dimension
@@ -667,7 +667,7 @@ JS_METHOD(CommandQueue::enqueueWriteImage)
       ThrowException(JS_STR("Bad enqueueWriteImage argument"));
 
     ptr = obj->GetIndexedPropertiesExternalArrayData();
-    cout<<"enqueue image "<<hex<<ptr<<dec<<endl;
+    //cout<<"enqueue image "<<hex<<ptr<<dec<<endl;
   }
 
   //MakeEventWaitList(args[7]);

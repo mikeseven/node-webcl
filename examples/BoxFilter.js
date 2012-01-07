@@ -96,7 +96,7 @@ cmDevBufOut = context.createBuffer(cl.MEM_WRITE_ONLY, szBuffBytes);
 sourceCL = fs.readFileSync(__dirname+'/BoxFilter.cl','ascii');
 cpProgram = context.createProgram(sourceCL);
 
-sBuildOpts = "-cl-fast-relaxed-math -D USETEXTURE";
+sBuildOpts = "-cl-fast-relaxed-math";
 ciErrNum = cpProgram.build(device, sBuildOpts);
 
 // Create kernels

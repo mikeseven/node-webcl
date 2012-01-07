@@ -194,14 +194,22 @@ JS_METHOD(EXTGL::enqueueAcquireGLObjects)
   HandleScope scope;
   CommandQueue *cq = ObjectWrap::Unwrap<CommandQueue>(args[0]->ToObject());
 
-  Local<Array> mem_objects_arr= Array::Cast(*args[1]);
-  int num_objects=mem_objects_arr->Length();
-  cl_mem *mem_objects=new cl_mem[num_objects];
-  for(int i=0;i<num_objects;i++) {
-    MemoryObject *obj=ObjectWrap::Unwrap<MemoryObject>(mem_objects_arr->Get(i)->ToObject());
-    mem_objects[i]=obj->getMemory();
+  cl_mem *mem_objects=NULL;
+  int num_objects=0;
+  if(args[1]->IsArray()) {
+    Local<Array> mem_objects_arr= Array::Cast(*args[1]);
+    num_objects=mem_objects_arr->Length();
+    mem_objects=new cl_mem[num_objects];
+    for(int i=0;i<num_objects;i++) {
+      MemoryObject *obj=ObjectWrap::Unwrap<MemoryObject>(mem_objects_arr->Get(i)->ToObject());
+      mem_objects[i]=obj->getMemory();
+    }
   }
-
+  else if(args[1]->IsObject()) {
+    num_objects=1;
+    mem_objects=new cl_mem[1];
+    mem_objects[0]=ObjectWrap::Unwrap<MemoryObject>(args[1]->ToObject())->getMemory();
+  }
 
   cl_event *event_wait_list=NULL;
   int num_events_in_wait_list=0;
@@ -245,14 +253,22 @@ JS_METHOD(EXTGL::enqueueReleaseGLObjects)
   HandleScope scope;
   CommandQueue *cq = ObjectWrap::Unwrap<CommandQueue>(args[0]->ToObject());
 
-  Local<Array> mem_objects_arr= Array::Cast(*args[1]);
-  int num_objects=mem_objects_arr->Length();
-  cl_mem *mem_objects=new cl_mem[num_objects];
-  for(int i=0;i<num_objects;i++) {
-    MemoryObject *obj=ObjectWrap::Unwrap<MemoryObject>(mem_objects_arr->Get(i)->ToObject());
-    mem_objects[i]=obj->getMemory();
+  cl_mem *mem_objects=NULL;
+  int num_objects=0;
+  if(args[1]->IsArray()) {
+    Local<Array> mem_objects_arr= Array::Cast(*args[1]);
+    num_objects=mem_objects_arr->Length();
+    mem_objects=new cl_mem[num_objects];
+    for(int i=0;i<num_objects;i++) {
+      MemoryObject *obj=ObjectWrap::Unwrap<MemoryObject>(mem_objects_arr->Get(i)->ToObject());
+      mem_objects[i]=obj->getMemory();
+    }
   }
-
+  else if(args[1]->IsObject()) {
+    num_objects=1;
+    mem_objects=new cl_mem[1];
+    mem_objects[0]=ObjectWrap::Unwrap<MemoryObject>(args[1]->ToObject())->getMemory();
+  }
 
   cl_event *event_wait_list=NULL;
   int num_events_in_wait_list=0;

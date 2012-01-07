@@ -621,7 +621,7 @@ cl.Program.prototype.getProgramInfo=function (param_name) {
 }
 
 cl.Program.prototype.getBuildInfo=function (device, param_name) {
-  if (!(arguments.length === 2 && typeof device === 'cl.Device' && typeof param_name === 'number')) {
+  if (!(arguments.length === 2 && typeof device === 'object' && typeof param_name === 'number')) {
     throw new TypeError('Expected WebCLProgram.getBuildInfo(WebCLDevice device, CLenum param_name)');
   }
   return this._getBuildInfo(device, param_name);
