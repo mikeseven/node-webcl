@@ -23,24 +23,16 @@ using namespace v8;
 using namespace node;
 
 namespace webcl {
-
-// TODO handle event_wait_list and event for all methods
-/*
 #define MakeEventWaitList(arg) \
-  vector<cl_event> *pevents=NULL;\
-  vector<cl_event> events;\
-  if(!(arg)->IsUndefined()) {\
-    Local<Array> eventWaitArray = Array::Cast(*(arg));\
-    if(eventWaitArray->Length()>0) {\
-      pevents=&events;\
-      for (int i=0; i<eventWaitArray->Length(); i++) {\
-        Local<Object> obj = eventWaitArray->Get(i)->ToObject();\
-        Event *e = ObjectWrap::Unwrap<Event>(obj);\
-        events.push_back( e->getEvent() );\
-      }\
-    }\
-  }
-*/
+    cl_event *events_wait_list=NULL; \
+    cl_uint num_events_wait_list=0; \
+    if(!arg->IsUndefined() && !arg->IsNull()) { \
+      Local<Array> arr = Array::Cast(*arg); \
+      num_events_wait_list=arr->Length(); \
+      events_wait_list=new cl_event[num_events_wait_list]; \
+      for(int i=0;i<num_events_wait_list;i++) \
+        events_wait_list[i]=ObjectWrap::Unwrap<Event>(arr->Get(i)->ToObject())->getEvent(); \
+    }
 
 Persistent<FunctionTemplate> CommandQueue::constructor_template;
 
@@ -196,18 +188,24 @@ JS_METHOD(CommandQueue::enqueueNDRangeKernel)
       locals[i]=arr->Get(i)->Uint32Value();
   }
 
-  //MakeEventWaitList(args[4]);
+  MakeEventWaitList(args[4]);
+
   cl_event event=NULL;
-  //cout<<"ND Range dimension="<<num_globals<<endl;
+
   cl_int ret=::clEnqueueNDRangeKernel(
       cq->getCommandQueue(), kernel->getKernel(),
       num_globals, // work dimension
       offsets,
       globals,
       locals,
-      0, //(pevents != NULL) ? (cl_uint) pevents->size() : 0,
-      NULL, //(pevents != NULL && pevents->size() > 0) ? (cl_event*) &pevents->front() : NULL,
-      NULL); //&event);
+      num_events_wait_list,
+      events_wait_list,
+      &event);
+
+  if(offsets) delete[] offsets;
+  if(globals) delete[] globals;
+  if(locals) delete[] locals;
+  if(events_wait_list) delete[] events_wait_list;
 
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(CL_INVALID_PROGRAM_EXECUTABLE);
@@ -241,14 +239,17 @@ JS_METHOD(CommandQueue::enqueueTask)
 
   Kernel *k = ObjectWrap::Unwrap<Kernel>(args[0]->ToObject());
 
-  //MakeEventWaitList(args[1]);
+  MakeEventWaitList(args[1]);
+
   cl_event event=NULL;
 
   cl_int ret=::clEnqueueTask(
       cq->getCommandQueue(), k->getKernel(),
-      0,//(pevents != NULL) ? (cl_uint) pevents->size() : 0,
-      NULL,//(pevents != NULL && pevents->size() > 0) ? (cl_event*) &pevents->front() : NULL,
-      NULL);//&event);
+      num_events_wait_list,
+      events_wait_list,
+      &event);
+
+  if(events_wait_list) delete[] events_wait_list;
 
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(CL_INVALID_PROGRAM_EXECUTABLE);
@@ -296,15 +297,17 @@ JS_METHOD(CommandQueue::enqueueWriteBuffer)
   if(!vsize->IsUndefined())
     size=vsize->Uint32Value();
 
-  //MakeEventWaitList(args[3]);
+  MakeEventWaitList(args[3]);
 
   cl_event event=NULL;
   cl_int ret=::clEnqueueWriteBuffer(
                   cq->getCommandQueue(), mo->getMemory(), blocking_write, offset, size,
                   ptr,
-                  0, //(pevents != NULL) ? (cl_uint) pevents->size() : 0,
-                  NULL, //(pevents != NULL && pevents->size() > 0) ? (cl_event*) &pevents->front() : NULL,
-                  NULL); //&event);
+                  num_events_wait_list,
+                  events_wait_list,
+                  &event);
+
+  if(events_wait_list) delete[] events_wait_list;
 
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(CL_INVALID_COMMAND_QUEUE);
@@ -349,15 +352,17 @@ JS_METHOD(CommandQueue::enqueueReadBuffer)
   if(!vsize->IsUndefined())
     size=vsize->Uint32Value();
 
-  //MakeEventWaitList(args[3]);
+  MakeEventWaitList(args[3]);
 
   cl_event event=NULL;
   cl_int ret=::clEnqueueReadBuffer(
       cq->getCommandQueue(), mo->getMemory(), blocking_read, offset, size,
       ptr,
-      0, //(pevents != NULL) ? (cl_uint) pevents->size() : 0,
-      NULL, //(pevents != NULL && pevents->size() > 0) ? (cl_event*) &pevents->front() : NULL,
-      NULL); //&event);
+      num_events_wait_list,
+      events_wait_list,
+      &event);
+
+  if(events_wait_list) delete[] events_wait_list;
 
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(CL_INVALID_COMMAND_QUEUE);
@@ -391,15 +396,17 @@ JS_METHOD(CommandQueue::enqueueCopyBuffer)
   size_t dst_offset = args[3]->NumberValue();
   size_t size = args[4]->NumberValue();
 
-  //MakeEventWaitList(args[5]);
+  MakeEventWaitList(args[5]);
 
   cl_event event=NULL;
   cl_int ret=::clEnqueueCopyBuffer(
       cq->getCommandQueue(), mo_src->getMemory(), mo_dst->getMemory(),
       src_offset, dst_offset, size,
-      0,//(pevents != NULL) ? (cl_uint) pevents->size() : 0,
-      NULL,//(pevents != NULL && pevents->size() > 0) ? (cl_event*) &pevents->front() : NULL,
-      NULL);//&event);
+      num_events_wait_list,
+      events_wait_list,
+      &event);
+
+  if(events_wait_list) delete[] events_wait_list;
 
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(CL_INVALID_COMMAND_QUEUE);
@@ -456,7 +463,7 @@ JS_METHOD(CommandQueue::enqueueWriteBufferRect)
 
   void *ptr = args[9]->ToObject()->GetIndexedPropertiesExternalArrayData();
 
-  //MakeEventWaitList(args[10]);
+  MakeEventWaitList(args[10]);
 
   cl_event event=NULL;
   cl_int ret=::clEnqueueWriteBufferRect(
@@ -471,9 +478,11 @@ JS_METHOD(CommandQueue::enqueueWriteBufferRect)
       host_row_pitch,
       host_slice_pitch,
       ptr,
-      0, //(pevents != NULL) ? (cl_uint) pevents->size() : 0,
-      NULL, //(pevents != NULL && pevents->size() > 0) ? (cl_event*) &pevents->front() : NULL,
-      NULL); //&event);
+      num_events_wait_list,
+      events_wait_list,
+      &event);
+
+  if(events_wait_list) delete[] events_wait_list;
 
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(CL_INVALID_COMMAND_QUEUE);
@@ -531,7 +540,7 @@ JS_METHOD(CommandQueue::enqueueReadBufferRect)
   // TODO use MappedRegion instead of ptr
   void *ptr = args[9]->ToObject()->GetIndexedPropertiesExternalArrayData();
 
-  //MakeEventWaitList(args[10]);
+  MakeEventWaitList(args[10]);
 
   cl_event event=NULL;
   cl_int ret=::clEnqueueReadBufferRect(
@@ -546,9 +555,12 @@ JS_METHOD(CommandQueue::enqueueReadBufferRect)
       host_row_pitch,
       host_slice_pitch,
       ptr,
-      0, //(pevents != NULL) ? (cl_uint) pevents->size() : 0,
-      NULL, //(pevents != NULL && pevents->size() > 0) ? (cl_event*) &pevents->front() : NULL,
-      NULL); //&event);
+      num_events_wait_list,
+      events_wait_list,
+      &event);
+
+  if(events_wait_list) delete[] events_wait_list;
+
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(CL_INVALID_COMMAND_QUEUE);
     REQ_ERROR_THROW(CL_INVALID_CONTEXT);
@@ -601,7 +613,7 @@ JS_METHOD(CommandQueue::enqueueCopyBufferRect)
   size_t dst_row_pitch = args[7]->Uint32Value();
   size_t dst_slice_pitch = args[8]->Uint32Value();
 
-  //MakeEventWaitList(args[10]);
+  MakeEventWaitList(args[10]);
 
   cl_event event=NULL;
   cl_int ret=::clEnqueueCopyBufferRect(
@@ -615,9 +627,12 @@ JS_METHOD(CommandQueue::enqueueCopyBufferRect)
       src_slice_pitch,
       dst_row_pitch,
       dst_slice_pitch,
-      0, //(pevents != NULL) ? (cl_uint) pevents->size() : 0,
-      NULL, //(pevents != NULL && pevents->size() > 0) ? (cl_event*) &pevents->front() : NULL,
-      NULL);//(cl_event*) event);
+      num_events_wait_list,
+      events_wait_list,
+      &event);
+
+  if(events_wait_list) delete[] events_wait_list;
+
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(CL_INVALID_COMMAND_QUEUE);
     REQ_ERROR_THROW(CL_INVALID_CONTEXT);
@@ -667,10 +682,9 @@ JS_METHOD(CommandQueue::enqueueWriteImage)
       ThrowException(JS_STR("Bad enqueueWriteImage argument"));
 
     ptr = obj->GetIndexedPropertiesExternalArrayData();
-    //cout<<"enqueue image "<<hex<<ptr<<dec<<endl;
   }
 
-  //MakeEventWaitList(args[7]);
+  MakeEventWaitList(args[7]);
 
   cl_event event=NULL;
   cl_int ret=::clEnqueueWriteImage(
@@ -680,9 +694,12 @@ JS_METHOD(CommandQueue::enqueueWriteImage)
       row_pitch,
       slice_pitch,
       ptr,
-      0, //(pevents != NULL) ? (cl_uint) pevents->size() : 0,
-      NULL, //(pevents != NULL && pevents->size() > 0) ? (cl_event*) &pevents->front() : NULL,
-      NULL); //&event);
+      num_events_wait_list,
+      events_wait_list,
+      &event);
+
+  if(events_wait_list) delete[] events_wait_list;
+
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(CL_INVALID_COMMAND_QUEUE);
     REQ_ERROR_THROW(CL_INVALID_CONTEXT);
@@ -730,7 +747,7 @@ JS_METHOD(CommandQueue::enqueueReadImage)
 
   void *ptr = args[6]->ToObject()->GetIndexedPropertiesExternalArrayData();
 
-  //MakeEventWaitList(args[7]);
+  MakeEventWaitList(args[7]);
 
   cl_event event=NULL;
   cl_int ret=::clEnqueueReadImage(
@@ -738,9 +755,12 @@ JS_METHOD(CommandQueue::enqueueReadImage)
       origin,
       region,
       row_pitch, slice_pitch, ptr,
-      0, //(pevents != NULL) ? (cl_uint) pevents->size() : 0,
-      NULL, //(pevents != NULL && pevents->size() > 0) ? (cl_event*) &pevents->front() : NULL,
-      NULL); //&event);
+      num_events_wait_list,
+      events_wait_list,
+      &event);
+
+  if(events_wait_list) delete[] events_wait_list;
+
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(CL_INVALID_COMMAND_QUEUE);
     REQ_ERROR_THROW(CL_INVALID_CONTEXT);
@@ -790,7 +810,7 @@ JS_METHOD(CommandQueue::enqueueCopyImage)
     region[i] = s;
   }
 
-  //MakeEventWaitList(args[5]);
+  MakeEventWaitList(args[5]);
 
   cl_event event=NULL;
   cl_int ret=::clEnqueueCopyImage(
@@ -798,9 +818,12 @@ JS_METHOD(CommandQueue::enqueueCopyImage)
       src_origin,
       dst_origin,
       region,
-      0, //(pevents != NULL) ? (cl_uint) pevents->size() : 0,
-      NULL, //(pevents != NULL && pevents->size() > 0) ? (cl_event*) &pevents->front() : NULL,
-      NULL); //&event);
+      num_events_wait_list,
+      events_wait_list,
+      &event);
+
+  if(events_wait_list) delete[] events_wait_list;
+
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(CL_INVALID_COMMAND_QUEUE);
     REQ_ERROR_THROW(CL_INVALID_CONTEXT);
@@ -846,16 +869,19 @@ JS_METHOD(CommandQueue::enqueueCopyImageToBuffer)
 
   size_t dst_offset = args[4]->NumberValue();
 
-  //MakeEventWaitList(args[5]);
+  MakeEventWaitList(args[5]);
 
   cl_event event=NULL;
   cl_int ret=::clEnqueueCopyImageToBuffer(
       cq->getCommandQueue(), mo_src->getMemory(), mo_dst->getMemory(),
       src_origin,
       region, dst_offset,
-      0,//(pevents != NULL) ? (cl_uint) pevents->size() : 0,
-      NULL,//(pevents != NULL && pevents->size() > 0) ? (cl_event*) &pevents->front() : NULL,
-      NULL);//&event);
+      num_events_wait_list,
+      events_wait_list,
+      &event);
+
+  if(events_wait_list) delete[] events_wait_list;
+
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(CL_INVALID_COMMAND_QUEUE);
     REQ_ERROR_THROW(CL_INVALID_CONTEXT);
@@ -900,7 +926,7 @@ JS_METHOD(CommandQueue::enqueueCopyBufferToImage)
     region[i] = s;
   }
 
-  //MakeEventWaitList(args[5]);
+  MakeEventWaitList(args[5]);
 
   cl_event event=NULL;
   cl_int ret=::clEnqueueCopyBufferToImage(
@@ -908,9 +934,12 @@ JS_METHOD(CommandQueue::enqueueCopyBufferToImage)
       src_offset,
       dst_origin,
       region,
-      0,//(pevents != NULL) ? (cl_uint) pevents->size() : 0,
-      NULL,//(pevents != NULL && pevents->size() > 0) ? (cl_event*) &pevents->front() : NULL,
-      NULL);//&event);
+      num_events_wait_list,
+      events_wait_list,
+      &event);
+
+  if(events_wait_list) delete[] events_wait_list;
+
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(CL_INVALID_COMMAND_QUEUE);
     REQ_ERROR_THROW(CL_INVALID_CONTEXT);
@@ -942,7 +971,7 @@ JS_METHOD(CommandQueue::enqueueMapBuffer)
   size_t offset = args[3]->Uint32Value();
   size_t size = args[4]->Uint32Value();
 
-  //MakeEventWaitList(args[5]);
+  MakeEventWaitList(args[5]);
 
   /*Local<Array> region=Array::Cast(*args[0]);
   Local<Value> vbuffer=region->Get(JS_STR("buffer"));
@@ -967,9 +996,11 @@ JS_METHOD(CommandQueue::enqueueMapBuffer)
   void *result=::clEnqueueMapBuffer(
               cq->getCommandQueue(), mo->getMemory(),
               blocking, flags, offset, size,
-              0,//(pevents != NULL) ? (cl_uint) pevents->size() : 0,
-              NULL,//(pevents != NULL && pevents->size() > 0) ? (cl_event*) &pevents->front() : NULL,
-              NULL/*&event*/, &ret);
+              num_events_wait_list,
+              events_wait_list,
+              &event, &ret);
+
+  if(events_wait_list) delete[] events_wait_list;
 
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(CL_INVALID_COMMAND_QUEUE);
@@ -1025,7 +1056,7 @@ JS_METHOD(CommandQueue::enqueueMapImage)
     region[i] = s;
   }
 
-  //MakeEventWaitList(args[5]);
+  MakeEventWaitList(args[5]);
 
   size_t row_pitch;
   size_t slice_pitch;
@@ -1038,9 +1069,12 @@ JS_METHOD(CommandQueue::enqueueMapImage)
               origin,
               region,
               &row_pitch, &slice_pitch,
-              0,//(pevents != NULL) ? (cl_uint) pevents->size() : 0,
-              NULL,//(pevents != NULL && pevents->size() > 0) ? (cl_event*) &pevents->front() : NULL,
-              NULL /*&event*/, &ret);
+              num_events_wait_list,
+              events_wait_list,
+              &event, &ret);
+
+  if(events_wait_list) delete[] events_wait_list;
+
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(CL_INVALID_COMMAND_QUEUE);
     REQ_ERROR_THROW(CL_INVALID_CONTEXT);
@@ -1080,16 +1114,17 @@ JS_METHOD(CommandQueue::enqueueUnmapMemObject)
   }
   //cout<<endl;
 
-  //MakeEventWaitList(args[2]);
+  MakeEventWaitList(args[2]);
 
-  // TODO should we create the Event or allow user to specify it?
   cl_event event=NULL;
   cl_int ret=::clEnqueueUnmapMemObject(
       cq->getCommandQueue(), mo->getMemory(),
       mapped_ptr,
-      0,//(pevents != NULL) ? (cl_uint) pevents->size() : 0,
-      NULL,//(pevents != NULL && pevents->size() > 0) ? (cl_event*) &pevents->front() : NULL,
-      NULL);//&event);
+      num_events_wait_list,
+      events_wait_list,
+      &event);
+
+  if(events_wait_list) delete[] events_wait_list;
 
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(CL_INVALID_COMMAND_QUEUE);
@@ -1106,7 +1141,6 @@ JS_METHOD(CommandQueue::enqueueUnmapMemObject)
   return Undefined();
 }
 
-/* static */
 JS_METHOD(CommandQueue::enqueueMarker)
 {
   HandleScope scope;
@@ -1132,18 +1166,14 @@ JS_METHOD(CommandQueue::enqueueWaitForEvents)
   HandleScope scope;
   CommandQueue *cq = UnwrapThis<CommandQueue>(args);
 
-  vector<cl_event> event_wait_list;
-  Local<Array> eventWaitArray = Array::Cast(*args[0]);
-  for (int i=0; i<eventWaitArray->Length(); i++) {
-    Local<Object> obj = eventWaitArray->Get(i)->ToObject();
-    Event *e = ObjectWrap::Unwrap<Event>(obj);
-    event_wait_list.push_back( e->getEvent() );
-  }
+  MakeEventWaitList(args[0]);
 
   cl_int ret = ::clEnqueueWaitForEvents(
       cq->getCommandQueue(),
-      event_wait_list.size(),
-      &event_wait_list.front());
+      num_events_wait_list,
+      events_wait_list);
+
+  if(events_wait_list) delete[] events_wait_list;
 
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(CL_INVALID_COMMAND_QUEUE);
