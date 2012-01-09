@@ -12,7 +12,7 @@
 
 namespace webcl {
 
-class EXTGL : public node::ObjectWrap, public WebCLObject
+class EXTGL : public WebCLObject
 {
 
 public:

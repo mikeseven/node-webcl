@@ -12,7 +12,7 @@
 
 namespace webcl {
 
-class Event : public node::ObjectWrap, public WebCLObject
+class Event : public WebCLObject
 {
 
 public:

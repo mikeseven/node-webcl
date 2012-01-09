@@ -22,6 +22,17 @@ using namespace v8;
 
 namespace webcl {
 
+#define MakeEventWaitList(arg) \
+    cl_event *events_wait_list=NULL; \
+    cl_uint num_events_wait_list=0; \
+    if(!arg->IsUndefined() && !arg->IsNull()) { \
+      Local<Array> arr = Array::Cast(*arg); \
+      num_events_wait_list=arr->Length(); \
+      events_wait_list=new cl_event[num_events_wait_list]; \
+      for(int i=0;i<num_events_wait_list;i++) \
+        events_wait_list[i]=ObjectWrap::Unwrap<Event>(arr->Get(i)->ToObject())->getEvent(); \
+    }
+
 Persistent<FunctionTemplate> EXTGL::constructor_template;
 
 void EXTGL::Init(Handle<Object> target)
@@ -211,26 +222,21 @@ JS_METHOD(EXTGL::enqueueAcquireGLObjects)
     mem_objects[0]=ObjectWrap::Unwrap<MemoryObject>(args[1]->ToObject())->getMemory();
   }
 
-  cl_event *event_wait_list=NULL;
-  int num_events_in_wait_list=0;
-  if(!(args[2]->IsUndefined() || args[2]->IsNull())) {
-    Local<Array> event_wait_list_arr= Array::Cast(*args[2]);
-    num_events_in_wait_list=event_wait_list_arr->Length();
-    event_wait_list=new cl_event[num_events_in_wait_list];
-    for(int i=0;i<num_events_in_wait_list;i++) {
-      Event *obj=ObjectWrap::Unwrap<Event>(event_wait_list_arr->Get(i)->ToObject());
-      event_wait_list[i]=obj->getEvent();
-    }
-  }
+  MakeEventWaitList(args[2]);
 
   cl_event event=NULL;
+  if(!args[3]->IsUndefined() && !args[3]->IsNull()) {
+    event=ObjectWrap::Unwrap<Event>(args[3]->ToObject())->getEvent();
+  }
+
   int ret = ::clEnqueueAcquireGLObjects(cq->getCommandQueue(),
       num_objects, mem_objects,
-      0,0,//num_events_in_wait_list, event_wait_list,
-      NULL);//&event);
+      num_events_wait_list,
+      events_wait_list,
+      event ? &event : NULL);
 
   if(mem_objects) delete[] mem_objects;
-  if(event_wait_list) delete[] event_wait_list;
+  if(events_wait_list) delete[] events_wait_list;
 
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(CL_INVALID_VALUE);
@@ -244,8 +250,8 @@ JS_METHOD(EXTGL::enqueueAcquireGLObjects)
     return ThrowError("UNKNOWN ERROR");
   }
 
-  if(event==NULL) return Undefined();
-  return scope.Close(Event::New(event)->handle_);
+  if(event) return scope.Close(args[3]->ToObject()); //Event::New(event)->handle_);
+  return Undefined();
 }
 
 JS_METHOD(EXTGL::enqueueReleaseGLObjects)
@@ -270,26 +276,21 @@ JS_METHOD(EXTGL::enqueueReleaseGLObjects)
     mem_objects[0]=ObjectWrap::Unwrap<MemoryObject>(args[1]->ToObject())->getMemory();
   }
 
-  cl_event *event_wait_list=NULL;
-  int num_events_in_wait_list=0;
-  if(!(args[2]->IsUndefined() || args[2]->IsNull())) {
-    Local<Array> event_wait_list_arr= Array::Cast(*args[2]);
-    num_events_in_wait_list=event_wait_list_arr->Length();
-    event_wait_list=new cl_event[num_events_in_wait_list];
-    for(int i=0;i<num_events_in_wait_list;i++) {
-      Event *obj=ObjectWrap::Unwrap<Event>(event_wait_list_arr->Get(i)->ToObject());
-      event_wait_list[i]=obj->getEvent();
-    }
-  }
+  MakeEventWaitList(args[2]);
 
   cl_event event=NULL;
+  if(!args[3]->IsUndefined() && !args[3]->IsNull()) {
+    event=ObjectWrap::Unwrap<Event>(args[3]->ToObject())->getEvent();
+  }
+
   int ret = ::clEnqueueReleaseGLObjects(cq->getCommandQueue(),
       num_objects, mem_objects,
-      0,0,//num_events_in_wait_list, event_wait_list,
-      NULL);//&event);
+      num_events_wait_list,
+      events_wait_list,
+      &event);
 
   if(mem_objects) delete[] mem_objects;
-  if(event_wait_list) delete[] event_wait_list;
+  if(events_wait_list) delete[] events_wait_list;
 
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(CL_INVALID_VALUE);
@@ -303,8 +304,11 @@ JS_METHOD(EXTGL::enqueueReleaseGLObjects)
     return ThrowError("UNKNOWN ERROR");
   }
 
-  if(event==NULL) return Undefined();
-  return scope.Close(Event::New(event)->handle_);
+  if(event) {
+    //cout<<"[enqueueReleaseGLObjects] event "<<event<<endl;
+    return scope.Close(Event::New(event)->handle_);
+  }
+  return Undefined();
 }
 
 JS_METHOD(EXTGL::New)

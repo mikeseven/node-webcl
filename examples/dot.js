@@ -14,7 +14,7 @@ var program;
 var queue;
 var kernel;
 var in_texture, out_buffer;
-var vao, vbo = {}, pbo, sampler, texture;
+var vbo = {}, pbo, sampler, texture;
 var width, height;
 var tex_pixels;
 var window_width=800, window_height=800;

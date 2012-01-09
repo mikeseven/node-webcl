@@ -665,20 +665,22 @@ cl.EXTGL.prototype.createFromGLBuffer=function (context, flags, buffer) {
   return this._createFromGLBuffer(context, flags, buffer ? buffer._ : 0);
 }
 
-cl.EXTGL.prototype.enqueueAcquireGLObjects=function (queue, mem_objects, events) {
+cl.EXTGL.prototype.enqueueAcquireGLObjects=function (queue, mem_objects, events, event) {
   if (!(arguments.length >= 2 && typeof queue === 'object' && 
       typeof mem_objects === 'object' && 
-      (typeof events==='undefined' || typeof events === 'object'))) {
-    throw new TypeError('Expected WebCLGL.enqueueAcquireGLObjects(WebCLCommandQueue cq, WebCLMemoryObject[] mem_objects, WebCLEvent[] events)');
+      (typeof events==='undefined' || typeof events === 'object') &&
+      (typeof event==='undefined' || typeof event === 'object'))) {
+    throw new TypeError('Expected WebCLGL.enqueueAcquireGLObjects(WebCLCommandQueue cq, WebCLMemoryObject[] mem_objects, WebCLEvent[] events, WebCLEvent event)');
   }
-  return this._enqueueAcquireGLObjects(queue, mem_objects, events);
+  return this._enqueueAcquireGLObjects(queue, mem_objects, events, event);
 }
 
-cl.EXTGL.prototype.enqueueReleaseGLObjects=function (queue, mem_objects, events) {
+cl.EXTGL.prototype.enqueueReleaseGLObjects=function (queue, mem_objects, events, event) {
   if (!(arguments.length >= 2 && typeof queue === 'object' && 
       typeof mem_objects === 'object' && 
-      (typeof events==='undefined' || typeof events === 'object'))) {
-    throw new TypeError('Expected WebCLGL.enqueueReleaseGLObjects(WebCLCommandQueue cq, WebCLMemoryObject[] mem_objects, WebCLEvent[] events)');
+      (typeof events==='undefined' || typeof events === 'object') &&
+      (typeof event==='undefined' || typeof event === 'object'))) {
+    throw new TypeError('Expected WebCLGL.enqueueReleaseGLObjects(WebCLCommandQueue cq, WebCLMemoryObject[] mem_objects, WebCLEvent[] events, WebCLEvent event)');
   }
-  return this._enqueueReleaseGLObjects(queue, mem_objects, events);
+  return this._enqueueReleaseGLObjects(queue, mem_objects, events, event);
 }

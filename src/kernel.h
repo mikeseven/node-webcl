@@ -45,7 +45,7 @@ enum CLType {
 
 } // namespace types
 
-class Kernel : public node::ObjectWrap, public WebCLObject
+class Kernel : public WebCLObject
 {
 
 public:

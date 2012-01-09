@@ -26,7 +26,9 @@ namespace webcl {
 vector<WebCLObject*> clobjs;
 
 void registerCLObj(WebCLObject* obj) {
-  if(obj) clobjs.push_back(obj);
+  if(obj) {
+    clobjs.push_back(obj);
+  }
 }
 
 
@@ -34,7 +36,7 @@ void unregisterCLObj(WebCLObject* obj) {
   if(!obj) return;
 
   vector<WebCLObject*>::iterator it = clobjs.begin();
-  while(it != clobjs.end()) {
+  while(clobjs.size() && it != clobjs.end()) {
     if(*it==obj) {
       clobjs.erase(it);
       break;
@@ -47,8 +49,9 @@ void AtExit() {
   cout<<"WebCL AtExit() called"<<endl;
   cout<<"# objects allocated: "<<clobjs.size()<<endl;
   vector<WebCLObject*>::iterator it = clobjs.begin();
-  while(it != clobjs.end())
+  while(clobjs.size() && it != clobjs.end()) {
     (*it++)->Destructor();
+  }
 
   clobjs.clear();
 }
@@ -186,9 +189,9 @@ JS_METHOD(waitForEvents) {
   Local<Array> eventsArray = Array::Cast(*args[0]);
   std::vector<cl_event> events;
   for (int i=0; i<eventsArray->Length(); i++) {
-    Local<Object> obj = eventsArray->Get(i)->ToObject();
-    Event *we=ObjectWrap::Unwrap<Event>(obj);
+   Event *we=ObjectWrap::Unwrap<Event>(eventsArray->Get(i)->ToObject());
     cl_event e = we->getEvent();
+    //cout<<"Waiting for event "<<e<<endl<<flush;
     events.push_back(e);
   }
   cl_int ret=::clWaitForEvents( events.size(), &events.front());

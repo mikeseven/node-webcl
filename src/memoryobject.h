@@ -12,7 +12,7 @@
 
 namespace webcl {
 
-class MemoryObject : public node::ObjectWrap, public WebCLObject
+class MemoryObject : public WebCLObject
 {
 
 public:

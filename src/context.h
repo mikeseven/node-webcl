@@ -12,7 +12,7 @@
 
 namespace webcl {
 
-class Context : public node::ObjectWrap, public WebCLObject
+class Context : public WebCLObject
 {
 
 public:

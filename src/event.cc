@@ -18,7 +18,6 @@ namespace webcl {
 
 Persistent<FunctionTemplate> Event::constructor_template;
 
-/* static  */
 void Event::Init(Handle<Object> target)
 {
   HandleScope scope;

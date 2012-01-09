@@ -191,6 +191,9 @@ JS_METHOD(CommandQueue::enqueueNDRangeKernel)
   MakeEventWaitList(args[4]);
 
   cl_event event=NULL;
+  if(!args[5]->IsUndefined() && !args[5]->IsNull()) {
+    event=ObjectWrap::Unwrap<Event>(args[5]->ToObject())->getEvent();
+  }
 
   cl_int ret=::clEnqueueNDRangeKernel(
       cq->getCommandQueue(), kernel->getKernel(),
@@ -200,7 +203,7 @@ JS_METHOD(CommandQueue::enqueueNDRangeKernel)
       locals,
       num_events_wait_list,
       events_wait_list,
-      &event);
+      event ? &event : NULL);
 
   if(offsets) delete[] offsets;
   if(globals) delete[] globals;
@@ -226,7 +229,7 @@ JS_METHOD(CommandQueue::enqueueNDRangeKernel)
     return ThrowError("UNKNOWN ERROR");
   }
 
-  if(event) return scope.Close(Event::New(event)->handle_);
+  if(event) return scope.Close(args[5]->ToObject()); //scope.Close(Event::New(event)->handle_);
   return Undefined();
 }
 
@@ -242,12 +245,15 @@ JS_METHOD(CommandQueue::enqueueTask)
   MakeEventWaitList(args[1]);
 
   cl_event event=NULL;
+  if(!args[2]->IsUndefined() && !args[2]->IsNull()) {
+    event=ObjectWrap::Unwrap<Event>(args[2]->ToObject())->getEvent();
+  }
 
   cl_int ret=::clEnqueueTask(
       cq->getCommandQueue(), k->getKernel(),
       num_events_wait_list,
       events_wait_list,
-      &event);
+      event ? &event : NULL);
 
   if(events_wait_list) delete[] events_wait_list;
 
@@ -267,7 +273,7 @@ JS_METHOD(CommandQueue::enqueueTask)
     return ThrowError("UNKNOWN ERROR");
   }
 
-  if(event) return scope.Close(Event::New(event)->handle_);
+  if(event) return scope.Close(args[2]->ToObject() /*Event::New(event)->handle_*/);
   return Undefined();
 }
 
@@ -300,12 +306,15 @@ JS_METHOD(CommandQueue::enqueueWriteBuffer)
   MakeEventWaitList(args[3]);
 
   cl_event event=NULL;
+  if(!args[4]->IsUndefined() && !args[4]->IsNull()) {
+    event=ObjectWrap::Unwrap<Event>(args[4]->ToObject())->getEvent();
+  }
   cl_int ret=::clEnqueueWriteBuffer(
                   cq->getCommandQueue(), mo->getMemory(), blocking_write, offset, size,
                   ptr,
                   num_events_wait_list,
                   events_wait_list,
-                  &event);
+                  event ? &event : NULL);
 
   if(events_wait_list) delete[] events_wait_list;
 
@@ -323,7 +332,7 @@ JS_METHOD(CommandQueue::enqueueWriteBuffer)
     return ThrowError("UNKNOWN ERROR");
   }
 
-  if(event) return scope.Close(Event::New(event)->handle_);
+  if(event) return scope.Close(args[4]->ToObject() /*Event::New(event)->handle_*/);
   return Undefined();
 }
 
@@ -687,6 +696,9 @@ JS_METHOD(CommandQueue::enqueueWriteImage)
   MakeEventWaitList(args[7]);
 
   cl_event event=NULL;
+  if(!args[8]->IsUndefined() && !args[8]->IsNull()) {
+    event=ObjectWrap::Unwrap<Event>(args[8]->ToObject())->getEvent();
+  }
   cl_int ret=::clEnqueueWriteImage(
       cq->getCommandQueue(), mo->getMemory(), blocking_write,
       origin,
@@ -696,7 +708,7 @@ JS_METHOD(CommandQueue::enqueueWriteImage)
       ptr,
       num_events_wait_list,
       events_wait_list,
-      &event);
+      event ? &event : NULL);
 
   if(events_wait_list) delete[] events_wait_list;
 
@@ -715,7 +727,7 @@ JS_METHOD(CommandQueue::enqueueWriteImage)
     return ThrowError("UNKNOWN ERROR");
   }
 
-  if(event) return scope.Close(Event::New(event)->handle_);
+  if(event) return scope.Close(args[8]->ToObject() /*Event::New(event)->handle_*/);
   return Undefined();
 }
 

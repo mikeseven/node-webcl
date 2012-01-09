@@ -12,7 +12,7 @@
 
 namespace webcl {
 
-class Device : public node::ObjectWrap, public WebCLObject
+class Device : public WebCLObject
 {
 
 public:

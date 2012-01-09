@@ -18,6 +18,8 @@
 #include <node.h>
 #include <node_object_wrap.h>
 #include <v8.h>
+#include <string>
+using namespace std;
 
 namespace {
 #define JS_STR(...) v8::String::New(__VA_ARGS__)
@@ -73,9 +75,12 @@ v8::Handle<v8::Value> ThrowRangeError(const char* msg) {
 }
 
 namespace webcl {
-class WebCLObject {
+
+class WebCLObject : public node::ObjectWrap {
 protected:
-  virtual ~WebCLObject() { Destructor(); }
+  virtual ~WebCLObject() {
+    Destructor();
+  }
 
 public:
   virtual void Destructor() {}
@@ -84,5 +89,6 @@ public:
 void registerCLObj(WebCLObject* obj);
 void unregisterCLObj(WebCLObject* obj);
 void AtExit();
+
 }
 #endif

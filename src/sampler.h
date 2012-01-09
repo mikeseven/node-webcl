@@ -12,7 +12,7 @@
 
 namespace webcl {
 
-class Sampler : public node::ObjectWrap, public WebCLObject
+class Sampler : public WebCLObject
 {
 
 public:

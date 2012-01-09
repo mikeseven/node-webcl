@@ -15,9 +15,6 @@ var cl = require('../webcl'),
     log = console.log, 
     requestAnimationFrame = document.requestAnimationFrame;
 
-//Read and eval library for mat/vec operations
-eval(fs.readFileSync(__dirname + '/glMatrix-0.9.5.min.js', 'utf8'));
-
 //First check if the webcl extension is installed at all 
 if (cl == undefined) {
   alert("Unfortunately your system does not support WebCL. "
@@ -33,18 +30,12 @@ var fScale = 1 / (2 * iRadius + 1); // precalculated GV rescaling value
 var iRadiusAligned;
 
 // Image data vars
-var cImageFile = "mike_scooter.jpg";
-var uiImageWidth = 0; // Image width
-var uiImageHeight = 0; // Image height
-var uiInput; // Host buffer to hold input image data
-var uiTemp; // Host buffer to hold intermediate image data
+var image = new Image();
+image.filename = "mike_scooter.jpg";
 
 // OpenGL, Display Window and GUI Globals
 var iGraphicsWinWidth = 800; // GL Window width
 var iGraphicsWinHeight = 800; // GL Windows height
-var iFrameCount = 0; // FPS count for averaging
-var iFrameTrigger = 90; // FPS trigger for sampling
-var iFramesPerSec = 60; // frames per second
 
 // OpenCL vars
 var clSourcefile = "BoxFilter.cl"; // OpenCL kernel source file
@@ -66,7 +57,6 @@ var cmCL_PBO = 0; // OpenCL representation of GL pixel buffer
 var InputFormat; // OpenCL format descriptor for 2D image useage
 var RowSampler; // Image Sampler for box filter processing with texture (2d
 // Image)
-var szBuffBytes; // Size of main image buffers
 var szGlobalWorkSize = [ 0, 0 ]; // global # of work items
 var szLocalWorkSize = [ 0, 0 ]; // work group # of work items
 var szMaxWorkgroupSize = 512; // initial max # of work items
@@ -77,13 +67,8 @@ var ciErrNum; // Error code var
 // OpenGL interop vars
 var gl;
 var tex_screen; // (offscreen) render target
-var pbo; // pixel buffer for interop
-var mvMatrix = mat4.create(); // model-view matrix
-var pMatrix = mat4.create(); // projection matrix
-var cubeVertexPositionBuffer;
-var cubeVertexTextureCoordBuffer;
-var cubeVertexIndexBuffer;
-var shaderProgram;
+var vbo = {}, pbo; // pixel buffer for interop
+var prog; // shader program
 
 document.createWindow(iGraphicsWinWidth, iGraphicsWinHeight);
 document.setTitle("BoxFilterGL");
@@ -92,22 +77,20 @@ main();
 
 function main() {
   // load image
-  uiInput = new Image();
-  uiInput.onload(function(s) { // [MBS] was onload() event
+  image.onload(function(s) { // [MBS] was onload() event
     console.log("Loaded image: " + s);
-    uiImageWidth = uiInput.width;
-    uiImageHeight = uiInput.height;
-    log("Image Width = " + uiImageWidth + ", Height = " + uiImageHeight
+    log("Image Width = " + image.width + ", Height = " + image.height
         + ", bpp = 32, Mask Radius = " + iRadius);
     // adjust window to pixel ratio
-    iGraphicsWinHeight *= uiInput.height/uiInput.width;
+    iGraphicsWinHeight *= image.height/image.width;
     document.createWindow(iGraphicsWinWidth, iGraphicsWinHeight);
   });
-  uiInput.src = __dirname + '/' + cImageFile;
+  image.src = __dirname + '/' + image.filename;
 
   // Allocate intermediate and output host image buffers
-  szBuffBytes = uiImageWidth * uiImageHeight * 4;
-  uiTemp = new Uint8Array(szBuffBytes);
+  image.szBuffBytes = image.width * image.height * 4;
+
+  var uiTemp = new Uint8Array(image.szBuffBytes); // Host buffer to hold intermediate image data
 
   // Initialize GL Context
   initGL(document.getElementById("mycanvas"));
@@ -149,15 +132,15 @@ function main() {
 
   cmDevBufIn =
       cxGPUContext.createImage2D(cl.MEM_READ_ONLY | cl.MEM_USE_HOST_PTR,
-          InputFormat, uiImageWidth, uiImageHeight, uiImageWidth * 4, uiInput);
+          InputFormat, image.width, image.height, image.pitch, image);
 
   RowSampler =
       cxGPUContext.createSampler(false, cl.ADDRESS_CLAMP, cl.FILTER_NEAREST);
 
   // Allocate the OpenCL intermediate and result buffer memory objects on the
   // device GMEM
-  cmDevBufTemp = cxGPUContext.createBuffer(cl.MEM_READ_WRITE, szBuffBytes);
-  cmDevBufOut = cxGPUContext.createBuffer(cl.MEM_WRITE_ONLY, szBuffBytes);
+  cmDevBufTemp = cxGPUContext.createBuffer(cl.MEM_READ_WRITE, image.szBuffBytes);
+  cmDevBufOut = cxGPUContext.createBuffer(cl.MEM_WRITE_ONLY, image.szBuffBytes);
 
   // Create OpenCL representation of OpenGL PBO
   cmCL_PBO = clgl.createFromGLBuffer(cxGPUContext, cl.MEM_WRITE_ONLY, pbo);
@@ -184,7 +167,7 @@ function main() {
   ckBoxColumns = cpProgram.createKernel("BoxColumns");
 
   // set the kernel args
-  ResetKernelArgs(uiImageWidth, uiImageHeight, iRadius, fScale);
+  ResetKernelArgs(image.width, image.height, iRadius, fScale);
 
   // start main rendering loop
   DisplayGL();
@@ -223,23 +206,22 @@ function DivUp(dividend, divisor) {
 // OpenCL computation function for GPU:
 // Copies input data to the device, runs kernel, copies output data back to host
 // *****************************************************************************
-function BoxFilterGPU(uiInputImage, cmOutputBuffer, uiWidth, uiHeight, r,
-    fScale) {
+function BoxFilterGPU(image, cmOutputBuffer, r, fScale) {
   // Setup Kernel Args
   ckBoxColumns.setArg(1, cmOutputBuffer, cl.type.MEM);
 
   // Copy input data from host to device
   // 2D Image (Texture)
   var szTexOrigin = [ 0, 0, 0 ]; // Offset of input texture origin relative to host image
-  var szTexRegion = [ uiWidth, uiHeight, 1 ]; // Size of texture region to operate on
+  var szTexRegion = [ image.width, image.height, 1 ]; // Size of texture region to operate on
   cqCommandQueue.enqueueWriteImage(cmDevBufIn, cl.TRUE, szTexOrigin,
-      szTexRegion, 0, 0, uiInputImage);
+      szTexRegion, 0, 0, image);
 
   // Set global and local work sizes for row kernel
   szLocalWorkSize[0] = uiNumOutputPix;
   szLocalWorkSize[1] = 1;
   szGlobalWorkSize[0] =
-      szLocalWorkSize[0] * DivUp(uiHeight, szLocalWorkSize[0]);
+      szLocalWorkSize[0] * DivUp(image.height, szLocalWorkSize[0]);
   szGlobalWorkSize[1] = 1;
   //log("row kernel work sizes: global= " + szGlobalWorkSize[0] + " local= " + szLocalWorkSize[0]);
 
@@ -254,7 +236,7 @@ function BoxFilterGPU(uiInputImage, cmOutputBuffer, uiWidth, uiHeight, r,
   // Set global and local work sizes for column kernel
   szLocalWorkSize[0] = 64;
   szLocalWorkSize[1] = 1;
-  szGlobalWorkSize[0] = szLocalWorkSize[0] * DivUp(uiWidth, szLocalWorkSize[0]);
+  szGlobalWorkSize[0] = szLocalWorkSize[0] * DivUp(image.width, szLocalWorkSize[0]);
   szGlobalWorkSize[1] = 1;
   //log("column kernel work sizes: global= " + szGlobalWorkSize[0] + " local= " + szLocalWorkSize[0]);
 
@@ -279,7 +261,7 @@ function createPBO(image_width, image_height) {
   gl.bindBuffer(gl.ARRAY_BUFFER, pbo);
 
   // buffer data
-  gl.bufferData(gl.ARRAY_BUFFER, size_tex_data, gl.STATIC_DRAW);
+  gl.bufferData(gl.ARRAY_BUFFER, size_tex_data, gl.DYNAMIC_DRAW);
   gl.bindBuffer(gl.ARRAY_BUFFER, null);
 
   return pbo;
@@ -302,116 +284,74 @@ function initGL(canvas) {
   initShaders();
 
   // pixel buffer and texture for WebCL
-  pbo = createPBO(uiImageWidth, uiImageHeight);
-  tex_screen = createTexture(uiImageWidth, uiImageHeight);
+  pbo = createPBO(image.width, image.height);
+  tex_screen = createTexture(image.width, image.height);
 }
 
 function initBuffers() {
-  cubeVertexPositionBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexPositionBuffer);
-  vertices =
-      [ -1.0, -1.0, 0.5, 
-        1.0, -1.0, 0.5, 
-        1.0, 1.0, 0.5, 
-        -1.0, 1.0, 0.5, ];
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-  cubeVertexPositionBuffer.itemSize = 3;
-  cubeVertexPositionBuffer.numItems = 4;
+  var vertex_coords = [ -1, -1, 0, 
+                        1, -1, 0, 
+                        1, 1, 0, 
+                        -1, 1, 0 ];
 
-  cubeVertexTextureCoordBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexTextureCoordBuffer);
-  var textureCoords = [ 0.0, 0.0, 
-                        1.0, 0.0, 
-                        1.0, 1.0, 
-                        0.0, 1.0, ];
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoords),
-      gl.STATIC_DRAW);
-  cubeVertexTextureCoordBuffer.itemSize = 2;
-  cubeVertexTextureCoordBuffer.numItems = 4;
+  var tex_coords = [ 0, 0, 
+                     1, 0, 
+                     1, 1, 
+                     0, 1 ];
 
-  cubeVertexIndexBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeVertexIndexBuffer);
-  var cubeVertexIndices = [ 0, 1, 2, 0, 2, 3, ];
-  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cubeVertexIndices),
-      gl.STATIC_DRAW);
-  cubeVertexIndexBuffer.itemSize = 1;
-  cubeVertexIndexBuffer.numItems = 6;
+  /* Create VBOs */
+  vbo.coord = gl.createBuffer();
+  vbo.tc = gl.createBuffer();
+
+  /* VBO to hold vertex coordinates */
+  gl.bindBuffer(gl.ARRAY_BUFFER, vbo.coord);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertex_coords), gl.STATIC_DRAW);
+  gl.vertexAttribPointer(0, 3, gl.FLOAT, gl.FALSE, 0, 0);
+  gl.enableVertexAttribArray(0);
+
+  /* VBO to hold texture coordinates */
+  gl.bindBuffer(gl.ARRAY_BUFFER, vbo.tc);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(tex_coords), gl.STATIC_DRAW);
+  gl.vertexAttribPointer(1, 2, gl.FLOAT, gl.FALSE, 0, 0);
+  gl.enableVertexAttribArray(1);
 }
 
-function getShader(gl, id) {
-  var shaders =
-      {
-        "shader-fs" : [ 
-            "varying vec2 vTextureCoord;",
-            "uniform sampler2D uSampler;", 
-            "void main(void) {",
-            "    gl_FragColor = texture2D(uSampler, vTextureCoord);", 
-            "}" ].join("\n"),
-
-        "shader-vs" : [
-            "attribute vec3 aVertexPosition;",
-            "attribute vec2 aTextureCoord;",
-            "uniform mat4 uMVMatrix;",
-            "uniform mat4 uPMatrix;",
-            "varying vec2 vTextureCoord;",
-            "void main(void) {",
-            "    gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);",
-            "    vTextureCoord = aTextureCoord;",
-            "}" ].join("\n")
-      };
-  var shader;
-  if (!shaders.hasOwnProperty(id))
-    return null;
-  var str = shaders[id];
-
-  if (id.match(/-fs/)) {
-    shader = gl.createShader(gl.FRAGMENT_SHADER);
-  } else if (id.match(/-vs/)) {
-    shader = gl.createShader(gl.VERTEX_SHADER);
-  } else {
-    return null;
-  }
-
-  gl.shaderSource(shader, str);
-  gl.compileShader(shader);
-
-  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-    alert(gl.getShaderInfoLog(shader));
-    return null;
-  }
-
-  return shader;
-}
-
+/* Create and compile shaders */
 function initShaders() {
-  var fragmentShader = getShader(gl, "shader-fs");
-  var vertexShader = getShader(gl, "shader-vs");
+  var vs = gl.createShader(gl.VERTEX_SHADER);
+  var fs = gl.createShader(gl.FRAGMENT_SHADER);
 
-  shaderProgram = gl.createProgram();
-  gl.attachShader(shaderProgram, vertexShader);
-  gl.attachShader(shaderProgram, fragmentShader);
-  gl.linkProgram(shaderProgram);
+  var fs_source =
+      [ "uniform sampler2D tex;", 
+        "out varying vec4 new_color;", 
+        "void main() {",
+        "vec3 color = vec3(texture(tex, gl_TexCoord[0].st));",
+        "new_color = vec4(color, 1.0);", 
+        "}" ].join('\n');
+  var vs_source =
+      [ "in  vec3 in_coords;", 
+        "in  vec2 in_texcoords;", 
+        "void main(void) {",
+        "gl_TexCoord[0].st = in_texcoords;",
+        "gl_Position = vec4(in_coords, 1.0);", 
+        "}" ].join('\n');
 
-  if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
-    alert("Could not initialise shaders");
-  }
+  gl.shaderSource(vs, vs_source);
+  gl.shaderSource(fs, fs_source);
 
-  gl.useProgram(shaderProgram);
+  gl.compileShader(vs);
+  gl.compileShader(fs);
 
-  shaderProgram.vertexPositionAttribute =
-      gl.getAttribLocation(shaderProgram, "aVertexPosition");
-  gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
+  var prog = gl.createProgram();
 
-  shaderProgram.textureCoordAttribute =
-      gl.getAttribLocation(shaderProgram, "aTextureCoord");
-  gl.enableVertexAttribArray(shaderProgram.textureCoordAttribute);
+  gl.bindAttribLocation(prog, 0, "in_coords");
+  gl.bindAttribLocation(prog, 1, "in_color");
 
-  shaderProgram.pMatrixUniform =
-      gl.getUniformLocation(shaderProgram, "uPMatrix");
-  shaderProgram.mvMatrixUniform =
-      gl.getUniformLocation(shaderProgram, "uMVMatrix");
-  shaderProgram.samplerUniform =
-      gl.getUniformLocation(shaderProgram, "uSampler");
+  gl.attachShader(prog, vs);
+  gl.attachShader(prog, fs);
+
+  gl.linkProgram(prog);
+  gl.useProgram(prog);
 }
 
 //Create texture for GL-GL Interop
@@ -443,12 +383,14 @@ function DisplayGL() {
   clgl.enqueueAcquireGLObjects(cqCommandQueue, cmCL_PBO);
 
   // Compute on GPU and get kernel processing time
-  BoxFilterGPU(uiInput, cmCL_PBO, uiImageWidth, uiImageHeight, iRadius, fScale);
+  BoxFilterGPU(image, cmCL_PBO, iRadius, fScale);
 
   // Release GL output or explicit output copy
   // Release buffer
-  clgl.enqueueReleaseGLObjects(cqCommandQueue, cmCL_PBO);
-  cqCommandQueue.finish();
+  var event=new cl.Event();
+  event=clgl.enqueueReleaseGLObjects(cqCommandQueue, cmCL_PBO,null,event);
+  cl.waitForEvents([event]);
+  //cqCommandQueue.finish();
 
   // Copy results back to host memory, block until complete
   /*var uiOutput=new Uint8Array(szBuffBytes);
@@ -468,7 +410,7 @@ function DisplayGL() {
   // Update the texture from the pbo
   gl.bindTexture(gl.TEXTURE_2D, tex_screen);
   gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, pbo);
-  gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, uiImageWidth, uiImageHeight,
+  gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, image.width, image.height,
       gl.RGBA, gl.UNSIGNED_BYTE, null);
   gl.activeTexture(gl.TEXTURE0);
   gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, null);
@@ -481,38 +423,18 @@ function DisplayGL() {
   requestAnimationFrame(DisplayGL);
 }
 
-function setMatrixUniforms() {
-  gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
-  gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
-}
-
 function displayTexture(texture) {
 
   // render a screen sized quad
-  gl.disable(gl.DEPTH_TEST);
   gl.enable(gl.TEXTURE_2D);
   gl.bindTexture(gl.TEXTURE_2D, texture);
 
-  mat4.ortho(-1.0, 1.0, -1.0, 1.0, -1.0, 1.0, pMatrix);
-  mat4.identity(mvMatrix);
-
   gl.viewport(0, 0, iGraphicsWinWidth, iGraphicsWinHeight);
 
-  gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexPositionBuffer);
-  gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute,
-      cubeVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+  gl.clear(gl.COLOR_BUFFER_BIT);
 
-  gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexTextureCoordBuffer);
-  gl.vertexAttribPointer(shaderProgram.textureCoordAttribute,
-      cubeVertexTextureCoordBuffer.itemSize, gl.FLOAT, false, 0, 0);
-
-  gl.bindTexture(gl.TEXTURE_2D, tex_screen);
-  gl.uniform1i(shaderProgram.samplerUniform, 0);
-
-  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeVertexIndexBuffer);
-  setMatrixUniforms();
-  gl.drawElements(gl.TRIANGLES, cubeVertexIndexBuffer.numItems,
-      gl.UNSIGNED_SHORT, 0);
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
 
   gl.disable(gl.TEXTURE_2D);
   gl.bindTexture(gl.TEXTURE_2D, null);
@@ -520,6 +442,8 @@ function displayTexture(texture) {
 
 function processKey(evt) {
   //log('process key: '+evt.sym);
+  var oldr=iRadius;
+  
   switch(evt.sym) {
   case 61:   // + or = increases filter radius
     if ((szMaxWorkgroupSize - (((iRadius + 1 + 15) / 16) * 16) - iRadius - 1) > 0)
@@ -532,6 +456,8 @@ function processKey(evt) {
   }
 
   // Update filter parameters
-  fScale = 1 / (2 * iRadius + 1);
-  ResetKernelArgs(uiImageWidth, uiImageHeight, iRadius, fScale);
+  if(oldr!=iRadius) {
+    fScale = 1 / (2 * iRadius + 1);
+    ResetKernelArgs(image.width, image.height, iRadius, fScale);
+  }
 }

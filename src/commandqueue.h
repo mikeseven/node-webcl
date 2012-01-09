@@ -12,7 +12,7 @@
 
 namespace webcl {
 
-class CommandQueue : public node::ObjectWrap, public WebCLObject
+class CommandQueue : public WebCLObject
 {
 
 public:

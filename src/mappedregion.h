@@ -21,7 +21,7 @@ typedef struct _MappedRegion {
   Event *event;
 } _MappedRegion;
 
-class MappedRegion : public node::ObjectWrap, public WebCLObject
+class MappedRegion : public WebCLObject
 {
 
 public:
