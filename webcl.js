@@ -100,7 +100,6 @@ cl.CommandQueue.prototype.enqueueNDRangeKernel=function (kernel, offsets, global
   return this._enqueueNDRangeKernel(kernel, offsets, globals, locals, event_list);
 }
 
-//static JS_METHOD(enqueueTask);
 cl.CommandQueue.prototype.enqueueTask=function (kernel, event_list) {
   if (!(arguments.length >= 1 && typeof kernel === 'cl.Kernel'
     (typeof event_list === 'undefined' || typeof event_list === 'object') )) {
@@ -109,7 +108,6 @@ cl.CommandQueue.prototype.enqueueTask=function (kernel, event_list) {
   return this._enqueueTask(kernel, event_list);
 }
 
-//static JS_METHOD(enqueueWriteBuffer);
 cl.CommandQueue.prototype.enqueueWriteBuffer=function (memory_object, blocking_write, region, event_list) {
   if (!(arguments.length >= 3 && 
     typeof memory_object === 'object' &&
@@ -121,7 +119,6 @@ cl.CommandQueue.prototype.enqueueWriteBuffer=function (memory_object, blocking_w
   return this._enqueueWriteBuffer(memory_object, blocking_write, region, event_list);
 }
 
-//static JS_METHOD(enqueueReadBuffer);
 cl.CommandQueue.prototype.enqueueReadBuffer=function (memory_object, blocking_read, region, event_list) {
   if (!(arguments.length >= 3 && 
       typeof memory_object === 'object' &&
@@ -133,7 +130,6 @@ cl.CommandQueue.prototype.enqueueReadBuffer=function (memory_object, blocking_re
   return this._enqueueReadBuffer(memory_object, blocking_read, region, event_list);
 }
 
-//static JS_METHOD(enqueueCopyBuffer);
 cl.CommandQueue.prototype.enqueueCopyBuffer=function (memory_object_src, memory_object_dst, src_offset, dst_offset, size, event_list) {
   if (!(arguments.length >= 5 && 
       typeof memory_object_src === 'object' &&
@@ -146,7 +142,6 @@ cl.CommandQueue.prototype.enqueueCopyBuffer=function (memory_object_src, memory_
   return this._enqueueCopyBuffer(memory_object_src, memory_object_dst, src_offset, dst_offset, size, event_list);
 }
 
-//static JS_METHOD(enqueueWriteBufferRect);
 cl.CommandQueue.prototype.enqueueWriteBufferRect=function (memory_object, blocking_write, 
     bufferOrigin, hostOrigin, regionArray, buffer_row_pitch, buffer_slice_pitch, 
     host_row_pitch, host_slice_pitch, host_ptr,
@@ -171,7 +166,6 @@ cl.CommandQueue.prototype.enqueueWriteBufferRect=function (memory_object, blocki
       event_list);
 }
 
-//static JS_METHOD(enqueueReadBufferRect);
 cl.CommandQueue.prototype.enqueueReadBufferRect=function (memory_object, blocking_read, 
     bufferOrigin, hostOrigin, regionArray, buffer_row_pitch, buffer_slice_pitch, 
     host_row_pitch, host_slice_pitch, host_ptr,
@@ -195,7 +189,6 @@ cl.CommandQueue.prototype.enqueueReadBufferRect=function (memory_object, blockin
       event_list);
 }
 
-//static JS_METHOD(enqueueCopyBufferRect);
 cl.CommandQueue.prototype.enqueueCopyBufferRect=function (memory_object_src, memory_object_dst, 
     blocking_read, 
     srcOrigin, dstOrigin, region, 
@@ -222,7 +215,6 @@ cl.CommandQueue.prototype.enqueueCopyBufferRect=function (memory_object_src, mem
       event_list);
 }
 
-//static JS_METHOD(enqueueWriteImage);
 cl.CommandQueue.prototype.enqueueWriteImage=function (memory_object, 
     blocking_write, 
     srcOrigin, region, 
@@ -246,7 +238,6 @@ cl.CommandQueue.prototype.enqueueWriteImage=function (memory_object,
       event_list);
 }
 
-//static JS_METHOD(enqueueReadImage);
 cl.CommandQueue.prototype.enqueueReadImage=function (memory_object, 
     blocking_read, 
     srcOrigin, regionArray, 
@@ -270,7 +261,6 @@ cl.CommandQueue.prototype.enqueueReadImage=function (memory_object,
       event_list);
 }
 
-//static JS_METHOD(enqueueCopyImage);
 cl.CommandQueue.prototype.enqueueCopyImage=function (memory_object_src, memory_object_dst, 
     srcOrigin, dstOrigin, regionArray, 
     event_list) {
@@ -288,7 +278,6 @@ cl.CommandQueue.prototype.enqueueCopyImage=function (memory_object_src, memory_o
       event_list);
 }
 
-//static JS_METHOD(enqueueCopyImageToBuffer);
 cl.CommandQueue.prototype.enqueueCopyImageToBuffer=function (memory_object_src, memory_object_dst, 
     srcOrigin, regionArray, dst_offset,
     event_list) {
@@ -306,7 +295,6 @@ cl.CommandQueue.prototype.enqueueCopyImageToBuffer=function (memory_object_src, 
       event_list);
 }
 
-//static JS_METHOD(enqueueCopyBufferToImage);
 cl.CommandQueue.prototype.enqueueCopyBufferToImage=function (memory_object_src, memory_object_dst, 
     srcoffset, dstOrigin, regionArray,
     event_list) {
@@ -322,7 +310,6 @@ cl.CommandQueue.prototype.enqueueCopyBufferToImage=function (memory_object_src, 
   return this.enqueueCopyBufferToImage(memory_object_src, memory_object_dst, srcOffset, dstOrigin, regionArray, event_list);
 }
 
-//static JS_METHOD(enqueueMapBuffer);
 cl.CommandQueue.prototype.enqueueMapBuffer=function (memory_object, 
     blocking, flags, offset, size,
     event_list) {
@@ -338,7 +325,6 @@ cl.CommandQueue.prototype.enqueueMapBuffer=function (memory_object,
   return this._enqueueMapBuffer(memory_object, blocking, flags, offset, size, event_list);
 }
 
-//static JS_METHOD(enqueueMapImage);
 cl.CommandQueue.prototype.enqueueMapImage=function (memory_object, 
     blocking, flags, origin, region,
     event_list) {
@@ -354,7 +340,6 @@ cl.CommandQueue.prototype.enqueueMapImage=function (memory_object,
   return this._enqueueMapImage(memory_object, blocking, flags, origin, region, event_list);
 }
 
-//static JS_METHOD(enqueueUnmapMemObject);
 cl.CommandQueue.prototype.enqueueUnmapMemObject=function (memory_object, 
     region,
     event_list) {
@@ -367,7 +352,6 @@ cl.CommandQueue.prototype.enqueueUnmapMemObject=function (memory_object,
   return this._enqueueUnmapMemObject(memory_object, region, event_list);
 }
 
-//static JS_METHOD(enqueueMarker);
 cl.CommandQueue.prototype.enqueueMarker=function () {
   if (!(arguments.length === 0)) {
     throw new TypeError('Expected WebCLCommandQueue.enqueueMarker()');
@@ -375,7 +359,6 @@ cl.CommandQueue.prototype.enqueueMarker=function () {
   return this._enqueueMarker();
 }
 
-//static JS_METHOD(enqueueWaitForEvents);
 cl.CommandQueue.prototype.enqueueWaitForEvents=function (event_wait_list) {
   if (!(arguments.length >=0 &&       (typeof event_list === 'undefined' || typeof event_list === 'object') )) {
     throw new TypeError('Expected WebCLCommandQueue.enqueueWaitForEvents(WebCLEvent[] event_wait_list)');
@@ -383,7 +366,6 @@ cl.CommandQueue.prototype.enqueueWaitForEvents=function (event_wait_list) {
   return this._enqueueWaitForEvents(event_wait_list);
 }
 
-//static JS_METHOD(enqueueBarrier);
 cl.CommandQueue.prototype.enqueueBarrier=function () {
   if (!(arguments.length === 0)) {
     throw new TypeError('Expected WebCLCommandQueue.enqueueBarrier()');
@@ -391,7 +373,6 @@ cl.CommandQueue.prototype.enqueueBarrier=function () {
   return this._enqueueBarrier();
 }
 
-//static JS_METHOD(flush);
 cl.CommandQueue.prototype.flush=function () {
   if (!(arguments.length === 0)) {
     throw new TypeError('Expected WebCLCommandQueue.flush()');
@@ -399,7 +380,6 @@ cl.CommandQueue.prototype.flush=function () {
   return this._flush();
 }
 
-//static JS_METHOD(finish);
 cl.CommandQueue.prototype.finish=function () {
   if (!(arguments.length === 0)) {
     throw new TypeError('Expected WebCLCommandQueue.finish()');
