@@ -39,7 +39,7 @@ MappedRegion::MappedRegion(Handle<Object> wrapper) : region(0)
 
 void MappedRegion::Destructor()
 {
-  cout<<"Destroying MappedRegion"<<endl;
+  cout<<"  Destroying MappedRegion"<<endl;
   if (region) delete region;
   region=0;
 }

@@ -44,7 +44,7 @@ Kernel::Kernel(Handle<Object> wrapper) : kernel(0)
 }
 
 void Kernel::Destructor() {
-  cout<<"Destroying CL kernel"<<endl;
+  cout<<"  Destroying CL kernel"<<endl;
   if(kernel) ::clReleaseKernel(kernel);
   kernel=0;
 }

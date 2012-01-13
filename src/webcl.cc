@@ -47,10 +47,15 @@ void unregisterCLObj(WebCLObject* obj) {
 
 void AtExit() {
   cout<<"WebCL AtExit() called"<<endl;
-  cout<<"# objects allocated: "<<clobjs.size()<<endl;
+  cout<<"  # objects allocated: "<<clobjs.size()<<endl;
   vector<WebCLObject*>::iterator it = clobjs.begin();
   while(clobjs.size() && it != clobjs.end()) {
-    (*it++)->Destructor();
+    WebCLObject *clo=*it;
+    v8::Persistent<v8::Value> value = clo->handle_;
+    value.ClearWeak();
+    value.Dispose();
+    clo->Destructor();
+    it++;
   }
 
   clobjs.clear();

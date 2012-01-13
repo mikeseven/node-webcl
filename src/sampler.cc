@@ -39,7 +39,7 @@ Sampler::Sampler(Handle<Object> wrapper) : sampler(0)
 }
 
 void Sampler::Destructor() {
-  cout<<"Destroying CL sampler"<<endl;
+  cout<<"  Destroying CL sampler"<<endl;
   if(sampler) ::clReleaseSampler(sampler);
   sampler=0;
 }

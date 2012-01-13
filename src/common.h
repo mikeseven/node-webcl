@@ -76,19 +76,21 @@ v8::Handle<v8::Value> ThrowRangeError(const char* msg) {
 
 namespace webcl {
 
+class WebCLObject;
+void registerCLObj(WebCLObject* obj);
+void unregisterCLObj(WebCLObject* obj);
+void AtExit();
+
 class WebCLObject : public node::ObjectWrap {
 protected:
   virtual ~WebCLObject() {
     Destructor();
+    unregisterCLObj(this);
   }
 
 public:
   virtual void Destructor() {}
 };
-
-void registerCLObj(WebCLObject* obj);
-void unregisterCLObj(WebCLObject* obj);
-void AtExit();
 
 }
 #endif

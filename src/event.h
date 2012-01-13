@@ -16,6 +16,8 @@ class Event : public WebCLObject
 {
 
 public:
+  virtual ~Event();
+
   void Destructor();
 
   static void Init(v8::Handle<v8::Object> target);

@@ -44,7 +44,7 @@ Program::Program(Handle<Object> wrapper) : program(0)
 }
 
 void Program::Destructor() {
-  cout<<"Destroying CL program"<<endl;
+  cout<<"  Destroying CL program"<<endl;
   if(program) ::clReleaseProgram(program);
   program=0;
 }

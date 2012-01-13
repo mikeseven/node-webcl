@@ -40,7 +40,7 @@ MemoryObject::MemoryObject(Handle<Object> wrapper) : memory(0)
 }
 
 void MemoryObject::Destructor() {
-  cout<<"Destroying CL memory object"<<endl;
+  cout<<"  Destroying CL memory object"<<endl;
   if(memory) ::clReleaseMemObject(memory);
   memory=0;
 }

@@ -225,15 +225,13 @@ JS_METHOD(EXTGL::enqueueAcquireGLObjects)
   MakeEventWaitList(args[2]);
 
   cl_event event=NULL;
-  if(!args[3]->IsUndefined() && !args[3]->IsNull()) {
-    event=ObjectWrap::Unwrap<Event>(args[3]->ToObject())->getEvent();
-  }
+  bool generate_event = !args[3]->IsUndefined() && args[3]->BooleanValue();
 
   int ret = ::clEnqueueAcquireGLObjects(cq->getCommandQueue(),
       num_objects, mem_objects,
       num_events_wait_list,
       events_wait_list,
-      event ? &event : NULL);
+      generate_event ? &event : NULL);
 
   if(mem_objects) delete[] mem_objects;
   if(events_wait_list) delete[] events_wait_list;
@@ -250,7 +248,7 @@ JS_METHOD(EXTGL::enqueueAcquireGLObjects)
     return ThrowError("UNKNOWN ERROR");
   }
 
-  if(event) return scope.Close(args[3]->ToObject()); //Event::New(event)->handle_);
+  if(event) return scope.Close(Event::New(event)->handle_);
   return Undefined();
 }
 
@@ -279,15 +277,13 @@ JS_METHOD(EXTGL::enqueueReleaseGLObjects)
   MakeEventWaitList(args[2]);
 
   cl_event event=NULL;
-  if(!args[3]->IsUndefined() && !args[3]->IsNull()) {
-    event=ObjectWrap::Unwrap<Event>(args[3]->ToObject())->getEvent();
-  }
+  bool generate_event = !args[3]->IsUndefined() && args[3]->BooleanValue();
 
   int ret = ::clEnqueueReleaseGLObjects(cq->getCommandQueue(),
       num_objects, mem_objects,
       num_events_wait_list,
       events_wait_list,
-      &event);
+      generate_event ? &event : NULL);
 
   if(mem_objects) delete[] mem_objects;
   if(events_wait_list) delete[] events_wait_list;

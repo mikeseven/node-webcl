@@ -57,7 +57,7 @@ Context::Context(Handle<Object> wrapper) : context(0)
 
 void Context::Destructor()
 {
-  cout<<"Destroying CL context"<<endl;
+  cout<<"  Destroying CL context"<<endl;
   if(context) ::clReleaseContext(context);
   context=0;
 }

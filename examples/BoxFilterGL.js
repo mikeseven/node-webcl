@@ -77,14 +77,14 @@ main();
 
 function main() {
   // load image
-  image.onload(function(s) { // [MBS] was onload() event
-    console.log("Loaded image: " + s);
+  image.onload=function() { // [MBS] was onload() event
+    console.log("Loaded image: " + image.src);
     log("Image Width = " + image.width + ", Height = " + image.height
         + ", bpp = 32, Mask Radius = " + iRadius);
     // adjust window to pixel ratio
     iGraphicsWinHeight *= image.height/image.width;
     document.createWindow(iGraphicsWinWidth, iGraphicsWinHeight);
-  });
+  };
   image.src = __dirname + '/' + image.filename;
 
   // Allocate intermediate and output host image buffers
@@ -387,10 +387,10 @@ function DisplayGL() {
 
   // Release GL output or explicit output copy
   // Release buffer
-  var event=new cl.Event();
-  event=clgl.enqueueReleaseGLObjects(cqCommandQueue, cmCL_PBO,null,event);
-  cl.waitForEvents([event]);
-  //cqCommandQueue.finish();
+  /*var event=*/clgl.enqueueReleaseGLObjects(cqCommandQueue, cmCL_PBO,null /*,true*/);
+  //cl.waitForEvents([event]);
+  //event=null;
+  cqCommandQueue.finish();
 
   // Copy results back to host memory, block until complete
   /*var uiOutput=new Uint8Array(szBuffBytes);
@@ -401,8 +401,8 @@ function DisplayGL() {
   });
   
   // PNG uses 32-bit images, JPG can only work on 24-bit images
-  if(!uiInput.save('out_'+iRadius+'.png',uiOutput, 
-      uiImageWidth,uiImageHeight, uiInput.pitch, uiInput.bpp, 0xFF0000, 0x00FF00, 0xFF))
+  if(!image.save('out_'+iRadius+'.png',uiOutput, 
+      image.width,image.height, image.pitch, image.bpp, 0xFF0000, 0x00FF00, 0xFF))
     log("Error saving image");
 
   return;*/
