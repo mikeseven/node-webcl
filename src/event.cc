@@ -39,13 +39,9 @@ Event::Event(Handle<Object> wrapper) : event(0)
 {
 }
 
-Event::~Event() {
-  cout<<"~Event called"<<endl;
-}
-
 void Event::Destructor()
 {
-  cout<<"  Destroying CL event"<<endl;
+  cout<<"  Destroying CL event "<<event<<" thread: 0x"<<hex<<pthread_self()<<dec<<endl;
   if(event) ::clReleaseEvent(event);
   event=0;
 }

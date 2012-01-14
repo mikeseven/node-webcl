@@ -93,4 +93,61 @@ public:
 };
 
 }
+
+/*
+#include <cstdlib>
+#include <map>
+#include <iterator>
+#include <iostream>
+
+template<typename T>
+struct track_alloc : std::allocator<T> {
+    typedef typename std::allocator<T>::pointer pointer;
+    typedef typename std::allocator<T>::size_type size_type;
+
+    template<typename U>
+    struct rebind {
+        typedef track_alloc<U> other;
+    };
+
+    track_alloc() {}
+
+    template<typename U>
+    track_alloc(track_alloc<U> const& u) : std::allocator<T>(u) {}
+
+    pointer allocate(size_type size, std::allocator<void>::const_pointer = 0) {
+        void * p = malloc(size * sizeof(T));
+        if(p == 0) {
+            throw std::bad_alloc();
+        }
+        return static_cast<pointer>(p);
+    }
+
+    void deallocate(pointer p, size_type) {
+        free(p);
+    }
+};
+
+typedef std::map<void*, std::size_t, std::less<void*>,
+    track_alloc<std::pair<void* const, std::size_t> > > track_type;
+
+struct track_printer {
+  track_type * track;
+  track_printer(track_type * track) :
+      track(track) {
+  }
+  ~track_printer() {
+    track_type::const_iterator it = track->begin();
+    while (it != track->end()) {
+      std::cerr << "TRACK: leaked at " << it->first << ", " << it->second
+          << " bytes\n";
+      ++it;
+    }
+  }
+};
+
+track_type * get_map();
+void * operator new(std::size_t size) throw (std::bad_alloc);
+void operator delete(void * mem) throw ();
+*/
 #endif

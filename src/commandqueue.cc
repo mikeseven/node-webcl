@@ -96,7 +96,10 @@ CommandQueue::CommandQueue(Handle<Object> wrapper) : command_queue(0)
 
 void CommandQueue::Destructor() {
   cout<<"  Destroying CL command queue"<<endl;
-  if(command_queue) ::clReleaseCommandQueue(command_queue);
+  if(command_queue) {
+    //::clFinish(command_queue);
+    ::clReleaseCommandQueue(command_queue);
+  }
   command_queue=0;
 }
 

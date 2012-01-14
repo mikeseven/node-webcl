@@ -16,6 +16,7 @@
 
 #include <vector>
 #include <iostream>
+#include <algorithm>
 
 using namespace v8;
 using namespace node;
@@ -23,7 +24,8 @@ using namespace std;
 
 namespace webcl {
 
-vector<WebCLObject*> clobjs;
+static vector<WebCLObject*> clobjs;
+static bool atExit=false;
 
 void registerCLObj(WebCLObject* obj) {
   if(obj) {
@@ -31,9 +33,8 @@ void registerCLObj(WebCLObject* obj) {
   }
 }
 
-
 void unregisterCLObj(WebCLObject* obj) {
-  if(!obj) return;
+  if(atExit || !obj) return;
 
   vector<WebCLObject*>::iterator it = clobjs.begin();
   while(clobjs.size() && it != clobjs.end()) {
@@ -41,21 +42,23 @@ void unregisterCLObj(WebCLObject* obj) {
       clobjs.erase(it);
       break;
     }
-    it++;
+    ++it;
   }
 }
 
 void AtExit() {
+  atExit=true;
   cout<<"WebCL AtExit() called"<<endl;
   cout<<"  # objects allocated: "<<clobjs.size()<<endl;
-  vector<WebCLObject*>::iterator it = clobjs.begin();
+  vector<WebCLObject*>::const_iterator it = clobjs.begin();
   while(clobjs.size() && it != clobjs.end()) {
     WebCLObject *clo=*it;
-    v8::Persistent<v8::Value> value = clo->handle_;
-    value.ClearWeak();
-    value.Dispose();
     clo->Destructor();
-    it++;
+    //v8::Persistent<v8::Value> value = clo->handle_;
+    //value.ClearWeak();
+    //value.Dispose();
+    //cout<<"[atExit] calling destructor of "<<clo<<" thread "<<hex<<pthread_self()<<dec<<endl;
+    ++it;
   }
 
   clobjs.clear();

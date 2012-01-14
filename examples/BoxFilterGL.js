@@ -73,6 +73,10 @@ var prog; // shader program
 document.createWindow(iGraphicsWinWidth, iGraphicsWinHeight);
 document.setTitle("BoxFilterGL");
 document.on('KEYDOWN', processKey);
+document.on('QUIT', function() {
+  log('exiting app');
+  
+});
 main();
 
 function main() {
@@ -220,8 +224,7 @@ function BoxFilterGPU(image, cmOutputBuffer, r, fScale) {
   // Set global and local work sizes for row kernel
   szLocalWorkSize[0] = uiNumOutputPix;
   szLocalWorkSize[1] = 1;
-  szGlobalWorkSize[0] =
-      szLocalWorkSize[0] * DivUp(image.height, szLocalWorkSize[0]);
+  szGlobalWorkSize[0] = szLocalWorkSize[0] * DivUp(image.height, szLocalWorkSize[0]);
   szGlobalWorkSize[1] = 1;
   //log("row kernel work sizes: global= " + szGlobalWorkSize[0] + " local= " + szLocalWorkSize[0]);
 
@@ -241,8 +244,7 @@ function BoxFilterGPU(image, cmOutputBuffer, r, fScale) {
   //log("column kernel work sizes: global= " + szGlobalWorkSize[0] + " local= " + szLocalWorkSize[0]);
 
   // Launch column kernel
-  cqCommandQueue.enqueueNDRangeKernel(ckBoxColumns, null, szGlobalWorkSize,
-      szLocalWorkSize);
+  cqCommandQueue.enqueueNDRangeKernel(ckBoxColumns, null, szGlobalWorkSize, szLocalWorkSize);
 
   // sync host
   cqCommandQueue.finish();
@@ -387,10 +389,10 @@ function DisplayGL() {
 
   // Release GL output or explicit output copy
   // Release buffer
-  /*var event=*/clgl.enqueueReleaseGLObjects(cqCommandQueue, cmCL_PBO,null /*,true*/);
-  //cl.waitForEvents([event]);
-  //event=null;
-  cqCommandQueue.finish();
+  var event=clgl.enqueueReleaseGLObjects(cqCommandQueue, cmCL_PBO,null ,true);
+  cl.waitForEvents([event]);
+  event=null;
+  //cqCommandQueue.finish();
 
   // Copy results back to host memory, block until complete
   /*var uiOutput=new Uint8Array(szBuffBytes);
