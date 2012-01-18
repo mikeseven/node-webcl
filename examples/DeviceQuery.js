@@ -27,8 +27,8 @@ for(var i in platforms) {
   log("OpenCL Device Info:\n");
   var devices = p.getDevices(cl.DEVICE_TYPE_ALL);
   log('Found '+devices.length+' devices');
-  for(i=0;i<devices.length;i++) {
-    var device=devices[i];
+  for(var j=0;j<devices.length;j++) {
+    var device=devices[j];
     log(" ---------------------------------");
     log(' Device: '+device.getDeviceInfo(cl.DEVICE_NAME));
     log(" ---------------------------------");
@@ -61,11 +61,11 @@ for(var i in platforms) {
   log("  2D Image Formats Supported", uiNumSupportedFormats); 
   log("  ---------------------------------");
   log(clu.sprintf("%-6s%-16s%-22s\n", "#", "Channel Order", "Channel Type"));
-  for(var i = 0; i < uiNumSupportedFormats; i++) 
+  for(var j = 0; j < uiNumSupportedFormats; j++) 
   {  
-    log(clu.sprintf("  %-6u%-16s%-22s", (i + 1),
-        oclImageFormatString(ImageFormats[i].order), 
-        oclImageFormatString(ImageFormats[i].data_type)));
+    log(clu.sprintf("  %-6u%-16s%-22s", (j + 1),
+        oclImageFormatString(ImageFormats[j].order), 
+        oclImageFormatString(ImageFormats[j].data_type)));
   }
   log("");
   
@@ -77,11 +77,11 @@ for(var i in platforms) {
   log("  3D Image Formats Supported", uiNumSupportedFormats); 
   log("  ---------------------------------");
   log(clu.sprintf("%-6s%-16s%-22s\n", "#", "Channel Order", "Channel Type"));
-  for(var i = 0; i < uiNumSupportedFormats; i++) 
+  for(var j = 0; j < uiNumSupportedFormats; j++) 
   {  
-    log(clu.sprintf("  %-6u%-16s%-22s", (i + 1),
-        oclImageFormatString(ImageFormats[i].order), 
-        oclImageFormatString(ImageFormats[i].data_type)));
+    log(clu.sprintf("  %-6u%-16s%-22s", (j + 1),
+        oclImageFormatString(ImageFormats[j].order), 
+        oclImageFormatString(ImageFormats[j].data_type)));
   }
   log(""); 
 
