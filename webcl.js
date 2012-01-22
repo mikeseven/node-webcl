@@ -90,7 +90,6 @@ cl.CommandQueue.prototype.getCommandQueueInfo=function (param_name) {
   return this._getCommandQueueInfo(param_name);
 }
 
-// TODO what do we do with event_list in those methods?
 cl.CommandQueue.prototype.enqueueNDRangeKernel=function (kernel, offsets, globals, locals, event_list, generate_event) {
   if (!(arguments.length>= 4 && typeof kernel === 'object' &&
       typeof offsets === 'object' && typeof globals === 'object' && typeof locals === 'object' &&
@@ -446,13 +445,6 @@ cl.Context.prototype.createBuffer=function (flags, size, host_ptr) {
   return this._createBuffer(flags, size, host_ptr);
 }
 
-cl.Context.prototype.createBufferGL=function (flags, glbuffer) {
-  if (!(arguments.length === 2 && typeof flags === 'number' && typeof glbuffer === 'WebGLBuffer')) {
-    throw new TypeError('Expected WebCLContext.createBufferGL(CLenum flags, WebGLBuffer glbuffer)');
-  }
-  return this._createBufferGL(flags, glbuffer);
-}
-
 cl.Context.prototype.createImage2D=function (flags, image_format, width, height, row_pitch, host_ptr) {
   if (!(arguments.length >= 5 && typeof flags === 'number' && typeof image_format === 'object' && 
       typeof width === 'number' && typeof height === 'number' && typeof row_pitch === 'number' && 
@@ -656,7 +648,6 @@ cl.Sampler.prototype.getSamplerInfo=function (param_name) {
 // OpenGL object
 //////////////////////////////
 cl.EXTGL.prototype.createFromGLBuffer=function (context, flags, buffer) {
-  console.log("buffer instanceof "+require('util').inspect(buffer));
   if (!(arguments.length === 3 && typeof context === 'object' && typeof flags === 'number'
     && typeof buffer ==='object')) {
     throw new TypeError('Expected WebCLGL.createFromGLBuffer(WebCLContext context, CLenum flags, WebGLBuffer buffer)');

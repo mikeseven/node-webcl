@@ -292,11 +292,19 @@ JS_METHOD(CommandQueue::enqueueWriteBuffer)
   Local<Array> region=Array::Cast(*args[2]);
   Local<Value> vbuffer=region->Get(JS_STR("buffer"));
   void *ptr=NULL;
-  if(!vbuffer->IsUndefined())
-    ptr = vbuffer->ToObject()->GetIndexedPropertiesExternalArrayData();
+  if(!vbuffer->IsUndefined()) {
+    if(vbuffer->IsArray()) {
+      Local<Array> arr=Array::Cast(*vbuffer);
+      ptr = arr->GetIndexedPropertiesExternalArrayData();
+    }
+    else if(vbuffer->IsObject())
+      ptr = vbuffer->ToObject()->GetIndexedPropertiesExternalArrayData();
+    else
+      ThrowError("Invalid memory object");
+  }
 
   size_t offset=0;
-  Local<Value> voffset=region->Get(JS_STR("offset"));
+  Local<Value> voffset=region->Get(JS_STR("origin"));
   if(!voffset->IsUndefined())
     offset=voffset->Uint32Value();
 
@@ -348,11 +356,19 @@ JS_METHOD(CommandQueue::enqueueReadBuffer)
   Local<Array> region=Array::Cast(*args[2]);
   Local<Value> vbuffer=region->Get(JS_STR("buffer"));
   void *ptr=NULL;
-  if(!vbuffer->IsUndefined())
-    ptr = vbuffer->ToObject()->GetIndexedPropertiesExternalArrayData();
+  if(!vbuffer->IsUndefined()) {
+    if(vbuffer->IsArray()) {
+      Local<Array> arr=Array::Cast(*vbuffer);
+      ptr = arr->GetIndexedPropertiesExternalArrayData();
+    }
+    else if(vbuffer->IsObject())
+      ptr = vbuffer->ToObject()->GetIndexedPropertiesExternalArrayData();
+    else
+      ThrowError("Invalid memory object");
+  }
 
   size_t offset=0;
-  Local<Value> voffset=region->Get(JS_STR("offset"));
+  Local<Value> voffset=region->Get(JS_STR("origin"));
   if(!voffset->IsUndefined())
     offset=voffset->Uint32Value();
 

@@ -14,6 +14,7 @@ namespace webcl {
 namespace types {
 
 enum CLType {
+  UNKNOWN = 0,
   LOCAL = 1<<0,
   POINTER = 1<<1,
   UNSIGNED = 1<<2,

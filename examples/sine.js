@@ -5,10 +5,15 @@
  * Mobility, Inc. All Rights Reserved. **
  */
 
-var cl = require('../webcl'), clu = require('../lib/clUtils'), util =
-    require('util'), fs = require('fs'), WebGL = require('webgl'), document =
-    WebGL.document(), nodejs = true, log = console.log, requestAnimationFrame =
-    document.requestAnimationFrame;
+var cl = require('../webcl'), 
+    clu = require('../lib/clUtils'), 
+    util = require('util'), 
+    fs = require('fs'), 
+    WebGL = require('webgl'), 
+    document = WebGL.document(), 
+    nodejs = true, 
+    log = console.log, alert = log,
+    requestAnimationFrame = document.requestAnimationFrame;
 
 //Read and eval library for mat/vec operations
 eval(fs.readFileSync(__dirname + '/glMatrix-0.9.5.min.js', 'utf8'));
@@ -58,17 +63,16 @@ var iFramesPerSec = 0; // frames per second
 var iTestSets = 3;
 var g_Index = 0;
 
-document.createWindow(window_width, window_height);
 document.setTitle("sineGL");
 requestAnimFrame = document.requestAnimationFrame;
-document.on("MOUSEBUTTONDOWN", function(evt) {
+document.on("mousedown", function(evt) {
   mouse(evt, true);
 });
-document.on("MOUSEBUTTONUP", function(evt) {
+document.on("mouseup", function(evt) {
   mouse(evt, false);
 });
-document.on("MOUSEMOTION", motion);
-document.on("VIDEORESIZE",function(evt){
+document.on("mousemove", motion);
+document.on("resize",function(evt){
   console.log('resize to: ('+evt.width+", "+evt.height+")");
   document.createWindow(evt.width,evt.height);
   gl.viewportWidth=evt.width;
@@ -220,7 +224,7 @@ function initShaders() {
 }
 
 function initGL() {
-  var canvas = document.getElementById("mycanvas");
+  var canvas = document.createElement("mycanvas", window_width, window_height);
   try {
     gl = canvas.getContext("experimental-webgl");
     gl.viewportWidth = canvas.width;
@@ -307,7 +311,7 @@ function DisplayGL(time) {
 }
 
 function mouse(evt, isDown) {
-  log('mouse event: button=' + evt.button);
+  //log('mouse event: button=' + evt.button);
   if (isDown)
     mouse_buttons |= 1 << evt.button;
   else
@@ -320,7 +324,7 @@ function mouse(evt, isDown) {
 function motion(evt) {
   var dx = (evt.x - mouse_old_x);
   var dy = (evt.y - mouse_old_y);
-  log('mouse motion: dx=' + dx + " dy=" + dy);
+  //log('mouse motion: dx=' + dx + " dy=" + dy);
 
   if (mouse_buttons & 2) {
     rotate_x += dy * 0.2;

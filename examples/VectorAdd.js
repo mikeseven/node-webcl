@@ -43,7 +43,7 @@ function VectorAdd() {
 "__kernel void vadd(__global int *a, __global int *b, __global int *c, int iNumElements) ",
 "{                                                                           ",
 "    size_t i =  get_global_id(0);                                           ",
-"    if(i > iNumElements) return;                                            ",
+"    if(i >= iNumElements) return;                                           ",
 "    c[i] = a[i] + b[i];                                                     ",
 "}                                                                           "
 ].join("\n");
@@ -88,13 +88,6 @@ function VectorAdd() {
 
   log("Global work item size: " + globalWS);
   log("Local work item size: " + localWS);
-
-  // Execute (enqueue) kernel
-  log("using enqueueNDRangeKernel");
-  queue.enqueueNDRangeKernel(kernel,
-      [],
-      [globalWS],
-      [localWS]);
   
   //Do the work
   queue.enqueueWriteBuffer (aBuffer, false, {
@@ -105,17 +98,25 @@ function VectorAdd() {
 
   queue.enqueueWriteBuffer (bBuffer, false, {
     buffer: B,
-    offset: 0,
+    origin: 0,
     size: B.length*Uint32Array.BYTES_PER_ELEMENT},
     []);
 
-  queue.enqueueReadBuffer (cBuffer, false, {
+  // Execute (enqueue) kernel
+  log("using enqueueNDRangeKernel");
+  queue.enqueueNDRangeKernel(kernel,
+      [],
+      [globalWS],
+      [localWS]);
+
+  // get results and block while getting them
+  queue.enqueueReadBuffer (cBuffer, true, {
     buffer: C,
-    offset: 0, 
+    origin: 0, 
     size: C.length*Uint32Array.BYTES_PER_ELEMENT}, 
     []);
-  queue.finish (); //Finish all the operations
 
+  // print results
   printResults(A,B,C);
 }
 

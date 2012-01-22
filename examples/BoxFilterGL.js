@@ -13,7 +13,8 @@ var cl = require('../webcl'),
     document = WebGL.document(), 
     Image = WebGL.Image, 
     log = console.log, 
-    requestAnimationFrame = document.requestAnimationFrame;
+    requestAnimationFrame = document.requestAnimationFrame,
+    alert=console.log;
 
 //First check if the webcl extension is installed at all 
 if (cl == undefined) {
@@ -70,10 +71,9 @@ var tex_screen; // (offscreen) render target
 var vbo = {}, pbo; // pixel buffer for interop
 var prog; // shader program
 
-document.createWindow(iGraphicsWinWidth, iGraphicsWinHeight);
 document.setTitle("BoxFilterGL");
-document.on('KEYDOWN', processKey);
-document.on('QUIT', function() {
+document.on('keydown', processKey);
+document.on('quit', function() {
   log('exiting app');
   
 });
@@ -97,7 +97,7 @@ function main() {
   var uiTemp = new Uint8Array(image.szBuffBytes); // Host buffer to hold intermediate image data
 
   // Initialize GL Context
-  initGL(document.getElementById("mycanvas"));
+  initGL(document.createElement("mycanvas",iGraphicsWinWidth, iGraphicsWinHeight));
 
   // Pick platform
   var platformList = cl.getPlatforms();

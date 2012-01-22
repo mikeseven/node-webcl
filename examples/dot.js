@@ -33,14 +33,14 @@ main();
 
 function read_image_data(filename) {
   var image = new Image();
-  image.onload(function(s) { // [MBS] was onload() event
+  image.onload=function(s) { // [MBS] was onload() event
     console.log("Loaded image: " + s);
     log("Image Width = " + image.width + ", Height = " + image.height);
 
     // adjust window to pixel ratio
     window_height *= image.height/image.width;
     document.createWindow(window_width, window_height);
-  });
+  };
   image.src = filename;
 
   return image;
@@ -179,9 +179,8 @@ function init_shaders() {
 function init_gl() {
 
   /* Initialize the main window */
-  document.createWindow(window_width, window_height);
   document.setTitle("Texture filter");
-  canvas = document.getElementById("mycanvas");
+  canvas = document.createElement("mycanvas", window_width, window_height);
   try {
     gl = canvas.getContext("experimental-webgl");
     gl.viewportWidth = canvas.width;
