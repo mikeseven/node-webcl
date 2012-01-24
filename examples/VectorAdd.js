@@ -40,7 +40,7 @@ function VectorAdd() {
   context=cl.createContext(cl.DEVICE_TYPE_GPU, [cl.CONTEXT_PLATFORM, platform]);
 
   kernelSourceCode = [
-"__kernel void vadd(__global int *a, __global int *b, __global int *c, int iNumElements) ",
+"__kernel void vadd(__global int *a, __global int *b, __global int *c, uint iNumElements) ",
 "{                                                                           ",
 "    size_t i =  get_global_id(0);                                           ",
 "    if(i >= iNumElements) return;                                           ",
