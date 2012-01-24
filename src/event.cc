@@ -26,13 +26,13 @@ void Event::Init(Handle<Object> target)
   constructor_template = Persistent<FunctionTemplate>::New(t);
 
   constructor_template->InstanceTemplate()->SetInternalFieldCount(1);
-  constructor_template->SetClassName(JS_STR("Event"));
+  constructor_template->SetClassName(JS_STR("WebCLEvent"));
 
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getEventInfo", getEventInfo);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getProfilingInfo", getProfilingInfo);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_setUserEventStatus", setUserEventStatus);
 
-  target->Set(JS_STR("Event"), constructor_template->GetFunction());
+  target->Set(JS_STR("WebCLEvent"), constructor_template->GetFunction());
 }
 
 Event::Event(Handle<Object> wrapper) : event(0)

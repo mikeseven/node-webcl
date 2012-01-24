@@ -26,13 +26,13 @@ void MemoryObject::Init(Handle<Object> target)
   constructor_template = Persistent<FunctionTemplate>::New(t);
 
   constructor_template->InstanceTemplate()->SetInternalFieldCount(1);
-  constructor_template->SetClassName(String::NewSymbol("MemoryObject"));
+  constructor_template->SetClassName(String::NewSymbol("WebCLMemoryObject"));
 
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getMemoryObjectInfo", getMemoryObjectInfo);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getImageInfo", getImageInfo);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_createSubBuffer", createSubBuffer);
 
-  target->Set(String::NewSymbol("MemoryObject"), constructor_template->GetFunction());
+  target->Set(String::NewSymbol("WebCLMemoryObject"), constructor_template->GetFunction());
 }
 
 MemoryObject::MemoryObject(Handle<Object> wrapper) : memory(0)

@@ -27,11 +27,11 @@ void Sampler::Init(Handle<Object> target)
   constructor_template = Persistent<FunctionTemplate>::New(t);
 
   constructor_template->InstanceTemplate()->SetInternalFieldCount(1);
-  constructor_template->SetClassName(String::NewSymbol("Sampler"));
+  constructor_template->SetClassName(String::NewSymbol("WebCLSampler"));
 
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getSamplerInfo", getSamplerInfo);
 
-  target->Set(String::NewSymbol("Sampler"), constructor_template->GetFunction());
+  target->Set(String::NewSymbol("WebCLSampler"), constructor_template->GetFunction());
 }
 
 Sampler::Sampler(Handle<Object> wrapper) : sampler(0)

@@ -43,7 +43,7 @@ void EXTGL::Init(Handle<Object> target)
   constructor_template = Persistent<FunctionTemplate>::New(t);
 
   constructor_template->InstanceTemplate()->SetInternalFieldCount(1);
-  constructor_template->SetClassName(String::NewSymbol("EXTGL"));
+  constructor_template->SetClassName(String::NewSymbol("WebCLEXTGL"));
 
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_createFromGLBuffer", createFromGLBuffer);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_createFromGLTexture2D", createFromGLTexture2D);
@@ -54,7 +54,7 @@ void EXTGL::Init(Handle<Object> target)
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_enqueueAcquireGLObjects", enqueueAcquireGLObjects);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_enqueueReleaseGLObjects", enqueueReleaseGLObjects);
 
-  target->Set(String::NewSymbol("EXTGL"), constructor_template->GetFunction());
+  target->Set(String::NewSymbol("WebCLEXTGL"), constructor_template->GetFunction());
 }
 
 EXTGL::EXTGL(Handle<Object> wrapper)

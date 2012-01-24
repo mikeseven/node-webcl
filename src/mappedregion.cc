@@ -26,11 +26,11 @@ void MappedRegion::Init(Handle<Object> target)
   constructor_template = Persistent<FunctionTemplate>::New(t);
 
   constructor_template->InstanceTemplate()->SetInternalFieldCount(1);
-  constructor_template->SetClassName(String::NewSymbol("MappedRegion"));
+  constructor_template->SetClassName(String::NewSymbol("WebCLMappedRegion"));
 
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "getBuffer", getBuffer);
 
-  target->Set(String::NewSymbol("MappedRegion"), constructor_template->GetFunction());
+  target->Set(String::NewSymbol("WebCLMappedRegion"), constructor_template->GetFunction());
 }
 
 MappedRegion::MappedRegion(Handle<Object> wrapper) : region(0)

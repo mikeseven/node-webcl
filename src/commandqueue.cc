@@ -62,7 +62,7 @@ void CommandQueue::Init(Handle<Object> target)
   constructor_template = Persistent<FunctionTemplate>::New(t);
 
   constructor_template->InstanceTemplate()->SetInternalFieldCount(1);
-  constructor_template->SetClassName(String::NewSymbol("CommandQueue"));
+  constructor_template->SetClassName(String::NewSymbol("WebCLCommandQueue"));
 
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getCommandQueueInfo", getCommandQueueInfo);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_enqueueNDRangeKernel", enqueueNDRangeKernel);
@@ -87,7 +87,7 @@ void CommandQueue::Init(Handle<Object> target)
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_flush", flush);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_finish", finish);
 
-  target->Set(String::NewSymbol("CommandQueue"), constructor_template->GetFunction());
+  target->Set(String::NewSymbol("WebCLCommandQueue"), constructor_template->GetFunction());
 }
 
 CommandQueue::CommandQueue(Handle<Object> wrapper) : command_queue(0)

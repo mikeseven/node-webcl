@@ -32,7 +32,7 @@ function VectorAdd() {
   //Pick platform
   var platformList=cl.getPlatforms();
   platform=platformList[0];
-
+  
   //Query the set of devices on this platform
   devices = platform.getDevices(cl.DEVICE_TYPE_ALL);
 

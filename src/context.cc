@@ -36,7 +36,7 @@ void Context::Init(Handle<Object> target)
   constructor_template = Persistent<FunctionTemplate>::New(t);
 
   constructor_template->InstanceTemplate()->SetInternalFieldCount(1);
-  constructor_template->SetClassName(String::NewSymbol("Context"));
+  constructor_template->SetClassName(String::NewSymbol("WebCLContext"));
 
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getContextInfo", getContextInfo);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_createProgram", createProgram);
@@ -48,7 +48,7 @@ void Context::Init(Handle<Object> target)
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_createUserEvent", createUserEvent);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getSupportedImageFormats", getSupportedImageFormats);
 
-  target->Set(String::NewSymbol("Context"), constructor_template->GetFunction());
+  target->Set(String::NewSymbol("WebCLContext"), constructor_template->GetFunction());
 }
 
 Context::Context(Handle<Object> wrapper) : context(0)
