@@ -6,7 +6,9 @@
 */
 
 var cl=require("../webcl"),
+    clu=require("../lib/clUtils.js"),
     log=console.log;
+var Uint32Array = process.binding('typed_array').Uint32Array;
 
 //First check if the WebCL extension is installed at all 
 if (cl == undefined) {
@@ -34,7 +36,8 @@ function VectorAdd() {
   platform=platformList[0];
 
   //Query the set of devices on this platform
-  devices = platform.getDevices(cl.DEVICE_TYPE_ALL);
+  devices = platform.getDevices(cl.DEVICE_TYPE_GPU);
+  log('using device: '+devices[0].getDeviceInfo(cl.DEVICE_NAME));
 
   // create GPU context for this platform
   context=cl.createContext(cl.DEVICE_TYPE_GPU, [cl.CONTEXT_PLATFORM, platform]);
@@ -68,8 +71,7 @@ function VectorAdd() {
   queue=context.createCommandQueue(devices[0], 0);
 
   //Create buffer for A and copy host contents
-  //aBuffer = context.createBuffer(cl.MEM_READ_ONLY, size);
-  aBuffer = context.createBuffer(cl.MEM_READ_WRITE, size);
+  aBuffer = context.createBuffer(cl.MEM_READ_ONLY, size);
   map=queue.enqueueMapBuffer(aBuffer, cl.TRUE, cl.MAP_WRITE, 0, BUFFER_SIZE * Uint32Array.BYTES_PER_ELEMENT);
   var buf=new Uint32Array(map.getBuffer());
   for(var i=0;i<BUFFER_SIZE;i++) {
@@ -78,8 +80,7 @@ function VectorAdd() {
   queue.enqueueUnmapMemObject(aBuffer, map);
 
   //Create buffer for B and copy host contents
-  //bBuffer = context.createBuffer(cl.MEM_READ_ONLY, size);
-  bBuffer = context.createBuffer(cl.MEM_READ_WRITE, size);
+  bBuffer = context.createBuffer(cl.MEM_READ_ONLY, size);
   map=queue.enqueueMapBuffer(bBuffer, cl.TRUE, cl.MAP_WRITE, 0, BUFFER_SIZE * Uint32Array.BYTES_PER_ELEMENT);
   buf=new Uint32Array(map.getBuffer());
   for(var i=0;i<BUFFER_SIZE;i++) {
@@ -96,9 +97,9 @@ function VectorAdd() {
   kernel.setArg(2, cBuffer, cl.type.MEM);
   kernel.setArg(3, BUFFER_SIZE, cl.type.INT | cl.type.UNSIGNED);
 
-  // Init ND-range
-  var localWS = [5];
-  var globalWS = [Math.ceil (BUFFER_SIZE / localWS) * localWS];
+  // Execute the OpenCL kernel on the list
+  var localWS = [5]; // process one list at a time
+  var globalWS = [clu.roundUp(localWS, BUFFER_SIZE)]; // process entire list
 
   log("Global work item size: " + globalWS);
   log("Local work item size: " + localWS);

@@ -423,15 +423,18 @@ void init(Handle<Object> target)
   /************************
   * cl_khr_icd extension *
   ************************/
+#if !defined (__APPLE__) && !defined(MACOSX)
   /* cl_platform_info                                                        */
   JS_CL_CONSTANT(PLATFORM_ICD_SUFFIX_KHR);
 
   /* Additional Error Codes                                                  */
   JS_CL_CONSTANT(PLATFORM_NOT_FOUND_KHR);
+#endif
 
   /******************************************
   * cl_nv_device_attribute_query extension *
   ******************************************/
+#if !defined (__APPLE__) && !defined(MACOSX)
   /* cl_nv_device_attribute_query extension - no extension exports.since it has no functions */
   JS_CL_CONSTANT(DEVICE_COMPUTE_CAPABILITY_MAJOR_NV);
   JS_CL_CONSTANT(DEVICE_COMPUTE_CAPABILITY_MINOR_NV);
@@ -440,10 +443,12 @@ void init(Handle<Object> target)
   JS_CL_CONSTANT(DEVICE_GPU_OVERLAP_NV);
   JS_CL_CONSTANT(DEVICE_KERNEL_EXEC_TIMEOUT_NV);
   JS_CL_CONSTANT(DEVICE_INTEGRATED_MEMORY_NV);
+#endif
 
   /*********************************
   * cl_amd_device_attribute_query *
   *********************************/
+#if !defined (__APPLE__) && !defined(MACOSX)
   JS_CL_CONSTANT(DEVICE_PROFILING_TIMER_OFFSET_AMD);
 
   /* cl_device_partition_property_ext */
@@ -485,12 +490,14 @@ void init(Handle<Object> target)
   JS_CL_CONSTANT(GL_OBJECT_TEXTURE2D);
   JS_CL_CONSTANT(GL_OBJECT_TEXTURE3D);
   JS_CL_CONSTANT(GL_OBJECT_RENDERBUFFER);
+#endif
 
   /* cl_gl_texture_info */
   JS_CL_CONSTANT(GL_TEXTURE_TARGET);
   JS_CL_CONSTANT(GL_MIPMAP_LEVEL);
 
   /* Additional Error Codes  */
+#if !defined (__APPLE__) && !defined(MACOSX)
   JS_CL_CONSTANT(INVALID_GL_SHAREGROUP_REFERENCE_KHR);
 
   /* cl_gl_context_info  */
@@ -503,6 +510,10 @@ void init(Handle<Object> target)
   JS_CL_CONSTANT(GLX_DISPLAY_KHR);
   JS_CL_CONSTANT(WGL_HDC_KHR);
   JS_CL_CONSTANT(CGL_SHAREGROUP_KHR);
+#else
+  JS_CL_CONSTANT(GL_CONTEXT_KHR);
+  JS_CL_CONSTANT(EGL_DISPLAY_KHR);
+#endif
 
   /*
    *  cl_khr_gl_event  extension

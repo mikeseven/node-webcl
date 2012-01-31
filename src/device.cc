@@ -76,7 +76,7 @@ JS_METHOD(Device::getDeviceInfo)
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
       return ThrowError("UNKNOWN ERROR");
     }
-    return scope.Close(JS_INT((ulong)param_value));
+    return scope.Close(JS_INT((unsigned long)param_value));
   }
   break;
   case CL_DEVICE_TYPE: {
@@ -91,7 +91,7 @@ JS_METHOD(Device::getDeviceInfo)
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
       return ThrowError("UNKNOWN ERROR");
     }
-    return scope.Close(JS_INT((ulong)param_value));
+    return scope.Close(JS_INT((unsigned long)param_value));
   }
   break;
   case CL_DEVICE_MAX_WORK_ITEM_SIZES: {

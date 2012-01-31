@@ -192,8 +192,11 @@ JS_METHOD(Program::build)
   char *options=NULL;
   if(!args[1]->IsUndefined() && args[1]->IsString()) {
     Local<String> str = args[1]->ToString();
-    String::AsciiValue _options(str);
-    options = ::strdup(*_options);
+    //cout<<"str length: "<<str->Length()<<endl;
+    if(str->Length()>0) {
+      String::AsciiValue _options(str);
+      options = ::strdup(*_options);
+    }
   }
 
   cl_int ret = ::clBuildProgram(prog->getProgram(), devices.size(), &devices.front(),

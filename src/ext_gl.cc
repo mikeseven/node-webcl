@@ -11,8 +11,11 @@
 #include "memoryobject.h"
 #include "event.h"
 
+#if defined (__APPLE__) || defined(MACOSX)
+#include <OpenGL/gl.h>
+#else
 #include <GL/gl.h>
-#include <CL/cl_gl.h>
+#endif
 
 #include <iostream>
 using namespace std;
