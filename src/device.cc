@@ -126,12 +126,12 @@ JS_METHOD(Device::getDeviceInfo)
     return scope.Close(JS_INT(param_value));
   }
   }
+  return Undefined();
 }
 
 JS_METHOD(Device::getExtension)
 {
   HandleScope scope;
-  Device *device = UnwrapThis<Device>(args);
   cl_device_info param_name = args[0]->Uint32Value();
 
   if(param_name==CL_GL_CONTEXT_KHR) {

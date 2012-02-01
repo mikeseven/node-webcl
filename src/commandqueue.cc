@@ -37,7 +37,7 @@ namespace webcl {
 Persistent<FunctionTemplate> CommandQueue::constructor_template;
 
 // e.g. IsUint32Array(v)
-#define IS_BUFFER_FUNC(name, type)\
+/*#define IS_BUFFER_FUNC(name, type)\
     bool Is##name(v8::Handle<v8::Value> val) {\
   if (!val->IsObject()) return false;\
   v8::Local<v8::Object> obj = val->ToObject();\
@@ -53,7 +53,8 @@ IS_BUFFER_FUNC(Uint16Array, kExternalUnsignedShortArray);
 IS_BUFFER_FUNC(Int32Array, kExternalIntArray);
 IS_BUFFER_FUNC(Uint32Array, kExternalUnsignedIntArray);
 IS_BUFFER_FUNC(Float32Array, kExternalFloatArray);
-
+*/
+  
 void CommandQueue::Init(Handle<Object> target)
 {
   HandleScope scope;

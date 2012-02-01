@@ -71,8 +71,6 @@ void AtExit() {
 JS_METHOD(getPlatforms) {
   HandleScope scope;
 
-  cl_uint num_platforms;
-
   cl_uint num_entries = 0;
   cl_int ret = ::clGetPlatformIDs(0, NULL, &num_entries);
   if (ret != CL_SUCCESS) {

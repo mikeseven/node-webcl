@@ -145,7 +145,7 @@ JS_METHOD(Kernel::getWorkGroupInfo)
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
       return ThrowError("UNKNOWN ERROR");
     }
-    return scope.Close(JS_INT(param_value));
+    return scope.Close(JS_NUM(param_value));
   }
   case CL_KERNEL_COMPILE_WORK_GROUP_SIZE: {
     ::size_t param_value[]={0,0,0};
@@ -179,9 +179,7 @@ JS_METHOD(Kernel::setArg)
 
   Kernel *kernel = UnwrapThis<Kernel>(args);
   cl_uint arg_index = args[0]->Uint32Value();
-  std::size_t arg_size = 0;
   cl_uint type = 0;
-  void *arg_value = 0;
   cl_int ret;
 
   type = args[2]->Uint32Value();
