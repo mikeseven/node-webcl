@@ -38,7 +38,7 @@ namespace webcl {
 Persistent<FunctionTemplate> CommandQueue::constructor_template;
 
 // e.g. IsUint32Array(v)
-#define IS_BUFFER_FUNC(name, type)\
+/*#define IS_BUFFER_FUNC(name, type)\
     bool Is##name(v8::Handle<v8::Value> val) {\
   if (!val->IsObject()) return false;\
   v8::Local<v8::Object> obj = val->ToObject();\
@@ -54,7 +54,8 @@ IS_BUFFER_FUNC(Uint16Array, kExternalUnsignedShortArray);
 IS_BUFFER_FUNC(Int32Array, kExternalIntArray);
 IS_BUFFER_FUNC(Uint32Array, kExternalUnsignedIntArray);
 IS_BUFFER_FUNC(Float32Array, kExternalFloatArray);
-
+*/
+  
 void CommandQueue::Init(Handle<Object> target)
 {
   HandleScope scope;
@@ -167,9 +168,11 @@ JS_METHOD(CommandQueue::enqueueNDRangeKernel)
   if(!args[1]->IsUndefined() && !args[1]->IsNull()) {
     Local<Array> arr = Array::Cast(*args[1]);
     num_offsets=arr->Length();
-    offsets=new size_t[num_offsets];
-    for(int i=0;i<num_offsets;i++)
-      offsets[i]=arr->Get(i)->Uint32Value();
+    if (num_offsets > 0) {
+      offsets = new size_t[num_offsets];
+      for (int i = 0; i < num_offsets; i++)
+        offsets[i] = arr->Get(i)->Uint32Value();
+    }
   }
 
   size_t *globals=NULL;
@@ -177,6 +180,8 @@ JS_METHOD(CommandQueue::enqueueNDRangeKernel)
   if(!args[2]->IsUndefined() && !args[2]->IsNull()) {
     Local<Array> arr = Array::Cast(*args[2]);
     num_globals=arr->Length();
+    if(num_globals == 0)
+      ThrowError("# globals must be at least 1");
     globals=new size_t[num_globals];
     for(int i=0;i<num_globals;i++)
       globals[i]=arr->Get(i)->Uint32Value();
@@ -187,6 +192,8 @@ JS_METHOD(CommandQueue::enqueueNDRangeKernel)
   if(!args[3]->IsUndefined() && !args[3]->IsNull()) {
     Local<Array> arr = Array::Cast(*args[3]);
     num_locals=arr->Length();
+    if(num_locals == 0)
+      ThrowError("# locals must be at least 1");
     locals=new size_t[num_locals];
     for(int i=0;i<num_locals;i++)
       locals[i]=arr->Get(i)->Uint32Value();
@@ -288,7 +295,6 @@ JS_METHOD(CommandQueue::enqueueWriteBuffer)
 
   // TODO: arg checking
   cl_bool blocking_write = args[1]->BooleanValue() ? CL_TRUE : CL_FALSE;
-
 
   Local<Array> region=Array::Cast(*args[2]);
   Local<Value> vbuffer=region->Get(JS_STR("buffer"));
@@ -1046,7 +1052,7 @@ JS_METHOD(CommandQueue::enqueueMapBuffer)
 
   /*_MappedRegion *mapped_region=new _MappedRegion();
   mapped_region->buffer=Buffer::New((char*) result,size);
-  mapped_region->mapped_ptr=(ulong) result; // TODO use SetHiddenValue on buffer
+  mapped_region->mapped_ptr=(uint64_t) result; // TODO use SetHiddenValue on buffer
   if(event) mapped_region->event=Event::New(event); // TODO check if this event can be correctly used? and deleted?
 
   return scope.Close(MappedRegion::New(mapped_region)->handle_);*/

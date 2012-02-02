@@ -11,8 +11,11 @@
 #include "memoryobject.h"
 #include "event.h"
 
+#if defined (__APPLE__) || defined(MACOSX)
+#include <OpenGL/gl.h>
+#else
 #include <GL/gl.h>
-#include <CL/cl_gl.h>
+#endif
 
 #include <iostream>
 using namespace std;
@@ -64,7 +67,6 @@ EXTGL::EXTGL(Handle<Object> wrapper)
 JS_METHOD(EXTGL::createFromGLBuffer)
 {
   HandleScope scope;
-  EXTGL *extgl = UnwrapThis<EXTGL>(args);
   Context *context = ObjectWrap::Unwrap<Context>(args[0]->ToObject());
   cl_mem_flags flags = args[1]->NumberValue();
   cl_GLuint bufobj = args[2]->NumberValue();
@@ -86,7 +88,6 @@ JS_METHOD(EXTGL::createFromGLBuffer)
 JS_METHOD(EXTGL::createFromGLTexture2D)
 {
   HandleScope scope;
-  EXTGL *extgl = UnwrapThis<EXTGL>(args);
   Context *context = ObjectWrap::Unwrap<Context>(args[0]->ToObject());
   cl_mem_flags flags = args[1]->NumberValue();
   cl_GLenum target = args[2]->NumberValue();
@@ -110,7 +111,6 @@ JS_METHOD(EXTGL::createFromGLTexture2D)
 JS_METHOD(EXTGL::createFromGLTexture3D)
 {
   HandleScope scope;
-  EXTGL *extgl = UnwrapThis<EXTGL>(args);
   Context *context = ObjectWrap::Unwrap<Context>(args[0]->ToObject());
   cl_mem_flags flags = args[1]->NumberValue();
   cl_GLenum target = args[2]->NumberValue();
@@ -134,7 +134,6 @@ JS_METHOD(EXTGL::createFromGLTexture3D)
 JS_METHOD(EXTGL::createFromGLRenderbuffer)
 {
   HandleScope scope;
-  EXTGL *extgl = UnwrapThis<EXTGL>(args);
   Context *context = ObjectWrap::Unwrap<Context>(args[0]->ToObject());
   cl_mem_flags flags = args[1]->NumberValue();
   cl_GLuint renderbuffer = args[2]->NumberValue();
@@ -156,7 +155,6 @@ JS_METHOD(EXTGL::createFromGLRenderbuffer)
 JS_METHOD(EXTGL::getGLObjectInfo)
 {
   HandleScope scope;
-  EXTGL *extgl = UnwrapThis<EXTGL>(args);
   MemoryObject *memobj = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
   cl_gl_object_type gl_object_type = args[1]->IsNull() ? 0 : args[1]->NumberValue();
   cl_GLuint gl_object_name = args[2]->IsNull() ? 0 : args[2]->NumberValue();
@@ -182,7 +180,6 @@ JS_METHOD(EXTGL::getGLObjectInfo)
 JS_METHOD(EXTGL::getGLTextureInfo)
 {
   HandleScope scope;
-  EXTGL *extgl = UnwrapThis<EXTGL>(args);
   MemoryObject *memobj = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
   cl_gl_texture_info param_name = args[1]->NumberValue();
   GLint param_value;

@@ -11,8 +11,12 @@
 #include "device.h"
 #include "event.h"
 
+#if defined (__APPLE__) || defined(MACOSX)
+#include <OpenGL/gl.h>
+#else
 #include <GL/gl.h>
 #include <GL/glx.h>
+#endif
 
 #include <vector>
 #include <iostream>
@@ -67,8 +71,6 @@ void AtExit() {
 JS_METHOD(getPlatforms) {
   HandleScope scope;
 
-  cl_uint num_platforms;
-
   cl_uint num_entries = 0;
   cl_int ret = ::clGetPlatformIDs(0, NULL, &num_entries);
   if (ret != CL_SUCCESS) {
@@ -89,7 +91,7 @@ JS_METHOD(getPlatforms) {
   Local<Array> platformArray = Array::New(num_entries);
   for (int i=0; i<num_entries; i++) {
     platformArray->Set(i, Platform::New(platforms[i])->handle_);
-    cout<<"Found platform: "<<hex<<platforms[i]<<endl;
+    //cout<<"Found platform: "<<hex<<platforms[i]<<endl;
   }
 
   delete[] platforms;
@@ -133,9 +135,12 @@ JS_METHOD(createContext) {
           properties.push_back((cl_context_properties) platform->getPlatformId());
         }
         else if(prop==CL_GL_CONTEXT_KHR) {
+#ifdef __APPLE__
+#else
           properties.push_back((cl_context_properties) glXGetCurrentContext());
           properties.push_back(CL_GLX_DISPLAY_KHR);
           properties.push_back((cl_context_properties) glXGetCurrentDisplay());
+#endif
         }
       }
       properties.push_back(0);

@@ -10,6 +10,8 @@
 // OpenCL includes
 #if defined (__APPLE__) || defined(MACOSX)
     #include <OpenCL/opencl.h>
+    #define CL_GL_CONTEXT_KHR 0x2008
+    #define CL_EGL_DISPLAY_KHR 0x2009
 #else
     #include <CL/opencl.h>
 #endif

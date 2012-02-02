@@ -73,7 +73,7 @@ JS_METHOD(Platform::getDevices)
 
   Local<Array> deviceArray = Array::New(n);
   for (int i=0; i<n; i++) {
-    cout<<"Found device: "<<ids[i]<<endl;
+    //cout<<"Found device: "<<ids[i]<<endl;
     deviceArray->Set(i, Device::New(ids[i])->handle_);
   }
 

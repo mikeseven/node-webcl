@@ -6,6 +6,7 @@
 #
 
 import Options
+import sys
 from os import unlink, symlink, popen, environ
 from os.path import exists 
 
@@ -27,7 +28,10 @@ def build(bld):
   obj.target = "webcl"
   obj.source  = bld.path.ant_glob('src/*.cc')
   obj.cxxflags = ["-g", "-D_FILE_OFFSET_BITS=64", "-D_LARGEFILE_SOURCE","-fPIC"]
-  obj.ldflags = [ "-lOpenCL" ]
+  if sys.platform.startswith('darwin'):
+    obj.framework = ['OpenCL']
+  elif sys.platform.startswith('linux'):
+    obj.ldflags = [ "-lOpenCL" ]
 
 def shutdown():
   if Options.commands['clean']:

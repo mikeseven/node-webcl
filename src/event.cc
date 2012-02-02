@@ -89,7 +89,7 @@ JS_METHOD(Event::getProfilingInfo)
   case CL_PROFILING_COMMAND_END: {
     cl_ulong param_value=0;
     ::clGetEventProfilingInfo(e->getEvent(), param_name, sizeof(cl_ulong), &param_value, NULL);
-    return scope.Close(Integer::New(param_value));
+    return scope.Close(JS_NUM(param_value));
   }
   default:
     return ThrowError("UNKNOWN param_name");
@@ -101,7 +101,7 @@ JS_METHOD(Event::setUserEventStatus)
   HandleScope scope;
   Event *e = UnwrapThis<Event>(args);
 
-  cl_int ret=::clSetUserEventStatus(e->getEvent(),args[0]->IntegerValue());
+  cl_int ret=::clSetUserEventStatus(e->getEvent(),args[0]->Int32Value());
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(CL_INVALID_EVENT);
     REQ_ERROR_THROW(CL_INVALID_VALUE);

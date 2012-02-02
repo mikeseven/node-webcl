@@ -17,7 +17,7 @@ class Event;
 
 typedef struct _MappedRegion {
   node::Buffer *buffer;
-  ulong mapped_ptr;
+  uint64_t mapped_ptr;
   Event *event;
 } _MappedRegion;
 

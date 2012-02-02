@@ -1,5 +1,5 @@
 var cl = module.exports = require('./build/Release/webcl.node');
-var WebGL=require('webgl');
+//var WebGL=require('webgl');
 
 cl.size = {};
 cl.size.CHAR=cl.size_CHAR;
@@ -656,7 +656,7 @@ cl.WebCLSampler.prototype.getSamplerInfo=function (param_name) {
 //////////////////////////////
 // OpenGL object
 //////////////////////////////
-cl.WebCLEXTGL.prototype.createFromGLBuffer=function (context, flags, buffer) {
+/*cl.WebCLEXTGL.prototype.createFromGLBuffer=function (context, flags, buffer) {
   if (!(arguments.length === 3 && checkObjectType(context, 'WebCLContext') && typeof flags === 'number'
     && typeof buffer ==='object')) {
     throw new TypeError('Expected WebCLGL.createFromGLBuffer(WebCLContext context, CLenum flags, WebGLBuffer buffer)');
@@ -682,4 +682,4 @@ cl.WebCLEXTGL.prototype.enqueueReleaseGLObjects=function (queue, mem_objects, ev
     throw new TypeError('Expected WebCLEvent WebCLGL.enqueueReleaseGLObjects(WebCLCommandQueue cq, WebCLMemoryObject[] mem_objects, WebCLEvent[] events, boolean generate_event)');
   }
   return this._enqueueReleaseGLObjects(queue, mem_objects, events, generate_event);
-}
+}*/
