@@ -6,6 +6,7 @@
 */
 
 var cl=require("../webcl"),
+    clu=require("../lib/clUtils.js"),
     log=console.log;
 
 //First check if the WebCL extension is installed at all 
@@ -68,20 +69,18 @@ function VectorAdd() {
   queue=context.createCommandQueue(devices[0], 0);
 
   //Create buffer for A and copy host contents
-  //aBuffer = context.createBuffer(cl.MEM_READ_ONLY, size);
-  aBuffer = context.createBuffer(cl.MEM_READ_WRITE, size);
+  aBuffer = context.createBuffer(cl.MEM_READ_ONLY, size);
   map=queue.enqueueMapBuffer(aBuffer, cl.TRUE, cl.MAP_WRITE, 0, BUFFER_SIZE * Uint32Array.BYTES_PER_ELEMENT);
-  var buf=new Uint32Array(map.getBuffer());
+  var buf=new Uint32Array(map);
   for(var i=0;i<BUFFER_SIZE;i++) {
-    buf[i]=A[i];
+    buf.set(i, A[i]);
   }
   queue.enqueueUnmapMemObject(aBuffer, map);
 
   //Create buffer for B and copy host contents
-  //bBuffer = context.createBuffer(cl.MEM_READ_ONLY, size);
-  bBuffer = context.createBuffer(cl.MEM_READ_WRITE, size);
+  bBuffer = context.createBuffer(cl.MEM_READ_ONLY, size);
   map=queue.enqueueMapBuffer(bBuffer, cl.TRUE, cl.MAP_WRITE, 0, BUFFER_SIZE * Uint32Array.BYTES_PER_ELEMENT);
-  buf=new Uint32Array(map.getBuffer());
+  buf=new Uint32Array(map);
   for(var i=0;i<BUFFER_SIZE;i++) {
     buf[i]=B[i];
   }
@@ -98,16 +97,16 @@ function VectorAdd() {
 
   // Init ND-range
   var localWS = [5];
-  var globalWS = [Math.ceil (BUFFER_SIZE / localWS) * localWS];
+  var globalWS = [ clu.roundUp(localWS[0],BUFFER_SIZE) ];
 
   log("Global work item size: " + globalWS);
   log("Local work item size: " + localWS);
 
   // Execute (enqueue) kernel
   queue.enqueueNDRangeKernel(kernel,
-      [],
-      [globalWS],
-      [localWS]);
+      null,
+      globalWS,
+      localWS);
   
   //printResults(A,B,C);
   //There is no need to perform a finish on the final unmap
@@ -124,7 +123,7 @@ function VectorAdd() {
       0,
       BUFFER_SIZE * Uint32Array.BYTES_PER_ELEMENT);
   
-  buf=new Uint32Array(map.getBuffer());
+  buf=new Uint32Array(map);
   for(var i=0;i<BUFFER_SIZE;i++) {
     C[i]=buf[i];
   }

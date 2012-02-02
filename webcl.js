@@ -47,6 +47,10 @@ function checkObjectType(obj, type) {
   return Object.prototype.toString.call(obj) === '[object '+type+']';
 }
 
+function isArray(obj) {
+  return Object.prototype.toString.call(obj) === '[object Array]';
+}
+
 var _getPlatforms = cl.getPlatforms;
 cl.getPlatforms = function () {
   if (!(arguments.length === 0)) {
@@ -167,7 +171,7 @@ cl.WebCLCommandQueue.prototype.enqueueWriteBufferRect=function (memory_object, b
     typeof host_row_pitch === 'number' &&
     typeof buffer_row_pitch === 'number' &&
     typeof host_slice_pitch === 'number' &&
-    typeof host_ptr === 'ArrayBuffer' &&
+    typeof host_ptr === 'object' &&
     (typeof event_list === 'undefined' || typeof event_list === 'object') &&
     (typeof generate_event === 'undefined' || typeof generate_event === 'boolean'))) {
     throw new TypeError('Expected WebCLCommandQueue.enqueueWriteBufferRect(WebCLMemoryObject memory_object, boolean blocking_write, WebCLRegion region, WebCLEvent[] event_list, boolean generate_event)');
@@ -191,7 +195,7 @@ cl.WebCLCommandQueue.prototype.enqueueReadBufferRect=function (memory_object, bl
     typeof buffer_slice_pitch === 'number' &&
     typeof host_row_pitch === 'number' &&
     typeof host_slice_pitch === 'number' &&
-    typeof host_ptr === 'ArrayBuffer' &&
+    typeof host_ptr === 'object' &&
     (typeof event_list === 'undefined' || typeof event_list === 'object') &&
     (typeof generate_event === 'undefined' || typeof generate_event === 'boolean'))) {
     throw new TypeError('Expected WebCLCommandQueue.enqueueReadBufferRect(WebCLMemoryObject memory_object, boolean blocking_read, WebCLRegion region, WebCLEvent[] event_list, boolean generate_event)');
@@ -462,7 +466,7 @@ cl.WebCLContext.prototype.createImage2D=function (flags, image_format, width, he
 cl.WebCLContext.prototype.createImage3D=function (flags, image_format, width, height, row_pitch, host_ptr) {
   if (!(arguments.length === 8 && typeof flags === 'number' && typeof image_format === 'number' && 
       typeof width === 'number' && typeof height === 'number' && typeof depth === 'number' && 
-      typeof row_pitch === 'number' && typeof slice_pitch === 'number' && typeof host_ptr === 'ArrayBuffer')) {
+      typeof row_pitch === 'number' && typeof slice_pitch === 'number' && typeof host_ptr === 'object')) {
     throw new TypeError('Expected WebCLContext.createImage3D(CLenum flags, cl.WebCLImageFormat format, int width, int height, int depth, int row_pitch, int slice_pitch, ArrayBuffer host_ptr)');
   }
   return this._createImage3D(flags, image_format, width, height, depth, row_pitch, slice_pitch, host_ptr);

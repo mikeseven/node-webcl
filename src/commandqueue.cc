@@ -15,6 +15,7 @@
 #include "mappedregion.h"
 #include <vector>
 #include <node_buffer.h>
+#include <cstring> // for memcpy
 
 #include <iostream>
 using namespace std;
@@ -1037,18 +1038,24 @@ JS_METHOD(CommandQueue::enqueueMapBuffer)
     return ThrowError("UNKNOWN ERROR");
   }
 
-  /*cout<<"enqueueMapBuffer"<<endl;
+  cout<<"enqueueMapBuffer"<<endl;
   for(int i=0;i<size;i++) {
     cout<<(int)((char*)result)[i]<<" ";
   }
-  cout<<endl;*/
+  cout<<endl;
 
-  _MappedRegion *mapped_region=new _MappedRegion();
+  /*_MappedRegion *mapped_region=new _MappedRegion();
   mapped_region->buffer=Buffer::New((char*) result,size);
   mapped_region->mapped_ptr=(ulong) result; // TODO use SetHiddenValue on buffer
   if(event) mapped_region->event=Event::New(event); // TODO check if this event can be correctly used? and deleted?
 
-  return scope.Close(MappedRegion::New(mapped_region)->handle_);
+  return scope.Close(MappedRegion::New(mapped_region)->handle_);*/
+
+  Buffer *buf=Buffer::New((char*) result,size);
+  cout<<"mapped_ptr: "<<result<<endl;
+  buf->handle_->Set(JS_STR("mapped_ptr"),JS_NUM((uint64_t) result));
+
+  return scope.Close(buf->handle_);
 }
 
 JS_METHOD(CommandQueue::enqueueMapImage)
@@ -1125,7 +1132,7 @@ JS_METHOD(CommandQueue::enqueueUnmapMemObject)
 
   // TODO: arg checking
   MemoryObject *mo = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
-  MappedRegion *region = ObjectWrap::Unwrap<MappedRegion>(args[1]->ToObject());
+  /*MappedRegion *region = ObjectWrap::Unwrap<MappedRegion>(args[1]->ToObject());
   char *mapped_ptr=(char*) region->getMappedRegion()->mapped_ptr;
 
   //cout<<"enqueueUnmapMemObject"<<endl;
@@ -1134,6 +1141,19 @@ JS_METHOD(CommandQueue::enqueueUnmapMemObject)
     //cout<<(int) mapped_ptr[i]<<" ";
   }
   //cout<<endl;
+  */
+  Buffer *buf = ObjectWrap::Unwrap<Buffer>(args[1]->ToObject());
+  char *mapped_ptr= (char*) (uint64_t) buf->handle_->Get(JS_STR("mapped_ptr"))->NumberValue();
+  cout<<"enqueueUnmapBuffer"<<endl;
+  cout<<"mapped_ptr: "<<mapped_ptr<<endl;
+
+  // TODO: avoid copy!
+  memcpy(mapped_ptr, Buffer::Data(buf), Buffer::Length(buf));
+
+  for(int i=0;i<Buffer::Length(buf);i++) {
+    cout<<(int)((char*)mapped_ptr)[i]<<" ";
+  }
+  cout<<endl;
 
   MakeEventWaitList(args[2]);
 

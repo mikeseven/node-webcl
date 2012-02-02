@@ -6,6 +6,7 @@
 */
 
 var cl=require("../webcl"),
+    clu=require("../lib/clUtils.js"),
     log=console.log;
 
 //First check if the WebCL extension is installed at all 
@@ -83,8 +84,8 @@ function VectorAdd() {
   queue=context.createCommandQueue(devices[0], 0);
 
   // Init ND-range
-  var localWS = [5];
-  var globalWS = [Math.ceil (BUFFER_SIZE / localWS) * localWS];
+  var localWS = [3];
+  var globalWS = [ clu.roundUp(localWS[0],BUFFER_SIZE) ];
 
   log("Global work item size: " + globalWS);
   log("Local work item size: " + localWS);
@@ -93,28 +94,25 @@ function VectorAdd() {
   queue.enqueueWriteBuffer (aBuffer, false, {
     buffer: A,
     origin: [0],
-    size: [A.length*Uint32Array.BYTES_PER_ELEMENT]},
-    []);
+    size: [A.length*Uint32Array.BYTES_PER_ELEMENT]});
 
   queue.enqueueWriteBuffer (bBuffer, false, {
     buffer: B,
     origin: 0,
-    size: B.length*Uint32Array.BYTES_PER_ELEMENT},
-    []);
+    size: B.length*Uint32Array.BYTES_PER_ELEMENT});
 
   // Execute (enqueue) kernel
   log("using enqueueNDRangeKernel");
   queue.enqueueNDRangeKernel(kernel,
-      [],
-      [globalWS],
-      [localWS]);
+      null,
+      globalWS,
+      localWS);
 
   // get results and block while getting them
   queue.enqueueReadBuffer (cBuffer, true, {
     buffer: C,
     origin: 0, 
-    size: C.length*Uint32Array.BYTES_PER_ELEMENT}, 
-    []);
+    size: C.length*Uint32Array.BYTES_PER_ELEMENT});
 
   // print results
   printResults(A,B,C);
