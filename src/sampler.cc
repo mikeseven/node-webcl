@@ -29,7 +29,7 @@ void Sampler::Init(Handle<Object> target)
   constructor_template->InstanceTemplate()->SetInternalFieldCount(1);
   constructor_template->SetClassName(String::NewSymbol("WebCLSampler"));
 
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getSamplerInfo", getSamplerInfo);
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getInfo", getInfo);
 
   target->Set(String::NewSymbol("WebCLSampler"), constructor_template->GetFunction());
 }
@@ -44,7 +44,7 @@ void Sampler::Destructor() {
   sampler=0;
 }
 
-JS_METHOD(Sampler::getSamplerInfo)
+JS_METHOD(Sampler::getInfo)
 {
   HandleScope scope;
   Sampler *sampler = UnwrapThis<Sampler>(args);

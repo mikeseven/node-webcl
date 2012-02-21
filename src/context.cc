@@ -42,7 +42,7 @@ void Context::Init(Handle<Object> target)
   constructor_template->InstanceTemplate()->SetInternalFieldCount(1);
   constructor_template->SetClassName(String::NewSymbol("WebCLContext"));
 
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getContextInfo", getContextInfo);
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getInfo", getInfo);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_createProgram", createProgram);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_createCommandQueue", createCommandQueue);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_createBuffer", createBuffer);
@@ -50,7 +50,10 @@ void Context::Init(Handle<Object> target)
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_createImage3D", createImage3D);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_createSampler", createSampler);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_createUserEvent", createUserEvent);
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getSupportedImageFormats", getSupportedImageFormats);
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_createFromGLBuffer", createFromGLBuffer);
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_createFromGLTexture2D", createFromGLTexture2D);
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_createFromGLTexture3D", createFromGLTexture3D);
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_createFromGLRenderbuffer", createFromGLRenderbuffer);
 
   target->Set(String::NewSymbol("WebCLContext"), constructor_template->GetFunction());
 }
@@ -66,7 +69,7 @@ void Context::Destructor()
   context=0;
 }
 
-JS_METHOD(Context::getContextInfo)
+JS_METHOD(Context::getInfo)
 {
   HandleScope scope;
   Context *context = UnwrapThis<Context>(args);
@@ -433,6 +436,94 @@ JS_METHOD(Context::createUserEvent)
   }
 
   return scope.Close(Event::New(ew)->handle_);
+}
+
+JS_METHOD(Context::createFromGLBuffer)
+{
+  HandleScope scope;
+  Context *context = UnwrapThis<Context>(args);
+  cl_mem_flags flags = args[0]->NumberValue();
+  cl_GLuint bufobj = args[1]->NumberValue();
+  int ret;
+  cl_mem clmem = ::clCreateFromGLBuffer(context->getContext(),flags,bufobj,&ret);
+
+  if (ret != CL_SUCCESS) {
+    REQ_ERROR_THROW(CL_INVALID_CONTEXT);
+    REQ_ERROR_THROW(CL_INVALID_VALUE);
+    REQ_ERROR_THROW(CL_INVALID_GL_OBJECT);
+    REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+    return ThrowError("UNKNOWN ERROR");
+  }
+
+  return scope.Close(MemoryObject::New(clmem)->handle_);
+}
+
+JS_METHOD(Context::createFromGLTexture2D)
+{
+  HandleScope scope;
+  Context *context = UnwrapThis<Context>(args);
+  cl_mem_flags flags = args[0]->NumberValue();
+  cl_GLenum target = args[1]->NumberValue();
+  cl_GLint miplevel = args[2]->NumberValue();
+  cl_GLuint texture = args[3]->NumberValue();
+  int ret;
+  cl_mem clmem = ::clCreateFromGLTexture2D(context->getContext(),flags,target,miplevel,texture,&ret);
+
+  if (ret != CL_SUCCESS) {
+    REQ_ERROR_THROW(CL_INVALID_CONTEXT);
+    REQ_ERROR_THROW(CL_INVALID_VALUE);
+    REQ_ERROR_THROW(CL_INVALID_GL_OBJECT);
+    REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+    return ThrowError("UNKNOWN ERROR");
+  }
+
+  return scope.Close(MemoryObject::New(clmem)->handle_);
+}
+
+JS_METHOD(Context::createFromGLTexture3D)
+{
+  HandleScope scope;
+  Context *context = UnwrapThis<Context>(args);
+  cl_mem_flags flags = args[0]->NumberValue();
+  cl_GLenum target = args[1]->NumberValue();
+  cl_GLint miplevel = args[2]->NumberValue();
+  cl_GLuint texture = args[3]->NumberValue();
+  int ret;
+  cl_mem clmem = ::clCreateFromGLTexture3D(context->getContext(),flags,target,miplevel,texture,&ret);
+
+  if (ret != CL_SUCCESS) {
+    REQ_ERROR_THROW(CL_INVALID_CONTEXT);
+    REQ_ERROR_THROW(CL_INVALID_VALUE);
+    REQ_ERROR_THROW(CL_INVALID_GL_OBJECT);
+    REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+    return ThrowError("UNKNOWN ERROR");
+  }
+
+  return scope.Close(MemoryObject::New(clmem)->handle_);
+}
+
+JS_METHOD(Context::createFromGLRenderbuffer)
+{
+  HandleScope scope;
+  Context *context = UnwrapThis<Context>(args);
+  cl_mem_flags flags = args[0]->NumberValue();
+  cl_GLuint renderbuffer = args[1]->NumberValue();
+  int ret;
+  cl_mem clmem = ::clCreateFromGLRenderbuffer(context->getContext(),flags,renderbuffer, &ret);
+
+  if (ret != CL_SUCCESS) {
+    REQ_ERROR_THROW(CL_INVALID_CONTEXT);
+    REQ_ERROR_THROW(CL_INVALID_VALUE);
+    REQ_ERROR_THROW(CL_INVALID_GL_OBJECT);
+    REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+    return ThrowError("UNKNOWN ERROR");
+  }
+
+  return scope.Close(MemoryObject::New(clmem)->handle_);
 }
 
 JS_METHOD(Context::New)

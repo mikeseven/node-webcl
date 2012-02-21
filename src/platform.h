@@ -21,7 +21,7 @@ public:
   static Platform *New(cl_platform_id pid);
   static JS_METHOD(New);
 
-  static JS_METHOD(getPlatformInfo);
+  static JS_METHOD(getInfo);
   static JS_METHOD(getDevices);
   static JS_METHOD(getExtension);
 

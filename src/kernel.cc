@@ -32,7 +32,7 @@ void Kernel::Init(Handle<Object> target)
   constructor_template->InstanceTemplate()->SetInternalFieldCount(1);
   constructor_template->SetClassName(String::NewSymbol("WebCLKernel"));
 
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getKernelInfo", getKernelInfo);
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getInfo", getInfo);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getWorkGroupInfo", getWorkGroupInfo);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_setArg", setArg);
 
@@ -49,7 +49,7 @@ void Kernel::Destructor() {
   kernel=0;
 }
 
-JS_METHOD(Kernel::getKernelInfo)
+JS_METHOD(Kernel::getInfo)
 {
   HandleScope scope;
   Kernel *kernel = UnwrapThis<Kernel>(args);

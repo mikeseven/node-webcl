@@ -21,7 +21,7 @@ public:
   static Device *New(cl_device_id did);
   static JS_METHOD(New);
 
-  static JS_METHOD(getDeviceInfo);
+  static JS_METHOD(getInfo);
   static JS_METHOD(getExtension);
 
   cl_device_id getDevice() const { return device_id; };

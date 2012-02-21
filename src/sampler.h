@@ -23,7 +23,7 @@ public:
   static Sampler *New(cl_sampler sw);
   static JS_METHOD(New);
 
-  static JS_METHOD(getSamplerInfo);
+  static JS_METHOD(getInfo);
 
   cl_sampler getSampler() const { return sampler; };
 

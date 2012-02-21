@@ -57,7 +57,7 @@ public:
   static Kernel *New(cl_kernel kw);
   static JS_METHOD(New);
 
-  static JS_METHOD(getKernelInfo);
+  static JS_METHOD(getInfo);
   static JS_METHOD(getWorkGroupInfo);
   static JS_METHOD(setArg);
 

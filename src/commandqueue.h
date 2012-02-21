@@ -23,7 +23,7 @@ public:
   static CommandQueue *New(cl_command_queue cw);
   static JS_METHOD(New);
 
-  static JS_METHOD(getCommandQueueInfo);
+  static JS_METHOD(getInfo);
   static JS_METHOD(enqueueNDRangeKernel);
   static JS_METHOD(enqueueTask);
   static JS_METHOD(enqueueWriteBuffer);
@@ -45,6 +45,8 @@ public:
   static JS_METHOD(enqueueBarrier);
   static JS_METHOD(flush);
   static JS_METHOD(finish);
+  static JS_METHOD(enqueueAcquireGLObjects);
+  static JS_METHOD(enqueueReleaseGLObjects);
 
   cl_command_queue getCommandQueue() const { return command_queue; };
 

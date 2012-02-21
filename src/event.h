@@ -24,7 +24,7 @@ public:
 
   static JS_METHOD(New);
 
-  static JS_METHOD(getEventInfo);
+  static JS_METHOD(getInfo);
   static JS_METHOD(getProfilingInfo);
   static JS_METHOD(setUserEventStatus);
 

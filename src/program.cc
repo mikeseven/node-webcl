@@ -31,7 +31,7 @@ void Program::Init(Handle<Object> target)
   constructor_template->InstanceTemplate()->SetInternalFieldCount(1);
   constructor_template->SetClassName(String::NewSymbol("WebCLProgram"));
 
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getProgramInfo", getProgramInfo);
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getInfo", getInfo);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getBuildInfo", getBuildInfo);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_build", build);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_createKernel", createKernel);
@@ -49,7 +49,7 @@ void Program::Destructor() {
   program=0;
 }
 
-JS_METHOD(Program::getProgramInfo)
+JS_METHOD(Program::getInfo)
 {
   HandleScope scope;
   Program *prog = UnwrapThis<Program>(args);

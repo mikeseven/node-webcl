@@ -6,7 +6,6 @@
  */
 
 #include "device.h"
-#include "ext_gl.h"
 
 #include <iostream>
 using namespace std;
@@ -27,7 +26,7 @@ void Device::Init(Handle<Object> target)
   constructor_template->InstanceTemplate()->SetInternalFieldCount(1);
   constructor_template->SetClassName(String::NewSymbol("WebCLDevice"));
 
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getDeviceInfo", getDeviceInfo);
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getInfo", getInfo);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getExtension", getExtension);
 
   target->Set(String::NewSymbol("WebCLDevice"), constructor_template->GetFunction());
@@ -37,7 +36,7 @@ Device::Device(Handle<Object> wrapper) : device_id(0)
 {
 }
 
-JS_METHOD(Device::getDeviceInfo)
+JS_METHOD(Device::getInfo)
 {
   HandleScope scope;
   Device *device = UnwrapThis<Device>(args);
@@ -133,10 +132,6 @@ JS_METHOD(Device::getExtension)
 {
   HandleScope scope;
   cl_device_info param_name = args[0]->Uint32Value();
-
-  if(param_name==CL_GL_CONTEXT_KHR) {
-    return scope.Close(EXTGL::New()->handle_);
-  }
 
   return Undefined();
 }

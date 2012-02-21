@@ -12,10 +12,10 @@
 #include "event.h"
 
 #if defined (__APPLE__) || defined(MACOSX)
-#include <OpenGL/gl.h>
+  #include <OpenGL/OpenGL.h>
 #else
-#include <GL/gl.h>
-#include <GL/glx.h>
+  #include <GL/gl.h>
+  #include <GL/glx.h>
 #endif
 
 #include <vector>
@@ -104,7 +104,7 @@ JS_METHOD(createContext) {
   cl_int ret=CL_SUCCESS;
   cl_context cw=NULL;
 
-  if (args[0]->IsArray() || args[0]->IsObject()) {
+  /*if (args[0]->IsArray() || args[0]->IsObject()) {
     vector<cl_device_id> devices;
     if(args[0]->IsArray()) {
       Local<Array> deviceArray = Array::Cast(*args[0]);
@@ -135,19 +135,16 @@ JS_METHOD(createContext) {
           properties.push_back((cl_context_properties) platform->getPlatformId());
         }
         else if(prop==CL_GL_CONTEXT_KHR) {
-#ifdef __APPLE__
-#else
           properties.push_back((cl_context_properties) glXGetCurrentContext());
           properties.push_back(CL_GLX_DISPLAY_KHR);
           properties.push_back((cl_context_properties) glXGetCurrentDisplay());
-#endif
         }
       }
       properties.push_back(0);
     }
 
     // TODO handle callback arg
-    cw = ::clCreateContext(properties.size() ? &properties.front() : NULL, devices.size(), &devices.front(), NULL /*notifyFptr*/, NULL /*data*/, &ret);
+    cw = ::clCreateContext(properties.size() ? &properties.front() : NULL, devices.size(), &devices.front(), NULL , NULL , &ret);
   }
   else if(args[0]->IsNumber()) {
     if (!args[1]->IsArray()) {
@@ -172,11 +169,33 @@ JS_METHOD(createContext) {
     properties[num]=0;
 
     // TODO handle callback arg
-    cw = ::clCreateContextFromType(properties, device_type, NULL /*notifyFptr*/, NULL /*data*/, &ret);
+    cw = ::clCreateContextFromType(properties, device_type, NULL , NULL , &ret);
     delete[] properties;
   }
   else
     return ThrowError("CL_INVALID_VALUE for argument 0");
+  */
+
+  // new version with WebCLContextProperties dictionary
+  if(args[0]->IsUndefined()) {
+#if defined (__APPLE__)
+    CGLContextObj kCGLContext = CGLGetCurrentContext();
+    CGLShareGroupObj kCGLShareGroup = CGLGetShareGroup(kCGLContext);
+    cl_context_properties props[] =
+    {
+        CL_CONTEXT_PROPERTY_USE_CGL_SHAREGROUP_APPLE, (cl_context_properties)kCGLShareGroup,
+        0
+    };
+    cw = clCreateContext(props, 0, 0, clLogMessagesToStdoutAPPLE, 0, &ret);
+    if (!cw)
+    {
+        ThrowError("Error: Failed to create a compute context!");
+        return scope.Close(Undefined());
+    }
+    cout<<"Apple OpenCL SharedGroup context created"<<endl;
+
+#endif
+  }
 
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(CL_INVALID_PLATFORM);

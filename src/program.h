@@ -23,7 +23,7 @@ public:
   static Program *New(cl_program pw);
   static JS_METHOD(New);
 
-  static JS_METHOD(getProgramInfo);
+  static JS_METHOD(getInfo);
   static JS_METHOD(getBuildInfo);
   static JS_METHOD(build);
   static JS_METHOD(createKernel);

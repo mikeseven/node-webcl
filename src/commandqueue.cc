@@ -66,7 +66,7 @@ void CommandQueue::Init(Handle<Object> target)
   constructor_template->InstanceTemplate()->SetInternalFieldCount(1);
   constructor_template->SetClassName(String::NewSymbol("WebCLCommandQueue"));
 
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getCommandQueueInfo", getCommandQueueInfo);
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getInfo", getInfo);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_enqueueNDRangeKernel", enqueueNDRangeKernel);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_enqueueTask", enqueueTask);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_enqueueWriteBuffer", enqueueWriteBuffer);
@@ -88,6 +88,8 @@ void CommandQueue::Init(Handle<Object> target)
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_enqueueBarrier", enqueueBarrier);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_flush", flush);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_finish", finish);
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_enqueueAcquireGLObjects", enqueueAcquireGLObjects);
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_enqueueReleaseGLObjects", enqueueReleaseGLObjects);
 
   target->Set(String::NewSymbol("WebCLCommandQueue"), constructor_template->GetFunction());
 }
@@ -105,7 +107,7 @@ void CommandQueue::Destructor() {
   command_queue=0;
 }
 
-JS_METHOD(CommandQueue::getCommandQueueInfo)
+JS_METHOD(CommandQueue::getInfo)
 {
   HandleScope scope;
   CommandQueue *cq = UnwrapThis<CommandQueue>(args);
@@ -1281,6 +1283,113 @@ JS_METHOD(CommandQueue::flush)
     return ThrowError("UNKNOWN ERROR");
   }
 
+  return Undefined();
+}
+
+JS_METHOD(CommandQueue::enqueueAcquireGLObjects)
+{
+  HandleScope scope;
+  CommandQueue *cq = UnwrapThis<CommandQueue>(args);
+
+  cl_mem *mem_objects=NULL;
+  int num_objects=0;
+  if(args[0]->IsArray()) {
+    Local<Array> mem_objects_arr= Array::Cast(*args[0]);
+    num_objects=mem_objects_arr->Length();
+    mem_objects=new cl_mem[num_objects];
+    for(int i=0;i<num_objects;i++) {
+      MemoryObject *obj=ObjectWrap::Unwrap<MemoryObject>(mem_objects_arr->Get(i)->ToObject());
+      mem_objects[i]=obj->getMemory();
+    }
+  }
+  else if(args[0]->IsObject()) {
+    num_objects=1;
+    mem_objects=new cl_mem[1];
+    mem_objects[0]=ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject())->getMemory();
+  }
+
+  MakeEventWaitList(args[1]);
+
+  cl_event event=NULL;
+  bool generate_event = !args[3]->IsUndefined() && args[2]->BooleanValue();
+
+  int ret = ::clEnqueueAcquireGLObjects(cq->getCommandQueue(),
+      num_objects, mem_objects,
+      num_events_wait_list,
+      events_wait_list,
+      generate_event ? &event : NULL);
+
+  if(mem_objects) delete[] mem_objects;
+  if(events_wait_list) delete[] events_wait_list;
+
+  if (ret != CL_SUCCESS) {
+    REQ_ERROR_THROW(CL_INVALID_VALUE);
+    REQ_ERROR_THROW(CL_INVALID_MEM_OBJECT);
+    REQ_ERROR_THROW(CL_INVALID_COMMAND_QUEUE);
+    REQ_ERROR_THROW(CL_INVALID_CONTEXT);
+    REQ_ERROR_THROW(CL_INVALID_GL_OBJECT);
+    REQ_ERROR_THROW(CL_INVALID_EVENT_WAIT_LIST);
+    REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+    return ThrowError("UNKNOWN ERROR");
+  }
+
+  if(event) return scope.Close(Event::New(event)->handle_);
+  return Undefined();
+}
+
+JS_METHOD(CommandQueue::enqueueReleaseGLObjects)
+{
+  HandleScope scope;
+  CommandQueue *cq = UnwrapThis<CommandQueue>(args);
+
+  cl_mem *mem_objects=NULL;
+  int num_objects=0;
+  if(args[0]->IsArray()) {
+    Local<Array> mem_objects_arr= Array::Cast(*args[0]);
+    num_objects=mem_objects_arr->Length();
+    mem_objects=new cl_mem[num_objects];
+    for(int i=0;i<num_objects;i++) {
+      MemoryObject *obj=ObjectWrap::Unwrap<MemoryObject>(mem_objects_arr->Get(i)->ToObject());
+      mem_objects[i]=obj->getMemory();
+    }
+  }
+  else if(args[0]->IsObject()) {
+    num_objects=1;
+    mem_objects=new cl_mem[1];
+    mem_objects[0]=ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject())->getMemory();
+  }
+
+  MakeEventWaitList(args[1]);
+
+  cl_event event=NULL;
+  bool generate_event = !args[2]->IsUndefined() && args[2]->BooleanValue();
+
+  int ret = ::clEnqueueReleaseGLObjects(cq->getCommandQueue(),
+      num_objects, mem_objects,
+      num_events_wait_list,
+      events_wait_list,
+      generate_event ? &event : NULL);
+
+  if(mem_objects) delete[] mem_objects;
+  if(events_wait_list) delete[] events_wait_list;
+
+  if (ret != CL_SUCCESS) {
+    REQ_ERROR_THROW(CL_INVALID_VALUE);
+    REQ_ERROR_THROW(CL_INVALID_MEM_OBJECT);
+    REQ_ERROR_THROW(CL_INVALID_COMMAND_QUEUE);
+    REQ_ERROR_THROW(CL_INVALID_CONTEXT);
+    REQ_ERROR_THROW(CL_INVALID_GL_OBJECT);
+    REQ_ERROR_THROW(CL_INVALID_EVENT_WAIT_LIST);
+    REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+    return ThrowError("UNKNOWN ERROR");
+  }
+
+  if(event) {
+    //cout<<"[enqueueReleaseGLObjects] event "<<event<<endl;
+    return scope.Close(Event::New(event)->handle_);
+  }
   return Undefined();
 }
 

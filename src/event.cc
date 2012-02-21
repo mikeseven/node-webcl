@@ -28,7 +28,7 @@ void Event::Init(Handle<Object> target)
   constructor_template->InstanceTemplate()->SetInternalFieldCount(1);
   constructor_template->SetClassName(JS_STR("WebCLEvent"));
 
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getEventInfo", getEventInfo);
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getInfo", getInfo);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getProfilingInfo", getProfilingInfo);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_setUserEventStatus", setUserEventStatus);
 
@@ -46,7 +46,7 @@ void Event::Destructor()
   event=0;
 }
 
-JS_METHOD(Event::getEventInfo)
+JS_METHOD(Event::getInfo)
 {
   HandleScope scope;
   Event *e = UnwrapThis<Event>(args);

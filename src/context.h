@@ -23,7 +23,7 @@ public:
   static Context *New(cl_context cw);
   static JS_METHOD(New);
 
-  static JS_METHOD(getContextInfo);
+  static JS_METHOD(getInfo);
   static JS_METHOD(createProgram);
   static JS_METHOD(createCommandQueue);
   static JS_METHOD(createBuffer);
@@ -32,6 +32,10 @@ public:
   static JS_METHOD(createSampler);
   static JS_METHOD(createUserEvent);
   static JS_METHOD(getSupportedImageFormats);
+  static JS_METHOD(createFromGLBuffer);
+  static JS_METHOD(createFromGLTexture2D);
+  static JS_METHOD(createFromGLTexture3D);
+  static JS_METHOD(createFromGLRenderbuffer);
 
   cl_context getContext() const { return context; };
 

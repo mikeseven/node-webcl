@@ -18,7 +18,6 @@
 #include "platform.h"
 #include "program.h"
 #include "sampler.h"
-#include "ext_gl.h"
 
 using namespace v8;
 
@@ -61,7 +60,6 @@ void init(Handle<Object> target)
   webcl::Platform::Init(target);
   webcl::Program::Init(target);
   webcl::Sampler::Init(target);
-  webcl::EXTGL::Init(target);
 
   // OpenCL 1.1 constants
 
@@ -522,5 +520,5 @@ void init(Handle<Object> target)
   JS_CL_CONSTANT(COMMAND_GL_FENCE_SYNC_OBJECT_KHR);
 }
 
-NODE_MODULE(webcl, init)
+NODE_MODULE(node_webcl, init)
 }

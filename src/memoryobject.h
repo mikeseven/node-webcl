@@ -23,9 +23,11 @@ public:
   static MemoryObject *New(cl_mem mw);
   static JS_METHOD(New);
 
-  static JS_METHOD(getMemoryObjectInfo);
+  static JS_METHOD(getInfo);
   static JS_METHOD(getImageInfo);
   static JS_METHOD(createSubBuffer);
+  static JS_METHOD(getGLTextureInfo);
+  static JS_METHOD(getGLObjectInfo);
 
   cl_mem getMemory() const { return memory; };
 

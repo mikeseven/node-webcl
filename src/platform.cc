@@ -7,7 +7,6 @@
 
 #include "platform.h"
 #include "device.h"
-#include "ext_gl.h"
 
 #include <iostream>
 #include <cstring>
@@ -29,7 +28,7 @@ void Platform::Init(Handle<Object> target)
   constructor_template->InstanceTemplate()->SetInternalFieldCount(1);
   constructor_template->SetClassName(String::NewSymbol("WebCLPlatform"));
 
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getPlatformInfo", getPlatformInfo);
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getInfo", getInfo);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getDevices", getDevices);
 
   target->Set(String::NewSymbol("WebCLPlatform"), constructor_template->GetFunction());
@@ -82,7 +81,7 @@ JS_METHOD(Platform::getDevices)
   return scope.Close(deviceArray);
 }
 
-JS_METHOD(Platform::getPlatformInfo)
+JS_METHOD(Platform::getInfo)
 {
   HandleScope scope;
   Platform *platform = UnwrapThis<Platform>(args);
@@ -152,11 +151,6 @@ JS_METHOD(Platform::getExtension) {
   char *p= ::strstr(param_value,str);
   if(!p)
     return ThrowError("UNKNOWN EXTENSION");
-
-  if(p && !strcmp(str,"_gl_sharing")) { // handles cl_APPLE_gl_sharing and cl_khr_gl_sharing
-    EXTGL *extgl = EXTGL::New();
-    return scope.Close(extgl->handle_);
-  }
 
   return Undefined();
 }
