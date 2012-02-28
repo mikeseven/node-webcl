@@ -170,6 +170,7 @@ JS_METHOD(Kernel::getWorkGroupInfo)
   }
 }
 
+// TODO: setArg is incomplete!!!!
 JS_METHOD(Kernel::setArg)
 {
   HandleScope scope;
@@ -239,11 +240,36 @@ JS_METHOD(Kernel::setArg)
       ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_long), &arg);
     }
   }
-  else if(type && types::FLOAT) {
-    if (!args[1]->IsNumber())
+  else if(type & types::FLOAT) {
+    if (type & types::V4) {
+      float *arg=NULL;
+      if(args[1]->IsArray()) {
+        Local<Array> arr=Array::Cast(*args[1]);
+        if(arr->GetIndexedPropertiesExternalArrayDataLength() < 0) {
+          // pure JS array, no native backend
+          float _arg[4];
+          _arg[0]=arr->Get(0)->NumberValue();
+          _arg[1]=arr->Get(1)->NumberValue();
+          _arg[2]=arr->Get(2)->NumberValue();
+          _arg[3]=arr->Get(3)->NumberValue();
+          ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_float)*4, _arg);
+        }
+        else {
+          arg=(float*)arr->GetIndexedPropertiesExternalArrayData();
+          ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_float)*4, arg);
+        }
+      }
+      else if(args[1]->IsObject()) {
+        arg=(float*)args[1]->ToObject()->GetIndexedPropertiesExternalArrayData();
+        ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_float)*4, arg);
+      }
+    }
+    else if (!args[1]->IsNumber())
       return ThrowError("ARG is not of specified type");
-    cl_float arg = args[1]->NumberValue();
-    ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_float), &arg);
+    else {
+      cl_float arg = args[1]->NumberValue();
+      ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_float), &arg);
+    }
   }
   else if(type & types::HALF_FLOAT) {
     if (!args[1]->IsNumber())

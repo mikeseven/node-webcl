@@ -81,7 +81,7 @@ JS_METHOD(Device::getInfo)
   case CL_DEVICE_TYPE: {
     cl_device_id param_value;
     size_t param_value_size_ret=0;
-
+    cout<<"Device "<<device->device_id<<endl;
     cl_int ret=::clGetDeviceInfo(device->device_id, param_name, sizeof(cl_device_id), &param_value, &param_value_size_ret);
     if (ret != CL_SUCCESS) {
       REQ_ERROR_THROW(CL_INVALID_DEVICE);

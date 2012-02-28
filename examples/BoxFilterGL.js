@@ -9,7 +9,7 @@ var cl = require('../webcl'),
     clu = require('../lib/clUtils'), 
     util = require('util'), 
     fs = require('fs'), 
-    WebGL = require('webgl'), 
+    WebGL = require('node_webgl'), 
     document = WebGL.document(), 
     Image = WebGL.Image, 
     log = console.log, 
@@ -32,7 +32,7 @@ var iRadiusAligned;
 
 // Image data vars
 var image = new Image();
-image.filename = "mike_scooter.jpg";
+image.filename = "lenaRGB.jpg";
 
 // OpenGL, Display Window and GUI Globals
 var iGraphicsWinWidth = 800; // GL Window width
@@ -81,10 +81,11 @@ main();
 
 function main() {
   // load image
-  image.onload=function() { // [MBS] was onload() event
+  image.onload=function() { 
     console.log("Loaded image: " + image.src);
     log("Image Width = " + image.width + ", Height = " + image.height
         + ", bpp = 32, Mask Radius = " + iRadius);
+    
     // adjust window to pixel ratio
     iGraphicsWinHeight *= image.height/image.width;
     document.createWindow(iGraphicsWinWidth, iGraphicsWinHeight);
@@ -114,10 +115,7 @@ function main() {
   var hasGLSupport = extensions.search(/gl.sharing/i) >= 0;
   log(hasGLSupport ? "GL-CL extension available ;-)" : "No GL support");
   if (!hasGLSupport)
-    return;
-  clgl = device.getExtension(cl.GL_CONTEXT_KHR);
-  if (clgl == undefined)
-    return;
+    process.exit(-1);
 
   // create the OpenCL context
   cxGPUContext =
@@ -147,7 +145,7 @@ function main() {
   cmDevBufOut = cxGPUContext.createBuffer(cl.MEM_WRITE_ONLY, image.szBuffBytes);
 
   // Create OpenCL representation of OpenGL PBO
-  cmCL_PBO = clgl.createFromGLBuffer(cxGPUContext, cl.MEM_WRITE_ONLY, pbo);
+  cmCL_PBO = cxGPUContext.createFromGLBuffer(cl.MEM_WRITE_ONLY, pbo);
 
   // create the program
   var sourceCL = fs.readFileSync(__dirname + '/' + clSourcefile, 'ascii');
@@ -201,12 +199,6 @@ function ResetKernelArgs(uiWidth, uiHeight, r, fScale) {
   ckBoxColumns.setArg(5, fScale, cl.type.FLOAT);
 }
 
-//Helper to get next up value for integer division
-//*****************************************************************************
-function DivUp(dividend, divisor) {
-  return Math.round(dividend / divisor);
-}
-
 // OpenCL computation function for GPU:
 // Copies input data to the device, runs kernel, copies output data back to host
 // *****************************************************************************
@@ -224,7 +216,7 @@ function BoxFilterGPU(image, cmOutputBuffer, r, fScale) {
   // Set global and local work sizes for row kernel
   szLocalWorkSize[0] = uiNumOutputPix;
   szLocalWorkSize[1] = 1;
-  szGlobalWorkSize[0] = szLocalWorkSize[0] * DivUp(image.height, szLocalWorkSize[0]);
+  szGlobalWorkSize[0] = szLocalWorkSize[0] * clu.DivUp(image.height, szLocalWorkSize[0]);
   szGlobalWorkSize[1] = 1;
   //log("row kernel work sizes: global= " + szGlobalWorkSize[0] + " local= " + szLocalWorkSize[0]);
 
@@ -239,7 +231,7 @@ function BoxFilterGPU(image, cmOutputBuffer, r, fScale) {
   // Set global and local work sizes for column kernel
   szLocalWorkSize[0] = 64;
   szLocalWorkSize[1] = 1;
-  szGlobalWorkSize[0] = szLocalWorkSize[0] * DivUp(image.width, szLocalWorkSize[0]);
+  szGlobalWorkSize[0] = szLocalWorkSize[0] * clu.DivUp(image.width, szLocalWorkSize[0]);
   szGlobalWorkSize[1] = 1;
   //log("column kernel work sizes: global= " + szGlobalWorkSize[0] + " local= " + szLocalWorkSize[0]);
 
@@ -337,7 +329,7 @@ function initShaders() {
         "gl_TexCoord[0].st = in_texcoords;",
         "gl_Position = vec4(in_coords, 1.0);", 
         "}" ].join('\n');
-
+  
   gl.shaderSource(vs, vs_source);
   gl.shaderSource(fs, fs_source);
 
@@ -382,17 +374,15 @@ function DisplayGL() {
   // Run filter processing (if toggled on), then render
   // Sync GL and acquire buffer from GL
   gl.finish();
-  clgl.enqueueAcquireGLObjects(cqCommandQueue, cmCL_PBO);
+  cqCommandQueue.enqueueAcquireGLObjects(cmCL_PBO);
 
   // Compute on GPU and get kernel processing time
   BoxFilterGPU(image, cmCL_PBO, iRadius, fScale);
 
   // Release GL output or explicit output copy
   // Release buffer
-  var event=clgl.enqueueReleaseGLObjects(cqCommandQueue, cmCL_PBO,null ,true);
-  cl.waitForEvents([event]);
-  event=null;
-  //cqCommandQueue.finish();
+  cqCommandQueue.enqueueReleaseGLObjects(cmCL_PBO);
+  cqCommandQueue.finish();
 
   // Copy results back to host memory, block until complete
   /*var uiOutput=new Uint8Array(szBuffBytes);

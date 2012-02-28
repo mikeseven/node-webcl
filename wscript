@@ -25,11 +25,11 @@ def configure(conf):
 
 def build(bld):
   obj = bld.new_task_gen("cxx", "shlib", "node_addon")
-  obj.target = "webcl"
+  obj.target = "node_webcl"
   obj.source  = bld.path.ant_glob('src/*.cc')
   obj.cxxflags = ["-g", "-D_FILE_OFFSET_BITS=64", "-D_LARGEFILE_SOURCE","-fPIC"]
   if sys.platform.startswith('darwin'):
-    obj.framework = ['OpenCL']
+    obj.framework = ['OpenCL', 'OpenGL']
   elif sys.platform.startswith('linux'):
     obj.ldflags = [ "-lOpenCL" ]
 

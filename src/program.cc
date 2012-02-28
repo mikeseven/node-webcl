@@ -186,8 +186,6 @@ JS_METHOD(Program::build)
     Device *d = ObjectWrap::Unwrap<Device>(obj);
     devices.push_back( d->getDevice() );
   }
-  else
-    ThrowError("CL_INVALID_VALUE");
 
   char *options=NULL;
   if(!args[1]->IsUndefined() && args[1]->IsString()) {
@@ -199,7 +197,7 @@ JS_METHOD(Program::build)
     }
   }
 
-  cl_int ret = ::clBuildProgram(prog->getProgram(), devices.size(), &devices.front(),
+  cl_int ret = ::clBuildProgram(prog->getProgram(), devices.size(), devices.size() ? &devices.front() : NULL,
       options,
       NULL /*notifyFptr*/,
       NULL /*data*/);

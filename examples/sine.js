@@ -9,7 +9,7 @@ var cl = require('../webcl'),
     clu = require('../lib/clUtils'), 
     util = require('util'), 
     fs = require('fs'), 
-    WebGL = require('webgl'), 
+    WebGL = require('node_webgl'), 
     document = WebGL.document(), 
     nodejs = true, 
     log = console.log, alert = log,
@@ -77,6 +77,7 @@ document.on("resize",function(evt){
   document.createWindow(evt.width,evt.height);
   gl.viewportWidth=evt.width;
   gl.viewportHeight=evt.height;
+  gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
 });
 
 main();
@@ -324,12 +325,12 @@ function mouse(evt, isDown) {
 function motion(evt) {
   var dx = (evt.x - mouse_old_x);
   var dy = (evt.y - mouse_old_y);
-  //log('mouse motion: dx=' + dx + " dy=" + dy);
+  //log('mouse motion: dx=' + dx + " dy=" + dy+ "button="+mouse_buttons);
 
-  if (mouse_buttons & 2) {
+  if (mouse_buttons & 1) {
     rotate_x += dy * 0.2;
     rotate_y += dx * 0.2;
-  } else if (mouse_buttons & 8) {
+  } else if (mouse_buttons & 2) {
     translate_z += dy * 0.01;
   }
 
@@ -337,7 +338,7 @@ function motion(evt) {
   mouse_old_y = evt.y;
 
   // set view matrix
-  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  //gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   mat4.identity(mvMatrix);
   mat4.translate(mvMatrix, [ 0.0, 0.0, translate_z ]);
   mat4.rotate(mvMatrix, rotate_x * Math.PI / 180, [ 1.0, 0.0, 0.0 ]);

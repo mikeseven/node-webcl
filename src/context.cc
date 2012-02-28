@@ -92,7 +92,8 @@ JS_METHOD(Context::getInfo)
   case CL_CONTEXT_DEVICES: {
     size_t n=0;
     cl_int ret=::clGetContextInfo(context->getContext(),param_name,0,NULL, &n);
-    cout<<"Found "<<n<<" devices"<<endl;
+    n /= sizeof(cl_device_id);
+    //cout<<"Found "<<n<<" devices"<<endl;
 
     cl_device_id ctx[n];
     ret=::clGetContextInfo(context->getContext(),param_name,sizeof(cl_device_id)*n, ctx, NULL);
@@ -106,8 +107,10 @@ JS_METHOD(Context::getInfo)
 
     Local<Array> arr = Array::New(n);
     for(int i=0;i<n;i++) {
-      cout<<"Returning device "<<i<<": "<<ctx[i]<<endl;
-      arr->Set(i,Device::New(ctx[i])->handle_);
+      if(ctx[i]) {
+        //cout<<"Returning device "<<i<<": "<<ctx[i]<<endl;
+        arr->Set(i,Device::New(ctx[i])->handle_);
+      }
     }
     return scope.Close(arr);
   }
