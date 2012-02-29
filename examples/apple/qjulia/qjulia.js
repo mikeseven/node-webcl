@@ -13,12 +13,6 @@ var nodejs=true;
 
 main();
 
-function DivideUp(a, b) 
-{
-  var a=Math.round(a), b=Math.round(b);
-    return ((a % b) != 0) ? (a / b + 1) : (a / b);
-}
-
 function CLGL() {
   var COMPUTE_KERNEL_FILENAME         = "qjulia_kernel.cl";
   var COMPUTE_KERNEL_METHOD_NAME      = "QJuliaKernel";
@@ -82,7 +76,7 @@ function CLGL() {
     initialize: function(device_type) {
       log('Initializing');
       document.setTitle("fbo");
-      var canvas = document.createElement("fbo-canvas");
+      var canvas = document.createElement("fbo-canvas", Width, Height);
       
       // install UX callbacks
       document.addEventListener('resize', this.reshape);
@@ -450,6 +444,7 @@ function CLGL() {
 
       WorkGroupSize[0] = (MaxWorkGroupSize > 1) ? (MaxWorkGroupSize / WorkGroupItems) : MaxWorkGroupSize;
       WorkGroupSize[1] = MaxWorkGroupSize / WorkGroupSize[0];
+      log("WorkGroupSize: " + WorkGroupSize);
       return cl.SUCCESS;
     },
     createComputeResult: function() {
@@ -502,16 +497,16 @@ function CLGL() {
       gl.clear (gl.COLOR_BUFFER_BIT);
    
       if(Reshaped) {
-        if(newWidth > 2 * Width || newHeight > 2 * Height) {
+        //if(newWidth > 2 * Width || newHeight > 2 * Height) {
           this.cleanup();
+          Width=newWidth;
+          Height=newHeight;
           if(this.initialize(ComputeDeviceType == cl.DEVICE_TYPE_GPU) != cl.SUCCESS)
             this.shutdown();
-        }
+        //}
         Reshaped=false;
-        gl.viewport(0, 0, newWidth, newHeight);
+        gl.viewport(0, 0, Width, Height);
         gl.clear(gl.COLOR_BUFFER_BIT);
-        Width=newWidth;
-        Height=newHeight;
       }
       
       if(Animated)
@@ -694,19 +689,10 @@ function CLGL() {
             }
         }
         
-        var size_x = WorkGroupSize[0];
-        var size_y = WorkGroupSize[1];
-        var global= [0,0];
-        var local=[0,0];
+        var local= WorkGroupSize;
+        var global = [ clu.DivUp(TextureWidth, local[0]) * local[0] , 
+                       clu.DivUp(TextureHeight, local[1]) * local[1] ];
         
-        //global[0] = DivideUp(TextureWidth, size_x) * size_x; 
-        //global[1] = DivideUp(TextureHeight, size_y) * size_y;
-        global[0] = clu.DivUp(TextureWidth, size_x) * size_x; 
-        global[1] = clu.DivUp(TextureHeight, size_y) * size_y;
-        
-        local[0] = size_x;
-        local[1] = size_y;
-
         try {
           ComputeCommands.enqueueNDRangeKernel(ComputeKernel, null, global, local, null, false);
         }

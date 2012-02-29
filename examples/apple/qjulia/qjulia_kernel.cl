@@ -58,7 +58,7 @@
 #define BOUNDING_RADIUS             (2.0f)
 #define BOUNDING_RADIUS_SQR         (SQR(BOUNDING_RADIUS))
 #define ESCAPE_THRESHOLD            (BOUNDING_RADIUS * 1.5f)
-#define DELTA                       (1e-5f)
+#define DELTA                       (1e-4f)
 #define ITERATIONS                  (10)
 #define EPSILON                     (0.003f)
 #define SHADOWS                     (0)
@@ -316,6 +316,7 @@ QJuliaKernel(
     if(valid)
     {
         float4 color = QJulia(coord, mu, diffuse, epsilon, ITERATIONS, SHADOWS, WIDTH, HEIGHT);
+        //color = clamp(color, (float4)(0.f, 0.f ,0.f, 0.f), (float4)(1.f, 1.f ,1.f, 0.f));
         uchar4 output = convert_uchar4_sat_rte(color * 255.0f);
         result[index] = output;
     }
