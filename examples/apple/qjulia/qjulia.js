@@ -1,5 +1,5 @@
-var cl = require('../webcl'), 
-    clu = require('../lib/clUtils'), 
+var cl = require('../../../webcl'), 
+    clu = require('../../../lib/clUtils'), 
     util = require('util'), 
     fs = require('fs'), 
     WebGL = require('node_webgl'), 
@@ -59,7 +59,6 @@ function CLGL() {
   var TextureTypeSize             = 1; // sizeof(char);
   var ActiveTextureUnit;
   var HostImageBuffer             = 0;
-  var pMatrix = new Float32Array(16), mvMatrix = new Float32Array(16);
 
   var VertexPos = [ 
      -1, -1,
@@ -159,13 +158,6 @@ function CLGL() {
       gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(TexCoords), gl.STATIC_DRAW);
       TexCoordsBuffer.itemSize = 2;
       TexCoordsBuffer.numItems = 4;
-
-      IndexBuffer = gl.createBuffer();
-      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, IndexBuffer);
-      var Indices = [ 0, 1, 2,      0, 2, 3 ];
-      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(Indices), gl.STATIC_DRAW);
-      IndexBuffer.itemSize = 1;
-      IndexBuffer.numItems = 6;
     },
     getShader: function (gl, id) {
       var shaders= {
@@ -185,11 +177,9 @@ function CLGL() {
                [ 
                 "attribute vec3 aVertexPosition;",
                 "attribute vec2 aTextureCoord;",
-                "uniform mat4 uMVMatrix;",
-                "uniform mat4 uPMatrix;",
                 "varying vec2 vTextureCoord;",
                 "void main(void) {",
-                "    gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);",
+                "    gl_Position = vec4(aVertexPosition, 1.0);",
                 "    vTextureCoord = aTextureCoord;",
                 "}"
                 ].join("\n")
@@ -262,8 +252,6 @@ function CLGL() {
       shaderProgram.textureCoordAttribute = gl.getAttribLocation(shaderProgram, "aTextureCoord");
       gl.enableVertexAttribArray(shaderProgram.textureCoordAttribute);
 
-      shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
-      shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
       shaderProgram.samplerUniform = gl.getUniformLocation(shaderProgram, "uSampler");
     },
     setupGraphics:function(canvas) {
@@ -289,10 +277,10 @@ function CLGL() {
       gl.activeTexture(gl.TEXTURE0);
       gl.viewport(0, 0, Width, Height);
       
-      pMatrix[0]=pMatrix[5]=pMatrix[15]=1;
+      /*pMatrix[0]=pMatrix[5]=pMatrix[15]=1;
       pMatrix[10]=-1;
       
-      mvMatrix[0]=mvMatrix[5]=mvMatrix[10]=mvMatrix[15]=1;
+      mvMatrix[0]=mvMatrix[5]=mvMatrix[10]=mvMatrix[15]=1;*/
 
       
       //gl.enableClientState(gl.VERTEX_ARRAY);
@@ -319,14 +307,11 @@ function CLGL() {
 
       gl.bindBuffer(gl.ARRAY_BUFFER, TexCoordsBuffer);
       gl.vertexAttribPointer(shaderProgram.textureCoordAttribute, TexCoordsBuffer.itemSize, gl.FLOAT, false, 0, 0);
-      gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
-      gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
-
+      
       gl.activeTexture(gl.TEXTURE0);
       gl.uniform1i(shaderProgram.samplerUniform, 0);
 
-      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, IndexBuffer);
-      gl.drawElements(gl.TRIANGLES, IndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
+      gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
 
       gl.bindTexture( TextureTarget, null );
       gl.disable( TextureTarget );
@@ -497,15 +482,16 @@ function CLGL() {
       gl.clear (gl.COLOR_BUFFER_BIT);
    
       if(Reshaped) {
-        //if(newWidth > 2 * Width || newHeight > 2 * Height) {
+        Reshaped=false;
+        if(newWidth > 1.25 * Width || newHeight > 1.25 * Height ||
+            newWidth < Width/1.25 || newHeight < Height/1.25) {
           this.cleanup();
           Width=newWidth;
           Height=newHeight;
           if(this.initialize(ComputeDeviceType == cl.DEVICE_TYPE_GPU) != cl.SUCCESS)
             this.shutdown();
-        //}
-        Reshaped=false;
-        gl.viewport(0, 0, Width, Height);
+        }
+        gl.viewport(0, 0, newWidth, newHeight);
         gl.clear(gl.COLOR_BUFFER_BIT);
       }
       

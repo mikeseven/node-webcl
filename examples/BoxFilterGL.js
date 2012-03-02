@@ -108,19 +108,20 @@ function main() {
   cdDevices = cpPlatform.getDevices(cl.DEVICE_TYPE_GPU);
   log("  # of Devices Available = " + cdDevices.length);
   var device = cdDevices[0];
-  log("  Using Device 0: " + device.getDeviceInfo(cl.DEVICE_NAME));
+  log("  Using Device 0: " + device.getInfo(cl.DEVICE_NAME));
 
   // get CL-GL extension
-  var extensions = device.getDeviceInfo(cl.DEVICE_EXTENSIONS);
+  var extensions = device.getInfo(cl.DEVICE_EXTENSIONS);
   var hasGLSupport = extensions.search(/gl.sharing/i) >= 0;
   log(hasGLSupport ? "GL-CL extension available ;-)" : "No GL support");
   if (!hasGLSupport)
     process.exit(-1);
 
   // create the OpenCL context
-  cxGPUContext =
-      cl.createContext(device, [ cl.GL_CONTEXT_KHR, gl, cl.CONTEXT_PLATFORM,
-          cpPlatform ]);
+  cxGPUContext = cl.createContext({ devices: device,
+                                    platform: cpPlatform,
+                                    shareGroup: gl
+                                  });
 
   // create a command-queue
   cqCommandQueue = cxGPUContext.createCommandQueue(device, 0);
@@ -283,10 +284,10 @@ function initGL(canvas) {
 }
 
 function initBuffers() {
-  var vertex_coords = [ -1, -1, 0, 
-                        1, -1, 0, 
-                        1, 1, 0, 
-                        -1, 1, 0 ];
+  var vertex_coords = [ -1, -1, 
+                        1, -1, 
+                        1, 1, 
+                        -1, 1 ];
 
   var tex_coords = [ 0, 0, 
                      1, 0, 
@@ -300,14 +301,14 @@ function initBuffers() {
   /* VBO to hold vertex coordinates */
   gl.bindBuffer(gl.ARRAY_BUFFER, vbo.coord);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertex_coords), gl.STATIC_DRAW);
-  gl.vertexAttribPointer(0, 3, gl.FLOAT, gl.FALSE, 0, 0);
-  gl.enableVertexAttribArray(0);
+  vbo.coord.itemSize = 2;
+  vbo.coord.numItems = 4;
 
   /* VBO to hold texture coordinates */
   gl.bindBuffer(gl.ARRAY_BUFFER, vbo.tc);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(tex_coords), gl.STATIC_DRAW);
-  gl.vertexAttribPointer(1, 2, gl.FLOAT, gl.FALSE, 0, 0);
-  gl.enableVertexAttribArray(1);
+  vbo.tc.itemSize = 2;
+  vbo.tc.numItems = 4;
 }
 
 /* Create and compile shaders */
@@ -317,16 +318,16 @@ function initShaders() {
 
   var fs_source =
       [ "uniform sampler2D tex;", 
-        "out varying vec4 new_color;", 
+        "varying vec2 vTextureCoord;",
         "void main() {",
-        "vec3 color = vec3(texture(tex, gl_TexCoord[0].st));",
-        "new_color = vec4(color, 1.0);", 
+        "    gl_FragColor = texture2D(tex, vec2(vTextureCoord.s, vTextureCoord.t));",
         "}" ].join('\n');
   var vs_source =
-      [ "in  vec3 in_coords;", 
-        "in  vec2 in_texcoords;", 
+      [ "attribute vec3 in_coords;", 
+        "attribute vec2 in_texcoords;", 
+        "varying vec2 vTextureCoord;",
         "void main(void) {",
-        "gl_TexCoord[0].st = in_texcoords;",
+        "vTextureCoord = in_texcoords;",
         "gl_Position = vec4(in_coords, 1.0);", 
         "}" ].join('\n');
   
@@ -336,7 +337,7 @@ function initShaders() {
   gl.compileShader(vs);
   gl.compileShader(fs);
 
-  var prog = gl.createProgram();
+  prog = gl.createProgram();
 
   gl.bindAttribLocation(prog, 0, "in_coords");
   gl.bindAttribLocation(prog, 1, "in_color");
@@ -346,6 +347,12 @@ function initShaders() {
 
   gl.linkProgram(prog);
   gl.useProgram(prog);
+
+  prog.coord = gl.getAttribLocation(prog, "in_coords");
+  gl.enableVertexAttribArray(prog.coord);
+  
+  prog.tc = gl.getAttribLocation(prog, "in_color");
+  gl.enableVertexAttribArray(prog.tc);
 }
 
 //Create texture for GL-GL Interop
@@ -402,8 +409,7 @@ function DisplayGL() {
   // Update the texture from the pbo
   gl.bindTexture(gl.TEXTURE_2D, tex_screen);
   gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, pbo);
-  gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, image.width, image.height,
-      gl.RGBA, gl.UNSIGNED_BYTE, null);
+  gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, image.width, image.height, gl.RGBA, gl.UNSIGNED_BYTE, null);
   gl.activeTexture(gl.TEXTURE0);
   gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, null);
   gl.bindTexture(gl.TEXTURE_2D, null);
@@ -426,6 +432,12 @@ function displayTexture(texture) {
   gl.clear(gl.COLOR_BUFFER_BIT);
 
   gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.bindBuffer(gl.ARRAY_BUFFER, vbo.coord);
+  gl.vertexAttribPointer(prog.coord, vbo.coord.itemSize, gl.FLOAT, false, 0, 0);
+
+  gl.bindBuffer(gl.ARRAY_BUFFER, vbo.tc);
+  gl.vertexAttribPointer(prog.tc, vbo.tc.itemSize, gl.FLOAT, false, 0, 0);
+
   gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
 
   gl.disable(gl.TEXTURE_2D);

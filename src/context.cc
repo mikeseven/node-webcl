@@ -54,6 +54,7 @@ void Context::Init(Handle<Object> target)
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_createFromGLTexture2D", createFromGLTexture2D);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_createFromGLTexture3D", createFromGLTexture3D);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_createFromGLRenderbuffer", createFromGLRenderbuffer);
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getSupportedImageFormats", getSupportedImageFormats);
 
   target->Set(String::NewSymbol("WebCLContext"), constructor_template->GetFunction());
 }
@@ -280,10 +281,11 @@ JS_METHOD(Context::createImage2D)
   size_t row_pitch = args[4]->NumberValue();
   void *host_ptr=NULL;
 
+  cout<<"Creating image: { order: "<<image_format.image_channel_order<<", datatype: "<<image_format.image_channel_data_type<<"} "
+      <<"dim: "<<width<<"x"<<height<<" pitch "<<row_pitch<<endl;
+
   if(!args[5]->IsUndefined()) {
     host_ptr = args[5]->ToObject()->GetIndexedPropertiesExternalArrayData();
-    //cout<<"Creating image: { order: "<<image_format.image_channel_order<<", datatype: "<<image_format.image_channel_data_type<<"} "
-    //    <<"dim: "<<width<<"x"<<height<<" pitch "<<row_pitch<<endl;
   }
   cl_int ret=CL_SUCCESS;
   cl_mem mw = ::clCreateImage2D(
@@ -447,9 +449,10 @@ JS_METHOD(Context::createFromGLBuffer)
   Context *context = UnwrapThis<Context>(args);
   cl_mem_flags flags = args[0]->NumberValue();
   cl_GLuint bufobj = args[1]->NumberValue();
+  cout<<"createFromGLBuffer flags="<<hex<<flags<<dec<<", bufobj="<<bufobj<<endl;
   int ret;
   cl_mem clmem = ::clCreateFromGLBuffer(context->getContext(),flags,bufobj,&ret);
-
+  cout<<" -> clmem="<<hex<<clmem<<dec<<endl;
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(CL_INVALID_CONTEXT);
     REQ_ERROR_THROW(CL_INVALID_VALUE);

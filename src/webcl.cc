@@ -104,82 +104,87 @@ JS_METHOD(createContext) {
   cl_int ret=CL_SUCCESS;
   cl_context cw=NULL;
 
-  /*if (args[0]->IsArray() || args[0]->IsObject()) {
+  // TODO handle callbacks
+  if(!args[0]->IsUndefined() && args[0]->IsObject()) {
+    Platform *platform = NULL;
     vector<cl_device_id> devices;
-    if(args[0]->IsArray()) {
-      Local<Array> deviceArray = Array::Cast(*args[0]);
-      for (int i=0; i<deviceArray->Length(); i++) {
-        Local<Object> obj = deviceArray->Get(i)->ToObject();
-        Device *d = ObjectWrap::Unwrap<Device>(obj);
-        //cout<<"adding device "<<hex<<d->getDevice()<<dec<<endl;
-        devices.push_back(d->getDevice());
-      }
-    }
-    else {
-      Device *d = ObjectWrap::Unwrap<Device>(args[0]->ToObject());
-      devices.push_back(d->getDevice());
-    }
-
     vector<cl_context_properties> properties;
-    int num=0;
-    if(!(args[1]->IsUndefined() || args[1]->IsNull())) {
-      Local<Array> propertiesArray = Array::Cast(*args[1]);
-      num=propertiesArray->Length();
-      for(int i=0; i<num; i+=2) {
-        uint32_t prop=propertiesArray->Get(i)->Uint32Value();
-        properties.push_back(prop);
+    Local<Array> props = Array::Cast(*args[0]);
 
-        if( prop==CL_CONTEXT_PLATFORM) {
-          Local<Object> obj = propertiesArray->Get(i+1)->ToObject();
-          Platform *platform = ObjectWrap::Unwrap<Platform>(obj);
-          properties.push_back((cl_context_properties) platform->getPlatformId());
+    if(props->Has(JS_STR("platform"))) {
+      Local<Object> obj = props->Get(JS_STR("platform"))->ToObject();
+      if(!obj->IsNull()) {
+        platform=ObjectWrap::Unwrap<Platform>(obj);
+        properties.push_back(CL_CONTEXT_PLATFORM);
+        properties.push_back((cl_context_properties) platform->getPlatformId());
+        cout<<"adding platform "<<hex<<platform->getPlatformId()<<dec<<endl;
+      }
+    }
+
+    if(props->Has(JS_STR("shareGroup"))) {
+      // TODO get WebGL object and retrieve the context from it
+      //Local<Object> obj = props->Get(JS_STR("shareGroup"))->ToObject();
+      //if(!obj->IsNull()) {
+        //platform=ObjectWrap::Unwrap<Platform>(obj);
+#if defined (__APPLE__)
+        CGLContextObj kCGLContext = CGLGetCurrentContext();
+        CGLShareGroupObj kCGLShareGroup = CGLGetShareGroup(kCGLContext);
+        properties.push_back(CL_CONTEXT_PROPERTY_USE_CGL_SHAREGROUP_APPLE);
+        properties.push_back((cl_context_properties) kCGLShareGroup);
+#else
+  #ifdef UNIX
+        properties.push_back(CL_GL_CONTEXT_KHR);
+        properties.push_back((cl_context_properties) glXGetCurrentContext());
+        properties.push_back(CL_GLX_DISPLAY_KHR);
+        properties.push_back((cl_context_properties) glXGetCurrentDisplay());
+  #else // Win32
+        properties.push_back(CL_GL_CONTEXT_KHR);
+        properties.push_back((cl_context_properties) wglGetCurrentContext());
+        properties.push_back(CL_WGL_HDC_KHR);
+        properties.push_back((cl_context_properties) wglGetCurrentDC());
+  #endif
+#endif
+      //}
+    }
+
+    // terminate properties array if any
+    if(properties.size()) properties.push_back(0);
+
+    if(props->Has(JS_STR("deviceType"))) {
+      cl_uint device_type=props->Get(JS_STR("deviceType"))->Uint32Value();
+      cw = ::clCreateContextFromType(properties.size() ? &properties.front() : NULL,
+                                     device_type, NULL , NULL , &ret);
+    }
+    else if(props->Has(JS_STR("devices"))) {
+      Local<Object> obj = props->Get(JS_STR("devices"))->ToObject();
+      if(!obj->IsNull()) {
+        if(obj->IsArray()) {
+          Local<Array> deviceArray = Array::Cast(*obj);
+          for (int i=0; i<deviceArray->Length(); i++) {
+            Local<Object> obj = deviceArray->Get(i)->ToObject();
+            Device *d = ObjectWrap::Unwrap<Device>(obj);
+            cout<<"adding device "<<hex<<d->getDevice()<<dec<<endl;
+            devices.push_back(d->getDevice());
+          }
         }
-        else if(prop==CL_GL_CONTEXT_KHR) {
-          properties.push_back((cl_context_properties) glXGetCurrentContext());
-          properties.push_back(CL_GLX_DISPLAY_KHR);
-          properties.push_back((cl_context_properties) glXGetCurrentDisplay());
+        else {
+          Device *d = ObjectWrap::Unwrap<Device>(obj);
+          devices.push_back(d->getDevice());
         }
       }
-      properties.push_back(0);
-    }
 
-    // TODO handle callback arg
-    cw = ::clCreateContext(properties.size() ? &properties.front() : NULL, devices.size(), &devices.front(), NULL , NULL , &ret);
+      cw = ::clCreateContext(properties.size() ? &properties.front() : NULL,
+                             devices.size(), &devices.front(), NULL , NULL , &ret);
+    }
+    else
+      return scope.Close(ThrowError("Invalid parameters"));
   }
-  else if(args[0]->IsNumber()) {
-    if (!args[1]->IsArray()) {
-      ThrowError("CL_INVALID_VALUE");
-    }
 
-    cl_device_type device_type = args[0]->Uint32Value();
-    cout<<"Creating context for device type: "<<device_type<<endl;
-
-    Local<Array> propertiesArray = Array::Cast(*args[1]);
-    int num=propertiesArray->Length();
-    cl_context_properties *properties=new cl_context_properties[num+1];
-    for (int i=0; i<num; i+=2) {
-
-      properties[i]=propertiesArray->Get(i)->Uint32Value();
-
-      Local<Object> obj = propertiesArray->Get(i+1)->ToObject();
-      Platform *platform = ObjectWrap::Unwrap<Platform>(obj);
-      properties[i+1]=(cl_context_properties) platform->getPlatformId();
-      //cout<<"platform id: "<<hex<<properties[i+1]<<dec<<endl;
-    }
-    properties[num]=0;
-
-    // TODO handle callback arg
-    cw = ::clCreateContextFromType(properties, device_type, NULL , NULL , &ret);
-    delete[] properties;
-  }
-  else
-    return ThrowError("CL_INVALID_VALUE for argument 0");
-  */
-
-  // new version with WebCLContextProperties dictionary
-  if(args[0]->IsUndefined()) {
+  // automatic context creation
+  else if(args[0]->IsUndefined()) {
 #if defined (__APPLE__)
     CGLContextObj kCGLContext = CGLGetCurrentContext();
+    cout<<"using CGL context: "<<hex<<kCGLContext<<dec<<endl;
     CGLShareGroupObj kCGLShareGroup = CGLGetShareGroup(kCGLContext);
     cl_context_properties props[] =
     {
@@ -194,6 +199,9 @@ JS_METHOD(createContext) {
     }
     cout<<"Apple OpenCL SharedGroup context created"<<endl;
 
+#else
+    // TODO add automatic context creation for Unix and Win32
+    ThrowException("Unsupported createContext() without parameters");
 #endif
   }
 

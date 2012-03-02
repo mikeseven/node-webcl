@@ -59,19 +59,22 @@ var devices = platform.getDevices(cl.DEVICE_TYPE_GPU);
 log("  # of Devices Available = "+devices.length); 
 var uiTargetDevice = clu.clamp(uiTargetDevice, 0, (devices.length - 1));
 var device=devices[uiTargetDevice];
-log("  Using Device "+ uiTargetDevice+": "+device.getDeviceInfo(cl.DEVICE_NAME)); 
+log("  Using Device "+ uiTargetDevice+": "+device.getInfo(cl.DEVICE_NAME)); 
 
-var hasImageSupport=device.getDeviceInfo(cl.DEVICE_IMAGE_SUPPORT);
+var hasImageSupport=device.getInfo(cl.DEVICE_IMAGE_SUPPORT);
 if(hasImageSupport != cl.TRUE) {
   log("No image support");
   return;
 }
 
-var numComputeUnits=device.getDeviceInfo(cl.DEVICE_MAX_COMPUTE_UNITS);
+var numComputeUnits=device.getInfo(cl.DEVICE_MAX_COMPUTE_UNITS);
 log('  # of Compute Units = '+numComputeUnits);
 
 log('  createContext...');
-context=cl.createContext(device, [cl.CONTEXT_PLATFORM, platform]);
+context=cl.createContext({
+  devices: device, 
+  platform: platform
+});
 
 // Create a command-queue 
 queue=context.createCommandQueue(device, 0);

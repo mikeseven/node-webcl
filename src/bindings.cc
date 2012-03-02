@@ -483,12 +483,13 @@ void init(Handle<Object> target)
   /*********************************
   * cl_amd_device_attribute_query *
   *********************************/
+#endif
+
   /* cl_gl_object_type */
   JS_CL_CONSTANT(GL_OBJECT_BUFFER);
   JS_CL_CONSTANT(GL_OBJECT_TEXTURE2D);
   JS_CL_CONSTANT(GL_OBJECT_TEXTURE3D);
   JS_CL_CONSTANT(GL_OBJECT_RENDERBUFFER);
-#endif
 
   /* cl_gl_texture_info */
   JS_CL_CONSTANT(GL_TEXTURE_TARGET);
@@ -501,16 +502,15 @@ void init(Handle<Object> target)
   /* cl_gl_context_info  */
   JS_CL_CONSTANT(CURRENT_DEVICE_FOR_GL_CONTEXT_KHR);
   JS_CL_CONSTANT(DEVICES_FOR_GL_CONTEXT_KHR);
+#endif
 
   /* Additional cl_context_properties  */
   JS_CL_CONSTANT(GL_CONTEXT_KHR);
   JS_CL_CONSTANT(EGL_DISPLAY_KHR);
+#if !defined (__APPLE__) && !defined(MACOSX)
   JS_CL_CONSTANT(GLX_DISPLAY_KHR);
   JS_CL_CONSTANT(WGL_HDC_KHR);
   JS_CL_CONSTANT(CGL_SHAREGROUP_KHR);
-#else
-  JS_CL_CONSTANT(GL_CONTEXT_KHR);
-  JS_CL_CONSTANT(EGL_DISPLAY_KHR);
 #endif
 
   /*
