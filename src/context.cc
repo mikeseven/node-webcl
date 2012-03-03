@@ -15,11 +15,6 @@
 #include "sampler.h"
 
 #include <node_buffer.h>
-#if defined (__APPLE__) || defined(MACOSX)
-#include <OpenGL/gl.h>
-#else
-#include <GL/gl.h>
-#endif
 
 #include <iostream>
 #include <vector>
@@ -451,6 +446,7 @@ JS_METHOD(Context::createFromGLBuffer)
   cl_GLuint bufobj = args[1]->NumberValue();
   cout<<"createFromGLBuffer flags="<<hex<<flags<<dec<<", bufobj="<<bufobj<<endl;
   int ret;
+
   cl_mem clmem = ::clCreateFromGLBuffer(context->getContext(),flags,bufobj,&ret);
   cout<<" -> clmem="<<hex<<clmem<<dec<<endl;
   if (ret != CL_SUCCESS) {

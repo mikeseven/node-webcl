@@ -32,6 +32,7 @@ var WorkGroupItems = 32;
 var Width = WIDTH;
 var Height = HEIGHT;
 var Reshaped = false;
+var Update = false;
 var newWidth, newHeight; // only when reshape
 
 // simulation
@@ -41,7 +42,7 @@ var fScale = 1.0 / (2 * iRadius + 1.0); // precalculated GV rescaling value
 var iRadiusAligned = false;
 var pbo;
 var RowSampler;
-var ComputeBufTemp, ComputeBufOut, ComputePBO;
+var ComputeBufTemp, /*ComputeBufOut,*/ ComputePBO;
 var ckBoxRowsTex, ckBoxColumns;
 
 // gl stuff
@@ -60,7 +61,7 @@ var ActiveTextureUnit;
 function initialize(device_type) {
   log('Initializing');
   document.setTitle("OpenCL GPU BoxFilter Demo");
-  var canvas = document.createElement("fbo-canvas", image.width, image.height);
+  var canvas = document.createElement("fbo-canvas", Width, Height);
 
   // install UX callbacks
   document.addEventListener('resize', reshape);
@@ -76,10 +77,6 @@ function initialize(device_type) {
 
   var image_support = ComputeDeviceId.getInfo(cl.DEVICE_IMAGE_SUPPORT);
   if (!image_support) {
-    printf("Unable to query device for image support");
-    process.exit(-1);
-  }
-  if (image_support == 0) {
     log("Application requires images: Images not supported on this device.");
     return cl.IMAGE_FORMAT_NOT_SUPPORTED;
   }
@@ -259,16 +256,13 @@ function createShaders() {
 
   gl.useProgram(shaderProgram);
 
-  shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram,
-      "aVertexPosition");
+  shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
   gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
 
-  shaderProgram.textureCoordAttribute = gl.getAttribLocation(shaderProgram,
-      "aTextureCoord");
+  shaderProgram.textureCoordAttribute = gl.getAttribLocation(shaderProgram, "aTextureCoord");
   gl.enableVertexAttribArray(shaderProgram.textureCoordAttribute);
-
-  shaderProgram.samplerUniform = gl.getUniformLocation(shaderProgram,
-      "uSampler");
+  
+  shaderProgram.samplerUniform = gl.getUniformLocation(shaderProgram, "uSampler");
 }
 
 function setupGraphics(canvas) {
@@ -330,7 +324,16 @@ function renderTexture() {
 function setupComputeDevices(device_type) {
   log('setup compute devices');
   ComputeDeviceType = device_type ? cl.DEVICE_TYPE_GPU : cl.DEVICE_TYPE_CPU;
-  ComputeContext = cl.createContext();
+
+  // Pick platform
+  var platformList = cl.getPlatforms();
+  var platform = platformList[0];
+
+  // create the OpenCL context
+  ComputeContext = cl.createContext({
+    deviceType: ComputeDeviceType, 
+    shareGroup: gl, 
+    platform: platform });
 
   var device_ids = ComputeContext.getInfo(cl.CONTEXT_DEVICES);
   if (!device_ids) {
@@ -395,7 +398,7 @@ function setupComputeKernel() {
   // Build the program executable
   //
   try {
-    ComputeProgram.build(null, "-cl-fast-relaxed-math");
+    ComputeProgram.build(ComputeDeviceId, "-cl-fast-relaxed-math");
   } catch (err) {
     log('Error building program: ' + err);
     alert("Error: Failed to build program executable!\n"
@@ -460,8 +463,7 @@ function resetKernelArgs(image_width, image_height, r, scale) {
   log("MaxWorkGroupSize: " + MaxWorkGroupSize);
   log("WorkGroupItems: " + WorkGroupItems);
 
-  WorkGroupSize[0] = (MaxWorkGroupSize > 1) ? Math.round(MaxWorkGroupSize
-      / WorkGroupItems) : MaxWorkGroupSize;
+  WorkGroupSize[0] = (MaxWorkGroupSize > 1) ? Math.round(MaxWorkGroupSize / WorkGroupItems) : MaxWorkGroupSize;
   WorkGroupSize[1] = Math.round(MaxWorkGroupSize / WorkGroupSize[0]);
   log("WorkGroupSize: " + WorkGroupSize);
   return cl.SUCCESS;
@@ -482,8 +484,7 @@ function createComputeResult() {
     return -1;
   }
 
-  RowSampler = ComputeContext.createSampler(false, cl.ADDRESS_CLAMP,
-      cl.FILTER_NEAREST);
+  RowSampler = ComputeContext.createSampler(false, cl.ADDRESS_CLAMP, cl.FILTER_NEAREST);
   if (!RowSampler) {
     alert("Error: Failed to create a row sampler");
     return -1;
@@ -541,15 +542,15 @@ function display(timestamp) {
 
   if (Reshaped) {
     Reshaped = false;
-    if (newWidth > 1.25 * Width || newHeight > 1.25 * Height
-        || newWidth < Width / 1.25 || newHeight < Height / 1.25) {
+    //if (newWidth > 1.25 * Width || newHeight > 1.25 * Height
+    //    || newWidth < Width / 1.25 || newHeight < Height / 1.25) {
+    Width = newWidth;
+    Height = newHeight;
       cleanup();
-      Width = newWidth;
-      Height = newHeight;
       if (initialize(ComputeDeviceType == cl.DEVICE_TYPE_GPU) != cl.SUCCESS)
         shutdown();
-    }
-    gl.viewport(0, 0, newWidth, newHeight);
+    //}
+    gl.viewport(0, 0, Width, Height);
     gl.clear(gl.COLOR_BUFFER_BIT);
   }
 
@@ -598,26 +599,26 @@ function keydown(evt) {
 
 function recompute() {
   //log('recompute...');
-  if (!ComputeKernel || !ComputeResult)
-    return cl.SUCCESS;
+  //if (!ComputeKernel || !ComputeResult)
+  //  return cl.SUCCESS;
 
-  if (Animated || Update) {
+  if (Update) {
     Update = false;
 
     // Update filter parameters
     log('Updating for new radius: ' + iRadius);
     fScale = 1 / (2 * iRadius + 1);
-    ResetKernelArgs(image.width, image.height, iRadius, fScale);
+    resetKernelArgs(image.width, image.height, iRadius, fScale);
   }
 
   // Sync GL and acquire buffer from GL
   gl.finish();
-  computeCommands.enqueueAcquireGLObject(ComputePBO);
+  ComputeCommands.enqueueAcquireGLObjects(ComputePBO);
 
-  BoxFilterGPU(image, computePBO, iRadius, fScale);
+  BoxFilterGPU(image, ComputePBO, iRadius, fScale);
 
   // Release buffer
-  computeCommands.enqueueReleaseGLObject(ComputePBO);
+  ComputeCommands.enqueueReleaseGLObjects(ComputePBO);
 
   // Update the texture from the pbo
   gl.bindTexture(gl.TEXTURE_2D, TextureId);
@@ -638,7 +639,7 @@ function BoxFilterGPU(image, cmOutputBuffer, r, scale) {
   var TexOrigin = [ 0, 0, 0 ]; // Offset of input texture origin relative to host image
   var TexRegion = [ image.width, image.height, 1 ]; // Size of texture region to operate on
   ComputeCommands.enqueueWriteImage(ComputeTexture, cl.TRUE, TexOrigin,
-      TexRegion, 0, 0, image, null, false);
+      TexRegion, 0, 0, image);
 
   // sync host
   //ComputeCommands.finish();
@@ -674,20 +675,21 @@ function main() {
   image = new Image();
   image.onload=function() { 
     console.log("Loaded image: " + image.src);
-    log("Image Width = " + image.width + ", Height = " + image.height
-        + ", bpp = 32");
-    image.szBuffBytes = image.width * image.height * 4;
+    log("Image Width = " + image.width + ", Height = " + image.height + ", bpp = 32");
+    image.szBuffBytes = image.height * image.pitch;
+    Width=image.width;
+    Height=image.height;
     
     // init window
     if(initialize(use_gpu)==cl.SUCCESS) {
       function update() {
         display();
-        requestAnimationFrame(update,0);
+        requestAnimationFrame(update);
       }
       update();
     }
   };
-  image.src=__dirname+"/lenaRGB.jpg";
+  image.src=__dirname+"/mike_scooter.jpg";
 }
 
 main();
