@@ -323,8 +323,16 @@ function CLGL() {
     
     setupComputeDevices:function(device_type) {
       log('setup compute devices');
+      
+      //Pick platform
+      var platformList=cl.getPlatforms();
+      var platform=platformList[0];
+
       ComputeDeviceType = device_type ? cl.DEVICE_TYPE_GPU : cl.DEVICE_TYPE_CPU;
-      ComputeContext = cl.createContext();
+      ComputeContext = cl.createContext({
+        deviceType: ComputeDeviceType,
+        platform: platform,
+        shareGroup: gl});
 
       var device_ids = ComputeContext.getInfo(cl.CONTEXT_DEVICES);
       if(!device_ids)

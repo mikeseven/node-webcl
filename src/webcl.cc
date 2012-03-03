@@ -132,16 +132,16 @@ JS_METHOD(createContext) {
         properties.push_back(CL_CONTEXT_PROPERTY_USE_CGL_SHAREGROUP_APPLE);
         properties.push_back((cl_context_properties) kCGLShareGroup);
 #else
-  #ifdef UNIX
-        properties.push_back(CL_GL_CONTEXT_KHR);
-        properties.push_back((cl_context_properties) glXGetCurrentContext());
-        properties.push_back(CL_GLX_DISPLAY_KHR);
-        properties.push_back((cl_context_properties) glXGetCurrentDisplay());
-  #else // Win32
+  #ifdef _WIN32
         properties.push_back(CL_GL_CONTEXT_KHR);
         properties.push_back((cl_context_properties) wglGetCurrentContext());
         properties.push_back(CL_WGL_HDC_KHR);
         properties.push_back((cl_context_properties) wglGetCurrentDC());
+  #else // Unix
+        properties.push_back(CL_GL_CONTEXT_KHR);
+        properties.push_back((cl_context_properties) glXGetCurrentContext());
+        properties.push_back(CL_GLX_DISPLAY_KHR);
+        properties.push_back((cl_context_properties) glXGetCurrentDisplay());
   #endif
 #endif
       //}
@@ -200,8 +200,22 @@ JS_METHOD(createContext) {
     cout<<"Apple OpenCL SharedGroup context created"<<endl;
 
 #else
+    #ifndef _WIN32
+    cl_context_properties props[] =
+    {
+        CL_GL_CONTEXT_KHR, (cl_context_properties)glXGetCurrentContext(),
+        CL_GLX_DISPLAY_KHR, (cl_context_properties)glXGetCurrentDisplay(),
+        0
+    };
+    cw = clCreateContext(props, 0, 0, NULL, 0, &ret);
+    if (!cw)
+    {
+        return scope.Close(ThrowError("Error: Failed to create a compute context!"));
+    }
+    #else
     // TODO add automatic context creation for Unix and Win32
-    ThrowException("Unsupported createContext() without parameters");
+    return scope.Close(ThrowError("Unsupported createContext() without parameters"));
+    #endif
 #endif
   }
 

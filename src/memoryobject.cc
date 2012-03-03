@@ -8,6 +8,13 @@
 #include "memoryobject.h"
 #include <node_buffer.h>
 
+#if defined (__APPLE__) || defined(MACOSX)
+  #include <OpenGL/OpenGL.h>
+#else
+  #include <GL/gl.h>
+  #include <GL/glx.h>
+#endif
+
 #include <iostream>
 using namespace std;
 

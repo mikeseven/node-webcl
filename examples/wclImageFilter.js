@@ -50,7 +50,9 @@ function ImageFilter(image) {
   devices = platform.getDevices(cl.DEVICE_TYPE_GPU);
 
   // create GPU context for this platform
-  context=cl.createContext(cl.DEVICE_TYPE_GPU, [cl.CONTEXT_PLATFORM, platform]);
+  context=cl.createContext({
+    deviceType: cl.DEVICE_TYPE_GPU,
+    platform: platform});
 
   kernelSourceCode = fs.readFileSync(__dirname+'/swapRB.cl','ascii');
   

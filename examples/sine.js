@@ -39,7 +39,6 @@ var cqCommandQueue;
 var ckKernel;
 var vbo_cl;
 var cpProgram;
-var clgl;
 var szGlobalWorkSize = [ mesh_width, mesh_height ];
 
 //vbo variables
@@ -94,20 +93,20 @@ function main() {
   cdDevices = cpPlatform.getDevices(cl.DEVICE_TYPE_GPU);
   log("  # of Devices Available = " + cdDevices.length);
   var device = cdDevices[0];
-  log("  Using Device 0: " + device.getDeviceInfo(cl.DEVICE_NAME));
+  log("  Using Device 0: " + device.getInfo(cl.DEVICE_NAME));
 
   // get CL-GL extension
-  var extensions = device.getDeviceInfo(cl.DEVICE_EXTENSIONS);
+  var extensions = device.getInfo(cl.DEVICE_EXTENSIONS);
   var hasGLSupport = extensions.search(/gl.sharing/i) >= 0;
   log(hasGLSupport ? "GL-CL extension available ;-)" : "No GL support");
   if (!hasGLSupport)
     return;
-  clgl = device.getExtension(cl.GL_CONTEXT_KHR);
-  if (clgl == undefined)
-    return;
 
   // create the OpenCL context
-  cxGPUContext = cl.createContext(device, [ cl.GL_CONTEXT_KHR, gl, cl.CONTEXT_PLATFORM, cpPlatform ]);
+  cxGPUContext = cl.createContext({
+    devices: device, 
+    shareGroup: gl, 
+    platform: cpPlatform });
 
   // create a command-queue
   cqCommandQueue = cxGPUContext.createCommandQueue(device, 0);
@@ -260,14 +259,14 @@ function initGL() {
 function runKernel(time) {
   // map OpenGL buffer object for writing from OpenCL
   gl.finish();
-  clgl.enqueueAcquireGLObjects(cqCommandQueue, vbo_cl);
+  cqCommandQueue.enqueueAcquireGLObjects(vbo_cl);
 
   // Set arg 3 and execute the kernel
   ckKernel.setArg(3, time, cl.type.FLOAT);
   cqCommandQueue.enqueueNDRangeKernel(ckKernel, null, szGlobalWorkSize, null);
 
   // unmap buffer object
-  clgl.enqueueReleaseGLObjects(cqCommandQueue, vbo_cl);
+  cqCommandQueue.enqueueReleaseGLObjects(vbo_cl);
   cqCommandQueue.finish();
 }
 
@@ -283,7 +282,7 @@ function createVBO() {
   gl.bufferData(gl.ARRAY_BUFFER, size, gl.DYNAMIC_DRAW);
 
   // create OpenCL buffer from GL VBO
-  vbo_cl = clgl.createFromGLBuffer(cxGPUContext, cl.MEM_WRITE_ONLY, vbo);
+  vbo_cl = cxGPUContext.createFromGLBuffer(cl.MEM_WRITE_ONLY, vbo);
 }
 
 function setMatrixUniforms() {
