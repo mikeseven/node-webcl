@@ -287,14 +287,14 @@ function setupGraphics(canvas) {
 
   gl.disable(gl.DEPTH_TEST);
   gl.activeTexture(gl.TEXTURE0);
-  gl.viewport(0, 0, image.width, image.height);
+  gl.viewport(0, 0, Width, Height);
 
   return cl.SUCCESS;
 }
 
 function renderTexture() {
   // we just draw a screen-aligned texture
-  gl.viewport(0, 0, image.width, image.height);
+  gl.viewport(0, 0, Width, Height);
 
   gl.enable(TextureTarget);
   gl.bindTexture(TextureTarget, TextureId);
@@ -512,6 +512,8 @@ function createComputeResult() {
 }
 
 function cleanup() {
+  document.removeEventListener('resize', reshape);
+  document.removeEventListener('keydown', keydown);
   ComputeCommands.finish();
   ckBoxRowsTex = null;
   ckBoxColumns = null;
