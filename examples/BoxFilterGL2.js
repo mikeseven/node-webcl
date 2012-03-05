@@ -23,7 +23,6 @@ var /* cl_kernel */ComputeKernel;
 var /* cl_program */ComputeProgram;
 var /* cl_device_id */ComputeDeviceId;
 var /* cl_device_type */ComputeDeviceType;
-var /* cl_mem */ComputeResult;
 var /* cl_mem */ComputeImage;
 var MaxWorkGroupSize;
 var WorkGroupSize = [ 0, 0 ];
@@ -42,7 +41,7 @@ var fScale = 1.0 / (2 * iRadius + 1.0); // precalculated GV rescaling value
 var iRadiusAligned = false;
 var pbo;
 var RowSampler;
-var ComputeBufTemp, /*ComputeBufOut,*/ ComputePBO;
+var ComputeBufTemp, ComputePBO;
 var ckBoxRowsTex, ckBoxColumns;
 
 // gl stuff
@@ -176,20 +175,23 @@ function createBuffers() {
 
 function getShader(gl, id) {
   var shaders = {
-    "shader-fs" : [
-        "#ifdef GL_ES",
-        "  precision mediump float;",
-        "#endif",
-        "varying vec2 vTextureCoord;",
-        "uniform sampler2D uSampler;",
-        "void main(void) {",
-        "    gl_FragColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));",
+    "shader-vs" : [ 
+        "attribute vec3 aCoords;",
+        "attribute vec2 aTexCoords;", 
+        "varying vec2 vTexCoords;",
+        "void main(void) {", 
+        "    gl_Position = vec4(aCoords, 1.0);",
+        "    vTexCoords = aTexCoords;", 
         "}" ].join("\n"),
-
-    "shader-vs" : [ "attribute vec3 aVertexPosition;",
-        "attribute vec2 aTextureCoord;", "varying vec2 vTextureCoord;",
-        "void main(void) {", "    gl_Position = vec4(aVertexPosition, 1.0);",
-        "    vTextureCoord = aTextureCoord;", "}" ].join("\n")
+    "shader-fs" : [
+         "#ifdef GL_ES",
+         "  precision mediump float;",
+         "#endif",
+         "varying vec2 vTexCoords;",
+         "uniform sampler2D uSampler;",
+         "void main(void) {",
+         "    gl_FragColor = texture2D(uSampler, vTexCoords.st);",
+         "}" ].join("\n"),
   };
 
   var shader;
@@ -256,10 +258,10 @@ function createShaders() {
 
   gl.useProgram(shaderProgram);
 
-  shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
+  shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aCoords");
   gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
 
-  shaderProgram.textureCoordAttribute = gl.getAttribLocation(shaderProgram, "aTextureCoord");
+  shaderProgram.textureCoordAttribute = gl.getAttribLocation(shaderProgram, "aTexCoords");
   gl.enableVertexAttribArray(shaderProgram.textureCoordAttribute);
   
   shaderProgram.samplerUniform = gl.getUniformLocation(shaderProgram, "uSampler");
@@ -496,11 +498,6 @@ function createComputeResult() {
     alert("Error: Failed to create temporary buffer");
     return -1;
   }
-  /*ComputeBufOut = ComputeContext.createBuffer(cl.MEM_WRITE_ONLY, image.szBuffBytes);
-  if(!ComputeBufOut) {
-    alert("Error: Failed to create result buffer");
-    return -1;
-  }*/
 
   // Create OpenCL representation of OpenGL PBO
   ComputePBO = ComputeContext.createFromGLBuffer(cl.MEM_WRITE_ONLY, pbo);
@@ -520,7 +517,6 @@ function cleanup() {
   RowSampler = null;
   ComputeProgram = null;
   ComputeCommands = null;
-  ComputeResult = null;
   ComputeImage = null;
   ComputeContext = null;
 }
@@ -544,14 +540,11 @@ function display(timestamp) {
 
   if (Reshaped) {
     Reshaped = false;
-    //if (newWidth > 1.25 * Width || newHeight > 1.25 * Height
-    //    || newWidth < Width / 1.25 || newHeight < Height / 1.25) {
     Width = newWidth;
     Height = newHeight;
-      cleanup();
-      if (initialize(ComputeDeviceType == cl.DEVICE_TYPE_GPU) != cl.SUCCESS)
-        shutdown();
-    //}
+    cleanup();
+    if (initialize(ComputeDeviceType == cl.DEVICE_TYPE_GPU) != cl.SUCCESS)
+      shutdown();
     gl.viewport(0, 0, Width, Height);
     gl.clear(gl.COLOR_BUFFER_BIT);
   }
@@ -576,7 +569,6 @@ function display(timestamp) {
 function reshape(evt) {
   newWidth = evt.width;
   newHeight = evt.height;
-  //log("reshape to "+w+'x'+h);
   Reshaped = true;
 }
 
@@ -601,8 +593,6 @@ function keydown(evt) {
 
 function recompute() {
   //log('recompute...');
-  //if (!ComputeKernel || !ComputeResult)
-  //  return cl.SUCCESS;
 
   if (Update) {
     Update = false;
@@ -621,7 +611,8 @@ function recompute() {
 
   // Release buffer
   ComputeCommands.enqueueReleaseGLObjects(ComputePBO);
-
+  ComputeCommands.finish();
+  
   // Update the texture from the pbo
   gl.bindTexture(gl.TEXTURE_2D, TextureId);
   gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, pbo);
