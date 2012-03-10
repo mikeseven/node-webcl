@@ -5,10 +5,9 @@
 ** (c) Copyright 2011 Motorola Mobility, Inc.  All Rights Reserved.  **
 */
 
-var cl=require("../webcl"),
+var cl=require("../webcl.js"),
     clu=require("../lib/clUtils.js"),
     log=console.log;
-var Uint32Array = process.binding('typed_array').Uint32Array;
 
 //First check if the WebCL extension is installed at all 
 if (cl == undefined) {
@@ -32,14 +31,17 @@ function VectorAdd() {
   //Pick platform
   var platformList=cl.getPlatforms();
   platform=platformList[0];
-  log('using platform: '+platform.getPlatformInfo(cl.PLATFORM_NAME));
+  log('using platform: '+platform.getInfo(cl.PLATFORM_NAME));
   
   //Query the set of devices on this platform
   devices = platform.getDevices(cl.DEVICE_TYPE_GPU);
-  log('using device: '+devices[0].getDeviceInfo(cl.DEVICE_NAME));
+  log('using device: '+devices[0].getInfo(cl.DEVICE_NAME));
 
   // create GPU context for this platform
-  context=cl.createContext(cl.DEVICE_TYPE_GPU, [cl.CONTEXT_PLATFORM, platform]);
+  context=cl.createContext({
+	  deviceType: cl.DEVICE_TYPE_GPU, 
+	  platform: platform
+  });
 
   kernelSourceCode = [
 "__kernel void vadd(__global int *a, __global int *b, __global int *c, uint iNumElements) ",

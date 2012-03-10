@@ -11,6 +11,7 @@
 #if defined (__APPLE__) || defined(MACOSX)
     #include <OpenGL/gl3.h>
     #include <OpenGL/gl3ext.h>
+    #include <OpenGL/OpenGL.h>
     #include <OpenCL/opencl.h>
     #define CL_GL_CONTEXT_KHR 0x2008
     #define CL_EGL_DISPLAY_KHR 0x2009

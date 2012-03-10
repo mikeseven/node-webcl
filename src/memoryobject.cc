@@ -8,13 +8,6 @@
 #include "memoryobject.h"
 #include <node_buffer.h>
 
-#if defined (__APPLE__) || defined(MACOSX)
-  #include <OpenGL/OpenGL.h>
-#else
-  #include <GL/gl.h>
-  #include <GL/glx.h>
-#endif
-
 #include <iostream>
 using namespace std;
 
@@ -36,9 +29,6 @@ void MemoryObject::Init(Handle<Object> target)
   constructor_template->SetClassName(String::NewSymbol("WebCLMemoryObject"));
 
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getInfo", getInfo);
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getImageInfo", getImageInfo);
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_createSubBuffer", createSubBuffer);
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getGLTextureInfo", getGLTextureInfo);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getGLObjectInfo", getGLObjectInfo);
 
   target->Set(String::NewSymbol("WebCLMemoryObject"), constructor_template->GetFunction());
@@ -116,113 +106,11 @@ JS_METHOD(MemoryObject::getInfo)
       return ThrowError("UNKNOWN ERROR");
     }
     size_t nbytes = *(size_t*)param_value;
-    return scope.Close(Buffer::New(param_value, nbytes)->handle_);
+    return scope.Close(node::Buffer::New(param_value, nbytes)->handle_);
   }
   default:
     return ThrowError("UNKNOWN param_name");
   }
-}
-
-JS_METHOD(MemoryObject::getImageInfo)
-{
-  HandleScope scope;
-  MemoryObject *mo = ObjectWrap::Unwrap<MemoryObject>(args.This());
-  cl_mem_info param_name = args[0]->NumberValue();
-
-  switch (param_name) {
-  case CL_IMAGE_ELEMENT_SIZE:
-  case CL_IMAGE_ROW_PITCH:
-  case CL_IMAGE_SLICE_PITCH:
-  case CL_IMAGE_WIDTH:
-  case CL_IMAGE_HEIGHT:
-  case CL_IMAGE_DEPTH: {
-    size_t param_value=0;
-    cl_int ret=::clGetImageInfo(mo->getMemory(),param_name,sizeof(size_t), &param_value, NULL);
-    if (ret != CL_SUCCESS) {
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_INVALID_MEM_OBJECT);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowError("UNKNOWN ERROR");
-    }
-    return scope.Close(JS_INT(param_value));
-  }
-  case CL_IMAGE_FORMAT: {
-    cl_image_format param_value;
-    cl_int ret=::clGetImageInfo(mo->getMemory(),param_name,sizeof(cl_image_format), &param_value, NULL);
-    if (ret != CL_SUCCESS) {
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_INVALID_MEM_OBJECT);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowError("UNKNOWN ERROR");
-    }
-    cl_channel_order channel_order = param_value.image_channel_order;
-    cl_channel_type channel_type = param_value.image_channel_data_type;
-    Local<Object> obj = Object::New();
-    obj->Set(JS_STR("order"), JS_INT(channel_order));
-    obj->Set(JS_STR("data_type"), JS_INT(channel_type));
-    return scope.Close(obj);
-  }
-  default:
-    return ThrowError("UNKNOWN param_name");
-  }
-}
-
-// CL 1.1
-JS_METHOD(MemoryObject::createSubBuffer)
-{
-  HandleScope scope;
-  MemoryObject *mo = UnwrapThis<MemoryObject>(args);
-  cl_mem_flags flags = args[0]->Uint32Value();
-  cl_buffer_create_type buffer_create_type = args[1]->Uint32Value();
-
-  if (buffer_create_type != CL_BUFFER_CREATE_TYPE_REGION)
-    return ThrowError("CL_INVALID_VALUE");
-
-  cl_buffer_region region;
-  Local<Object> obj = args[2]->ToObject();
-  region.origin = obj->Get(JS_STR("origin"))->Uint32Value();
-  region.size = obj->Get(JS_STR("size"))->Uint32Value();
-
-  cl_int ret=CL_SUCCESS;
-  cl_mem sub_buffer = ::clCreateSubBuffer(
-      mo->getMemory(),
-      flags,
-      buffer_create_type,
-      &region,
-      &ret);
-  if (ret != CL_SUCCESS) {
-    REQ_ERROR_THROW(CL_INVALID_VALUE);
-    REQ_ERROR_THROW(CL_INVALID_BUFFER_SIZE);
-    REQ_ERROR_THROW(CL_INVALID_HOST_PTR);
-    REQ_ERROR_THROW(CL_MEM_OBJECT_ALLOCATION_FAILURE);
-    REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
-  }
-
-  return scope.Close(MemoryObject::New(sub_buffer)->handle_);
-}
-
-JS_METHOD(MemoryObject::getGLTextureInfo)
-{
-  HandleScope scope;
-  MemoryObject *memobj = UnwrapThis<MemoryObject>(args);
-  cl_gl_texture_info param_name = args[0]->NumberValue();
-  GLint param_value;
-
-  // TODO no other value that GLenum/GLint returned in OpenCL 1.1
-  int ret = ::clGetGLTextureInfo(memobj->getMemory(), param_name, sizeof(GLint), &param_value, NULL);
-  if (ret != CL_SUCCESS) {
-    REQ_ERROR_THROW(CL_INVALID_MEM_OBJECT);
-    REQ_ERROR_THROW(CL_INVALID_GL_OBJECT);
-    REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
-  }
-
-  return scope.Close(JS_INT(param_value));
 }
 
 JS_METHOD(MemoryObject::getGLObjectInfo)
@@ -268,6 +156,204 @@ MemoryObject *MemoryObject::New(cl_mem mw)
   Local<Object> obj = constructor_template->GetFunction()->NewInstance(1, &arg);
 
   MemoryObject *memobj = ObjectWrap::Unwrap<MemoryObject>(obj);
+  memobj->memory = mw;
+
+  return memobj;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// WebCLBuffer
+///////////////////////////////////////////////////////////////////////////////
+
+Persistent<FunctionTemplate> WebCLBuffer::constructor_template;
+
+void WebCLBuffer::Init(Handle<Object> target)
+{
+  HandleScope scope;
+
+  Local<FunctionTemplate> t = FunctionTemplate::New(WebCLBuffer::New);
+  constructor_template = Persistent<FunctionTemplate>::New(t);
+
+  constructor_template->InstanceTemplate()->SetInternalFieldCount(1);
+  constructor_template->SetClassName(String::NewSymbol("WebCLBuffer"));
+
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_createSubBuffer", createSubBuffer);
+
+  target->Set(String::NewSymbol("WebCLBuffer"), constructor_template->GetFunction());
+}
+
+WebCLBuffer::WebCLBuffer(Handle<Object> wrapper) : MemoryObject(wrapper)
+{
+}
+
+// CL 1.1
+JS_METHOD(WebCLBuffer::createSubBuffer)
+{
+  HandleScope scope;
+  WebCLBuffer *mo = UnwrapThis<WebCLBuffer>(args);
+  cl_mem_flags flags = args[0]->Uint32Value();
+  cl_buffer_create_type buffer_create_type = args[1]->Uint32Value();
+
+  if (buffer_create_type != CL_BUFFER_CREATE_TYPE_REGION)
+    return ThrowError("CL_INVALID_VALUE");
+
+  cl_buffer_region region;
+  Local<Object> obj = args[2]->ToObject();
+  region.origin = obj->Get(JS_STR("origin"))->Uint32Value();
+  region.size = obj->Get(JS_STR("size"))->Uint32Value();
+
+  cl_int ret=CL_SUCCESS;
+  cl_mem sub_buffer = ::clCreateSubBuffer(
+      mo->getMemory(),
+      flags,
+      buffer_create_type,
+      &region,
+      &ret);
+  if (ret != CL_SUCCESS) {
+    REQ_ERROR_THROW(CL_INVALID_VALUE);
+    REQ_ERROR_THROW(CL_INVALID_BUFFER_SIZE);
+    REQ_ERROR_THROW(CL_INVALID_HOST_PTR);
+    REQ_ERROR_THROW(CL_MEM_OBJECT_ALLOCATION_FAILURE);
+    REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+    return ThrowError("UNKNOWN ERROR");
+  }
+
+  return scope.Close(WebCLBuffer::New(sub_buffer)->handle_);
+}
+
+JS_METHOD(WebCLBuffer::New)
+{
+  HandleScope scope;
+  WebCLBuffer *mo = new WebCLBuffer(args.This());
+  mo->Wrap(args.This());
+  registerCLObj(mo);
+  return scope.Close(args.This());
+}
+
+WebCLBuffer *WebCLBuffer::New(cl_mem mw)
+{
+  HandleScope scope;
+
+  Local<Value> arg = Integer::NewFromUnsigned(0);
+  Local<Object> obj = constructor_template->GetFunction()->NewInstance(1, &arg);
+
+  WebCLBuffer *memobj = ObjectWrap::Unwrap<WebCLBuffer>(obj);
+  memobj->memory = mw;
+
+  return memobj;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// WebCLImage
+///////////////////////////////////////////////////////////////////////////////
+
+Persistent<FunctionTemplate> WebCLImage::constructor_template;
+
+void WebCLImage::Init(Handle<Object> target)
+{
+  HandleScope scope;
+
+  Local<FunctionTemplate> t = FunctionTemplate::New(WebCLImage::New);
+  constructor_template = Persistent<FunctionTemplate>::New(t);
+
+  constructor_template->InstanceTemplate()->SetInternalFieldCount(1);
+  constructor_template->SetClassName(String::NewSymbol("WebCLImage"));
+
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getInfo", getInfo);
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getGLTextureInfo", getGLTextureInfo);
+
+  target->Set(String::NewSymbol("WebCLImage"), constructor_template->GetFunction());
+}
+
+WebCLImage::WebCLImage(Handle<Object> wrapper) : MemoryObject(wrapper)
+{
+}
+
+JS_METHOD(WebCLImage::getInfo)
+{
+  HandleScope scope;
+  WebCLImage *mo = UnwrapThis<WebCLImage>(args);
+  cl_mem_info param_name = args[0]->NumberValue();
+
+  switch (param_name) {
+  case CL_IMAGE_ELEMENT_SIZE:
+  case CL_IMAGE_ROW_PITCH:
+  case CL_IMAGE_SLICE_PITCH:
+  case CL_IMAGE_WIDTH:
+  case CL_IMAGE_HEIGHT:
+  case CL_IMAGE_DEPTH: {
+    size_t param_value=0;
+    cl_int ret=::clGetImageInfo(mo->getMemory(),param_name,sizeof(size_t), &param_value, NULL);
+    if (ret != CL_SUCCESS) {
+      REQ_ERROR_THROW(CL_INVALID_VALUE);
+      REQ_ERROR_THROW(CL_INVALID_MEM_OBJECT);
+      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      return ThrowError("UNKNOWN ERROR");
+    }
+    return scope.Close(JS_INT(param_value));
+  }
+  case CL_IMAGE_FORMAT: {
+    cl_image_format param_value;
+    cl_int ret=::clGetImageInfo(mo->getMemory(),param_name,sizeof(cl_image_format), &param_value, NULL);
+    if (ret != CL_SUCCESS) {
+      REQ_ERROR_THROW(CL_INVALID_VALUE);
+      REQ_ERROR_THROW(CL_INVALID_MEM_OBJECT);
+      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      return ThrowError("UNKNOWN ERROR");
+    }
+    cl_channel_order channel_order = param_value.image_channel_order;
+    cl_channel_type channel_type = param_value.image_channel_data_type;
+    Local<Object> obj = Object::New();
+    obj->Set(JS_STR("order"), JS_INT(channel_order));
+    obj->Set(JS_STR("data_type"), JS_INT(channel_type));
+    return scope.Close(obj);
+  }
+  default:
+    return ThrowError("UNKNOWN param_name");
+  }
+}
+
+JS_METHOD(WebCLImage::getGLTextureInfo)
+{
+  HandleScope scope;
+  WebCLImage *memobj = UnwrapThis<WebCLImage>(args);
+  cl_gl_texture_info param_name = args[0]->NumberValue();
+  GLint param_value;
+
+  // TODO no other value that GLenum/GLint returned in OpenCL 1.1
+  int ret = ::clGetGLTextureInfo(memobj->getMemory(), param_name, sizeof(GLint), &param_value, NULL);
+  if (ret != CL_SUCCESS) {
+    REQ_ERROR_THROW(CL_INVALID_MEM_OBJECT);
+    REQ_ERROR_THROW(CL_INVALID_GL_OBJECT);
+    REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+    return ThrowError("UNKNOWN ERROR");
+  }
+
+  return scope.Close(JS_INT(param_value));
+}
+
+JS_METHOD(WebCLImage::New)
+{
+  HandleScope scope;
+  WebCLImage *mo = new WebCLImage(args.This());
+  mo->Wrap(args.This());
+  registerCLObj(mo);
+  return scope.Close(args.This());
+}
+
+WebCLImage *WebCLImage::New(cl_mem mw)
+{
+
+  HandleScope scope;
+
+  Local<Value> arg = Integer::NewFromUnsigned(0);
+  Local<Object> obj = constructor_template->GetFunction()->NewInstance(1, &arg);
+
+  WebCLImage *memobj = ObjectWrap::Unwrap<WebCLImage>(obj);
   memobj->memory = mw;
 
   return memobj;

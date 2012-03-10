@@ -31,7 +31,7 @@
        "examples": "examples"
    },
    "engines": {
-       "node": ">=0.5.5"
+       "node": ">=0.7.0"
    },
    "scripts": {
        "install": "node-waf configure clean build"

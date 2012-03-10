@@ -11,13 +11,6 @@
 #include "device.h"
 #include "event.h"
 
-#if defined (__APPLE__) || defined(MACOSX)
-  #include <OpenGL/OpenGL.h>
-#else
-  #include <GL/gl.h>
-  #include <GL/glx.h>
-#endif
-
 #include <vector>
 #include <iostream>
 #include <algorithm>

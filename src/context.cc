@@ -257,7 +257,7 @@ JS_METHOD(Context::createBuffer)
     return ThrowError("UNKNOWN ERROR");
   }
 
-  return scope.Close(MemoryObject::New(mw)->handle_);
+  return scope.Close(WebCLBuffer::New(mw)->handle_);
 }
 
 JS_METHOD(Context::createImage2D)
@@ -302,7 +302,7 @@ JS_METHOD(Context::createImage2D)
   }
 
   cout<<"Created image2d "<<hex<<mw<<dec<<endl;
-  return scope.Close(MemoryObject::New(mw)->handle_);
+  return scope.Close(WebCLImage::New(mw)->handle_);
 }
 
 JS_METHOD(Context::createImage3D)
@@ -342,7 +342,7 @@ JS_METHOD(Context::createImage3D)
     return ThrowError("UNKNOWN ERROR");
   }
 
-  return scope.Close(MemoryObject::New(mw)->handle_);
+  return scope.Close(WebCLImage::New(mw)->handle_);
 }
 
 JS_METHOD(Context::createSampler)
@@ -458,7 +458,7 @@ JS_METHOD(Context::createFromGLBuffer)
     return ThrowError("UNKNOWN ERROR");
   }
 
-  return scope.Close(MemoryObject::New(clmem)->handle_);
+  return scope.Close(WebCLBuffer::New(clmem)->handle_);
 }
 
 JS_METHOD(Context::createFromGLTexture2D)
@@ -481,7 +481,7 @@ JS_METHOD(Context::createFromGLTexture2D)
     return ThrowError("UNKNOWN ERROR");
   }
 
-  return scope.Close(MemoryObject::New(clmem)->handle_);
+  return scope.Close(WebCLImage::New(clmem)->handle_);
 }
 
 JS_METHOD(Context::createFromGLTexture3D)
@@ -504,7 +504,7 @@ JS_METHOD(Context::createFromGLTexture3D)
     return ThrowError("UNKNOWN ERROR");
   }
 
-  return scope.Close(MemoryObject::New(clmem)->handle_);
+  return scope.Close(WebCLImage::New(clmem)->handle_);
 }
 
 JS_METHOD(Context::createFromGLRenderbuffer)
@@ -525,7 +525,7 @@ JS_METHOD(Context::createFromGLRenderbuffer)
     return ThrowError("UNKNOWN ERROR");
   }
 
-  return scope.Close(MemoryObject::New(clmem)->handle_);
+  return scope.Close(WebCLBuffer::New(clmem)->handle_);
 }
 
 JS_METHOD(Context::New)

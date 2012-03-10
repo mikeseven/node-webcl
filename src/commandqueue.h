@@ -31,7 +31,7 @@ public:
   static JS_METHOD(enqueueCopyBuffer);
   static JS_METHOD(enqueueWriteBufferRect);
   static JS_METHOD(enqueueReadBufferRect);
-  static JS_METHOD(enqueueCopyBufferRect);
+  //static JS_METHOD(enqueueCopyBufferRect);
   static JS_METHOD(enqueueWriteImage);
   static JS_METHOD(enqueueReadImage);
   static JS_METHOD(enqueueCopyImage);

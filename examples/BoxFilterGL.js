@@ -1,10 +1,3 @@
-/*
- ** This file contains proprietary software owned by Motorola Mobility, Inc. **
- ** No rights, expressed or implied, whatsoever to this software are provided by Motorola Mobility, Inc. hereunder. **
- ** 
- ** (c) Copyright 2011 Motorola Mobility, Inc.  All Rights Reserved.  **
- */
-
 var cl = require('../webcl'), 
     clu = require('../lib/clUtils'), 
     util = require('util'), 
@@ -13,258 +6,248 @@ var cl = require('../webcl'),
     document = WebGL.document(), 
     Image = WebGL.Image, 
     log = console.log, 
-    requestAnimationFrame = document.requestAnimationFrame,
-    alert=console.log;
+    requestAnimationFrame = document.requestAnimationFrame, 
+    alert = console.log;
+var use_gpu = true;
+var nodejs = true;
+var image;
 
-//First check if the webcl extension is installed at all 
-if (cl == undefined) {
-  alert("Unfortunately your system does not support WebCL. "
-      + "Make sure that you have the WebCL extension installed.");
-  return;
-}
+var COMPUTE_KERNEL_FILENAME = "BoxFilter.cl";
+var WIDTH = 800;
+var HEIGHT = 800;
 
-// Defines and globals for box filter processing demo
-// *****************************************************************************
-var uiNumOutputPix = 64; // Default output pix per workgroup... may be modified depending HW/OpenCl caps
+// cl stuff
+var /* cl_context */        ComputeContext;
+var /* cl_command_queue */  ComputeCommands;
+var /* cl_program */        ComputeProgram;
+var /* cl_device_id */      ComputeDeviceId;
+var /* cl_device_type */    ComputeDeviceType;
+var /* cl_sampler */        RowSampler;
+var /* cl_mem */            ComputeBufTemp, ComputePBO;
+var /* cl_kernel */         ckBoxRowsTex, ckBoxColumns;
+var MaxWorkGroupSize;
+
+var Width = WIDTH;
+var Height = HEIGHT;
+var Reshaped = false;
+var Update = false;
+var newWidth, newHeight; // only when reshape
+
+// simulation
+var uiNumOutputPix = 32; // Default output pix per workgroup... may be modified depending HW/OpenCl caps
 var iRadius = 10; // initial radius of 2D box filter mask
-var fScale = 1 / (2 * iRadius + 1); // precalculated GV rescaling value
-var iRadiusAligned;
+var fScale = 1.0 / (2 * iRadius + 1.0); // precalculated GV rescaling value
 
-// Image data vars
-var image = new Image();
-image.filename = "lenaRGB.jpg";
-
-// OpenGL, Display Window and GUI Globals
-var iGraphicsWinWidth = 800; // GL Window width
-var iGraphicsWinHeight = 800; // GL Windows height
-
-// OpenCL vars
-var clSourcefile = "BoxFilter.cl"; // OpenCL kernel source file
-var cSourceCL; // Buffer to hold source for compilation
-var cpPlatform; // OpenCL platform
-var cxGPUContext; // OpenCL context
-var cqCommandQueue; // OpenCL command que
-var cdDevices; // device list
-var uiNumDevsUsed = 1; // Number of devices used in this sample
-var cpProgram; // OpenCL program
-var ckBoxRowsLmem; // OpenCL Kernel for row sum (using lmem)
-var ckBoxRowsTex; // OpenCL Kernel for row sum (using 2d Image/texture)
-var ckBoxColumns; // OpenCL for column sum and normalize
-var cmDevBufIn; // OpenCL device memory object (buffer or 2d Image) for input
-// data
-var cmDevBufTemp; // OpenCL device memory temp buffer object
-var cmDevBufOut; // OpenCL device memory output buffer object
-var cmCL_PBO = 0; // OpenCL representation of GL pixel buffer
-var InputFormat; // OpenCL format descriptor for 2D image useage
-var RowSampler; // Image Sampler for box filter processing with texture (2d
-// Image)
-var szGlobalWorkSize = [ 0, 0 ]; // global # of work items
-var szLocalWorkSize = [ 0, 0 ]; // work group # of work items
-var szMaxWorkgroupSize = 512; // initial max # of work items
-var szParmDataBytes; // Byte size of context information
-var szKernelLength; // Byte size of kernel code
-var ciErrNum; // Error code var
-
-// OpenGL interop vars
+// gl stuff
 var gl;
-var tex_screen; // (offscreen) render target
-var vbo = {}, pbo; // pixel buffer for interop
-var prog; // shader program
+var shaderProgram;
+var pbo;
+var TextureId = null;
+var TextureWidth = WIDTH;
+var TextureHeight = HEIGHT;
+var VertexPosBuffer, TexCoordsBuffer;
 
-document.setTitle("BoxFilterGL");
-document.on('keydown', processKey);
-document.on('quit', function() {
-  log('exiting app');
+function initialize(device_type) {
+  log('Initializing');
+  document.setTitle("OpenCL GPU BoxFilter Demo");
+  var canvas = document.createElement("fbo-canvas", Width, Height);
+
+  // install UX callbacks
+  document.addEventListener('resize', reshape);
+  document.addEventListener('keydown', keydown);
+
+  var err = init_gl(canvas);
+  if (err != cl.SUCCESS)
+    return err;
+
+  err = init_cl(device_type);
+  if (err != 0)
+    return err;
+
+  configure_shared_data(image.width, image.height);
+
+  // Warmup call to assure OpenCL driver is awake
+  resetKernelArgs(image.width, image.height, iRadius, fScale);
   
-});
-main();
-
-function main() {
-  // load image
-  image.onload=function() { 
-    console.log("Loaded image: " + image.src);
-    log("Image Width = " + image.width + ", Height = " + image.height
-        + ", bpp = 32, Mask Radius = " + iRadius);
-    
-    // adjust window to pixel ratio
-    iGraphicsWinHeight *= image.height/image.width;
-    document.createWindow(iGraphicsWinWidth, iGraphicsWinHeight);
-  };
-  image.src = __dirname + '/' + image.filename;
-
-  // Allocate intermediate and output host image buffers
-  image.szBuffBytes = image.width * image.height * 4;
-
-  var uiTemp = new Uint8Array(image.szBuffBytes); // Host buffer to hold intermediate image data
-
-  // Initialize GL Context
-  initGL(document.createElement("mycanvas",iGraphicsWinWidth, iGraphicsWinHeight));
-
-  // Pick platform
-  var platformList = cl.getPlatforms();
-  cpPlatform = platformList[0];
-
-  // Query the set of GPU devices on this platform
-  cdDevices = cpPlatform.getDevices(cl.DEVICE_TYPE_GPU);
-  log("  # of Devices Available = " + cdDevices.length);
-  var device = cdDevices[0];
-  log("  Using Device 0: " + device.getInfo(cl.DEVICE_NAME));
-
-  // get CL-GL extension
-  var extensions = device.getInfo(cl.DEVICE_EXTENSIONS);
-  var hasGLSupport = extensions.search(/gl.sharing/i) >= 0;
-  log(hasGLSupport ? "GL-CL extension available ;-)" : "No GL support");
-  if (!hasGLSupport)
-    process.exit(-1);
-
-  // create the OpenCL context
-  cxGPUContext = cl.createContext({ devices: device,
-                                    platform: cpPlatform,
-                                    shareGroup: gl
-                                  });
-
-  // create a command-queue
-  cqCommandQueue = cxGPUContext.createCommandQueue(device, 0);
-
-  // Allocate OpenCL object for the source data
-  // 2D Image (Texture) on device
-  InputFormat = {
-    order : cl.RGBA,
-    data_type : cl.UNSIGNED_INT8
-  };
-
-  cmDevBufIn =
-      cxGPUContext.createImage2D(cl.MEM_READ_ONLY | cl.MEM_USE_HOST_PTR,
-          InputFormat, image.width, image.height, image.pitch, image);
-
-  RowSampler =
-      cxGPUContext.createSampler(false, cl.ADDRESS_CLAMP, cl.FILTER_NEAREST);
-
-  // Allocate the OpenCL intermediate and result buffer memory objects on the
-  // device GMEM
-  cmDevBufTemp = cxGPUContext.createBuffer(cl.MEM_READ_WRITE, image.szBuffBytes);
-  cmDevBufOut = cxGPUContext.createBuffer(cl.MEM_WRITE_ONLY, image.szBuffBytes);
-
-  // Create OpenCL representation of OpenGL PBO
-  cmCL_PBO = cxGPUContext.createFromGLBuffer(cl.MEM_WRITE_ONLY, pbo);
-
-  // create the program
-  var sourceCL = fs.readFileSync(__dirname + '/' + clSourcefile, 'ascii');
-  cpProgram = cxGPUContext.createProgram(sourceCL);
-
-  // build the program
-  try {
-    cpProgram.build(device, "-cl-fast-relaxed-math");
-  } catch (err) {
-    log('Error building program: ' + err);
-    return;
-  }
-  log("Build Status: "
-      + cpProgram.getBuildInfo(device, cl.PROGRAM_BUILD_STATUS));
-  log("Build Options: "
-      + cpProgram.getBuildInfo(device, cl.PROGRAM_BUILD_OPTIONS));
-  log("Build Log: " + cpProgram.getBuildInfo(device, cl.PROGRAM_BUILD_LOG));
-
-  // Create kernels
-  ckBoxRowsTex = cpProgram.createKernel("BoxRowsTex");
-  ckBoxColumns = cpProgram.createKernel("BoxColumns");
-
-  // set the kernel args
-  ResetKernelArgs(image.width, image.height, iRadius, fScale);
-
-  // start main rendering loop
-  DisplayGL();
-}
-
-// Function to set kernel args that only change outside of GLUT loop
-// *****************************************************************************
-function ResetKernelArgs(uiWidth, uiHeight, r, fScale) {
-  log("Radius: "+r);
+  BoxFilterGPU(image, ComputePBO, iRadius, fScale);
   
-  // Set the Argument values for the row kernel
-  // (Image/texture version)
-  ckBoxRowsTex.setArg(0, cmDevBufIn, cl.type.MEM);
-  ckBoxRowsTex.setArg(1, cmDevBufTemp, cl.type.MEM);
-  ckBoxRowsTex.setArg(2, RowSampler, cl.type.SAMPLER);
-  ckBoxRowsTex.setArg(3, uiWidth, cl.type.INT | cl.type.UNSIGNED);
-  ckBoxRowsTex.setArg(4, uiHeight, cl.type.INT | cl.type.UNSIGNED);
-  ckBoxRowsTex.setArg(5, r, cl.type.INT);
-  ckBoxRowsTex.setArg(6, fScale, cl.type.FLOAT);
+  ComputeCommands.finish();
 
-  // Set the Argument values for the column kernel
-  ckBoxColumns.setArg(0, cmDevBufTemp, cl.type.MEM);
-  ckBoxColumns.setArg(1, cmDevBufOut, cl.type.MEM);
-  ckBoxColumns.setArg(2, uiWidth, cl.type.INT | cl.type.UNSIGNED);
-  ckBoxColumns.setArg(3, uiHeight, cl.type.INT | cl.type.UNSIGNED);
-  ckBoxColumns.setArg(4, r, cl.type.INT);
-  ckBoxColumns.setArg(5, fScale, cl.type.FLOAT);
+  return cl.SUCCESS;
 }
 
-// OpenCL computation function for GPU:
-// Copies input data to the device, runs kernel, copies output data back to host
-// *****************************************************************************
-function BoxFilterGPU(image, cmOutputBuffer, r, fScale) {
-  // Setup Kernel Args
-  ckBoxColumns.setArg(1, cmOutputBuffer, cl.type.MEM);
+// /////////////////////////////////////////////////////////////////////
+// OpenGL stuff
+// /////////////////////////////////////////////////////////////////////
 
-  // Copy input data from host to device
-  // 2D Image (Texture)
-  var szTexOrigin = [ 0, 0, 0 ]; // Offset of input texture origin relative to host image
-  var szTexRegion = [ image.width, image.height, 1 ]; // Size of texture region to operate on
-  cqCommandQueue.enqueueWriteImage(cmDevBufIn, cl.TRUE, szTexOrigin,
-      szTexRegion, 0, 0, image);
-
-  // Set global and local work sizes for row kernel
-  szLocalWorkSize[0] = uiNumOutputPix;
-  szLocalWorkSize[1] = 1;
-  szGlobalWorkSize[0] = szLocalWorkSize[0] * clu.DivUp(image.height, szLocalWorkSize[0]);
-  szGlobalWorkSize[1] = 1;
-  //log("row kernel work sizes: global= " + szGlobalWorkSize[0] + " local= " + szLocalWorkSize[0]);
-
-  // Sync host and start computation timer
-  cqCommandQueue.finish();
-
-  // Launch row kernel
-  // 2D Image (Texture)
-  cqCommandQueue.enqueueNDRangeKernel(ckBoxRowsTex, null, szGlobalWorkSize,
-      szLocalWorkSize);
-
-  // Set global and local work sizes for column kernel
-  szLocalWorkSize[0] = 64;
-  szLocalWorkSize[1] = 1;
-  szGlobalWorkSize[0] = szLocalWorkSize[0] * clu.DivUp(image.width, szLocalWorkSize[0]);
-  szGlobalWorkSize[1] = 1;
-  //log("column kernel work sizes: global= " + szGlobalWorkSize[0] + " local= " + szLocalWorkSize[0]);
-
-  // Launch column kernel
-  cqCommandQueue.enqueueNDRangeKernel(ckBoxColumns, null, szGlobalWorkSize, szLocalWorkSize);
-
-  // sync host
-  cqCommandQueue.finish();
-}
-
-//Create PBO
-//*****************************************************************************
-function createPBO(image_width, image_height) {
+function configure_shared_data(image_width, image_height) {
+  log('configure shared data');
+  
   // set up data parameter
   var num_texels = image_width * image_height;
   var num_values = num_texels * 4;
-  var size_tex_data = 1 * num_values;
+  var size_tex_data = 1 * num_values; // 1 is GL texture type UNSIGNED_BYTE size
 
   // create buffer object
-  var pbo = gl.createBuffer();
+  if (pbo) {
+    gl.bindBuffer(gl.ARRAY_BUFFER, pbo);
+    gl.deleteBuffer(pbo);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+  }
+  pbo = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, pbo);
 
   // buffer data
   gl.bufferData(gl.ARRAY_BUFFER, size_tex_data, gl.DYNAMIC_DRAW);
   gl.bindBuffer(gl.ARRAY_BUFFER, null);
 
-  return pbo;
+  // Create OpenCL representation of OpenGL PBO
+  ComputePBO = ComputeContext.createFromGLBuffer(cl.MEM_WRITE_ONLY, pbo);
+  if (!ComputePBO) {
+    alert("Error: Failed to create CL PBO buffer");
+    return -1;
+  }
 }
 
-//Init WebGL
-//*****************************************************************************
-function initGL(canvas) {
+function init_textures(width, height) {
+  log('  Init textures');
+
+  if (TextureId)
+    gl.deleteTexture(TextureId);
+  TextureId = null;
+
+  TextureWidth = width;
+  TextureHeight = height;
+
+  gl.activeTexture(gl.TEXTURE0);
+  TextureId = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, TextureId);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, TextureWidth, TextureHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+  gl.bindTexture(gl.TEXTURE_2D, null);
+}
+
+function init_buffers() {
+  log('  create buffers');
+  var VertexPos = [ -1, -1, 
+                    1, -1, 
+                    1, 1, 
+                    -1, 1 ];
+  var TexCoords = [ 0, 0, 
+                    1, 0, 
+                    1, 1, 
+                    0, 1 ];
+
+  VertexPosBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, VertexPosBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(VertexPos), gl.STATIC_DRAW);
+  VertexPosBuffer.itemSize = 2;
+  VertexPosBuffer.numItems = 4;
+
+  TexCoordsBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, TexCoordsBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(TexCoords), gl.STATIC_DRAW);
+  TexCoordsBuffer.itemSize = 2;
+  TexCoordsBuffer.numItems = 4;
+}
+
+function compile_shader(gl, id) {
+  var shaders = {
+    "shader-vs" : [ 
+        "attribute vec3 aCoords;",
+        "attribute vec2 aTexCoords;", 
+        "varying vec2 vTexCoords;",
+        "void main(void) {", 
+        "    gl_Position = vec4(aCoords, 1.0);",
+        "    vTexCoords = aTexCoords;", 
+        "}" ].join("\n"),
+    "shader-fs" : [
+         "#ifdef GL_ES",
+         "  precision mediump float;",
+         "#endif",
+         "varying vec2 vTexCoords;",
+         "uniform sampler2D uSampler;",
+         "void main(void) {",
+         "    gl_FragColor = texture2D(uSampler, vTexCoords.st);",
+         "}" ].join("\n"),
+  };
+
+  var shader;
+  if (nodejs) {
+    if (!shaders.hasOwnProperty(id))
+      return null;
+    var str = shaders[id];
+
+    if (id.match(/-fs/)) {
+      shader = gl.createShader(gl.FRAGMENT_SHADER);
+    } else if (id.match(/-vs/)) {
+      shader = gl.createShader(gl.VERTEX_SHADER);
+    } else {
+      return null;
+    }
+
+  } else {
+    var shaderScript = document.getElementById(id);
+    if (!shaderScript) {
+      return null;
+    }
+
+    var str = "";
+    var k = shaderScript.firstChild;
+    while (k) {
+      if (k.nodeType == 3) {
+        str += k.textContent;
+      }
+      k = k.nextSibling;
+    }
+    if (shaderScript.type == "x-shader/x-fragment") {
+      shader = gl.createShader(gl.FRAGMENT_SHADER);
+    } else if (shaderScript.type == "x-shader/x-vertex") {
+      shader = gl.createShader(gl.VERTEX_SHADER);
+    } else {
+      return null;
+    }
+  }
+
+  gl.shaderSource(shader, str);
+  gl.compileShader(shader);
+
+  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+    alert(gl.getShaderInfoLog(shader));
+    return null;
+  }
+
+  return shader;
+}
+
+function init_shaders() {
+  log('  Init shaders');
+  var fragmentShader = compile_shader(gl, "shader-fs");
+  var vertexShader = compile_shader(gl, "shader-vs");
+
+  shaderProgram = gl.createProgram();
+  gl.attachShader(shaderProgram, vertexShader);
+  gl.attachShader(shaderProgram, fragmentShader);
+  gl.linkProgram(shaderProgram);
+
+  if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+    alert("Could not initialise shaders");
+  }
+
+  gl.useProgram(shaderProgram);
+
+  shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aCoords");
+  gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
+
+  shaderProgram.textureCoordAttribute = gl.getAttribLocation(shaderProgram, "aTexCoords");
+  gl.enableVertexAttribArray(shaderProgram.textureCoordAttribute);
+  
+  shaderProgram.samplerUniform = gl.getUniformLocation(shaderProgram, "uSampler");
+}
+
+function init_gl(canvas) {
+  log('Init GL');
   try {
     gl = canvas.getContext("experimental-webgl");
     gl.viewportWidth = canvas.width;
@@ -273,195 +256,404 @@ function initGL(canvas) {
   }
   if (!gl) {
     alert("Could not initialise WebGL, sorry :-(");
+    return -1;
   }
 
-  initBuffers();
-  initShaders();
+  init_buffers();
+  init_shaders();
+  init_textures(image.width, image.height);
 
-  // pixel buffer and texture for WebCL
-  pbo = createPBO(image.width, image.height);
-  tex_screen = createTexture(image.width, image.height);
+  return cl.SUCCESS;
 }
 
-function initBuffers() {
-  var vertex_coords = [ -1, -1, 
-                        1, -1, 
-                        1, 1, 
-                        -1, 1 ];
+function renderTexture() {
+  // we just draw a screen-aligned texture
+  gl.viewport(0, 0, Width, Height);
 
-  var tex_coords = [ 0, 0, 
-                     1, 0, 
-                     1, 1, 
-                     0, 1 ];
-
-  /* Create VBOs */
-  vbo.coord = gl.createBuffer();
-  vbo.tc = gl.createBuffer();
-
-  /* VBO to hold vertex coordinates */
-  gl.bindBuffer(gl.ARRAY_BUFFER, vbo.coord);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertex_coords), gl.STATIC_DRAW);
-  vbo.coord.itemSize = 2;
-  vbo.coord.numItems = 4;
-
-  /* VBO to hold texture coordinates */
-  gl.bindBuffer(gl.ARRAY_BUFFER, vbo.tc);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(tex_coords), gl.STATIC_DRAW);
-  vbo.tc.itemSize = 2;
-  vbo.tc.numItems = 4;
-}
-
-/* Create and compile shaders */
-function initShaders() {
-  var vs = gl.createShader(gl.VERTEX_SHADER);
-  var fs = gl.createShader(gl.FRAGMENT_SHADER);
-
-  var fs_source =
-      [ "uniform sampler2D tex;", 
-        "varying vec2 vTextureCoord;",
-        "void main() {",
-        "    gl_FragColor = texture2D(tex, vec2(vTextureCoord.s, vTextureCoord.t));",
-        "}" ].join('\n');
-  var vs_source =
-      [ "attribute vec3 in_coords;", 
-        "attribute vec2 in_texcoords;", 
-        "varying vec2 vTextureCoord;",
-        "void main(void) {",
-        "vTextureCoord = in_texcoords;",
-        "gl_Position = vec4(in_coords, 1.0);", 
-        "}" ].join('\n');
-  
-  gl.shaderSource(vs, vs_source);
-  gl.shaderSource(fs, fs_source);
-
-  gl.compileShader(vs);
-  gl.compileShader(fs);
-
-  prog = gl.createProgram();
-
-  gl.bindAttribLocation(prog, 0, "in_coords");
-  gl.bindAttribLocation(prog, 1, "in_color");
-
-  gl.attachShader(prog, vs);
-  gl.attachShader(prog, fs);
-
-  gl.linkProgram(prog);
-  gl.useProgram(prog);
-
-  prog.coord = gl.getAttribLocation(prog, "in_coords");
-  gl.enableVertexAttribArray(prog.coord);
-  
-  prog.tc = gl.getAttribLocation(prog, "in_color");
-  gl.enableVertexAttribArray(prog.tc);
-}
-
-//Create texture for GL-GL Interop
-//*****************************************************************************
-function createTexture(size_x, size_y) {
-  // create a texture
-  tex_name = gl.createTexture();
-  gl.bindTexture(gl.TEXTURE_2D, tex_name);
-
-  // set basic parameters
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-
-  // buffer data
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, size_x, size_y, 0, gl.RGBA,
-      gl.UNSIGNED_BYTE, null);
-
-  return tex_name;
-}
-
-// rendering loop
-// *****************************************************************************
-function DisplayGL() {
-  // Run filter processing (if toggled on), then render
-  // Sync GL and acquire buffer from GL
-  gl.finish();
-  cqCommandQueue.enqueueAcquireGLObjects(cmCL_PBO);
-
-  // Compute on GPU and get kernel processing time
-  BoxFilterGPU(image, cmCL_PBO, iRadius, fScale);
-
-  // Release GL output or explicit output copy
-  // Release buffer
-  cqCommandQueue.enqueueReleaseGLObjects(cmCL_PBO);
-  cqCommandQueue.finish();
-
-  // Copy results back to host memory, block until complete
-  /*var uiOutput=new Uint8Array(szBuffBytes);
-  cqCommandQueue.enqueueReadBuffer(cmDevBufOut, cl.TRUE, {
-    offset: 0, 
-    size: szBuffBytes, 
-    buffer: uiOutput
-  });
-  
-  // PNG uses 32-bit images, JPG can only work on 24-bit images
-  if(!image.save('out_'+iRadius+'.png',uiOutput, 
-      image.width,image.height, image.pitch, image.bpp, 0xFF0000, 0x00FF00, 0xFF))
-    log("Error saving image");
-
-  return;*/
-  
-  // Update the texture from the pbo
-  gl.bindTexture(gl.TEXTURE_2D, tex_screen);
-  gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, pbo);
-  gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, image.width, image.height, gl.RGBA, gl.UNSIGNED_BYTE, null);
-  gl.activeTexture(gl.TEXTURE0);
-  gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, null);
-  gl.bindTexture(gl.TEXTURE_2D, null);
-
-  // Draw processed image
-  displayTexture(tex_screen);
-
-  // Flip backbuffer to screen
-  requestAnimationFrame(DisplayGL);
-}
-
-function displayTexture(texture) {
-
-  // render a screen sized quad
   gl.enable(gl.TEXTURE_2D);
-  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.bindTexture(gl.TEXTURE_2D, TextureId);
 
-  gl.viewport(0, 0, iGraphicsWinWidth, iGraphicsWinHeight);
+  // draw screen aligned quad
+  gl.bindBuffer(gl.ARRAY_BUFFER, VertexPosBuffer);
+  gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute,
+      VertexPosBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
-  gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.bindBuffer(gl.ARRAY_BUFFER, TexCoordsBuffer);
+  gl.vertexAttribPointer(shaderProgram.textureCoordAttribute,
+      TexCoordsBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
-  gl.bindTexture(gl.TEXTURE_2D, texture);
-  gl.bindBuffer(gl.ARRAY_BUFFER, vbo.coord);
-  gl.vertexAttribPointer(prog.coord, vbo.coord.itemSize, gl.FLOAT, false, 0, 0);
-
-  gl.bindBuffer(gl.ARRAY_BUFFER, vbo.tc);
-  gl.vertexAttribPointer(prog.tc, vbo.tc.itemSize, gl.FLOAT, false, 0, 0);
+  gl.activeTexture(gl.TEXTURE0);
+  gl.uniform1i(shaderProgram.samplerUniform, 0);
 
   gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
 
-  gl.disable(gl.TEXTURE_2D);
   gl.bindTexture(gl.TEXTURE_2D, null);
+  gl.disable(gl.TEXTURE_2D);
 }
 
-function processKey(evt) {
-  //log('process key: '+evt.sym);
-  var oldr=iRadius;
-  
-  switch(evt.sym) {
-  case 61:   // + or = increases filter radius
-    if ((szMaxWorkgroupSize - (((iRadius + 1 + 15) / 16) * 16) - iRadius - 1) > 0)
+// /////////////////////////////////////////////////////////////////////
+// OpenCL stuff
+// /////////////////////////////////////////////////////////////////////
+
+function init_cl(device_type) {
+  log('init CL');
+  ComputeDeviceType = device_type ? cl.DEVICE_TYPE_GPU : cl.DEVICE_TYPE_CPU;
+
+  // Pick platform
+  var platformList = cl.getPlatforms();
+  var platform = platformList[0];
+
+  // create the OpenCL context
+  ComputeContext = cl.createContext({
+    deviceType: ComputeDeviceType, 
+    shareGroup: gl, 
+    platform: platform });
+
+  var device_ids = ComputeContext.getInfo(cl.CONTEXT_DEVICES);
+  if (!device_ids) {
+    alert("Error: Failed to retrieve compute devices for context!");
+    return -1;
+  }
+
+  var device_found = false;
+  for ( var i in device_ids) {
+    device_type = device_ids[i].getInfo(cl.DEVICE_TYPE);
+    if (device_type == ComputeDeviceType) {
+      ComputeDeviceId = device_ids[i];
+      device_found = true;
+      break;
+    }
+  }
+
+  if (!device_found) {
+    alert("Error: Failed to locate compute device!");
+    return -1;
+  }
+
+  // Create a command queue
+  //
+  ComputeCommands = ComputeContext.createCommandQueue(ComputeDeviceId, 0);
+  if (!ComputeCommands) {
+    alert("Error: Failed to create a command queue!");
+    return -1;
+  }
+
+  // Report the device vendor and device name
+  // 
+  var vendor_name = ComputeDeviceId.getInfo(cl.DEVICE_VENDOR);
+  var device_name = ComputeDeviceId.getInfo(cl.DEVICE_NAME);
+
+  log("Connecting to " + vendor_name + " " + device_name);
+
+  if (!ComputeDeviceId.getInfo(cl.DEVICE_IMAGE_SUPPORT)) {
+    log("Application requires images: Images not supported on this device.");
+    return cl.IMAGE_FORMAT_NOT_SUPPORTED;
+  }
+
+  err = init_cl_buffers();
+  if (err != cl.SUCCESS) {
+    log("Failed to create compute result! Error " + err);
+    return err;
+  }
+
+  err = init_cl_kernels();
+  if (err != cl.SUCCESS) {
+    log("Failed to setup compute kernel! Error " + err);
+    return err;
+  }
+
+  return cl.SUCCESS;
+}
+
+function init_cl_kernels() {
+  log('  setup CL kernel');
+
+  ComputeProgram = null;
+
+  log("Loading kernel source from file '" + COMPUTE_KERNEL_FILENAME + "'...");
+  source = fs.readFileSync(__dirname + '/' + COMPUTE_KERNEL_FILENAME, 'ascii');
+  if (!source) {
+    alert("Error: Failed to load kernel source!");
+    return -1;
+  }
+
+  // Create the compute program from the source buffer
+  //
+  ComputeProgram = ComputeContext.createProgram(source);
+  if (!ComputeProgram) {
+    alert("Error: Failed to create compute program!");
+    return -1;
+  }
+
+  // Build the program executable
+  //
+  try {
+    ComputeProgram.build(ComputeDeviceId, "-cl-fast-relaxed-math");
+  } catch (err) {
+    log('Error building program: ' + err);
+    alert("Error: Failed to build program executable!\n"
+        + ComputeProgram.getBuildInfo(ComputeDeviceId, cl.PROGRAM_BUILD_LOG));
+    return -1;
+  }
+
+  // Create the compute kernels from within the program
+  //
+  ckBoxRowsTex = ComputeProgram.createKernel('BoxRowsTex');
+  if (!ckBoxRowsTex) {
+    alert("Error: Failed to create compute row kernel!");
+    return -1;
+  }
+  ckBoxColumns = ComputeProgram.createKernel('BoxColumns');
+  if (!ckBoxColumns) {
+    alert("Error: Failed to create compute column kernel!");
+    return -1;
+  }
+  return cl.SUCCESS;
+}
+
+function resetKernelArgs(image_width, image_height, r, scale) {
+  log('Reset kernel args to image ' + image_width + "x" + image_height + " r="
+      + r + " scale=" + scale);
+
+  // set the kernel args
+  try {
+    // Set the Argument values for the row kernel
+    ckBoxRowsTex.setArg(0, ComputeTexture);
+    ckBoxRowsTex.setArg(1, ComputeBufTemp);
+    ckBoxRowsTex.setArg(2, RowSampler, cl.type.SAMPLER);
+    ckBoxRowsTex.setArg(3, image_width, cl.type.INT);
+    ckBoxRowsTex.setArg(4, image_height, cl.type.INT);
+    ckBoxRowsTex.setArg(5, r, cl.type.INT);
+    ckBoxRowsTex.setArg(6, scale, cl.type.FLOAT);
+  } catch (err) {
+    alert("Failed to set row kernel args! " + err);
+    return -10;
+  }
+
+  try {
+    // Set the Argument values for the column kernel
+    ckBoxColumns.setArg(0, ComputeBufTemp);
+    ckBoxColumns.setArg(1, ComputePBO);
+    ckBoxColumns.setArg(2, image_width, cl.type.INT);
+    ckBoxColumns.setArg(3, image_height, cl.type.INT);
+    ckBoxColumns.setArg(4, r, cl.type.INT);
+    ckBoxColumns.setArg(5, scale, cl.type.FLOAT);
+  } catch (err) {
+    alert("Failed to set column kernel args! " + err);
+    return -10;
+  }
+
+  // Get the maximum work group size for executing the kernel on the device
+  //
+  MaxWorkGroupSize = ckBoxRowsTex.getWorkGroupInfo(ComputeDeviceId,
+      cl.KERNEL_WORK_GROUP_SIZE);
+
+  log("  MaxWorkGroupSize: " + MaxWorkGroupSize);
+  return cl.SUCCESS;
+}
+
+function init_cl_buffers() {
+  log('  create CL buffers');
+
+  // 2D Image (Texture) on device
+  var InputFormat = {
+    order : cl.RGBA,
+    data_type : cl.UNSIGNED_INT8
+  };
+  ComputeTexture = ComputeContext.createImage2D(cl.MEM_READ_ONLY
+      | cl.MEM_USE_HOST_PTR, InputFormat, image.width, image.height, image.pitch, image);
+  if (!ComputeTexture) {
+    alert("Error: Failed to create a Image2D on device");
+    return -1;
+  }
+
+  RowSampler = ComputeContext.createSampler(false, cl.ADDRESS_CLAMP, cl.FILTER_NEAREST);
+  if (!RowSampler) {
+    alert("Error: Failed to create a row sampler");
+    return -1;
+  }
+
+  // Allocate the OpenCL intermediate and result buffer memory objects on the device GMEM
+  ComputeBufTemp = ComputeContext.createBuffer(cl.MEM_READ_WRITE, image.szBuffBytes);
+  if (!ComputeBufTemp) {
+    alert("Error: Failed to create temporary buffer");
+    return -1;
+  }
+
+  return cl.SUCCESS;
+}
+
+function cleanup() {
+  document.removeEventListener('resize', reshape);
+  document.removeEventListener('keydown', keydown);
+  ComputeCommands.finish();
+  ckBoxRowsTex = null;
+  ckBoxColumns = null;
+  RowSampler = null;
+  ComputeProgram = null;
+  ComputeCommands = null;
+  ComputePBO = null;
+  ComputeBufTemp=null;
+  ComputeContext = null;
+}
+
+function shutdown() {
+  log("Shutting down...");
+  cleanup();
+  process.exit(0);
+}
+
+// /////////////////////////////////////////////////////////////////////
+// rendering loop
+// /////////////////////////////////////////////////////////////////////
+
+function display(timestamp) {
+  //FrameCount++;
+  //var uiStartTime = new Date().getTime();
+
+  gl.clearColor(0, 0, 0, 0);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  if (Reshaped) {
+    Reshaped = false;
+    Width = newWidth;
+    Height = newHeight;
+    cleanup();
+    if (initialize(ComputeDeviceType == cl.DEVICE_TYPE_GPU) != cl.SUCCESS)
+      shutdown();
+    gl.viewport(0, 0, Width, Height);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+  }
+
+  var err = execute_kernel();
+  if (err != 0) {
+    alert("Error " + err + " from execute_kernel!");
+    process.exit(1);
+  }
+
+  renderTexture();
+  //reportInfo();
+
+  gl.finish(); // for timing
+
+  //var uiEndTime = new Date().getTime();
+  //ReportStats(uiStartTime, uiEndTime);
+  //DrawText(TextOffset[0], TextOffset[1], 1, (Animated == 0) ? "Press space to animate" : " ");
+  return cl.SUCCESS;
+}
+
+function reshape(evt) {
+  newWidth = evt.width;
+  newHeight = evt.height;
+  Reshaped = true;
+}
+
+function keydown(evt) {
+  log('process key: ' + evt.which);
+  var oldr = iRadius;
+
+  switch (evt.which) {
+  case '='.charCodeAt(0): // + or = increases filter radius
+    if ((MaxWorkGroupSize - (((iRadius + 1 + 15) / 16) * 16) - iRadius - 1) > 0)
       iRadius++;
     break;
-  case 45: // - or _ decreases filter radius
+  case '-'.charCodeAt(0): // - or _ decreases filter radius
     if (iRadius > 1)
       iRadius--;
     break;
   }
-
-  // Update filter parameters
-  if(oldr!=iRadius) {
-    fScale = 1 / (2 * iRadius + 1);
-    ResetKernelArgs(image.width, image.height, iRadius, fScale);
+  if (oldr != iRadius) {
+    Update = true;
   }
 }
+
+function execute_kernel() {
+  //log('execute_kernel...');
+
+  if (Update) {
+    Update = false;
+
+    // Update filter parameters
+    log('Updating for new radius: ' + iRadius);
+    fScale = 1 / (2 * iRadius + 1);
+    resetKernelArgs(image.width, image.height, iRadius, fScale);
+  }
+
+  // Sync GL and acquire buffer from GL
+  gl.finish();
+  ComputeCommands.enqueueAcquireGLObjects(ComputePBO);
+
+  BoxFilterGPU(image, ComputePBO, iRadius, fScale);
+
+  // Release buffer
+  ComputeCommands.enqueueReleaseGLObjects(ComputePBO);
+  ComputeCommands.finish();
+  
+  // Update the texture from the pbo
+  gl.bindTexture(gl.TEXTURE_2D, TextureId);
+  gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, pbo);
+  gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, image.width, image.height, gl.RGBA,
+      gl.UNSIGNED_BYTE, null);
+  gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, null);
+  gl.bindTexture(gl.TEXTURE_2D, null);
+
+  return cl.SUCCESS;
+}
+
+function BoxFilterGPU(image, cmOutputBuffer, r, scale) {
+  // Setup Kernel Args
+  ckBoxColumns.setArg(1, cmOutputBuffer, cl.type.MEM);
+
+  // 2D Image (Texture)
+  var TexOrigin = [ 0, 0, 0 ]; // Offset of input texture origin relative to host image
+  var TexRegion = [ image.width, image.height, 1 ]; // Size of texture region to operate on
+  ComputeCommands.enqueueWriteImage(ComputeTexture, cl.TRUE, TexOrigin,
+      TexRegion, 0, 0, image);
+
+  // Set global and local work sizes for row kernel
+  var local = [ uiNumOutputPix, 1 ];
+  var global = [ clu.DivUp(image.height, local[0]) * local[0], 1 ];
+
+  try {
+    ComputeCommands.enqueueNDRangeKernel(ckBoxRowsTex, null, global, local);
+  } catch (err) {
+    alert("Failed to enqueue row kernel! " + err);
+    return err;
+  }
+
+  // Set global and local work sizes for column kernel
+  local = [ uiNumOutputPix, 1 ];
+  global = [ clu.DivUp(image.width, local[0]) * local[0], 1 ];
+
+  try {
+    ComputeCommands.enqueueNDRangeKernel(ckBoxColumns, null, global, local);
+  } catch (err) {
+    alert("Failed to enqueue column kernel! " + err);
+    return err;
+  }
+}
+
+function main() {
+  // loading image
+  image = new Image();
+  image.onload=function() { 
+    console.log("Loaded image: " + image.src);
+    log("Image Width = " + image.width + ", Height = " + image.height + ", bpp = 32");
+    image.szBuffBytes = image.height * image.pitch;
+    Width=image.width;
+    Height=image.height;
+    
+    // init window
+    if(initialize(use_gpu)==cl.SUCCESS) {
+      function update() {
+        display();
+        requestAnimationFrame(update);
+      }
+      update();
+    }
+  };
+  image.src=__dirname+"/mike_scooter.jpg";
+}
+
+main();
+

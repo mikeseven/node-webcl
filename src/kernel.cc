@@ -180,129 +180,138 @@ JS_METHOD(Kernel::setArg)
 
   Kernel *kernel = UnwrapThis<Kernel>(args);
   cl_uint arg_index = args[0]->Uint32Value();
-  cl_uint type = 0;
   cl_int ret;
 
-  type = args[2]->Uint32Value();
-
-  // TODO check types other than MEMORY_OBJECT
-  if(type & types::LOCAL) { // TODO is it true for all __local args?
-    cl_float arg = args[1]->NumberValue();
-    ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(float), &arg);
-  }
-  else if(type & types::MEM) {
-    cl_mem mem;
-    if (args[1]->IsUint32()) {
-      cl_uint ptr = args[1]->Uint32Value();
-      if (ptr)
-        return ThrowError("ARG is not of specified type");
-      mem = 0;
-    } else {
+  if(!args[1]->IsArray() && args[1]->IsObject()) {
+    String::AsciiValue str(args[1]->ToObject()->GetPrototype()->ToDetailString());
+    if(strcmp("WebCLSampler",*str)) {
       MemoryObject *mo = ObjectWrap::Unwrap<MemoryObject>(args[1]->ToObject());
-      mem = mo->getMemory();
-    }
-    ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_mem), &mem);
-  }
-  else if(type & types::SAMPLER) {
-    cl_sampler sampler;
-    if (args[1]->IsUint32()) {
-      cl_uint ptr = args[1]->Uint32Value();
-      if (ptr)
-        return ThrowError("ARG is not of specified type");
-      sampler = 0;
-    } else {
-      Sampler *s = ObjectWrap::Unwrap<Sampler>(args[1]->ToObject());
-      sampler = s->getSampler();
-    }
-    ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_sampler), &sampler);
-  }
-  else if(type & types::INT) {
-    if (((type & types::UNSIGNED) && !args[1]->IsUint32()) || !args[1]->IsInt32())
-      return ThrowError("ARG is not of specified type");
-    if(type & types::UNSIGNED) {
-      cl_uint arg=args[1]->Uint32Value();
-      ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_uint), &arg);
+      cl_mem mem = mo->getMemory();
+      ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_mem), &mem);
     }
     else {
-      cl_int arg=args[1]->Int32Value();
-      ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_int), &arg);
-    }
-  }
-  else if(type & types::LONG) {
-    if (!args[1]->IsNumber())
-      return ThrowError("ARG is not of specified type");
-    if(type & types::UNSIGNED) {
-      cl_ulong arg = args[1]->NumberValue();
-      ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_ulong), &arg);
-    }
-    else {
-      cl_long arg = args[1]->NumberValue();
-      ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_long), &arg);
-    }
-  }
-  else if(type & types::FLOAT) {
-    if (type & types::V4) {
-      float *arg=NULL;
-      if(args[1]->IsArray()) {
-        Local<Array> arr=Array::Cast(*args[1]);
-        if(arr->GetIndexedPropertiesExternalArrayDataLength() < 0) {
-          // pure JS array, no native backend
-          float _arg[4];
-          _arg[0]=arr->Get(0)->NumberValue();
-          _arg[1]=arr->Get(1)->NumberValue();
-          _arg[2]=arr->Get(2)->NumberValue();
-          _arg[3]=arr->Get(3)->NumberValue();
-          ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_float)*4, _arg);
-        }
-        else {
-          arg=(float*)arr->GetIndexedPropertiesExternalArrayData();
-          ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_float)*4, arg);
-        }
+      cl_sampler sampler;
+      if (args[1]->IsUint32()) {
+        cl_uint ptr = args[1]->Uint32Value();
+        if (ptr)
+          return ThrowError("ARG is not of specified type");
+        sampler = 0;
+      } else {
+        Sampler *s = ObjectWrap::Unwrap<Sampler>(args[1]->ToObject());
+        sampler = s->getSampler();
       }
-      else if(args[1]->IsObject()) {
-        arg=(float*)args[1]->ToObject()->GetIndexedPropertiesExternalArrayData();
-        ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_float)*4, arg);
-      }
-    }
-    else if (!args[1]->IsNumber())
-      return ThrowError("ARG is not of specified type");
-    else {
-      cl_float arg = args[1]->NumberValue();
-      ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_float), &arg);
-    }
-  }
-  else if(type & types::HALF_FLOAT) {
-    if (!args[1]->IsNumber())
-      return ThrowError("ARG is not of specified type");
-    cl_half arg = args[1]->NumberValue();
-    ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_half), &arg);
-  }
-  else if(type & types::SHORT) {
-    if (!args[1]->IsNumber())
-      return ThrowError("ARG is not of specified type");
-    if(type & types::UNSIGNED) {
-      cl_ushort arg = args[1]->NumberValue();
-      ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_ushort), &arg);
-    }
-    else {
-      cl_short arg = args[1]->NumberValue();
-      ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_short), &arg);
-    }
-  }
-  else if(type & types::CHAR) {
-    if (!args[1]->IsNumber())
-      return ThrowError("ARG is not of specified type");
-    if(type & types::UNSIGNED) {
-      cl_uchar arg = args[1]->NumberValue();
-      ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_uchar), &arg);
-    }
-    else {
-      cl_char arg = args[1]->NumberValue();
-      ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_char), &arg);
+      ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_sampler), &sampler);
     }
   }
   else {
-    return ThrowError("UNKNOWN TYPE");
+    cl_uint type = args[2]->Uint32Value();
+    cl_uint vec_type = type & 0xFFFF0000;
+    type &= 0xFFFF;
+
+    // TODO support for vectors
+    // TODO check types LOCAL
+    switch (type) {
+    case types::LOCAL_MEMORY_SIZE: {
+      ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(float), NULL);
+      break;
+    }
+    case types::INT: {
+      if (!args[1]->IsInt32())
+        return ThrowError("ARG is not of specified type");
+      cl_int arg = args[1]->Int32Value();
+      ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_int), &arg);
+      break;
+    }
+    case types::UINT: {
+      if (!args[1]->IsUint32())
+        return ThrowError("ARG is not of specified type");
+      cl_uint arg = args[1]->Uint32Value();
+      ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_uint), &arg);
+      break;
+    }
+    case types::LONG: {
+      if (!args[1]->IsNumber())
+        return ThrowError("ARG is not of specified type");
+      cl_long arg = args[1]->NumberValue();
+      ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_long), &arg);
+      break;
+    }
+    case types::ULONG: {
+      if (!args[1]->IsNumber())
+        return ThrowError("ARG is not of specified type");
+      cl_ulong arg = args[1]->NumberValue();
+      ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_ulong), &arg);
+      break;
+    }
+    case types::FLOAT: {
+      if (vec_type & types::VEC4) {
+        float *arg = NULL;
+        if (args[1]->IsArray()) {
+          Local<Array> arr = Array::Cast(*args[1]);
+          if (arr->GetIndexedPropertiesExternalArrayDataLength() < 0) {
+            // pure JS array, no native backend
+            float _arg[4];
+            _arg[0] = arr->Get(0)->NumberValue();
+            _arg[1] = arr->Get(1)->NumberValue();
+            _arg[2] = arr->Get(2)->NumberValue();
+            _arg[3] = arr->Get(3)->NumberValue();
+            ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_float) * 4, _arg);
+          } else {
+            arg = (float*) arr->GetIndexedPropertiesExternalArrayData();
+            ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_float) * 4, arg);
+          }
+        } else if (args[1]->IsObject()) {
+          arg = (float*) args[1]->ToObject()->GetIndexedPropertiesExternalArrayData();
+          ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_float) * 4, arg);
+        }
+      } else if (!args[1]->IsNumber())
+        return ThrowError("ARG is not of specified type");
+      else {
+        cl_float arg = args[1]->NumberValue();
+        ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_float), &arg);
+      }
+      break;
+    }
+    case types::HALF: { // TODO HALF may not be mapped correctly!
+      if (!args[1]->IsNumber())
+        return ThrowError("ARG is not of specified type");
+      cl_half arg = args[1]->NumberValue();
+      ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_half), &arg);
+      break;
+    }
+    case types::SHORT: {
+      if (!args[1]->IsNumber())
+        return ThrowError("ARG is not of specified type");
+      cl_short arg = args[1]->NumberValue();
+      ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_short), &arg);
+      break;
+    }
+    case types::USHORT: {
+      if (!args[1]->IsNumber())
+        return ThrowError("ARG is not of specified type");
+      cl_ushort arg = args[1]->NumberValue();
+      ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_ushort), &arg);
+      break;
+    }
+    case types::CHAR: {
+      if (!args[1]->IsNumber())
+        return ThrowError("ARG is not of specified type");
+      cl_char arg = args[1]->NumberValue();
+      ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_char), &arg);
+      break;
+    }
+    case types::UCHAR: {
+      if (!args[1]->IsNumber())
+        return ThrowError("ARG is not of specified type");
+      cl_uchar arg = args[1]->NumberValue();
+      ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_uchar), &arg);
+      break;
+    }
+    default: {
+      return ThrowError("UNKNOWN TYPE");
+    }
+
+    }
   }
 
   if (ret != CL_SUCCESS) {

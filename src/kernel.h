@@ -14,34 +14,27 @@ namespace webcl {
 namespace types {
 
 enum CLType {
-  UNKNOWN = 0,
-  LOCAL = 1<<0,
-  POINTER = 1<<1,
-  UNSIGNED = 1<<2,
-  MEM=1<<3,
-  SAMPLER=1<<30,
-  COMPLEX = 1<<4,
-  IMAGINARY = 1<<5,
-  BOOL=1<<8,
-  CHAR=1<<9,
-  SHORT=1<<10,
-  INT=1<<11,
-  LONG=1<<12,
-  FLOAT=1<<13,
-  HALF_FLOAT=1<<14,
-  DOUBLE=1<<15,
-  QUAD=1<<16,
-  LONG_LONG=1<<17,
-  V2=1<<20,
-  V3=1<<21,
-  V4=1<<22,
-  V8=1<<23,
-  V16=1<<24,
-  M2xN=1<<25,
-  M3xN=1<<26,
-  M4xN=1<<27,
-  M8xN=1<<28,
-  M16xN=1<<29
+  CHAR      = 0,
+  UCHAR     = 1,
+  SHORT     = 2,
+  USHORT    = 3,
+  INT       = 4,
+  UINT      = 5,
+  LONG      = 6,
+  ULONG     = 7,
+  FLOAT     = 8,
+  HALF      = 9,
+  DOUBLE    = 10,
+  QUAD      = 11,
+  LONG_LONG = 12,
+
+  VEC2      = 1<<16,
+  VEC3      = 1<<17,
+  VEC4      = 1<<18,
+  VEC8      = 1<<19,
+  VEC16     = 1<<20,
+
+  LOCAL_MEMORY_SIZE = 0xFF
 };
 
 } // namespace types

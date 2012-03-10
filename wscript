@@ -14,7 +14,6 @@ top='.'
 srcdir = "."
 blddir = "build"
 VERSION = "0.1.0"
-OPENCL_PATH="/usr/local/cuda"
 
 def set_options(opt):
   opt.tool_options('compiler_cxx')
@@ -27,15 +26,15 @@ def build(bld):
   obj = bld.new_task_gen("cxx", "shlib", "node_addon")
   obj.target = "node_webcl"
   obj.source  = bld.path.ant_glob('src/*.cc')
-  obj.cxxflags = ["-g", "-D_FILE_OFFSET_BITS=64", "-D_LARGEFILE_SOURCE","-fPIC"]
+  obj.cxxflags = ["-g", "-pthread"]
   if sys.platform.startswith('darwin'):
-    obj.framework = ['OpenCL', 'OpenGL']
+    obj.framework = ['OpenGL','OpenCL']
   elif sys.platform.startswith('linux'):
     obj.ldflags = [ "-lOpenCL","-lGL" ]
 
 def shutdown():
   if Options.commands['clean']:
-    if exists('node-webcl.node'): unlink('node-webcl.node')
+    if exists('node_webcl.node'): unlink('node_webcl.node')
   else:
-    if exists('build/Release/node-webcl.node') and not exists('node-webcl.node'):
-      symlink('build/Release/node-webcl.node', 'node-webcl.node')
+    if exists('build/Release/node_webcl.node') and not exists('node_webcl.node'):
+      symlink('build/Release/node_webcl.node', 'node_webcl.node')

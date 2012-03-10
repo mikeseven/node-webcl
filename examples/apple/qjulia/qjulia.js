@@ -453,6 +453,7 @@ function CLGL() {
       }
       ComputeResult = null;
 
+      log("Allocating compute result buffer in device memory...");
       ComputeResult = ComputeContext.createBuffer(cl.MEM_WRITE_ONLY, TextureTypeSize * 4 * TextureWidth * TextureHeight);
       if (!ComputeResult)
       {
@@ -673,9 +674,9 @@ function CLGL() {
         {
             Update = false;
             try {
-              ComputeKernel.setArg(0, ComputeResult, cl.type.MEM);
-              ComputeKernel.setArg(1, MuC, cl.type.FLOAT | cl.type.V4);
-              ComputeKernel.setArg(2, ColorC, cl.type.FLOAT | cl.type.V4);
+              ComputeKernel.setArg(0, ComputeResult);
+              ComputeKernel.setArg(1, MuC, cl.type.FLOAT | cl.type.VEC4);
+              ComputeKernel.setArg(2, ColorC, cl.type.FLOAT | cl.type.VEC4);
               ComputeKernel.setArg(3, Epsilon, cl.type.FLOAT);
             } catch (err) {
               alert("Failed to set kernel args! " + err);

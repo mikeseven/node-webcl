@@ -139,9 +139,9 @@ function main() {
   createVBO();
 
   // set the args values
-  ckKernel.setArg(0, vbo_cl, cl.type.MEM);
-  ckKernel.setArg(1, mesh_width, cl.type.INT | cl.type.UNSIGNED);
-  ckKernel.setArg(2, mesh_height, cl.type.INT | cl.type.UNSIGNED);
+  ckKernel.setArg(0, vbo_cl);
+  ckKernel.setArg(1, mesh_width, cl.type.UINT);
+  ckKernel.setArg(2, mesh_height, cl.type.UINT);
 
   // run OpenCL kernel once to generate vertex positions
   runKernel(0);

@@ -8,7 +8,6 @@
 var cl=require("../webcl"),
     clu=require("../lib/clUtils.js"),
     log=console.log;
-var Uint32Array = process.binding('typed_array').Uint32Array;
 
 //First check if the WebCL extension is installed at all 
 if (cl == undefined) {
@@ -37,10 +36,13 @@ function VectorAdd() {
 
   //Query the set of devices on this platform
   devices = platform.getDevices(cl.DEVICE_TYPE_GPU);
-  log('using device: '+devices[0].getDeviceInfo(cl.DEVICE_NAME));
+  log('using device: '+devices[0].getInfo(cl.DEVICE_NAME));
 
   // create GPU context for this platform
-  context=cl.createContext(cl.DEVICE_TYPE_GPU, [cl.CONTEXT_PLATFORM, platform]);
+  context=cl.createContext({
+	  deviceType: cl.DEVICE_TYPE_GPU, 
+	  platform: platform
+  });
 
   kernelSourceCode = [
 "__kernel void vadd(__global int *a, __global int *b, __global int *c, uint iNumElements) ",
@@ -73,6 +75,8 @@ function VectorAdd() {
   //Create buffer for A and copy host contents
   aBuffer = context.createBuffer(cl.MEM_READ_ONLY, size);
   map=queue.enqueueMapBuffer(aBuffer, cl.TRUE, cl.MAP_WRITE, 0, BUFFER_SIZE * Uint32Array.BYTES_PER_ELEMENT);
+  
+  // WARNING: this feature for typed arrays is only in nodejs 0.7.x
   var buf=new Uint32Array(map);
   for(var i=0;i<BUFFER_SIZE;i++) {
     buf.set(i, A[i]);
