@@ -13,11 +13,10 @@
            "twitter": "msevenier"
        }
    ],
-   "licenses": [
-       {
-           "type": "Commercial Motorola"
-       }
-   ],
+   "licenses": [{
+        "type": "BSD",
+        "url": "http://github.com/mikeseven/node-glfw/raw/master/LICENSE.BSD.txt"
+    }],
    "repositories": [
        {
            "type": "git",
