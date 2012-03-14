@@ -2,8 +2,9 @@ var cl = require('../../../webcl'),
     clu = require('../../../lib/clUtils'), 
     util = require('util'), 
     fs = require('fs'), 
-    WebGL = require('node_webgl'), 
+    WebGL = require('node_webgl'),
     document = WebGL.document(), 
+    ATB=document.AntTweakBar,
     Image = WebGL.Image, 
     log = console.log, 
     requestAnimationFrame = document.requestAnimationFrame,
@@ -38,11 +39,11 @@ function CLGL() {
   var Reshaped                = false;
   var newWidth, newHeight; // only when reshape
   var Epsilon                 = 0.003;
-  var ColorT                  = [0];
+  var colorT                  = 0;
   var ColorA                  = [ 0.25, 0.45, 1, 1 ];
   var ColorB                  = [ 0.25, 0.45, 1, 1 ];
   var ColorC                  = [ 0.25, 0.45, 1, 1 ];
-  var MuT                     = [0];
+  var t                       = 0;
   var MuA                     = [ -0.278, -0.479, 0, 0 ];
   var MuB                     = [ 0.278, 0.479, 0, 0 ];
   var MuC                     = [ -0.278, -0.479, -0.231, 0.235 ];
@@ -59,7 +60,8 @@ function CLGL() {
   var TextureTypeSize             = 1; // sizeof(char);
   var ActiveTextureUnit;
   var HostImageBuffer             = 0;
-
+  var twBar;
+  
   var VertexPos = [ 
      -1, -1,
       1, -1,
@@ -83,6 +85,7 @@ function CLGL() {
       var err=this.setupGraphics(canvas);
       if(err != cl.SUCCESS)
         return err;
+      this.initAntTweakBar(canvas);
       
       err=this.setupComputeDevices(device_type);
       if(err != 0)
@@ -292,7 +295,7 @@ function CLGL() {
     renderTexture: function( pvData )
     {
       // we just draw a screen-aligned texture
-      gl.viewport( 0, 0, Width, Height );
+      //gl.viewport( 0, 0, Width, Height );
 
       gl.enable( TextureTarget );
       gl.bindTexture( TextureTarget, TextureId );
@@ -506,11 +509,11 @@ function CLGL() {
       
       if(Animated)
       {
-        this.updateMu( MuT, MuA, MuB );
-        this.interpolate( MuC, MuT, MuA, MuB );
+        t = this.updateMu( t, MuA, MuB );
+        this.interpolate( MuC, t, MuA, MuB );
     
-        this.updateColor( ColorT, ColorA, ColorB );
-        this.interpolate(ColorC, ColorT, ColorA, ColorB );
+        colorT = this.updateColor( colorT, ColorA, ColorB );
+        this.interpolate(ColorC, colorT, ColorA, ColorB );
       }
       
       var err = this.recompute();
@@ -523,11 +526,14 @@ function CLGL() {
       this.renderTexture(HostImageBuffer);
       //this.reportInfo();
       
+      ATB.Draw();
+
       gl.finish(); // for timing
       
       //var uiEndTime = new Date().getTime();
       //ReportStats(uiStartTime, uiEndTime);
       //DrawText(TextOffset[0], TextOffset[1], 1, (Animated == 0) ? "Press space to animate" : " ");
+            
       return cl.SUCCESS;
     },
     reshape: function (evt)
@@ -625,11 +631,11 @@ function CLGL() {
     },
     updateMu: function( t, a, b )
     {
-        t[0] += 0.01;
+        t += 0.01;
 
-        if ( t[0] >= 1 )
+        if ( t >= 1 )
         {
-            t[0] = 0;
+            t = 0;
 
             a[ 0 ] = b[ 0 ];
             a[ 1 ] = b[ 1 ];
@@ -641,6 +647,7 @@ function CLGL() {
             b[ 2 ] = 2 * Math.random() - 1;
             b[ 3 ] = 2 * Math.random() - 1;
         }
+        return t;
     },
     randomColor: function( v )
     {
@@ -651,11 +658,11 @@ function CLGL() {
     },
     updateColor: function( t, a, b )
     {
-        t[0] += 0.01;
+        t += 0.01;
        
-        if ( t[0] >= 1 )
+        if ( t >= 1 )
         {
-            t[0] = 0;
+            t = 0;
 
             a[ 0 ] = b[ 0 ];
             a[ 1 ] = b[ 1 ];
@@ -664,6 +671,7 @@ function CLGL() {
 
             this.randomColor(b);
         }
+        return t;
     },
     recompute: function()
     {
@@ -729,10 +737,38 @@ function CLGL() {
         }
 
         return cl.SUCCESS;
+    },
+
+    initAntTweakBar: function (canvas) {
+      ATB.Init();
+      ATB.Define(" GLOBAL help='Quaternion Julia using WebCL.' "); // Message added to the help bar.
+      ATB.WindowSize(Width,Height);
+
+      twBar=new ATB.NewBar("qjulia");
+      twBar.AddVar("epsilon", ATB.TYPE_FLOAT, {
+        getter: function(data){ return Epsilon; },
+        setter: function(val,data) { Epsilon=val; },
+      },
+      " label='epsilon' min=0.001 max=0.05 step=0.001 keyIncr=s keyDecr=S help='epsilon' ");
+
+      twBar.AddVar("MuC", ATB.TYPE_QUAT4F, {
+        getter: function(data){ return MuC; },
+        //setter: function(val,data) { MuC=val; },
+      },
+      " label='Mu' opened=true help='Mu' ");
+
+      twBar.AddVar("Color", ATB.TYPE_COLOR4F, {
+        getter: function(data){ return ColorC; },
+        //setter: function(val,data) { MuC=val; },
+      },
+      " label='Color' opened=true help='Color' ");
+
+      ATB.Define(" qjulia valueswidth=fit"); // column width fits content 
     }
 
   };
-  
+
+
   return framework;
 }
 
@@ -742,7 +778,7 @@ function main() {
   if(clgl.initialize(use_gpu)==cl.SUCCESS) {
     function update() {
       clgl.display();
-      requestAnimationFrame(update,0);
+      requestAnimationFrame(update);
     }
     update();
   }
