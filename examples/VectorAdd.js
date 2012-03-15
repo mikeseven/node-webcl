@@ -5,9 +5,12 @@
 ** (c) Copyright 2011 Motorola Mobility, Inc.  All Rights Reserved.  **
 */
 
-var cl=require("../webcl.js"),
-    clu=require("../lib/clUtils.js"),
-    log=console.log;
+var nodejs = (typeof window === 'undefined');
+if(nodejs) {
+  cl = require('../webcl');
+  clu = require('../lib/clUtils');
+  log=console.log;
+}
 
 //First check if the WebCL extension is installed at all 
 if (cl == undefined) {
@@ -76,10 +79,10 @@ function VectorAdd() {
   }
   
   // Set kernel args
-  kernel.setArg(0, aBuffer, cl.type.MEM);
-  kernel.setArg(1, bBuffer, cl.type.MEM);
-  kernel.setArg(2, cBuffer, cl.type.MEM);
-  kernel.setArg(3, BUFFER_SIZE, cl.type.INT | cl.type.UNSIGNED);
+  kernel.setArg(0, aBuffer);
+  kernel.setArg(1, bBuffer);
+  kernel.setArg(2, cBuffer);
+  kernel.setArg(3, BUFFER_SIZE, cl.type.UINT);
 
   // Create command queue
   queue=context.createCommandQueue(devices[0], 0);

@@ -1,7 +1,7 @@
 __kernel void swapRB(__global const uchar* src,
                      __global uchar* dst,
-                     uint width,
-                     uint height)
+                     unsigned int width,
+                     unsigned int height)
 {
   int x = get_global_id(0);
   int i = x*4;

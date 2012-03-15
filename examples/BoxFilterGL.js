@@ -1,15 +1,19 @@
-var cl = require('../webcl'), 
-    clu = require('../lib/clUtils'), 
-    util = require('util'), 
-    fs = require('fs'), 
-    WebGL = require('node_webgl'), 
-    document = WebGL.document(), 
-    Image = WebGL.Image, 
-    log = console.log, 
-    requestAnimationFrame = document.requestAnimationFrame, 
-    alert = console.log;
+var nodejs = (typeof window === 'undefined');
+if(nodejs) {
+  cl = require('../webcl');
+  clu = require('../lib/clUtils');
+  util = require('util');
+  fs = require('fs');
+  WebGL = require('node_webgl');
+  document = WebGL.document();
+  Image = WebGL.Image;
+  log = console.log;
+  alert = console.log;
+}
+
+requestAnimationFrame = document.requestAnimationFrame;
+
 var use_gpu = true;
-var nodejs = true;
 var image;
 
 var COMPUTE_KERNEL_FILENAME = "BoxFilter.cl";

@@ -5,18 +5,22 @@
  * Mobility, Inc. All Rights Reserved. **
  */
 
-var cl = require('../webcl'), 
-    clu = require('../lib/clUtils'), 
-    util = require('util'), 
-    fs = require('fs'), 
-    WebGL = require('node_webgl'), 
-    document = WebGL.document(), 
-    nodejs = true, 
-    log = console.log, alert = log,
-    requestAnimationFrame = document.requestAnimationFrame;
+var nodejs = (typeof window === 'undefined');
+if(nodejs) {
+  cl = require('../webcl');
+  clu = require('../lib/clUtils');
+  util = require('util');
+  fs = require('fs');
+  WebGL = require('node_webgl');
+  document = WebGL.document();
+  log = console.log;
+  alert = console.log;
 
-//Read and eval library for mat/vec operations
-eval(fs.readFileSync(__dirname + '/glMatrix-0.9.5.min.js', 'utf8'));
+  //Read and eval library for mat/vec operations
+  eval(fs.readFileSync(__dirname + '/glMatrix-0.9.5.min.js', 'utf8'));
+}
+
+requestAnimationFrame = document.requestAnimationFrame;
 
 //First check if the webcl extension is installed at all
 if (cl == undefined) {

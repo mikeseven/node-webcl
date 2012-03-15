@@ -5,12 +5,15 @@
 ** (c) Copyright 2011 Motorola Mobility, Inc.  All Rights Reserved.  **
 */
 
-var cl = require('../webcl'),
-    clu = require('../lib/clUtils'),
-    util = require('util'),
-    fs = require('fs'),
-    Image = require('node-image').Image,
-    log=console.log;
+var nodejs = (typeof window === 'undefined');
+if(nodejs) {
+  cl = require('../webcl');
+  clu = require('../lib/clUtils');
+  util = require('util');
+  fs = require('fs');
+  Image = require('node-image').Image;
+  log = console.log;
+}
 
 //First check if the webcl extension is installed at all 
 if (cl == undefined) {
@@ -135,19 +138,19 @@ log(util.inspect(process.memoryUsage()));
 function ResetKernelArgs(width, height, r, fScale)
 {
   // (Image/texture version)
-  ckBoxRowsTex.setArg(0, cmDevBufIn, cl.type.MEM);
-  ckBoxRowsTex.setArg(1, cmDevBufTemp, cl.type.MEM);
-  ckBoxRowsTex.setArg(2, RowSampler, cl.type.SAMPLER); 
-  ckBoxRowsTex.setArg(3, width, cl.type.INT | cl.type.UNSIGNED);
-  ckBoxRowsTex.setArg(4, height, cl.type.INT | cl.type.UNSIGNED);
+  ckBoxRowsTex.setArg(0, cmDevBufIn);
+  ckBoxRowsTex.setArg(1, cmDevBufTemp);
+  ckBoxRowsTex.setArg(2, RowSampler); 
+  ckBoxRowsTex.setArg(3, width, cl.type.UINT);
+  ckBoxRowsTex.setArg(4, height, cl.type.UINT);
   ckBoxRowsTex.setArg(5, r, cl.type.INT);
   ckBoxRowsTex.setArg(6, fScale, cl.type.FLOAT);
 
   // Set the Argument values for the column kernel
-  ckBoxColumns.setArg(0, cmDevBufTemp, cl.type.MEM);
-  ckBoxColumns.setArg(1, cmDevBufOut, cl.type.MEM);
-  ckBoxColumns.setArg(2, width, cl.type.INT | cl.type.UNSIGNED);
-  ckBoxColumns.setArg(3, height, cl.type.INT | cl.type.UNSIGNED);
+  ckBoxColumns.setArg(0, cmDevBufTemp);
+  ckBoxColumns.setArg(1, cmDevBufOut);
+  ckBoxColumns.setArg(2, width, cl.type.UINT);
+  ckBoxColumns.setArg(3, height, cl.type.UINT);
   ckBoxColumns.setArg(4, r, cl.type.INT);
   ckBoxColumns.setArg(5, fScale, cl.type.FLOAT);
 }

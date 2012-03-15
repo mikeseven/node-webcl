@@ -5,10 +5,14 @@
 ** (c) Copyright 2011 Motorola Mobility, Inc.  All Rights Reserved.  **
 */
 
-var cl=require("../webcl"),
-    sys=require('util'),
-    clu=require('../lib/clUtils.js'),
-    log=console.log;
+var nodejs = (typeof window === 'undefined');
+if(nodejs) {
+  cl = require('../webcl');
+  clu = require('../lib/clUtils');
+  util = require('util');
+  log = console.log;
+}
+
 
 //list of platforms
 log("OpenCL SW Info:\n");

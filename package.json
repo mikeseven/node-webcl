@@ -34,6 +34,7 @@
    },
    "scripts": {
        "install": "node-waf configure clean build"
-   }
+   },
+   "dependencies": { 'node-webgl' }
 }
 
