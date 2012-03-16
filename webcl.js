@@ -87,189 +87,106 @@ cl.WebCLCommandQueue.prototype.getInfo=function (param_name) {
   return this._getInfo(param_name);
 }
 
-cl.WebCLCommandQueue.prototype.enqueueNDRangeKernel=function (kernel, offsets, globals, locals, event_list, generate_event) {
+cl.WebCLCommandQueue.prototype.enqueueNDRangeKernel=function (kernel, offsets, globals, locals, event_list, event) {
   if (!(arguments.length>= 4 && checkObjectType(kernel, 'WebCLKernel') &&
       typeof offsets === 'object' && typeof globals === 'object' && typeof locals === 'object' &&
       (typeof event_list === 'undefined' || typeof event_list === 'object') &&
-      (typeof generate_event === 'undefined' || typeof generate_event === 'boolean')
+      (typeof event === 'undefined' || checkObjectType(event, 'WebCLEvent'))
       )) {
-    throw new TypeError('Expected WebCLCommandQueue.enqueueNDRangeKernel(WebCLKernel kernel, int[3] offsets, int[3] globals, int[3] locals, WebCLEvent[] event_list, boolean generate_event)');
+    throw new TypeError('Expected WebCLCommandQueue.enqueueNDRangeKernel(WebCLKernel kernel, int[3] offsets, int[3] globals, int[3] locals, WebCLEvent[] event_list, WebCLEvent event)');
   }
-  return this._enqueueNDRangeKernel(kernel, offsets, globals, locals, event_list, generate_event);
+  return this._enqueueNDRangeKernel(kernel, offsets, globals, locals, event_list, event);
 }
 
-cl.WebCLCommandQueue.prototype.enqueueTask=function (kernel, event_list, generate_event) {
+cl.WebCLCommandQueue.prototype.enqueueTask=function (kernel, event_list, event) {
   if (!(arguments.length >= 1 && checkObjectType(kernel, 'WebCLKernel') &&
     (typeof event_list === 'undefined' || typeof event_list === 'object') &&
-    (typeof generate_event === 'undefined' || typeof generate_event === 'boolean')
+    (typeof event === 'undefined' || checkObjectType(event, 'WebCLEvent'))
     )) {
-    throw new TypeError('Expected WebCLCommandQueue.enqueueTask(WebCLKernel kernel, WebCLEvent[] event_list, boolean generate_event)');
+    throw new TypeError('Expected WebCLCommandQueue.enqueueTask(WebCLKernel kernel, WebCLEvent[] event_list, WebCLEvent event)');
   }
-  return this._enqueueTask(kernel, event_list, generate_event);
+  return this._enqueueTask(kernel, event_list, event);
 }
 
-cl.WebCLCommandQueue.prototype.enqueueWriteBuffer=function (memory_object, blocking_write, region, event_list, generate_event) {
+cl.WebCLCommandQueue.prototype.enqueueWriteBuffer=function (memory_object, blocking_write, region, event_list, event) {
   if (!(arguments.length >= 3 && 
     checkObjectType(memory_object, 'WebCLBuffer') &&
     (typeof blocking_write === 'boolean' || typeof blocking_write === 'number') &&
     typeof region === 'object' &&
     (typeof event_list === 'undefined' || typeof event_list === 'object') &&
-    (typeof generate_event === 'undefined' || typeof generate_event === 'boolean')
+    (typeof event === 'undefined' || checkObjectType(event, 'WebCLEvent'))
     )) {
-    throw new TypeError('Expected WebCLCommandQueue.enqueueWriteBuffer(WebCLBuffer memory_object, boolean blocking_write, WebCLRegion region, WebCLEvent[] event_list, boolean generate_event)');
+    throw new TypeError('Expected WebCLCommandQueue.enqueueWriteBuffer(WebCLBuffer memory_object, boolean blocking_write, WebCLRegion region, WebCLEvent[] event_list, WebCLEvent event)');
   }
-  return this._enqueueWriteBuffer(memory_object, blocking_write, region, event_list, generate_event);
+  return this._enqueueWriteBuffer(memory_object, blocking_write, region, event_list, event);
 }
 
-cl.WebCLCommandQueue.prototype.enqueueReadBuffer=function (memory_object, blocking_read, region, event_list, generate_event) {
+cl.WebCLCommandQueue.prototype.enqueueReadBuffer=function (memory_object, blocking_read, region, event_list, event) {
   if (!(arguments.length >= 3 && 
       checkObjectType(memory_object, 'WebCLBuffer') &&
       (typeof blocking_read === 'boolean' || typeof blocking_read === 'number') &&
       typeof region === 'object' &&
       (typeof event_list === 'undefined' || typeof event_list === 'object') &&
-      (typeof generate_event === 'undefined' || typeof generate_event === 'boolean') )) {
-    throw new TypeError('Expected WebCLCommandQueue.enqueueReadBuffer(WebCLBuffer memory_object, boolean blocking_read, WebCLRegion region, WebCLEvent[] event_list, boolean generate_event)');
+      (typeof event === 'undefined' || checkObjectType(event, 'WebCLEvent'))
+      )) {
+    throw new TypeError('Expected WebCLCommandQueue.enqueueReadBuffer(WebCLBuffer memory_object, boolean blocking_read, WebCLRegion region, WebCLEvent[] event_list, WebCLEvent event)');
   }
-  return this._enqueueReadBuffer(memory_object, blocking_read, region, event_list, generate_event);
+  return this._enqueueReadBuffer(memory_object, blocking_read, region, event_list, event);
 }
 
-cl.WebCLCommandQueue.prototype.enqueueCopyBuffer=function (memory_object_src, memory_object_dst, src_offset, dst_offset, size, event_list, generate_event) {
+cl.WebCLCommandQueue.prototype.enqueueCopyBuffer=function (memory_object_src, memory_object_dst, src_offset, dst_offset, size, event_list, event) {
   if (!(arguments.length >= 5 && 
       checkObjectType(memory_object_src, 'WebCLBuffer') &&
       checkObjectType(memory_object_dst, 'WebCLBuffer') &&
       typeof src_offset === 'number' &&
       typeof dst_offset === 'number' &&
       (typeof event_list === 'undefined' || typeof event_list === 'object') &&
-      (typeof generate_event === 'undefined' || typeof generate_event === 'boolean'))) {
-    throw new TypeError('Expected WebCLCommandQueue.enqueueCopyBuffer(WebCLBuffer memory_object_src, WebCLBuffer memory_object_dst, int src_offset, int dst_offset, int size, WebCLEvent[] event_list, boolean generate_event)');
+      (typeof event === 'undefined' || checkObjectType(event, 'WebCLEvent'))
+  )) {
+    throw new TypeError('Expected WebCLCommandQueue.enqueueCopyBuffer(WebCLBuffer memory_object_src, WebCLBuffer memory_object_dst, int src_offset, int dst_offset, int size, WebCLEvent[] event_list, WebCLEvent event)');
   }
-  return this._enqueueCopyBuffer(memory_object_src, memory_object_dst, src_offset, dst_offset, size, event_list, generate_event);
+  return this._enqueueCopyBuffer(memory_object_src, memory_object_dst, src_offset, dst_offset, size, event_list, event);
 }
 
-cl.WebCLCommandQueue.prototype.enqueueWriteBufferRect=function (memory_object, blocking_write, 
-    bufferRegion, hostRegion,
-    event_list, generate_event) {
+cl.WebCLCommandQueue.prototype.enqueueWriteBufferRect=function (memory_object, blocking_write, bufferRegion, hostRegion, event_list, event) {
   if (!(arguments.length >= 4 && 
     checkObjectType(memory_object, 'WebCLBuffer') &&
     (typeof blocking_write === 'boolean' || typeof blocking_write === 'number') &&
     typeof bufferRegion === 'object' && typeof hostRegion === 'object' &&
     (typeof event_list === 'undefined' || typeof event_list === 'object') &&
-    (typeof generate_event === 'undefined' || typeof generate_event === 'boolean'))) {
-    throw new TypeError('Expected WebCLCommandQueue.enqueueWriteBufferRect(WebCLBuffer memory_object, boolean blocking_write, WebCLRegion bufferRegion, WebCLRegion hostRegion, WebCLEvent[] event_list, boolean generate_event)');
+    (typeof event === 'undefined' || checkObjectType(event, 'WebCLEvent'))
+  )) {
+    throw new TypeError('Expected WebCLCommandQueue.enqueueWriteBufferRect(WebCLBuffer memory_object, boolean blocking_write, WebCLRegion bufferRegion, WebCLRegion hostRegion, WebCLEvent[] event_list, WebCLEvent event)');
   }
   return this._enqueueWriteBufferRect(memory_object, blocking_write, 
-      bufferRegion, hostRegion, event_list, generate_event);
+      bufferRegion, hostRegion, event_list, event);
 }
 
-cl.WebCLCommandQueue.prototype.enqueueReadBufferRect=function (memory_object, blocking_write, 
-    bufferRegion, hostRegion,
-    event_list, generate_event) {
+cl.WebCLCommandQueue.prototype.enqueueReadBufferRect=function (memory_object, blocking_write, bufferRegion, hostRegion, event_list, event) {
   if (!(arguments.length >= 4 && 
     checkObjectType(memory_object, 'WebCLBuffer') &&
     (typeof blocking_write === 'boolean' || typeof blocking_write === 'number') &&
     typeof bufferRegion === 'object' && typeof hostRegion === 'object' &&
     (typeof event_list === 'undefined' || typeof event_list === 'object') &&
-    (typeof generate_event === 'undefined' || typeof generate_event === 'boolean'))) {
-    throw new TypeError('Expected WebCLCommandQueue.enqueueReadBufferRect(WebCLBuffer memory_object, boolean blocking_write, WebCLRegion bufferRegion, WebCLRegion hostRegion, WebCLEvent[] event_list, boolean generate_event)');
+    (typeof event === 'undefined' || checkObjectType(event, 'WebCLEvent'))
+  )) {
+    throw new TypeError('Expected WebCLCommandQueue.enqueueReadBufferRect(WebCLBuffer memory_object, boolean blocking_write, WebCLRegion bufferRegion, WebCLRegion hostRegion, WebCLEvent[] event_list, WebCLEvent event)');
   }
-  return this._enqueueReadBufferRect(memory_object, blocking_write, 
-      bufferRegion, hostRegion, event_list, generate_event);
+  return this._enqueueReadBufferRect(memory_object, blocking_write, bufferRegion, hostRegion, event_list, event);
 }
 
-cl.WebCLCommandQueue.prototype.enqueueCopyBufferRect=function (srcRegion, dstRegion, 
-    event_list, generate_event) {
+cl.WebCLCommandQueue.prototype.enqueueCopyBufferRect=function (srcRegion, dstRegion, event_list, event) {
   if (!(arguments.length >= 2 && 
     typeof srcRegion === 'object' && typeof dstRegion === 'object' &&
     (typeof event_list === 'undefined' || typeof event_list === 'object') &&
-    (typeof generate_event === 'undefined' || typeof generate_event === 'boolean'))) {
-    throw new TypeError('Expected WebCLCommandQueue.enqueueCopyBufferRect(WebCLRegion srcRegion, WebCLRegion dstRegion, WebCLEvent[] event_list, boolean generate_event)');
+    (typeof event === 'undefined' || checkObjectType(event, 'WebCLEvent'))
+  )) {
+    throw new TypeError('Expected WebCLCommandQueue.enqueueCopyBufferRect(WebCLRegion srcRegion, WebCLRegion dstRegion, WebCLEvent[] event_list, WebCLEvent event)');
   }
-  return this._enqueueCopyBufferRect(srcRegion, dstRegion, 
-      event_list, generate_event);
-}
-/* TODO remove these methods for WebCLRegion
-cl.WebCLCommandQueue.prototype.enqueueWriteBufferRect=function (memory_object, blocking_write, 
-    bufferOrigin, hostOrigin, regionArray, buffer_row_pitch, buffer_slice_pitch, 
-    host_row_pitch, host_slice_pitch, host_ptr,
-    event_list, generate_event) {
-  if (!(arguments.length >= 10 && 
-    checkObjectType(memory_object, 'WebCLMemoryObject') &&
-    (typeof blocking_write === 'boolean' || typeof blocking_write === 'number') &&
-    typeof bufferOrigin === 'object' && typeof hostOrigin === 'object' &&
-    typeof regionArray === 'object' &&
-    typeof buffer_row_pitch === 'number' &&
-    typeof buffer_slice_pitch === 'number' &&
-    typeof host_row_pitch === 'number' &&
-    typeof buffer_row_pitch === 'number' &&
-    typeof host_slice_pitch === 'number' &&
-    typeof host_ptr === 'object' &&
-    (typeof event_list === 'undefined' || typeof event_list === 'object') &&
-    (typeof generate_event === 'undefined' || typeof generate_event === 'boolean'))) {
-    throw new TypeError('Expected WebCLCommandQueue.enqueueWriteBufferRect(WebCLMemoryObject memory_object, boolean blocking_write, WebCLRegion region, WebCLEvent[] event_list, boolean generate_event)');
-  }
-  return this._enqueueWriteBufferRect(memory_object, blocking_write, 
-      bufferOrigin, hostOrigin, regionArray, buffer_row_pitch, buffer_slice_pitch, 
-      host_row_pitch, host_slice_pitch, host_ptr,
-      event_list, generate_event);
+  return this._enqueueCopyBufferRect(srcRegion, dstRegion, event_list, event);
 }
 
-cl.WebCLCommandQueue.prototype.enqueueReadBufferRect=function (memory_object, blocking_read, 
-    bufferOrigin, hostOrigin, regionArray, buffer_row_pitch, buffer_slice_pitch, 
-    host_row_pitch, host_slice_pitch, host_ptr,
-    event_list, generate_event) {
-  if (!(arguments.length >= 10 && 
-    checkObjectType(memory_object, 'WebCLMemoryObject') &&
-    (typeof blocking_read === 'boolean' || typeof blocking_read === 'number') &&
-    typeof bufferOrigin === 'object' && typeof hostOrigin === 'object' &&
-    typeof regionArray === 'object' &&
-    typeof buffer_row_pitch === 'number' &&
-    typeof buffer_slice_pitch === 'number' &&
-    typeof host_row_pitch === 'number' &&
-    typeof host_slice_pitch === 'number' &&
-    typeof host_ptr === 'object' &&
-    (typeof event_list === 'undefined' || typeof event_list === 'object') &&
-    (typeof generate_event === 'undefined' || typeof generate_event === 'boolean'))) {
-    throw new TypeError('Expected WebCLCommandQueue.enqueueReadBufferRect(WebCLMemoryObject memory_object, boolean blocking_read, WebCLRegion region, WebCLEvent[] event_list, boolean generate_event)');
-  }
-  return this._enqueueReadBufferRect(memory_object, blocking_read, 
-      bufferOrigin, hostOrigin, regionArray, buffer_row_pitch, buffer_slice_pitch, 
-      host_row_pitch, host_slice_pitch, host_ptr,
-      event_list, generate_event);
-}
-
-cl.WebCLCommandQueue.prototype.enqueueCopyBufferRect=function (memory_object_src, memory_object_dst, 
-    blocking_read, 
-    srcOrigin, dstOrigin, region, 
-    src_row_pitch, src_slice_pitch, 
-    dst_row_pitch, dst_slice_pitch,
-    event_list, generate_event) {
-  if (!(arguments.length >= 10 && 
-    checkObjectType(memory_object_src, 'WebCLMemoryObject') &&
-    checkObjectType(memory_object_dst, 'WebCLMemoryObject') &&
-    typeof srcOrigin === 'object' && typeof dstOrigin === 'object' &&
-    typeof region === 'object' &&
-    typeof src_row_pitch === 'number' &&
-    typeof src_slice_pitch === 'number' &&
-    typeof dst_row_pitch === 'number' &&
-    typeof dst_slice_pitch === 'number' &&
-    (typeof event_list === 'undefined' || typeof event_list === 'object') &&
-    (typeof generate_event === 'undefined' || typeof generate_event === 'boolean'))) {
-    throw new TypeError('Expected WebCLCommandQueue.enqueueCopyBufferRect(WebCLMemoryObject memory_object, boolean blocking_write, WebCLRegion region, WebCLEvent[] event_list, boolean generate_event)');
-  }
-  return this._enqueueCopyBufferRect(memory_object_src, memory_object_dst, 
-      blocking_read, 
-      srcOrigin, dstOrigin, region, 
-      src_row_pitch, src_slice_pitch, 
-      dst_row_pitch, dst_slice_pitch,
-      event_list, generate_event);
-}
-*/
-cl.WebCLCommandQueue.prototype.enqueueWriteImage=function (memory_object, 
-    blocking_write, 
-    srcOrigin, region, 
-    row_pitch, slice_pitch, 
-    host_ptr,
-    event_list, generate_event) {
+cl.WebCLCommandQueue.prototype.enqueueWriteImage=function (memory_object, blocking_write, srcOrigin, region, row_pitch, slice_pitch, host_ptr, event_list, event) {
   if (!(arguments.length >= 7 && 
     checkObjectType(memory_object, 'WebCLImage') &&
     typeof srcOrigin === 'object' &&
@@ -277,23 +194,14 @@ cl.WebCLCommandQueue.prototype.enqueueWriteImage=function (memory_object,
     typeof row_pitch === 'number' &&
     typeof slice_pitch === 'number' &&
     (typeof event_list === 'undefined' || typeof event_list === 'object') &&
-    (typeof generate_event === 'undefined' || typeof generate_event === 'boolean'))) {
-    throw new TypeError('Expected WebCLCommandQueue.enqueueWriteImage(WebCLImage memory_object, boolean blocking_write, int[3] origin, int[3] region, int row_pitch, int slice_pitch, WebCLEvent[] event_list, boolean generate_event)');
+    (typeof event === 'undefined' || checkObjectType(event, 'WebCLEvent'))
+  )) {
+    throw new TypeError('Expected WebCLCommandQueue.enqueueWriteImage(WebCLImage memory_object, boolean blocking_write, int[3] origin, int[3] region, int row_pitch, int slice_pitch, WebCLEvent[] event_list, WebCLEvent event)');
   }
-  return this._enqueueWriteImage(memory_object, 
-      blocking_write, 
-      srcOrigin, region, 
-      row_pitch, slice_pitch, 
-      host_ptr,
-      event_list, generate_event);
+  return this._enqueueWriteImage(memory_object, blocking_write, srcOrigin, region, row_pitch, slice_pitch, host_ptr, event_list, event);
 }
 
-cl.WebCLCommandQueue.prototype.enqueueReadImage=function (memory_object, 
-    blocking_read, 
-    srcOrigin, regionArray, 
-    row_pitch, slice_pitch, 
-    host_ptr,
-    event_list, generate_event) {
+cl.WebCLCommandQueue.prototype.enqueueReadImage=function (memory_object, blocking_read, srcOrigin, regionArray, row_pitch, slice_pitch, host_ptr, event_list, event) {
   if (!(arguments.length >= 7 && 
     checkObjectType(memory_object, 'WebCLImage') &&
     typeof srcOrigin === 'object' && 
@@ -301,20 +209,14 @@ cl.WebCLCommandQueue.prototype.enqueueReadImage=function (memory_object,
     typeof row_pitch === 'number' &&
     typeof slice_pitch === 'number' &&
     (typeof event_list === 'undefined' || typeof event_list === 'object') &&
-    (typeof generate_event === 'undefined' || typeof generate_event === 'boolean'))) {
-    throw new TypeError('Expected WebCLCommandQueue.enqueueReadImage(WebCLImage memory_object, boolean blocking_write, WebCLRegion region, WebCLEvent[] event_list, boolean generate_event)');
+    (typeof event === 'undefined' || checkObjectType(event, 'WebCLEvent'))
+  )) {
+    throw new TypeError('Expected WebCLCommandQueue.enqueueReadImage(WebCLImage memory_object, boolean blocking_write, WebCLRegion region, WebCLEvent[] event_list, WebCLEvent event)');
   }
-  return this._enqueueReadImage(memory_object, 
-      blocking_read, 
-      srcOrigin, regionArray, 
-      row_pitch, slice_pitch, 
-      host_ptr,
-      event_list, generate_event);
+  return this._enqueueReadImage(memory_object, blocking_read, srcOrigin, regionArray, row_pitch, slice_pitch, host_ptr, event_list, event);
 }
 
-cl.WebCLCommandQueue.prototype.enqueueCopyImage=function (memory_object_src, memory_object_dst, 
-    srcOrigin, dstOrigin, regionArray, 
-    event_list, generate_event) {
+cl.WebCLCommandQueue.prototype.enqueueCopyImage=function (memory_object_src, memory_object_dst, srcOrigin, dstOrigin, regionArray, event_list, event) {
   if (!(arguments.length >= 5 && 
       checkObjectType(memory_object_src, 'WebCLImage') &&
       checkObjectType(memory_object_dst, 'WebCLImage') &&
@@ -322,17 +224,14 @@ cl.WebCLCommandQueue.prototype.enqueueCopyImage=function (memory_object_src, mem
     typeof dstOrigin === 'object' && 
     typeof regionArray === 'object' &&
     (typeof event_list === 'undefined' || typeof event_list === 'object') &&
-    (typeof generate_event === 'undefined' || typeof generate_event === 'boolean'))) {
-    throw new TypeError('Expected WebCLCommandQueue.enqueueCopyImage(WebCLImage memory_object_src, WebCLImage memory_object_dst, boolean blocking_write, WebCLRegion region, WebCLEvent[] event_list, boolean generate_event)');
+    (typeof event === 'undefined' || checkObjectType(event, 'WebCLEvent'))
+  )) {
+    throw new TypeError('Expected WebCLCommandQueue.enqueueCopyImage(WebCLImage memory_object_src, WebCLImage memory_object_dst, boolean blocking_write, WebCLRegion region, WebCLEvent[] event_list, WebCLEvent event)');
   }
-  return this._enqueueCopyImage(memory_object_src, memory_object_dst, 
-      srcOrigin, dstOrigin, regionArray, 
-      event_list, generate_event);
+  return this._enqueueCopyImage(memory_object_src, memory_object_dst, srcOrigin, dstOrigin, regionArray, event_list, event);
 }
 
-cl.WebCLCommandQueue.prototype.enqueueCopyImageToBuffer=function (memory_object_src, memory_object_dst, 
-    srcOrigin, regionArray, dst_offset,
-    event_list, generate_event) {
+cl.WebCLCommandQueue.prototype.enqueueCopyImageToBuffer=function (memory_object_src, memory_object_dst, srcOrigin, regionArray, dst_offset, event_list, generate_event) {
   if (!(arguments.length >= 5 && 
     checkObjectType(memory_object_src, 'WebCLImage') &&
     checkObjectType(memory_object_dst, 'WebCLBuffer') &&
@@ -340,17 +239,14 @@ cl.WebCLCommandQueue.prototype.enqueueCopyImageToBuffer=function (memory_object_
     typeof regionArray === 'object' && 
     typeof dst_offset === 'number' &&
     (typeof event_list === 'undefined' || typeof event_list === 'object') &&
-    (typeof generate_event === 'undefined' || typeof generate_event === 'boolean'))) {
-    throw new TypeError('Expected WebCLCommandQueue.enqueueCopyImageToBuffer(WebCLImage memory_object_src, WebCLBuffer memory_object_dst, uint[3] srcOrigin, uint[3] region, uint dst_offset, WebCLEvent[] event_list, boolean generate_event)');
+    (typeof event === 'undefined' || checkObjectType(event, 'WebCLEvent'))
+  )) {
+    throw new TypeError('Expected WebCLCommandQueue.enqueueCopyImageToBuffer(WebCLImage memory_object_src, WebCLBuffer memory_object_dst, uint[3] srcOrigin, uint[3] region, uint dst_offset, WebCLEvent[] event_list, WebCLEvent event)');
   }
-  return this._enqueueCopyImageToBuffer(memory_object_src, memory_object_dst, 
-      srcOrigin, regionArray, dst_offset,
-      event_list, generate_event);
+  return this._enqueueCopyImageToBuffer(memory_object_src, memory_object_dst, srcOrigin, regionArray, dst_offset, event_list, event);
 }
 
-cl.WebCLCommandQueue.prototype.enqueueCopyBufferToImage=function (memory_object_src, memory_object_dst, 
-    srcOffset, dstOrigin, regionArray,
-    event_list, generate_event) {
+cl.WebCLCommandQueue.prototype.enqueueCopyBufferToImage=function (memory_object_src, memory_object_dst, srcOffset, dstOrigin, regionArray, event_list, event) {
   if (!(arguments.length >= 5 && 
     checkObjectType(memory_object_src, 'WebCLBuffer') &&
     checkObjectType(memory_object_dst, 'WebCLImage') &&
@@ -358,15 +254,14 @@ cl.WebCLCommandQueue.prototype.enqueueCopyBufferToImage=function (memory_object_
     typeof dstOrigin === 'object' && 
     typeof regionArray === 'object' && 
     (typeof event_list === 'undefined' || typeof event_list === 'object') &&
-    (typeof generate_event === 'undefined' || typeof generate_event === 'boolean'))) {
-    throw new TypeError('Expected WebCLCommandQueue.enqueueCopyBufferToImage(WebCLBuffer memory_object_src, WebCLImage memory_object_dst, uint srcOffset, uint[3] dstOrigin, uint[4] region, WebCLEvent[] event_list, boolean generate_event)');
+    (typeof event === 'undefined' || checkObjectType(event, 'WebCLEvent'))
+  )) {
+    throw new TypeError('Expected WebCLCommandQueue.enqueueCopyBufferToImage(WebCLBuffer memory_object_src, WebCLImage memory_object_dst, uint srcOffset, uint[3] dstOrigin, uint[4] region, WebCLEvent[] event_list, WebCLEvent event)');
   }
-  return this._enqueueCopyBufferToImage(memory_object_src, memory_object_dst, srcOffset, dstOrigin, regionArray, event_list, generate_event);
+  return this._enqueueCopyBufferToImage(memory_object_src, memory_object_dst, srcOffset, dstOrigin, regionArray, event_list, event);
 }
 
-cl.WebCLCommandQueue.prototype.enqueueMapBuffer=function (memory_object, 
-    blocking, flags, offset, size,
-    event_list, generate_event) {
+cl.WebCLCommandQueue.prototype.enqueueMapBuffer=function (memory_object, blocking, flags, offset, size, event_list, event) {
   if (!(arguments.length >= 5 && 
     checkObjectType(memory_object, 'WebCLBuffer') &&
     (typeof blocking === 'boolean' || typeof blocking === 'number') &&
@@ -374,15 +269,14 @@ cl.WebCLCommandQueue.prototype.enqueueMapBuffer=function (memory_object,
     typeof offset === 'number' && 
     typeof size === 'number' && 
     (typeof event_list === 'undefined' || typeof event_list === 'object') &&
-    (typeof generate_event === 'undefined' || typeof generate_event === 'boolean'))) {
-    throw new TypeError('Expected WebCLCommandQueue.enqueueMapBuffer(WebCLBuffer memory_object, boolean blocking, CLenum flags, uint offset, uint size, WebCLEvent[] event_list, boolean generate_event)');
+    (typeof event === 'undefined' || checkObjectType(event, 'WebCLEvent'))
+  )) {
+    throw new TypeError('Expected WebCLCommandQueue.enqueueMapBuffer(WebCLBuffer memory_object, boolean blocking, CLenum flags, uint offset, uint size, WebCLEvent[] event_list, WebCLEvent event)');
   }
-  return this._enqueueMapBuffer(memory_object, blocking, flags, offset, size, event_list, generate_event);
+  return this._enqueueMapBuffer(memory_object, blocking, flags, offset, size, event_list, event);
 }
 
-cl.WebCLCommandQueue.prototype.enqueueMapImage=function (memory_object, 
-    blocking, flags, origin, region,
-    event_list, generate_event) {
+cl.WebCLCommandQueue.prototype.enqueueMapImage=function (memory_object, blocking, flags, origin, region, event_list, event) {
   if (!(arguments.length >= 5 && 
     checkObjectType(memory_object, 'WebCLImage') &&
     (typeof blocking === 'boolean' || typeof blocking === 'number') &&
@@ -390,45 +284,51 @@ cl.WebCLCommandQueue.prototype.enqueueMapImage=function (memory_object,
     typeof origin === 'number' && 
     typeof region === 'object' && 
     (typeof event_list === 'undefined' || typeof event_list === 'object') &&
-    (typeof generate_event === 'undefined' || typeof generate_event === 'boolean'))) {
-    throw new TypeError('Expected WebCLCommandQueue.enqueueMapImage(WebCLImage memory_object, boolean blocking, CLenum flags, uint origin, WebCLRegion region, WebCLEvent[] event_list, boolean generate_event)');
+    (typeof event === 'undefined' || checkObjectType(event, 'WebCLEvent'))
+  )) {
+    throw new TypeError('Expected WebCLCommandQueue.enqueueMapImage(WebCLImage memory_object, boolean blocking, CLenum flags, uint origin, WebCLRegion region, WebCLEvent[] event_list, WebCLEvent event)');
   }
-  return this._enqueueMapImage(memory_object, blocking, flags, origin, region, event_list, generate_event);
+  return this._enqueueMapImage(memory_object, blocking, flags, origin, region, event_list, event);
 }
 
-cl.WebCLCommandQueue.prototype.enqueueUnmapMemObject=function (memory_object, 
-    region,
-    event_list, generate_event) {
+cl.WebCLCommandQueue.prototype.enqueueUnmapMemObject=function (memory_object, region, event_list, event) {
   if (!(arguments.length >= 2 && 
     (checkObjectType(memory_object, 'WebCLBuffer') || checkObjectType(memory_object, 'WebCLImage')) &&
     typeof region === 'object' && 
     (typeof event_list === 'undefined' || typeof event_list === 'object') &&
-    (typeof generate_event === 'undefined' || typeof generate_event === 'boolean'))) {
-    throw new TypeError('Expected WebCLCommandQueue.enqueueUnmapMemObject(WebCLMemoryObject memory_object, WebCLMappedRegion region, WebCLEvent[] event_list, boolean generate_event)');
+    (typeof event === 'undefined' || checkObjectType(event, 'WebCLEvent'))
+  )) {
+    throw new TypeError('Expected WebCLCommandQueue.enqueueUnmapMemObject(WebCLMemoryObject memory_object, WebCLMappedRegion region, WebCLEvent[] event_list, WebCLEvent event)');
   }
-  return this._enqueueUnmapMemObject(memory_object, region, event_list, generate_event);
+  return this._enqueueUnmapMemObject(memory_object, region, event_list, event);
 }
 
-cl.WebCLCommandQueue.prototype.enqueueMarker=function () {
-  if (!(arguments.length === 0)) {
-    throw new TypeError('Expected WebCLCommandQueue.enqueueMarker()');
+cl.WebCLCommandQueue.prototype.enqueueMarker=function (event_list, event) {
+  if (!(arguments.length >= 0 &&
+      (typeof event_list === 'undefined' || typeof event_list === 'object') &&
+      (typeof event === 'undefined' || checkObjectType(event, 'WebCLEvent'))
+      )) {
+    throw new TypeError('Expected WebCLCommandQueue.enqueueMarker(WebCLEvent[] event_list, WebCLEvent event)');
   }
-  return this._enqueueMarker();
+  return this._enqueueMarker(event_list, event);
 }
 
-cl.WebCLCommandQueue.prototype.enqueueWaitForEvents=function (event_wait_list) {
+/*cl.WebCLCommandQueue.prototype.enqueueWaitForEvents=function (event_wait_list) {
   if (!(arguments.length >=0 &&       
       (typeof event_list === 'undefined' || typeof event_list === 'object') )) {
     throw new TypeError('Expected WebCLCommandQueue.enqueueWaitForEvents(WebCLEvent[] event_wait_list)');
   }
   return this._enqueueWaitForEvents(event_wait_list);
-}
+}*/
 
-cl.WebCLCommandQueue.prototype.enqueueBarrier=function () {
-  if (!(arguments.length === 0)) {
-    throw new TypeError('Expected WebCLCommandQueue.enqueueBarrier()');
+cl.WebCLCommandQueue.prototype.enqueueBarrier=function (event_list, event) {
+  if (!(arguments.length >= 0 &&
+      (typeof event_list === 'undefined' || typeof event_list === 'object') &&
+      (typeof event === 'undefined' || checkObjectType(event, 'WebCLEvent'))
+      )) {
+    throw new TypeError('Expected WebCLCommandQueue.enqueueBarrier(WebCLEvent[] event_list, WebCLEvent event)');
   }
-  return this._enqueueBarrier();
+  return this._enqueueBarrier(event_list, event);
 }
 
 cl.WebCLCommandQueue.prototype.flush=function () {
@@ -445,24 +345,26 @@ cl.WebCLCommandQueue.prototype.finish=function () {
   return this._finish();
 }
 
-cl.WebCLCommandQueue.prototype.enqueueAcquireGLObjects=function (mem_objects, events, generate_event) {
+cl.WebCLCommandQueue.prototype.enqueueAcquireGLObjects=function (mem_objects, event_list, event) {
   if (!(arguments.length >= 1 && 
       typeof mem_objects === 'object' && 
-      (typeof events==='undefined' || typeof events === 'object') &&
-      (typeof generate_event === 'undefined' || typeof generate_event === 'boolean')) ) {
-    throw new TypeError('Expected WebCLEvent WebCLGL.enqueueAcquireGLObjects(WebCLMemoryObject[] mem_objects, WebCLEvent[] events, boolean generate_event)');
+      (typeof event_list==='undefined' || typeof event_list === 'object') &&
+      (typeof event === 'undefined' || checkObjectType(event, 'WebCLEvent'))
+  )) {
+    throw new TypeError('Expected WebCLEvent WebCLGL.enqueueAcquireGLObjects(WebCLMemoryObject[] mem_objects, WebCLEvent[] event_list, WebCLEvent event)');
   }
-  return this._enqueueAcquireGLObjects(mem_objects, events, generate_event);
+  return this._enqueueAcquireGLObjects(mem_objects, event_list, event);
 }
 
-cl.WebCLCommandQueue.prototype.enqueueReleaseGLObjects=function (mem_objects, events, generate_event) {
+cl.WebCLCommandQueue.prototype.enqueueReleaseGLObjects=function (mem_objects, event_list, generate_event) {
   if (!(arguments.length >= 1 && 
       typeof mem_objects === 'object' && 
-      (typeof events==='undefined' || typeof events === 'object') &&
-      (typeof generate_event === 'undefined' || typeof generate_event === 'boolean')) ) {
-    throw new TypeError('Expected WebCLEvent WebCLGL.enqueueReleaseGLObjects(WebCLMemoryObject[] mem_objects, WebCLEvent[] events, boolean generate_event)');
+      (typeof event_list==='undefined' || typeof event_list === 'object') &&
+      (typeof event === 'undefined' || checkObjectType(event, 'WebCLEvent'))
+  )) {
+    throw new TypeError('Expected WebCLEvent WebCLGL.enqueueReleaseGLObjects(WebCLMemoryObject[] mem_objects, WebCLEvent[] event_list, WebCLEvent event)');
   }
-  return this._enqueueReleaseGLObjects(mem_objects, events, generate_event);
+  return this._enqueueReleaseGLObjects(mem_objects, event_list, event);
 }
 
 //////////////////////////////

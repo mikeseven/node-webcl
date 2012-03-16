@@ -119,7 +119,8 @@ function main() {
 
   /* Enqueue kernel */
   try {
-    kernel_event=queue.enqueueTask(kernel , null, true);
+    kernel_event=new cl.WebCLEvent();
+    queue.enqueueTask(kernel , null, kernel_event);
   } catch(ex) {
     log("Couldn't enqueue the kernel. "+ex);
     exit(1);   
@@ -128,11 +129,12 @@ function main() {
   /* Read the buffer */
   var data=new Float32Array(4096);
   try {
-    read_event=queue.enqueueReadBuffer(data_buffer, false, { 
+    read_event=new cl.WebCLEvent();
+    queue.enqueueReadBuffer(data_buffer, false, { 
       buffer: data,
       origin: [0],
       size: [4096*4]
-    }, null, true);
+    }, null, read_event);
   } catch(ex) {
     log("Couldn't read the buffer. "+ex);
     exit(1);   
