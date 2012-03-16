@@ -35,8 +35,7 @@ public:
 private:
   Event(v8::Handle<v8::Object> wrapper);
 
-  static void EIO_callback(uv_work_t *req);
-  static void EIO_callbackAfter(uv_work_t *req);
+  static void After_cb(uv_async_t* handle, int status);
 
   static v8::Persistent<v8::FunctionTemplate> constructor_template;
 
