@@ -629,8 +629,10 @@ function CLGL() {
     },
     interpolate: function( m, t, a, b )
     {
-        for (var i = 0; i < 4; i++ )
-            m[ i ] = ( 1 - t ) * a[ i ] + t * b[ i ];
+        m[ 0 ] = ( 1 - t ) * a[ 0 ] + t * b[ 0 ];
+        m[ 1 ] = ( 1 - t ) * a[ 1 ] + t * b[ 1 ];
+        m[ 2 ] = ( 1 - t ) * a[ 2 ] + t * b[ 2 ];
+        m[ 3 ] = ( 1 - t ) * a[ 3 ] + t * b[ 3 ];
     },
     updateMu: function( t, a, b )
     {

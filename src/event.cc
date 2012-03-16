@@ -11,7 +11,7 @@
 
 #include <iostream>
 using namespace std;
-
+using namespace node;
 using namespace v8;
 
 namespace webcl {
@@ -31,6 +31,7 @@ void Event::Init(Handle<Object> target)
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getInfo", getInfo);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getProfilingInfo", getProfilingInfo);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_setUserEventStatus", setUserEventStatus);
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_setCallback", setCallback);
 
   target->Set(JS_STR("WebCLEvent"), constructor_template->GetFunction());
 }
@@ -112,6 +113,104 @@ JS_METHOD(Event::setUserEventStatus)
   }
 
   return Undefined();
+}
+
+#include <pthread.h>
+
+struct Baton {
+    uv_work_t request;
+    Persistent<Function> callback;
+    int error_code;
+    std::string error_message;
+
+    // Custom data
+    Persistent<Object> data;
+    bool ready;
+};
+
+void callback (cl_event event, cl_int event_command_exec_status, void *user_data)
+{
+  cout<<"in callback: event="<<event<<" exec status="<<event_command_exec_status<<endl;
+  Baton *cb = static_cast<Baton*>(user_data);
+  cb->ready=true;
+}
+
+void
+Event::EIO_callback(uv_work_t *req) {
+  cout<<"In EIO_callback"<<endl;
+  Baton *cb = static_cast<Baton*>(req->data);
+
+  while(!cb->ready) { // busy wait ;-(
+  }
+}
+
+void
+Event::EIO_callbackAfter(uv_work_t *req) {
+  cout<<"In EIO_callbackAfter"<<endl;
+
+  HandleScope scope;
+
+  Baton *cb = static_cast<Baton*>(req->data);
+  cl_int ret=cb->error_code;
+
+  if(!ret) {
+    Handle<Value> argv[3];
+
+    argv[0]=Undefined();
+    argv[1]=Undefined();
+    argv[2]=cb->data;
+
+    TryCatch try_catch;
+
+    cb->callback->Call(v8::Context::GetCurrent()->Global(), 3, argv);
+
+    if (try_catch.HasCaught())
+        FatalException(try_catch);
+  }
+
+  cb->callback.Dispose();
+  cb->data.Dispose();
+  delete cb;
+
+  /*if(ret) {
+    if (ret != CL_SUCCESS) {
+      REQ_ERROR_THROW(CL_INVALID_EVENT);
+      REQ_ERROR_THROW(CL_INVALID_VALUE);
+      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      return ThrowError("UNKNOWN ERROR");
+    }
+  }*/
+}
+
+JS_METHOD(Event::setCallback)
+{
+  HandleScope scope;
+  Event *e = UnwrapThis<Event>(args);
+  cl_int command_exec_callback_type = args[0]->Int32Value();
+  Local<Function> fct=Local<Function>::Cast(args[1]);
+  Local<Object> data=args[2]->ToObject();
+
+  Baton *cb=new Baton();
+  cb->request.data = cb;
+  //cb->type=command_exec_callback_type;
+  cb->callback=Persistent<Function>::New(fct);
+  cb->data=Persistent<Object>::New(data);
+  cb->ready=false;
+
+  cl_int ret=::clSetEventCallback(e->getEvent(), command_exec_callback_type, callback, cb);
+
+  uv_queue_work(uv_default_loop(), &cb->request, EIO_callback, EIO_callbackAfter);
+
+  if (ret != CL_SUCCESS) {
+    REQ_ERROR_THROW(CL_INVALID_EVENT);
+    REQ_ERROR_THROW(CL_INVALID_VALUE);
+    REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+    return ThrowError("UNKNOWN ERROR");
+  }
+
+  return scope.Close(Undefined());
 }
 
 JS_METHOD(Event::New)

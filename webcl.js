@@ -37,6 +37,7 @@ cl.type.LOCAL_MEMORY_SIZE = 0xFF;
 // WebCL object
 //////////////////////////////
 function checkObjectType(obj, type) {
+  //console.log('checking object: '+obj+' type: '+Object.prototype.toString.call(obj)+' for type '+type);
   return Object.prototype.toString.call(obj) === '[object '+type+']';
 }
 
@@ -98,7 +99,7 @@ cl.WebCLCommandQueue.prototype.enqueueNDRangeKernel=function (kernel, offsets, g
 }
 
 cl.WebCLCommandQueue.prototype.enqueueTask=function (kernel, event_list, generate_event) {
-  if (!(arguments.length >= 1 && checkObjectType(kernel, 'WebCLKernel')
+  if (!(arguments.length >= 1 && checkObjectType(kernel, 'WebCLKernel') &&
     (typeof event_list === 'undefined' || typeof event_list === 'object') &&
     (typeof generate_event === 'undefined' || typeof generate_event === 'boolean')
     )) {
@@ -615,6 +616,14 @@ cl.WebCLEvent.prototype.setUserEventStatus=function (execution_status) {
     throw new TypeError('Expected WebCLEvent.setUserEventStatus(CLenum execution_status)');
   }
   return this._setUserEventStatus(execution_status);
+}
+
+cl.WebCLEvent.prototype.setCallback=function (execution_status, fct, args) {
+  if (!(arguments.length >= 2 && typeof execution_status === 'number' &&
+      typeof fct === 'function')) {
+    throw new TypeError('Expected WebCLEvent.setCallback(CLenum execution_status, function callback, any args)');
+  }
+  return this._setCallback(execution_status, fct, args);
 }
 
 //////////////////////////////

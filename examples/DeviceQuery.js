@@ -18,8 +18,7 @@ if(nodejs) {
 log("OpenCL SW Info:\n");
 var platforms=cl.getPlatforms();
 console.log('Found '+platforms.length+' plaforms');
-for(var i in platforms) {
-  var p=platforms[i];
+platforms.forEach(function(p) {
   //log("  Plaftorm ID: 0x"+p.getID().toString(16));
   log("  PLATFORM_NAME: \t"+p.getInfo(cl.PLATFORM_NAME));
   log("  PLATFORM_PROFILE: \t"+p.getInfo(cl.PLATFORM_PROFILE));
@@ -31,64 +30,65 @@ for(var i in platforms) {
   log("OpenCL Device Info:\n");
   var devices = p.getDevices(cl.DEVICE_TYPE_ALL);
   log('Found '+devices.length+' devices');
-  for(var j=0;j<devices.length;j++) {
-    var device=devices[j];
+  devices.forEach(function(device) {
     log(" ---------------------------------");
     log(' Device: '+device.getInfo(cl.DEVICE_NAME));
     log(" ---------------------------------");
     printDeviceInfo(device);
-  }
   
-  //Create a context for the devices
-  var context;
-  try {
-    context = cl.createContext({ devices: device } ); //cl.createContext(cl.DEVICE_TYPE_DEFAULT, [cl.CONTEXT_PLATFORM, p]);
-  }
-  catch(ex) {
-    log("createContext() exception: "+ex);
-    log();
-    log("*************************************************");
-    log("* ERROR: Can NOT create context for this device *");
-    log("*************************************************");
-    log();
-    continue;
-  }
+    //Create a context for the devices
+    var context;
+    try {
+      context = cl.createContext({ 
+        devices: device,
+        platform: p} ); //cl.createContext(cl.DEVICE_TYPE_DEFAULT, [cl.CONTEXT_PLATFORM, p]);
+    }
+    catch(ex) {
+      log("createContext() exception: "+ex);
+      log();
+      log("*************************************************");
+      log("* ERROR: Can NOT create context for this device *");
+      log("*************************************************");
+      log();
+      return;
+    }
+    
+    var ctxDevices=context.getInfo(cl.CONTEXT_DEVICES);
+    
+    // Determine and show image format support 
+    // 2D
+    ImageFormats=context.getSupportedImageFormats(cl.MEM_READ_ONLY, cl.MEM_OBJECT_IMAGE2D);
+    uiNumSupportedFormats=ImageFormats.length;
+    
+    log("  ---------------------------------");
+    log("  2D Image Formats Supported", uiNumSupportedFormats); 
+    log("  ---------------------------------");
+    log(clu.sprintf("%-6s%-16s%-22s\n", "#", "Channel Order", "Channel Type"));
+    for(var j = 0; j < uiNumSupportedFormats; j++) 
+    {  
+      log(clu.sprintf("  %-6u%-16s%-22s", (j + 1),
+          oclImageFormatString(ImageFormats[j].order), 
+          oclImageFormatString(ImageFormats[j].data_type)));
+    }
+    log("");
+    
+    // 3D
+    ImageFormats=context.getSupportedImageFormats(cl.MEM_READ_ONLY, cl.MEM_OBJECT_IMAGE3D);
+    uiNumSupportedFormats=ImageFormats.length;
+    
+    log("  ---------------------------------");
+    log("  3D Image Formats Supported", uiNumSupportedFormats); 
+    log("  ---------------------------------");
+    log(clu.sprintf("%-6s%-16s%-22s\n", "#", "Channel Order", "Channel Type"));
+    for(var j = 0; j < uiNumSupportedFormats; j++) 
+    {  
+      log(clu.sprintf("  %-6u%-16s%-22s", (j + 1),
+          oclImageFormatString(ImageFormats[j].order), 
+          oclImageFormatString(ImageFormats[j].data_type)));
+    }
+    log(""); 
+  });
   
-  var ctxDevices=context.getInfo(cl.CONTEXT_DEVICES);
-  
-  // Determine and show image format support 
-  // 2D
-  ImageFormats=context.getSupportedImageFormats(cl.MEM_READ_ONLY, cl.MEM_OBJECT_IMAGE2D);
-  uiNumSupportedFormats=ImageFormats.length;
-  
-  log("  ---------------------------------");
-  log("  2D Image Formats Supported", uiNumSupportedFormats); 
-  log("  ---------------------------------");
-  log(clu.sprintf("%-6s%-16s%-22s\n", "#", "Channel Order", "Channel Type"));
-  for(var j = 0; j < uiNumSupportedFormats; j++) 
-  {  
-    log(clu.sprintf("  %-6u%-16s%-22s", (j + 1),
-        oclImageFormatString(ImageFormats[j].order), 
-        oclImageFormatString(ImageFormats[j].data_type)));
-  }
-  log("");
-  
-  // 3D
-  ImageFormats=context.getSupportedImageFormats(cl.MEM_READ_ONLY, cl.MEM_OBJECT_IMAGE3D);
-  uiNumSupportedFormats=ImageFormats.length;
-  
-  log("  ---------------------------------");
-  log("  3D Image Formats Supported", uiNumSupportedFormats); 
-  log("  ---------------------------------");
-  log(clu.sprintf("%-6s%-16s%-22s\n", "#", "Channel Order", "Channel Type"));
-  for(var j = 0; j < uiNumSupportedFormats; j++) 
-  {  
-    log(clu.sprintf("  %-6u%-16s%-22s", (j + 1),
-        oclImageFormatString(ImageFormats[j].order), 
-        oclImageFormatString(ImageFormats[j].data_type)));
-  }
-  log(""); 
-
   // Size of basic types
   log("  size of char: \t"+cl.size.CHAR);
   log("  size of short: \t"+cl.size.SHORT);
@@ -97,7 +97,7 @@ for(var i in platforms) {
   log("  size of float: \t"+cl.size.FLOAT);
   log("  size of double: \t"+cl.size.DOUBLE);
   log("  size of half: \t"+cl.size.HALF);
-}
+});
 
 function printDeviceInfo(device)
 {

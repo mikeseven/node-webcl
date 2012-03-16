@@ -27,11 +27,15 @@ public:
   static JS_METHOD(getInfo);
   static JS_METHOD(getProfilingInfo);
   static JS_METHOD(setUserEventStatus);
+  static JS_METHOD(setCallback);
 
   cl_event getEvent() const { return event; };
 
 private:
   Event(v8::Handle<v8::Object> wrapper);
+
+  static void EIO_callback(uv_work_t *req);
+  static void EIO_callbackAfter(uv_work_t *req);
 
   static v8::Persistent<v8::FunctionTemplate> constructor_template;
 

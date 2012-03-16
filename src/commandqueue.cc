@@ -254,12 +254,14 @@ JS_METHOD(CommandQueue::enqueueTask)
 
   REQ_ARGS(1);
 
+  //cout<<"[enqueueTask] getting kernel"<<endl;
   Kernel *k = ObjectWrap::Unwrap<Kernel>(args[0]->ToObject());
 
   MakeEventWaitList(args[1]);
 
   cl_event event=NULL;
   bool generate_event = !args[2]->IsUndefined() && args[2]->BooleanValue();
+  //cout<<"[enqueueTask] create event? "<<generate_event<<endl;
 
   cl_int ret=::clEnqueueTask(
       cq->getCommandQueue(), k->getKernel(),
