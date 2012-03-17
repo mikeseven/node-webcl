@@ -241,7 +241,7 @@ JS_METHOD(CommandQueue::enqueueNDRangeKernel)
   }
 
   if(event) {
-    cout<<"[enqueueNDRangerKernel] create event"<<endl;
+    //cout<<"[enqueueNDRangerKernel] create event"<<endl;
     Event *e=ObjectWrap::Unwrap<Event>(args[5]->ToObject());
     e->setEvent(event);
   }
@@ -255,14 +255,14 @@ JS_METHOD(CommandQueue::enqueueTask)
 
   REQ_ARGS(1);
 
-  cout<<"[enqueueTask] getting kernel"<<endl;
+  //cout<<"[enqueueTask] getting kernel"<<endl;
   Kernel *k = ObjectWrap::Unwrap<Kernel>(args[0]->ToObject());
 
   MakeEventWaitList(args[1]);
 
   cl_event event;
   if(args[2]->IsUndefined()) event=NULL;
-  cout<<"[enqueueTask] create event? "<<event<<endl;
+  //cout<<"[enqueueTask] create event? "<<event<<endl;
 
   cl_int ret=::clEnqueueTask(
       cq->getCommandQueue(), k->getKernel(),
@@ -1129,11 +1129,11 @@ JS_METHOD(CommandQueue::enqueueMapBuffer)
     return ThrowError("UNKNOWN ERROR");
   }
 
-  cout<<"enqueueMapBuffer"<<endl;
+  /*cout<<"enqueueMapBuffer"<<endl;
   for(int i=0;i<size;i++) {
     cout<<(int)((char*)result)[i]<<" ";
   }
-  cout<<endl;
+  cout<<endl;*/
 
   /*_MappedRegion *mapped_region=new _MappedRegion();
   mapped_region->buffer=Buffer::New((char*) result,size);
@@ -1143,7 +1143,7 @@ JS_METHOD(CommandQueue::enqueueMapBuffer)
   return scope.Close(MappedRegion::New(mapped_region)->handle_);*/
 
   node::Buffer *buf=node::Buffer::New((char*) result,size);
-  cout<<"mapped_ptr: "<<result<<endl;
+  //cout<<"mapped_ptr: "<<result<<endl;
   buf->handle_->Set(JS_STR("mapped_ptr"),JS_NUM((uint64_t) result));
 
   if(event) {
@@ -1246,16 +1246,16 @@ JS_METHOD(CommandQueue::enqueueUnmapMemObject)
   */
   node::Buffer *buf = ObjectWrap::Unwrap<node::Buffer>(args[1]->ToObject());
   char *mapped_ptr= (char*) (uint64_t) buf->handle_->Get(JS_STR("mapped_ptr"))->NumberValue();
-  cout<<"enqueueUnmapBuffer"<<endl;
-  cout<<"mapped_ptr: "<<mapped_ptr<<endl;
+  //cout<<"enqueueUnmapBuffer"<<endl;
+  //cout<<"mapped_ptr: "<<mapped_ptr<<endl;
 
   // TODO: avoid copy!
   memcpy(mapped_ptr, node::Buffer::Data(buf), node::Buffer::Length(buf));
 
-  for(int i=0;i<Buffer::Length(buf);i++) {
+  /*for(int i=0;i<Buffer::Length(buf);i++) {
     cout<<(int)((char*)mapped_ptr)[i]<<" ";
   }
-  cout<<endl;
+  cout<<endl;*/
 
   MakeEventWaitList(args[2]);
 

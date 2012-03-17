@@ -5,34 +5,9 @@ if(nodejs) {
   exit = process.exit;
 }
 
-// kernel callback
-function kernel_complete(status, data) {
-  log('in JS kernel_complete, status: '+status);
-  if(status<0) 
-    log('Error: '+status);
-  log(data);
-}
-
-// read buffer callback
 function read_complete(status, data) {
-  log('in JS read_complete, status: '+status);
-  if(status<0) 
-    log('Error: '+status);
-
-  var check = cl.TRUE;
-  //var str="";
-  for(i=0; i<4096; i++) {
-    //str+=data[i]+' ';
-    if(data[i] != 5.0) {
-      check = cl.FALSE;
-      break;
-    }  
-  }
-  //log(str);
-  if(check)
-    log("The data has been initialized successfully.");
-  else
-    log("The data has not been initialized successfully.");
+  log('in read_complete, status: '+status);
+  log("New data: "+data[0]+', '+data[1]+', '+data[2]+', '+data[3]);
 }
 
 function main() {
@@ -43,8 +18,13 @@ function main() {
   var /* WebCLProgram */      program;
   var /* WebCLKernel */       kernel;
   var /* WebCLCommandQueue */ queue;
-  var /* WebCLEvent */        kernel_event, read_event;
+  var /* WebCLEvent */        user_event;
   var /* WebCLBuffer */       data_buffer;
+
+  /* Initialize data */
+  var data=new Float32Array(4);
+  for(i=0; i<4; i++)
+     data[i] = i * 1.0;
 
   /* Create a device and context */
   log('creating context');
@@ -67,11 +47,10 @@ function main() {
 
   /* Build the program and create a kernel */
   var source = [
-                "__kernel void callback(__global float *buffer) {",
-                "  for(int i=0; i<4096; i++) ",
-                "     buffer[i]=5;",
-                "}"
-                ].join("\n");
+    "__kernel void user_event(__global float4 *v) {",
+    "  *v *= -1.0f;",
+    "}"
+  ].join("\n");
 
   // Create and program from source
   try {
@@ -92,7 +71,7 @@ function main() {
   }
 
   try {
-    kernel = program.createKernel("callback");
+    kernel = program.createKernel("user_event");
   } catch(ex) {
     log("Couldn't create a kernel. "+ex);
     exit(1);   
@@ -100,7 +79,7 @@ function main() {
 
   /* Create a write-only buffer to hold the output data */
   try {
-    data_buffer = context.createBuffer(cl.MEM_WRITE_ONLY, 4096*4);
+    data_buffer = context.createBuffer(cl.MEM_READ_WRITE | cl.MEM_COPY_HOST_PTR, 4*Float32Array.BYTES_PER_ELEMENT,data);
   } catch(ex) {
     log("Couldn't create a buffer. "+ex);
     exit(1);   
@@ -116,30 +95,36 @@ function main() {
 
   /* Create a command queue */
   try {
-    queue = context.createCommandQueue(device, 0);
+    queue = context.createCommandQueue(device, cl.QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE);
   } catch(ex) {
-    log("Couldn't create a command queue. "+ex);
-    exit(1);   
+    log("Couldn't create an out of order command queue, using in-order queue. "+ex);
+    queue = context.createCommandQueue(device);
   };
+
+  /* Configure events */
+  try {
+    user_event = context.createUserEvent();
+  } catch(ex) {
+     log("Couldn't enqueue the kernel");
+     exit(1);   
+  }
 
   /* Enqueue kernel */
   try {
     kernel_event=new cl.WebCLEvent();
-    queue.enqueueTask(kernel , null, kernel_event);
+    queue.enqueueTask(kernel , [user_event], kernel_event);
   } catch(ex) {
     log("Couldn't enqueue the kernel. "+ex);
     exit(1);   
   }
 
   /* Read the buffer */
-  var data=new Float32Array(4096);
   try {
     read_event=new cl.WebCLEvent();
     queue.enqueueReadBuffer(data_buffer, false, { 
       buffer: data,
-      origin: [0],
-      size: [4096*4]
-    }, null, read_event);
+      size: data.byteLength
+    }, [ kernel_event ], read_event);
   } catch(ex) {
     log("Couldn't read the buffer. "+ex);
     exit(1);   
@@ -147,17 +132,19 @@ function main() {
 
   /* Set event handling routines */
   try {
-    kernel_event.setCallback(cl.COMPLETE, kernel_complete, "The kernel finished successfully.");
+    read_event.setCallback(cl.COMPLETE, read_complete, data);
   } catch(ex) {
-    log("Couldn't set callback for event. "+ex);
+    log("Couldn't set callback for read event. "+ex);
     exit(1);   
   }
-  read_event.setCallback(cl.COMPLETE, read_complete, data);
   
-  queue.finish(); // wait for everything to finish
-  //read_complete(read_event, cl.COMPLETE, data);
-  log("queue finished");
-  return 0;
+  log("Old data: "+data[0]+', '+data[1]+', '+data[2]+', '+data[3]);
+
+  /* Set user event to success */
+  user_event.setUserEventStatus(cl.SUCCESS);
+  
+  queue.finish();
+  log('queue finished');
 }
 
 main();

@@ -90,7 +90,8 @@ JS_METHOD(Event::getProfilingInfo)
   case CL_PROFILING_COMMAND_END: {
     cl_ulong param_value=0;
     ::clGetEventProfilingInfo(e->getEvent(), param_name, sizeof(cl_ulong), &param_value, NULL);
-    return scope.Close(JS_NUM(param_value));
+    //cout<<"param: "<<param_name<<" = "<<param_value<<endl;
+    return scope.Close(JS_INT(param_value));
   }
   default:
     return ThrowError("UNKNOWN param_name");
@@ -120,7 +121,6 @@ JS_METHOD(Event::setUserEventStatus)
 struct Baton {
     Persistent<Function> callback;
     int error;
-    std::string error_message;
     uv_async_t async;
 
     // Custom data
@@ -131,9 +131,8 @@ void callback (cl_event event, cl_int event_command_exec_status, void *user_data
 {
   cout<<"in callback: event="<<event<<" exec status="<<event_command_exec_status<<endl;
   Baton *baton = static_cast<Baton*>(user_data);
-  if(event_command_exec_status<0) {
-    baton->error = event_command_exec_status;
-  }
+  baton->error = event_command_exec_status;
+
   uv_async_send(&baton->async);
 }
 
@@ -146,30 +145,17 @@ Event::After_cb(uv_async_t* handle, int status) {
   Baton *baton = static_cast<Baton*>(handle->data);
   uv_close((uv_handle_t*) &baton->async,NULL);
 
-  if (baton->error) {
-      Local<Value> argv[] = { Exception::Error(JS_STR(baton->error_message.c_str())) };
+  Handle<Value> argv[]={
+      JS_INT(baton->error),
+      baton->data
+  };
 
-      TryCatch try_catch;
-      baton->callback->Call(v8::Context::GetCurrent()->Global(), 1, argv);
+  TryCatch try_catch;
 
-      if (try_catch.HasCaught()) {
-          node::FatalException(try_catch);
-      }
-  }
-  else {
-    Handle<Value> argv[]={
-        Undefined(),
-        Undefined(),
-        baton->data
-    };
+  baton->callback->Call(v8::Context::GetCurrent()->Global(), 2, argv);
 
-    TryCatch try_catch;
-
-    baton->callback->Call(v8::Context::GetCurrent()->Global(), 3, argv);
-
-    if (try_catch.HasCaught())
-        FatalException(try_catch);
-  }
+  if (try_catch.HasCaught())
+      FatalException(try_catch);
 
   baton->callback.Dispose();
   baton->data.Dispose();

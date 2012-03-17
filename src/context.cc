@@ -208,7 +208,8 @@ JS_METHOD(Context::createCommandQueue)
   HandleScope scope;
   Context *context = UnwrapThis<Context>(args);
   cl_device_id device = ObjectWrap::Unwrap<Device>(args[0]->ToObject())->getDevice();
-  cl_command_queue_properties properties = args[1]->NumberValue();
+  cl_command_queue_properties properties = args[1]->IsUndefined() ? 0 : args[1]->NumberValue();
+  //cout<<"Queue properties: "<<properties<<endl;
 
   cl_int ret=CL_SUCCESS;
   cl_command_queue cw = ::clCreateCommandQueue(context->getContext(), device, properties, &ret);
