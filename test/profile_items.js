@@ -139,7 +139,7 @@ function main() {
   }
 
   var avg_ns=Math.round(total_time/NUM_ITERATIONS);
-  log("Average time: "+avg_ns+" ns = " +Math.round(avg_ns/1000000)+" ms");
+  log("Average time: "+avg_ns+" ns = " +(avg_ns/1000000)+" ms");
   
   log('queue finished');
 }
