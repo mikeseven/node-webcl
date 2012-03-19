@@ -485,6 +485,25 @@ function CLGL() {
         process.exit(0);
     },
     
+	/* Before calling AntTweakBar or any other library that could use programs,
+	 * one must make sure to disable the VertexAttribArray used by the current
+	 * program otherwise this may have some unpredictable consequences aka
+	 * wrong vertex attrib arrays being used by another program!
+	 */
+	drawATB: function() {
+  	  gl.disableVertexAttribArray(shaderProgram.vertexPositionAttribute);
+  	  gl.disableVertexAttribArray(shaderProgram.textureCoordAttribute);
+  	  gl.useProgram(null);
+	  gl.bindBuffer(gl.ARRAY_BUFFER, null);
+	  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+
+	  ATB.Draw();
+
+	  gl.useProgram(shaderProgram);
+      gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
+      gl.enableVertexAttribArray(shaderProgram.textureCoordAttribute);
+	},
+
     // /////////////////////////////////////////////////////////////////////
     // rendering loop
     // /////////////////////////////////////////////////////////////////////
@@ -529,7 +548,7 @@ function CLGL() {
       this.renderTexture(HostImageBuffer);
       //this.reportInfo();
       
-      ATB.Draw();
+      this.drawATB();
 
       gl.finish(); // for timing
       
@@ -702,7 +721,7 @@ function CLGL() {
                        clu.DivUp(TextureHeight, local[1]) * local[1] ];
         
         try {
-          ComputeCommands.enqueueNDRangeKernel(ComputeKernel, null, global, local, null, false);
+          ComputeCommands.enqueueNDRangeKernel(ComputeKernel, null, global, local);
         }
         catch(err)
         {
@@ -724,7 +743,7 @@ function CLGL() {
         
         try {
           ComputeCommands.enqueueCopyBufferToImage(ComputeResult, ComputeImage, 
-                                         0, origin, region, null, false);
+                                         0, origin, region);
         }
         catch(err)
         {

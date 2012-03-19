@@ -231,7 +231,7 @@ cl.WebCLCommandQueue.prototype.enqueueCopyImage=function (memory_object_src, mem
   return this._enqueueCopyImage(memory_object_src, memory_object_dst, srcOrigin, dstOrigin, regionArray, event_list, event);
 }
 
-cl.WebCLCommandQueue.prototype.enqueueCopyImageToBuffer=function (memory_object_src, memory_object_dst, srcOrigin, regionArray, dst_offset, event_list, generate_event) {
+cl.WebCLCommandQueue.prototype.enqueueCopyImageToBuffer=function (memory_object_src, memory_object_dst, srcOrigin, regionArray, dst_offset, event_list, event) {
   if (!(arguments.length >= 5 && 
     checkObjectType(memory_object_src, 'WebCLImage') &&
     checkObjectType(memory_object_dst, 'WebCLBuffer') &&
@@ -356,7 +356,7 @@ cl.WebCLCommandQueue.prototype.enqueueAcquireGLObjects=function (mem_objects, ev
   return this._enqueueAcquireGLObjects(mem_objects, event_list, event);
 }
 
-cl.WebCLCommandQueue.prototype.enqueueReleaseGLObjects=function (mem_objects, event_list, generate_event) {
+cl.WebCLCommandQueue.prototype.enqueueReleaseGLObjects=function (mem_objects, event_list, event) {
   if (!(arguments.length >= 1 && 
       typeof mem_objects === 'object' && 
       (typeof event_list==='undefined' || typeof event_list === 'object') &&

@@ -161,7 +161,7 @@ function ResetKernelArgs(width, height, r, fScale)
 function BoxFilterGPU(image, cmOutputBuffer, r, fScale)
 {
   // Setup Kernel Args
-  ckBoxColumns.setArg(1, cmOutputBuffer, cl.type.MEM);
+  ckBoxColumns.setArg(1, cmOutputBuffer);
 
   // Copy input data from host to device 
   var szTexOrigin = [0, 0, 0];                // Offset of input texture origin relative to host image
