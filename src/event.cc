@@ -116,7 +116,10 @@ JS_METHOD(Event::setUserEventStatus)
   return Undefined();
 }
 
-#include <pthread.h>
+void Event::setEvent(cl_event e) {
+  Destructor();
+  event=e;
+}
 
 struct Baton {
     Persistent<Function> callback;

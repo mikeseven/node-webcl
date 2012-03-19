@@ -30,7 +30,7 @@ public:
   static JS_METHOD(setCallback);
 
   cl_event getEvent() const { return event; };
-  void setEvent(cl_event e) { event=e; };
+  void setEvent(cl_event e);
 
 private:
   Event(v8::Handle<v8::Object> wrapper);
