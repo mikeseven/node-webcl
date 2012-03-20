@@ -2,7 +2,7 @@
    "name": "node-webcl",
    "version": "0.1.0",
    "description": "A WebCL implementation for desktops with NodeJS",
-   "main": "lib/webcl.js",
+   "main": "webcl.js",
    "author": "Mikael Bourges-Sevenier <msevenier@motorola.com>",
    "keywords": [ "webcl", "opencl" ],
    "maintainers": [
