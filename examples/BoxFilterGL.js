@@ -4,7 +4,7 @@ if(nodejs) {
   clu = require('../lib/clUtils');
   util = require('util');
   fs = require('fs');
-  WebGL = require('node_webgl');
+  WebGL = require('node-webgl');
   document = WebGL.document();
   Image = WebGL.Image;
   log = console.log;

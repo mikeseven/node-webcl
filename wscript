@@ -24,7 +24,7 @@ def configure(conf):
 
 def build(bld):
   obj = bld.new_task_gen("cxx", "shlib", "node_addon")
-  obj.target = "node_webcl"
+  obj.target = "webcl"
   obj.source  = bld.path.ant_glob('src/*.cc')
   obj.cxxflags = ["-g", "-pthread"]
   if sys.platform.startswith('darwin'):
@@ -34,7 +34,7 @@ def build(bld):
 
 def shutdown():
   if Options.commands['clean']:
-    if exists('node_webcl.node'): unlink('node_webcl.node')
+    if exists('webcl.node'): unlink('webcl.node')
   else:
-    if exists('build/Release/node_webcl.node') and not exists('node_webcl.node'):
-      symlink('build/Release/node_webcl.node', 'node_webcl.node')
+    if exists('build/Release/webcl.node') and not exists('webcl.node'):
+      symlink('build/Release/webcl.node', 'webcl.node')

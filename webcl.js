@@ -1,4 +1,4 @@
-var cl = module.exports = require('./build/Release/node_webcl.node');
+var cl = module.exports = require('./build/Release/webcl.node');
 //var WebGL=require('webgl');
 
 cl.size = {};

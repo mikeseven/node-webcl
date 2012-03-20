@@ -1,5 +1,5 @@
 {
-   "name": "node_webcl",
+   "name": "node-webcl",
    "version": "0.1.0",
    "description": "A WebCL implementation for desktops with NodeJS",
    "main": "lib/webcl.js",
@@ -15,18 +15,18 @@
    ],
    "licenses": [{
         "type": "BSD",
-        "url": "http://github.com/mikeseven/node-glfw/raw/master/LICENSE.BSD.txt"
+        "url": ""
     }],
    "repositories": [
        {
            "type": "git",
-           "url": "https://mikeseven@github.com/Motorola-Mobility/node-webgl.git" 
+           "url": "" 
        } 
    ],
    "directories": {
        "src": "src",
        "lib": "lib",
-       "docs": "docs"
+       "docs": "docs",
        "examples": "examples"
    },
    "engines": {
@@ -35,6 +35,7 @@
    "scripts": {
        "install": "node-waf configure clean build"
    },
-   "dependencies": { 'node-webgl' }
+   "dependencies": { 
+   }
 }
 

@@ -164,7 +164,7 @@ function main() {
   }
 
   var avg_ns=Math.round(total_time/NUM_ITERATIONS);
-  log("Average "+(PROFILE_READ ? "read" : "map")+" time: "+avg_ns+" ns = " +(avg_ns/1000000)+" ms");
+  log("Average "+(PROFILE_READ ? "read" : "map")+" time: "+avg_ns+" ns = " +(avg_ns/1000000.0)+" ms");
   
   queue.finish();
   log('queue finished');

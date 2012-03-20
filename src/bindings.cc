@@ -522,5 +522,5 @@ void init(Handle<Object> target)
   JS_CL_CONSTANT(COMMAND_GL_FENCE_SYNC_OBJECT_KHR);
 }
 
-NODE_MODULE(node_webcl, init)
+NODE_MODULE(webcl, init)
 }
