@@ -121,27 +121,19 @@ void Event::setEvent(cl_event e) {
   event=e;
 }
 
-struct Baton {
-    Persistent<Function> callback;
-    int error;
-    uv_async_t async;
-
-    // Custom data
-    Persistent<Object> data;
-};
-
-void callback (cl_event event, cl_int event_command_exec_status, void *user_data)
+void Event::callback (cl_event event, cl_int event_command_exec_status, void *user_data)
 {
-  cout<<"in callback: event="<<event<<" exec status="<<event_command_exec_status<<endl;
+  //cout<<"[Event::callback] event="<<event<<" exec status="<<event_command_exec_status<<endl;
   Baton *baton = static_cast<Baton*>(user_data);
   baton->error = event_command_exec_status;
 
+  uv_async_init(uv_default_loop(), &baton->async, After_cb);
   uv_async_send(&baton->async);
 }
 
 void
 Event::After_cb(uv_async_t* handle, int status) {
-  cout<<"In After_cb"<<endl;
+  //cout<<"In Event::After_cb"<<endl;
 
   HandleScope scope;
 
@@ -152,6 +144,7 @@ Event::After_cb(uv_async_t* handle, int status) {
       JS_INT(baton->error),
       baton->data
   };
+
 
   TryCatch try_catch;
 
@@ -171,14 +164,13 @@ JS_METHOD(Event::setCallback)
   Event *e = UnwrapThis<Event>(args);
   cl_int command_exec_callback_type = args[0]->Int32Value();
   Local<Function> fct=Local<Function>::Cast(args[1]);
-  Local<Object> data=args[2]->ToObject();
+  Local<Value> data=args[2];
 
   Baton *baton=new Baton();
   //baton->type=command_exec_callback_type;
   baton->callback=Persistent<Function>::New(fct);
-  baton->data=Persistent<Object>::New(data);
+  baton->data=Persistent<Value>::New(data);
 
-  uv_async_init(uv_default_loop(), &baton->async, After_cb);
   baton->async.data=baton;
 
   cl_int ret=::clSetEventCallback(e->getEvent(), command_exec_callback_type, callback, baton);

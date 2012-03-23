@@ -165,43 +165,124 @@ JS_METHOD(Program::getBuildInfo)
   }
 }
 
+void Program::callback (cl_program program, void *user_data)
+{
+  //cout<<"[Program::driver_callback] thread "<<pthread_self()<<endl<<flush;
+  Baton *baton = static_cast<Baton*>(user_data);
+  //cout<<"  baton: "<<hex<<baton<<dec<<endl<<flush;
+  baton->error=0;
+
+  int num_devices=0;
+  ::clGetProgramInfo(program, CL_PROGRAM_NUM_DEVICES, sizeof(int), &num_devices, NULL);
+  if(num_devices>0) {
+    cl_device_id *devices=new cl_device_id[num_devices];
+    ::clGetProgramInfo(program, CL_PROGRAM_DEVICES, sizeof(cl_device_id)*num_devices, devices, NULL);
+    for(int i=0;i<num_devices;i++) {
+      int err;
+      ::clGetProgramBuildInfo(program, devices[i], CL_PROGRAM_BUILD_STATUS, sizeof(int), &err, NULL);
+      baton->error |= err;
+    }
+    delete[] devices;
+  }
+
+  //cout<<"  async init"<<endl<<flush;
+  uv_async_init(uv_default_loop(), &baton->async, After_cb);
+  uv_async_send(&baton->async);
+}
+
+void
+Program::After_cb(uv_async_t* handle, int status) {
+  HandleScope scope;
+
+  Baton *baton = static_cast<Baton*>(handle->data);
+  //cout<<"[Program::After_cb] baton= "<<hex<<baton<<dec<<endl<<flush;
+  uv_close((uv_handle_t*) &baton->async,NULL);
+
+  Handle<Value> argv[]={
+      JS_INT(baton->error),
+      baton->data
+  };
+
+  TryCatch try_catch;
+
+  baton->callback->Call(v8::Context::GetCurrent()->Global(), 2, argv);
+
+  if (try_catch.HasCaught())
+      node::FatalException(try_catch);
+
+  baton->callback.Dispose();
+  baton->data.Dispose();
+  delete baton;
+}
+
 JS_METHOD(Program::build)
 {
   HandleScope scope;
   Program *prog = UnwrapThis<Program>(args);
 
-  vector<cl_device_id> devices;
+  cl_device_id *devices=NULL;
+  int num=0;
   if(args[0]->IsArray()) {
     Local<Array> deviceArray = Array::Cast(*args[0]);
     //cout<<"Building program for "<<deviceArray->Length()<<" devices"<<endl;
-    for (int i=0; i<deviceArray->Length(); i++) {
+    num=deviceArray->Length();
+    devices=new cl_device_id[num];
+    for (int i=0; i<num; i++) {
       Local<Object> obj = deviceArray->Get(i)->ToObject();
       Device *d = ObjectWrap::Unwrap<Device>(obj);
       //cout<<"Device "<<i<<": "<<d->getDevice()<<endl;
-      devices.push_back( d->getDevice() );
+      devices[i] = d->getDevice();
     }
   }
   else if(args[0]->IsObject()) {
     Local<Object> obj = args[0]->ToObject();
     Device *d = ObjectWrap::Unwrap<Device>(obj);
-    devices.push_back( d->getDevice() );
+    num=1;
+    devices=new cl_device_id;
+    *devices= d->getDevice();
   }
+  //cout<<"[Program::build] #devices: "<<num<<" ptr="<<hex<<devices<<dec<<endl<<flush;
 
   char *options=NULL;
-  if(!args[1]->IsUndefined() && args[1]->IsString()) {
-    Local<String> str = args[1]->ToString();
-    //cout<<"str length: "<<str->Length()<<endl;
-    if(str->Length()>0) {
-      String::AsciiValue _options(str);
-      options = ::strdup(*_options);
+  if(!args[1]->IsUndefined() && !args[1]->IsNull() && args[1]->IsString()) {
+    String::AsciiValue str(args[1]);
+    //cout<<"str length: "<<str.length()<<endl;
+    if(str.length()>0) {
+      options = ::strdup(*str);
     }
   }
+  //cout<<"[Program::build] options=";
+  //if(options) cout<<hex<<options<<dec;
+  //else cout<<"NULL";
+  //cout<<endl<<flush;
 
-  cl_int ret = ::clBuildProgram(prog->getProgram(), devices.size(), devices.size() ? &devices.front() : NULL,
+  Baton *baton=NULL;
+  if(args.Length()==4 && !args[3]->IsUndefined() && args[3]->IsFunction()) {
+
+    baton=new Baton();
+    //cout<<"[Program::build] Creating baton "<<hex<<baton<<dec<<" on thread "<<hex<<pthread_self()<<dec<<endl<<flush;
+
+    Local<Function> fct=Local<Function>::Cast(args[3]);
+    baton->callback=Persistent<Function>::New(fct);
+
+    if(!args[2].IsEmpty() && !args[2]->IsUndefined() && !args[2]->IsNull()) {
+      Local<Value> data=args[2];
+      baton->data=Persistent<Value>::New(data);
+    }
+
+    baton->init_thread=pthread_self();
+    //uv_async_init(uv_default_loop(), &baton->async, After_cb);
+    baton->async.data=baton;
+  }
+  //cout<<"[Program::build] Calling clBuildProgram with baton: "<<hex<<baton<<dec<<endl<<flush;
+
+  cl_int ret = ::clBuildProgram(prog->getProgram(), num, devices,
       options,
-      NULL /*notifyFptr*/,
-      NULL /*data*/);
+      baton ? Program::callback : NULL,
+      baton);
+  //cout<<"[Program::build] cleaning up options and devices lists"<<endl<<flush;
   if(options) free(options);
+  if(devices) delete[] devices;
 
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(CL_INVALID_PROGRAM);
@@ -217,6 +298,7 @@ JS_METHOD(Program::build)
     return ThrowError("UNKNOWN ERROR");
   }
 
+  //cout<<"[Program::build] end"<<endl<<flush;
   return Undefined();
 }
 

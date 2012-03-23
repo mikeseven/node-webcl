@@ -54,11 +54,13 @@ cl.getPlatforms = function () {
 }
 
 var _createContext = cl.createContext;
-cl.createContext = function (properties) {
-if (!(properties===null || typeof properties === 'undefined' || typeof properties === 'object')) {
-  throw new TypeError('Expected createContext(optional WebCLContextProperties properties)');
+cl.createContext = function (properties, data, callback) {
+if (!((properties===null || typeof properties === 'undefined' || typeof properties === 'object') &&
+    (callback===null || typeof callback === 'undefined' || typeof callback === 'function')
+  )) {
+  throw new TypeError('Expected createContext(optional WebCLContextProperties properties, optional any data, optional function callback)');
 }
-return _createContext(properties);
+return _createContext(properties, data, callback);
 }
 
 var _waitForEvents = cl.waitForEvents;
@@ -642,12 +644,15 @@ cl.WebCLProgram.prototype.getBuildInfo=function (device, param_name) {
 }
 
 // TODO add callback
-cl.WebCLProgram.prototype.build=function (devices, options) {
+cl.WebCLProgram.prototype.build=function (devices, options, data, callback) {
   if (  !(arguments.length === 1 && typeof devices === 'object') &&
-        !(arguments.length === 2 && typeof devices === 'object' && typeof options === 'string')) {
-    throw new TypeError('Expected WebCLProgram.build(WebCLDevice[] devices, String options)');
+        !(arguments.length >= 2 && typeof devices === 'object' && 
+            (options==null || typeof options==='undefined' || typeof options === 'string') &&
+            typeof callback === 'function')
+        ) {
+    throw new TypeError('Expected WebCLProgram.build(WebCLDevice[] devices, String options, any data, function callback)');
   }
-  return this._build(devices, options);
+  return this._build(devices, options, data, callback);
 }
 
 cl.WebCLProgram.prototype.createKernel=function (name) {

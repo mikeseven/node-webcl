@@ -255,20 +255,20 @@ JS_METHOD(CommandQueue::enqueueTask)
 
   REQ_ARGS(1);
 
-  //cout<<"[enqueueTask] getting kernel"<<endl;
+  cout<<"[enqueueTask] getting kernel"<<endl;
   Kernel *k = ObjectWrap::Unwrap<Kernel>(args[0]->ToObject());
 
   MakeEventWaitList(args[1]);
 
   cl_event event;
-  if(args[2]->IsUndefined()) event=NULL;
-  //cout<<"[enqueueTask] create event? "<<event<<endl;
+  bool no_event = (args[2]->IsUndefined() || args[2]->IsNull());
+  cout<<"[enqueueTask] no event? "<<no_event<<endl;
 
   cl_int ret=::clEnqueueTask(
       cq->getCommandQueue(), k->getKernel(),
       num_events_wait_list,
       events_wait_list,
-      event==NULL ? NULL : &event);
+      no_event ? NULL : &event);
 
   if(events_wait_list) delete[] events_wait_list;
 
@@ -507,14 +507,15 @@ JS_METHOD(CommandQueue::enqueueReadBuffer)
   MakeEventWaitList(args[3]);
 
   cl_event event;
-  if(args[4]->IsUndefined()) event=NULL;
+  bool no_event = (args[4]->IsUndefined() || args[4]->IsNull());
+  cout<<"[enqueueReadBuffer] no event? "<<no_event<<endl;
 
   cl_int ret=::clEnqueueReadBuffer(
       cq->getCommandQueue(), mo->getMemory(), blocking_read, offset, size,
       ptr,
       num_events_wait_list,
       events_wait_list,
-      event==NULL ? NULL : &event);
+      no_event ? NULL : &event);
 
   if(events_wait_list) delete[] events_wait_list;
 

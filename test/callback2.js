@@ -5,6 +5,17 @@ if(nodejs) {
   exit = process.exit;
 }
 
+/* CL objects */
+var /* WebCLPlatform */     platform;
+var /* WebCLDevice */       device;
+var /* WebCLContext */      context;
+var /* WebCLProgram */      program;
+var /* WebCLKernel */       kernel;
+var /* WebCLCommandQueue */ queue;
+var /* WebCLEvent */        kernel_event, read_event;
+var /* WebCLBuffer */       data_buffer;
+var done=false;
+
 // kernel callback
 function kernel_complete(status, data) {
   log('in JS kernel_complete, status: '+status);
@@ -35,64 +46,7 @@ function read_complete(status, data) {
     log("The data has not been initialized successfully.");
 }
 
-function main() {
-  /* CL objects */
-  var /* WebCLPlatform */     platform;
-  var /* WebCLDevice */       device;
-  var /* WebCLContext */      context;
-  var /* WebCLProgram */      program;
-  var /* WebCLKernel */       kernel;
-  var /* WebCLCommandQueue */ queue;
-  var /* WebCLEvent */        kernel_event, read_event;
-  var /* WebCLBuffer */       data_buffer;
-
-  /* Create a device and context */
-  log('creating context');
-  
-  //Pick platform
-  var platformList=cl.getPlatforms();
-  platform=platformList[0];
-  log('using platform: '+platform.getInfo(cl.PLATFORM_NAME));
-  
-  //Query the set of devices on this platform
-  var devices = platform.getDevices(cl.DEVICE_TYPE_GPU);
-  device=devices[0];
-  log('using device: '+device.getInfo(cl.DEVICE_NAME));
-
-  // create GPU context for this platform
-  var context=cl.createContext({
-    devices: device, 
-    platform: platform
-  } ,'Error occured in context', function(err,data){
-    log(data+" : "+err);
-  });
-
-  /* Build the program and create a kernel */
-  var source = [
-                "__kernel void callback(__global float *buffer) {",
-                "  for(int i=0; i<4096; i++) ",
-                "     buffer[i]=5;",
-                "}"
-                ].join("\n");
-
-  // Create and program from source
-  try {
-    program=context.createProgram(source);
-  } catch(ex) {
-    log("Couldn't create the program. "+ex);
-    exit(1);
-  }
-
-  /* Build program */
-  try {
-    program.build(devices);
-  } catch(ex) {
-    /* Find size of log and print to std output */
-    var info=program.getBuildInfo(devices[0], cl.PROGRAM_BUILD_LOG);
-    log(info);
-    exit(1);
-  }
-
+function program_built(err, data) {
   try {
     kernel = program.createKernel("callback");
   } catch(ex) {
@@ -157,9 +111,65 @@ function main() {
   read_event.setCallback(cl.COMPLETE, read_complete, data);
   
   queue.finish(); // wait for everything to finish
+  done=true;
+}
+function main() {
+
+  /* Create a device and context */
+  log('creating context');
+  
+  //Pick platform
+  var platformList=cl.getPlatforms();
+  platform=platformList[0];
+  log('using platform: '+platform.getInfo(cl.PLATFORM_NAME));
+  
+  //Query the set of devices on this platform
+  var devices = platform.getDevices(cl.DEVICE_TYPE_GPU);
+  device=devices[0];
+  log('using device: '+device.getInfo(cl.DEVICE_NAME));
+
+  // create GPU context for this platform
+  context=cl.createContext({
+    devices: device, 
+    platform: platform
+  } ,'Error occured in context', function(err,data){
+    log(data+" : "+err);
+  });
+
+  /* Build the program and create a kernel */
+  var source = [
+                "__kernel void callback(__global float *buffer) {",
+                "  for(int i=0; i<4096; i++) ",
+                "     buffer[i]=5;",
+                "}"
+                ].join("\n");
+
+  // Create and program from source
+  try {
+    program=context.createProgram(source);
+  } catch(ex) {
+    log("Couldn't create the program. "+ex);
+    exit(1);
+  }
+
+  /* Build program */
+  try {
+    program.build(devices, null, 'compil done', program_built);
+  } catch(ex) {
+    /* Find size of log and print to std output */
+    var info=program.getBuildInfo(devices[0], cl.PROGRAM_BUILD_LOG);
+    log(info);
+    exit(1);
+  }
+
   //read_complete(read_event, cl.COMPLETE, data);
   log("main app thread END");
   //exit(0);
+  function sleep() {
+    if(!done)
+      setTimeout(sleep, 1000);
+  }
+  sleep();
 }
 
 main();

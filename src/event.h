@@ -35,6 +35,7 @@ public:
 private:
   Event(v8::Handle<v8::Object> wrapper);
 
+  static void callback (cl_event event, cl_int event_command_exec_status, void *user_data);
   static void After_cb(uv_async_t* handle, int status);
 
   static v8::Persistent<v8::FunctionTemplate> constructor_template;

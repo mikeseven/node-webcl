@@ -82,6 +82,20 @@ v8::Handle<v8::Value> ThrowRangeError(const char* msg) {
 
 namespace webcl {
 
+// generic baton for async callbacks
+struct Baton {
+    v8::Persistent<v8::Function> callback;
+    int error;
+    uv_async_t async;
+    char *error_msg;
+    pthread_t init_thread;
+
+    // Custom data
+    v8::Persistent<v8::Value> data;
+
+    Baton() : error(CL_SUCCESS),error_msg(NULL)  {}
+};
+
 class WebCLObject;
 void registerCLObj(WebCLObject* obj);
 void unregisterCLObj(WebCLObject* obj);
