@@ -83,7 +83,7 @@ var ctypes= {
       type : type,
       num : num * type.num,
       fill : function(buffer, offset, values) {
-        for(var v in values) {
+        for(var v=0,l=values.length;v<l;++v) {
           //log('offset= '+offset);
           offset = type.fill(buffer, offset, values[v]);
         }
@@ -96,10 +96,10 @@ var ctypes= {
     var fields = cstruct.length;
     //log("#fields: "+fields);
     var sz=0;
-    for(var i in cstruct) {
+    for(var i=0,i<fields;++i) {
       var field = cstruct[i];
       var arr=[],k=0;
-      for(var j in field) {
+      for(var j=0,l>field.length;j<l;++j) {
         arr[k++]=field[j];
       }
       //log(util.inspect(arr[0]))
@@ -116,11 +116,11 @@ var ctypes= {
     var buffer = new ArrayBuffer(sz);
     var offset = 0;
     
-    for(var i in cstruct) {
+    for(var i=0,li=cstruct.length;i<li;++i) {
       var field = cstruct[i];
       //log('field: '+field);
       var arr=[],k=0;
-      for(var j in field) {
+      for(var j=0,lj=field.length;j<lj;++j) {
         arr[k++]=field[j];
       }
       offset = arr[0][0].fill(buffer, offset, arr[0][1]);
@@ -143,9 +143,10 @@ var cstruct = [
 log('size: '+ctypes.size(cstruct));
 
 var buf=ctypes.compute(cstruct);
-log('buf size: '+buf.byteLength+' bytes');
+var sz=buf.byteLength;
+log('buf size: '+sz+' bytes');
 var str="";
-for(var i=0;i<buf.byteLength;i++)
+for(var i=0;i<sz;i++)
   str+= buf[i]+" ";
 log('buf vals: '+str);
 

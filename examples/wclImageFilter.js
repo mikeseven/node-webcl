@@ -59,7 +59,7 @@ function ImageFilter(image) {
   
   var device_found=false;
   var device;
-  for(var i in devices) 
+  for(var i=0,l=devices.length;i<l;++i ) 
   {
     var device_type=devices[i].getInfo(cl.DEVICE_TYPE);
     if(device_type == cl.DEVICE_TYPE_GPU) 
