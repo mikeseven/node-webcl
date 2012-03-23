@@ -162,12 +162,12 @@ function main() {
     exit(1);
   }
 
-  //read_complete(read_event, cl.COMPLETE, data);
   log("main app thread END");
-  //exit(0);
   function sleep() {
-    if(!done)
-      setTimeout(sleep, 1000);
+    if(!done) {
+      log('sleeping 0.5s');
+      setTimeout(sleep, 500);
+    }
   }
   sleep();
 }
