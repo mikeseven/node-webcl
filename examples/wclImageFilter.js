@@ -19,7 +19,7 @@ if(nodejs) {
 if (cl == undefined) {
   alert("Unfortunately your system does not support WebCL. " +
   "Make sure that you have the WebCL extension installed.");
-  return;
+  process.exit(-1);
 }
 
 var file = __dirname+'/mike_scooter.jpg';
@@ -98,7 +98,7 @@ function ImageFilter(image) {
   }
   catch(err) {
     console.log('error creating buffers');
-    return;
+    process.exit(-1);
   }
 
   //Create kernel object

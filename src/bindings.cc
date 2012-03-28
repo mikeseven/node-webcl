@@ -13,7 +13,6 @@
 #include "device.h"
 #include "event.h"
 #include "kernel.h"
-#include "mappedregion.h"
 #include "memoryobject.h"
 #include "platform.h"
 #include "program.h"
@@ -55,7 +54,6 @@ void init(Handle<Object> target)
   webcl::Device::Init(target);
   webcl::Event::Init(target);
   webcl::Kernel::Init(target);
-  webcl::MappedRegion::Init(target);
   webcl::MemoryObject::Init(target);
   webcl::WebCLBuffer::Init(target);
   webcl::WebCLImage::Init(target);

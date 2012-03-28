@@ -300,7 +300,7 @@ cl.WebCLCommandQueue.prototype.enqueueUnmapMemObject=function (memory_object, re
     (typeof event_list === 'undefined' || typeof event_list === 'object') &&
     (typeof event === 'undefined' || checkObjectType(event, 'WebCLEvent'))
   )) {
-    throw new TypeError('Expected WebCLCommandQueue.enqueueUnmapMemObject(WebCLMemoryObject memory_object, WebCLMappedRegion region, WebCLEvent[] event_list, WebCLEvent event)');
+    throw new TypeError('Expected WebCLCommandQueue.enqueueUnmapMemObject(WebCLMemoryObject memory_object, ArrayBuffer region, WebCLEvent[] event_list, WebCLEvent event)');
   }
   return this._enqueueUnmapMemObject(memory_object, region, event_list, event);
 }

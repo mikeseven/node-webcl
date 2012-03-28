@@ -16,7 +16,7 @@ if(nodejs) {
 if (cl == undefined) {
   alert("Unfortunately your system does not support WebCL. " +
   "Make sure that you have the WebCL extension installed.");
-  return;
+  process.exit(-1);
 }
 
 VectorAdd();

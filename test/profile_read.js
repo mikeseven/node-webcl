@@ -149,7 +149,6 @@ function main() {
     /* Get profiling information */
     time_start = prof_event.getProfilingInfo(cl.PROFILING_COMMAND_START);
     time_end = prof_event.getProfilingInfo(cl.PROFILING_COMMAND_END);
-    //log("time: start="+time_start+" end="+time_end);
     total_time += time_end - time_start;
     
     if(!PROFILE_READ) {
