@@ -118,10 +118,7 @@ function VectorAdd() {
       localWS);
   
   //printResults(A,B,C);
-  //There is no need to perform a finish on the final unmap
-  //or release any objects as this all happens implicitly with
-  //the C++ Wrapper API.
-  
+
   log("using enqueueMapBuffer");
   // Map cBuffer to host pointer. This enforces a sync with 
   // the host backing space, remember we choose GPU device.
@@ -131,7 +128,7 @@ function VectorAdd() {
       cl.MAP_READ,
       0,
       BUFFER_SIZE * Uint32Array.BYTES_PER_ELEMENT);
-  
+
   buf=new Uint32Array(map);
   for(var i=0;i<BUFFER_SIZE;i++) {
     C[i]=buf[i];

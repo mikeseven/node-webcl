@@ -275,6 +275,7 @@ cl.WebCLCommandQueue.prototype.enqueueMapBuffer=function (memory_object, blockin
   )) {
     throw new TypeError('Expected WebCLCommandQueue.enqueueMapBuffer(WebCLBuffer memory_object, boolean blocking, CLenum flags, uint offset, uint size, WebCLEvent[] event_list, WebCLEvent event)');
   }
+
   return this._enqueueMapBuffer(memory_object, blocking, flags, offset, size, event_list, event);
 }
 
