@@ -1087,6 +1087,10 @@ JS_METHOD(CommandQueue::enqueueCopyBufferToImage)
   return Undefined();
 }
 
+void free_callback(char *data, void *hint) {
+  //cout<<"enqueueMapBuffer free_callback called"<<endl;
+}
+
 JS_METHOD(CommandQueue::enqueueMapBuffer)
 {
   HandleScope scope;
@@ -1129,9 +1133,9 @@ JS_METHOD(CommandQueue::enqueueMapBuffer)
     return ThrowError("UNKNOWN ERROR");
   }
 
-  node::Buffer *buf=node::Buffer::New((char*) result,size);
-  //cout<<"mapped_ptr: "<<result<<endl;
-  buf->handle_->Set(JS_STR("mapped_ptr"),JS_NUM((uint64_t) result));
+  // wrap OpenCL result buffer into a node Buffer
+  node::Buffer *buf=node::Buffer::New((char*) result,size, free_callback,
+  NULL);
 
   if(!no_event) {
     Event *e=ObjectWrap::Unwrap<Event>(args[6]->ToObject());
@@ -1211,7 +1215,8 @@ JS_METHOD(CommandQueue::enqueueMapImage)
   }
 
   size_t nbytes = region[0] * region[1] * region[2];
-  return scope.Close(node::Buffer::New((char*)result, nbytes)->handle_);
+  return scope.Close(node::Buffer::New((char*)result, nbytes,
+  free_callback, NULL)->handle_);
 }
 
 JS_METHOD(CommandQueue::enqueueUnmapMemObject)
@@ -1222,11 +1227,6 @@ JS_METHOD(CommandQueue::enqueueUnmapMemObject)
   // TODO: arg checking
   MemoryObject *mo = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
   node::Buffer *buf = ObjectWrap::Unwrap<node::Buffer>(args[1]->ToObject());
-  char *mapped_ptr= (char*) (uint64_t) buf->handle_->Get(JS_STR("mapped_ptr"))->NumberValue();
-  //cout<<"mapped_ptr: "<<mapped_ptr<<endl;
-
-  // TODO: avoid copy!
-  memcpy(mapped_ptr, node::Buffer::Data(buf), node::Buffer::Length(buf));
 
   MakeEventWaitList(args[2]);
 
@@ -1235,7 +1235,7 @@ JS_METHOD(CommandQueue::enqueueUnmapMemObject)
 
   cl_int ret=::clEnqueueUnmapMemObject(
       cq->getCommandQueue(), mo->getMemory(),
-      mapped_ptr,
+      node::Buffer::Data(buf),
       num_events_wait_list,
       events_wait_list,
       no_event ? NULL : &event);
