@@ -1,41 +1,43 @@
 {
-   "name": "node-webcl",
-   "version": "0.1.0",
-   "description": "A WebCL implementation for desktops with NodeJS",
-   "main": "webcl.js",
-   "author": "Mikael Bourges-Sevenier <msevenier@motorola.com>",
-   "keywords": [ "webcl", "opencl" ],
-   "maintainers": [
-       {
-           "name": "Mikael Bourges-Sevenier",
-           "email": "msevenier@motorola.com",
-           "web": "http://www.motorola.com",
-           "twitter": "msevenier"
-       }
-   ],
-   "licenses": [{
-        "type": "BSD",
-        "url": ""
-    }],
-   "repositories": [
-       {
-           "type": "git",
-           "url": "" 
-       } 
-   ],
-   "directories": {
-       "src": "src",
-       "lib": "lib",
-       "docs": "docs",
-       "examples": "examples"
-   },
-   "engines": {
-       "node": ">=0.7.0"
-   },
-   "scripts": {
-       "install": "node-waf configure clean build"
-   },
-   "dependencies": { 
-   }
+  "name":"node-webcl",
+  "version":"0.1.0",
+  "description":"A WebCL implementation for desktops with NodeJS",
+  "main":"webcl.js",
+  "author":"Mikael Bourges-Sevenier <msevenier@motorola.com>",
+  "keywords":[ "webcl", "opencl" ],
+  "maintainers":[
+    {
+      "name":"Mikael Bourges-Sevenier",
+      "email":"msevenier@motorola.com",
+      "web":"http://www.motorola.com",
+    }
+  ],
+  "licenses":[
+    {
+      "type":"BSD",
+      "url":"https://github.com/Motorola-Mobility/node-webcl/blob/master/LICENSES"
+    }
+  ],
+  "repositories":[
+    {
+      "type":"git",
+      "url":"https://github.com/Motorola-Mobility/node-webcl"
+    }
+  ],
+  "directories":{
+    "src":"src",
+    "lib":"lib",
+    "docs":"docs",
+    "examples":"examples",
+    "test":"test"
+  },
+  "engines":{
+    "node":">=0.7.0"
+  },
+  "scripts":{
+    "install":"node-waf configure clean build"
+  },
+  "dependencies":{
+  }
 }
 
