@@ -430,7 +430,7 @@ cl.WebCLContext.prototype.createCommandQueue=function (device, properties) {
 
 cl.WebCLContext.prototype.createBuffer=function (flags, size, host_ptr) {
   if (!(arguments.length >= 2 && typeof flags === 'number' && typeof size === 'number' && 
-      (typeof host_ptr === 'undefined' || typeof host_ptr === 'object') )) {
+      (host_ptr === null || typeof host_ptr === 'undefined' || typeof host_ptr === 'object') )) {
     throw new TypeError('Expected WebCLContext.createBuffer(CLenum flags, int size, optional ArrayBuffer host_ptr)');
   }
   return this._createBuffer(flags, size, host_ptr);

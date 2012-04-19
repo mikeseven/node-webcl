@@ -49,7 +49,7 @@ function main() {
   var /* ArrayBuffer */       mapped_memory;
   
   var NUM_BYTES = 131072; // 128 kB
-  var NUM_ITERATIONS = 2000;
+  var NUM_ITERATIONS = 5000;
   var PROFILE_READ = false; // profile read vs. map buffer
   
   /* Initialize data */
@@ -122,7 +122,7 @@ function main() {
   } catch(ex) {
     log("Couldn't set a kernel argument. "+ex);
     exit(1);   
-  };
+  }
 
   /* Tell kernel number of char16 vectors */
   var num_vectors = NUM_BYTES/16;
@@ -133,12 +133,15 @@ function main() {
     queue = context.createCommandQueue(device, cl.QUEUE_PROFILING_ENABLE);
   } catch(ex) {
     log("Couldn't create a command queue for profiling. "+ex);
-  };
+  }
 
   var total_time = 0, time_start, time_end;
-  prof_event=new cl.WebCLEvent();
-  
+  var prof_event=new cl.WebCLEvent();
+  var loop_time=0, loop_start, loop_end;
+
   for(var i=0;i<NUM_ITERATIONS;i++) {
+    loop_start=new Date().getTime();
+
     /* Enqueue kernel */
     try {
       queue.enqueueTask(kernel);
@@ -150,7 +153,7 @@ function main() {
     if(PROFILE_READ) {
       /* Read the buffer */
       try {
-        queue.enqueueReadBuffer(data_buffer, false, { 
+        queue.enqueueReadBuffer(data_buffer, true, {
           buffer: data,
           size: data.byteLength
         }, null, prof_event);
@@ -162,7 +165,7 @@ function main() {
     else {
       /* Create memory map */
       try {
-        mapped_memory = queue.enqueueMapBuffer(data_buffer, cl.TRUE, cl.MAP_READ, 0, data.byteLength, null, prof_event);
+        mapped_memory = queue.enqueueMapBuffer(data_buffer, true, cl.MAP_READ, 0, data.byteLength, null, prof_event);
         if(mapped_memory[0]!=5) {
           Throw("Kernel didn't work or mapping is wrong");
         }
@@ -180,17 +183,24 @@ function main() {
     if(!PROFILE_READ) {
       /* Unmap the buffer */
       try {
+        mapped_memory[0]=0;
         queue.enqueueUnmapMemObject(data_buffer, mapped_memory);
       } catch(ex) {
          log("Couldn't unmap the buffer. Err= "+ex);
          exit(1);   
       }
     }
+
+    loop_end=new Date().getTime();
+    loop_time += loop_end - loop_start;
   }
 
+  log("Total "+(PROFILE_READ ? "read" : "map")+" time: "+total_time+" ns = " +(total_time/1000000.0)+" ms");
   var avg_ns=Math.round(total_time/NUM_ITERATIONS);
   log("Average "+(PROFILE_READ ? "read" : "map")+" time: "+avg_ns+" ns = " +(avg_ns/1000000.0)+" ms");
-  
+  loop_time=Math.round(loop_time/NUM_ITERATIONS);
+  log("Average loop time: "+(loop_time)+" ms");
+
   queue.finish();
   log('queue finished');
 }

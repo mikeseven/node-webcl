@@ -25,96 +25,89 @@
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 var nodejs = (typeof window === 'undefined');
-var cl = require('../webcl'),
-    clu = require('../lib/clUtils'), 
-    util = require('util'), 
-    fs = require('fs'), 
-    WebGL = require('node_webgl'), 
-    document = WebGL.document(), 
-    Image = WebGL.Image, 
-    log = console.log, 
-    requestAnimationFrame = document.requestAnimationFrame, 
-    alert = console.log;
-var use_gpu = true;
-var nodejs = true;
-var image;
+if(nodejs) {
+  cl = require('../../webcl');
+  clu = require('../../lib/clUtils');
+  util = require('util');
+  fs = require('fs');
+  WebGL = require('node-webgl');
+  document = WebGL.document();
+  log = console.log;
+  alert = console.log;
+}
 
-var COMPUTE_KERNEL_FILENAME = "dot.cl";
+requestAnimationFrame = document.requestAnimationFrame;
+
+var use_gpu = true;
+
+var COMPUTE_KERNEL_FILENAME = "mandelbrot.cl";
+var COMPUTE_KERNEL_NAME = "computeSet";
 var WIDTH = 800;
 var HEIGHT = 800;
 
 // cl stuff
 var /* cl_context */        ComputeContext;
 var /* cl_command_queue */  ComputeCommands;
-var /* cl_kernel */         ComputeKernel;
 var /* cl_program */        ComputeProgram;
 var /* cl_device_id */      ComputeDeviceId;
 var /* cl_device_type */    ComputeDeviceType;
-var /* cl_mem */            ComputeImage;
-var MaxWorkGroupSize;
-var WorkGroupSize = [ 0, 0 ];
-var WorkGroupItems = 32;
+var /* cl_mem */            ComputePBO;
+var /* cl_kernel */         ckCompute;
 
-var Width = WIDTH;
-var Height = HEIGHT;
+var width = WIDTH;
+var height = HEIGHT;
 var Reshaped = false;
 var Update = false;
 var newWidth, newHeight; // only when reshape
 
 // simulation
-var uiNumOutputPix = WorkGroupItems; // Default output pix per workgroup... may be modified depending HW/OpenCl caps
-var iRadius = 10; // initial radius of 2D box filter mask
-var fScale = 1.0 / (2 * iRadius + 1.0); // precalculated GV rescaling value
-var iRadiusAligned = false;
-var pbo;
-var RowSampler;
-var ComputeBufTemp, ComputePBO;
-var ckBoxRowsTex, ckBoxColumns;
+var nmax = 512;
+var cX=0;//0.407476, // in (-2.5, 1)  @TODO add a list of predefined C choices
+    cY=0;//0.234204; // in (-1, 1)
+var scale = 200;//10000*300;
+
+var oldMouseX, oldMouseY, mouseButtons=0;
 
 // gl stuff
 var gl;
 var shaderProgram;
+var pbo;
 var TextureId = null;
 var TextureWidth = WIDTH;
 var TextureHeight = HEIGHT;
+var VertexPosBuffer, TexCoordsBuffer;
 
 function initialize(device_type) {
   log('Initializing');
-  document.setTitle("OpenCL GPU BoxFilter Demo");
-  var canvas = document.createElement("fbo-canvas", Width, Height);
+  document.setTitle("OpenCL Mandelbrot set Demo");
+  var canvas = document.createElement("fbo-canvas", width, height);
 
   // install UX callbacks
   document.addEventListener('resize', reshape);
   document.addEventListener('keydown', keydown);
+  document.addEventListener("mousemove", motion);
+  document.addEventListener("mousedown", function(evt) {
+    mouse(evt, true);
+  });
+  document.addEventListener("mouseup", function(evt) {
+    mouse(evt, false);
+  });
 
-  var err = setupGraphics(canvas);
+  var err = init_gl(canvas);
   if (err != cl.SUCCESS)
     return err;
 
-  err = setupComputeDevices(device_type);
+  err = init_cl(device_type);
   if (err != 0)
     return err;
 
-  var image_support = ComputeDeviceId.getInfo(cl.DEVICE_IMAGE_SUPPORT);
-  if (!image_support) {
-    log("Application requires images: Images not supported on this device.");
-    return cl.IMAGE_FORMAT_NOT_SUPPORTED;
-  }
-
-  err = createComputeResult();
-  if (err != cl.SUCCESS) {
-    log("Failed to create compute result! Error " + err);
-    return err;
-  }
-
-  err = setupComputeKernel();
-  if (err != cl.SUCCESS) {
-    log("Failed to setup compute kernel! Error " + err);
-    return err;
-  }
+  configure_shared_data(width, height);
 
   // Warmup call to assure OpenCL driver is awake
-  BoxFilterGPU(image, ComputePBO, iRadius, fScale);
+  resetKernelArgs(cX, cY, scale, nmax, width, height);
+  
+  executeKernel(width, height, ComputePBO);
+  
   ComputeCommands.finish();
 
   return cl.SUCCESS;
@@ -124,12 +117,13 @@ function initialize(device_type) {
 // OpenGL stuff
 // /////////////////////////////////////////////////////////////////////
 
-function createPBO(image_width, image_height) {
+function configure_shared_data(image_width, image_height) {
+  log('configure shared data');
+  
   // set up data parameter
-  log('  create PBO');
   var num_texels = image_width * image_height;
   var num_values = num_texels * 4;
-  var size_tex_data = 1 * num_values; // 1 is for texture type size UNSIGNED_INT8
+  var size_tex_data = 1 * num_values; // 1 is GL texture type UNSIGNED_BYTE size
 
   // create buffer object
   if (pbo) {
@@ -143,10 +137,17 @@ function createPBO(image_width, image_height) {
   // buffer data
   gl.bufferData(gl.ARRAY_BUFFER, size_tex_data, gl.DYNAMIC_DRAW);
   gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
+  // Create OpenCL representation of OpenGL PBO
+  ComputePBO = ComputeContext.createFromGLBuffer(cl.MEM_WRITE_ONLY, pbo);
+  if (!ComputePBO) {
+    alert("Error: Failed to create CL PBO buffer");
+    return -1;
+  }
 }
 
-function createTexture(width, height) {
-  log('  create texture');
+function init_textures(width, height) {
+  log('  Init textures');
 
   if (TextureId)
     gl.deleteTexture(TextureId);
@@ -164,7 +165,7 @@ function createTexture(width, height) {
   gl.bindTexture(gl.TEXTURE_2D, null);
 }
 
-function createBuffers() {
+function init_buffers() {
   log('  create buffers');
   var VertexPos = [ -1, -1, 
                     1, -1, 
@@ -188,7 +189,7 @@ function createBuffers() {
   TexCoordsBuffer.numItems = 4;
 }
 
-function getShader(gl, id) {
+function compile_shader(gl, id) {
   var shaders = {
     "shader-vs" : [ 
         "attribute vec3 aCoords;",
@@ -257,10 +258,10 @@ function getShader(gl, id) {
   return shader;
 }
 
-function createShaders() {
-  log('  create shaders');
-  var fragmentShader = getShader(gl, "shader-fs");
-  var vertexShader = getShader(gl, "shader-vs");
+function init_shaders() {
+  log('  Init shaders');
+  var fragmentShader = compile_shader(gl, "shader-fs");
+  var vertexShader = compile_shader(gl, "shader-vs");
 
   shaderProgram = gl.createProgram();
   gl.attachShader(shaderProgram, vertexShader);
@@ -282,8 +283,8 @@ function createShaders() {
   shaderProgram.samplerUniform = gl.getUniformLocation(shaderProgram, "uSampler");
 }
 
-function setupGraphics(canvas) {
-  log('Setup graphics');
+function init_gl(canvas) {
+  log('Init GL');
   try {
     gl = canvas.getContext("experimental-webgl");
     gl.viewportWidth = canvas.width;
@@ -295,23 +296,16 @@ function setupGraphics(canvas) {
     return -1;
   }
 
-  createBuffers();
-  createShaders();
-  createPBO(image.width, image.height);
-  createTexture(image.width, image.height);
-
-  gl.clearColor(0, 0, 0, 0);
-
-  gl.disable(gl.DEPTH_TEST);
-  gl.activeTexture(gl.TEXTURE0);
-  gl.viewport(0, 0, Width, Height);
+  init_buffers();
+  init_shaders();
+  init_textures(width, height);
 
   return cl.SUCCESS;
 }
 
 function renderTexture() {
   // we just draw a screen-aligned texture
-  gl.viewport(0, 0, Width, Height);
+  gl.viewport(0, 0, width, height);
 
   gl.enable(gl.TEXTURE_2D);
   gl.bindTexture(gl.TEXTURE_2D, TextureId);
@@ -338,8 +332,8 @@ function renderTexture() {
 // OpenCL stuff
 // /////////////////////////////////////////////////////////////////////
 
-function setupComputeDevices(device_type) {
-  log('setup compute devices');
+function init_cl(device_type) {
+  log('init CL');
   ComputeDeviceType = device_type ? cl.DEVICE_TYPE_GPU : cl.DEVICE_TYPE_CPU;
 
   // Pick platform
@@ -359,7 +353,7 @@ function setupComputeDevices(device_type) {
   }
 
   var device_found = false;
-  for ( var i in device_ids) {
+  for(var i=0,l=device_ids.length;i<l;++i ) {
     device_type = device_ids[i].getInfo(cl.DEVICE_TYPE);
     if (device_type == ComputeDeviceType) {
       ComputeDeviceId = device_ids[i];
@@ -388,13 +382,29 @@ function setupComputeDevices(device_type) {
 
   log("Connecting to " + vendor_name + " " + device_name);
 
+  if (!ComputeDeviceId.getInfo(cl.DEVICE_IMAGE_SUPPORT)) {
+    log("Application requires images: Images not supported on this device.");
+    return cl.IMAGE_FORMAT_NOT_SUPPORTED;
+  }
+
+  err = init_cl_buffers();
+  if (err != cl.SUCCESS) {
+    log("Failed to create compute result! Error " + err);
+    return err;
+  }
+
+  err = init_cl_kernels();
+  if (err != cl.SUCCESS) {
+    log("Failed to setup compute kernel! Error " + err);
+    return err;
+  }
+
   return cl.SUCCESS;
 }
 
-function setupComputeKernel() {
-  log('setup compute kernel');
+function init_cl_kernels() {
+  log('  setup CL kernel');
 
-  ComputeKernel = null;
   ComputeProgram = null;
 
   log("Loading kernel source from file '" + COMPUTE_KERNEL_FILENAME + "'...");
@@ -425,114 +435,49 @@ function setupComputeKernel() {
 
   // Create the compute kernels from within the program
   //
-  log("Creating kernel BoxRowsTex...");
-  ckBoxRowsTex = ComputeProgram.createKernel('BoxRowsTex');
-  if (!ckBoxRowsTex) {
+  ckCompute = ComputeProgram.createKernel(COMPUTE_KERNEL_NAME);
+  if (!ckCompute) {
     alert("Error: Failed to create compute row kernel!");
     return -1;
   }
-  ckBoxColumns = ComputeProgram.createKernel('BoxColumns');
-  if (!ckBoxColumns) {
-    alert("Error: Failed to create compute column kernel!");
-    return -1;
-  }
-
-  return resetKernelArgs(image.width, image.height, iRadius, fScale);
+  return cl.SUCCESS;
 }
 
-function resetKernelArgs(image_width, image_height, r, scale) {
-  log('Reset kernel args to image ' + image_width + "x" + image_height + " r="
-      + r + " scale=" + scale);
-
+function resetKernelArgs(cx, cy, scale, nmax, image_width, image_height) {
   // set the kernel args
   try {
     // Set the Argument values for the row kernel
-    ckBoxRowsTex.setArg(0, ComputeTexture, cl.type.MEM);
-    ckBoxRowsTex.setArg(1, ComputeBufTemp, cl.type.MEM);
-    ckBoxRowsTex.setArg(2, RowSampler, cl.type.SAMPLER);
-    ckBoxRowsTex.setArg(3, image_width, cl.type.INT);
-    ckBoxRowsTex.setArg(4, image_height, cl.type.INT);
-    ckBoxRowsTex.setArg(5, r, cl.type.INT);
-    ckBoxRowsTex.setArg(6, scale, cl.type.FLOAT);
+    ckCompute.setArg(1, cx, cl.type.FLOAT);
+    ckCompute.setArg(2, cy, cl.type.FLOAT);
+    ckCompute.setArg(3, scale, cl.type.FLOAT);
+    ckCompute.setArg(4, nmax, cl.type.UINT);
+    ckCompute.setArg(5, image_width, cl.type.UINT);
+    ckCompute.setArg(6, image_height, cl.type.UINT);
   } catch (err) {
     alert("Failed to set row kernel args! " + err);
     return -10;
   }
 
-  try {
-    // Set the Argument values for the column kernel
-    ckBoxColumns.setArg(0, ComputeBufTemp, cl.type.MEM);
-    ckBoxColumns.setArg(1, ComputePBO, cl.type.MEM);
-    ckBoxColumns.setArg(2, image_width, cl.type.INT);
-    ckBoxColumns.setArg(3, image_height, cl.type.INT);
-    ckBoxColumns.setArg(4, r, cl.type.INT);
-    ckBoxColumns.setArg(5, scale, cl.type.FLOAT);
-  } catch (err) {
-    alert("Failed to set column kernel args! " + err);
-    return -10;
-  }
-
-  // Get the maximum work group size for executing the kernel on the device
-  //
-  MaxWorkGroupSize = ckBoxRowsTex.getWorkGroupInfo(ComputeDeviceId,
-      cl.KERNEL_WORK_GROUP_SIZE);
-
-  log("MaxWorkGroupSize: " + MaxWorkGroupSize);
-  log("WorkGroupItems: " + WorkGroupItems);
-
-  WorkGroupSize[0] = (MaxWorkGroupSize > 1) ? Math.round(MaxWorkGroupSize / WorkGroupItems) : MaxWorkGroupSize;
-  WorkGroupSize[1] = Math.round(MaxWorkGroupSize / WorkGroupSize[0]);
-  log("WorkGroupSize: " + WorkGroupSize);
   return cl.SUCCESS;
 }
 
-function createComputeResult() {
-  log('create compute result');
+function init_cl_buffers() {
+  log('  create CL buffers');
 
-  // 2D Image (Texture) on device
-  var InputFormat = {
-    order : cl.RGBA,
-    data_type : cl.UNSIGNED_INT8
-  };
-  ComputeTexture = ComputeContext.createImage2D(cl.MEM_READ_ONLY
-      | cl.MEM_USE_HOST_PTR, InputFormat, image.width, image.height, image.pitch, image);
-  if (!ComputeTexture) {
-    alert("Error: Failed to create a Image2D on device");
-    return -1;
-  }
-
-  RowSampler = ComputeContext.createSampler(false, cl.ADDRESS_CLAMP, cl.FILTER_NEAREST);
-  if (!RowSampler) {
-    alert("Error: Failed to create a row sampler");
-    return -1;
-  }
-
-  // Allocate the OpenCL intermediate and result buffer memory objects on the device GMEM
-  ComputeBufTemp = ComputeContext.createBuffer(cl.MEM_READ_WRITE, image.szBuffBytes);
-  if (!ComputeBufTemp) {
-    alert("Error: Failed to create temporary buffer");
-    return -1;
-  }
-
-  // Create OpenCL representation of OpenGL PBO
-  ComputePBO = ComputeContext.createFromGLBuffer(cl.MEM_WRITE_ONLY, pbo);
-  if (!ComputePBO) {
-    alert("Error: Failed to create CL PBO buffer");
-    return -1;
-  }
   return cl.SUCCESS;
 }
 
 function cleanup() {
   document.removeEventListener('resize', reshape);
   document.removeEventListener('keydown', keydown);
+  document.removeEventListener('mousemove', motion);
+  document.removeEventListener('mousedown', mouse);
+  document.removeEventListener('mouseup', mouse);
   ComputeCommands.finish();
-  ckBoxRowsTex = null;
-  ckBoxColumns = null;
-  RowSampler = null;
+  ckCompute = null;
   ComputeProgram = null;
   ComputeCommands = null;
-  ComputeImage = null;
+  ComputePBO = null;
   ComputeContext = null;
 }
 
@@ -555,18 +500,18 @@ function display(timestamp) {
 
   if (Reshaped) {
     Reshaped = false;
-    Width = newWidth;
-    Height = newHeight;
+    width = newWidth;
+    height = newHeight;
     cleanup();
     if (initialize(ComputeDeviceType == cl.DEVICE_TYPE_GPU) != cl.SUCCESS)
       shutdown();
-    gl.viewport(0, 0, Width, Height);
+    gl.viewport(0, 0, width, height);
     gl.clear(gl.COLOR_BUFFER_BIT);
   }
 
-  var err = recompute();
+  var err = execute_kernel();
   if (err != 0) {
-    alert("Error " + err + " from Recompute!");
+    alert("Error " + err + " from execute_kernel!");
     process.exit(1);
   }
 
@@ -589,40 +534,75 @@ function reshape(evt) {
 
 function keydown(evt) {
   log('process key: ' + evt.which);
-  var oldr = iRadius;
-
-  switch (evt.which) {
-  case '='.charCodeAt(0): // + or = increases filter radius
-    if ((MaxWorkGroupSize - (((iRadius + 1 + 15) / 16) * 16) - iRadius - 1) > 0)
-      iRadius++;
-    break;
-  case '-'.charCodeAt(0): // - or _ decreases filter radius
-    if (iRadius > 1)
-      iRadius--;
-    break;
+  switch(evt.which) {
+    case 286:
+      cX += 1/scale;
+      break;
+    case 285:
+      cX -= 1/scale;
+      break;
+    case 283:
+      cY += 1/scale;
+      break;
+    case 284:
+      cY -= 1/scale;
+      break;
   }
-  if (oldr != iRadius) {
-    Update = true;
-  }
+  Update=true;
 }
 
-function recompute() {
-  //log('recompute...');
+function mouse(evt, isDown) {
+  //log('buttons: '+evt.button)
+  if (isDown)
+    mouseButtons |= 1 << evt.button;
+  else
+    mouseButtons = 0;
+
+  oldMouseX=evt.x;
+  oldMouseX=evt.y;
+}
+
+function motion(evt) {
+  var dx = (evt.x - oldMouseX);
+  var dy = (evt.y - oldMouseY);
+
+  //log('dx='+dx+' dy='+dy)
+  var refresh=false;
+  var slowFactor=0.1;
+  var moveSpeed = 0.1;
+  var zoomSpeed = 1;
+
+  if (mouseButtons & 1) {
+    cX-=slowFactor*moveSpeed*(dx>=0 ? 1 : -1)*Math.log(1+scale/width);
+    cY+=slowFactor*moveSpeed*(dy>=0 ? 1 : -1)*Math.log(1+scale/height);
+    Update=true;
+  }
+
+  else if (mouseButtons & 2) {
+    if(dy<0) scale *= (1 + slowFactor * zoomSpeed);
+    else scale /= (1 + slowFactor * zoomSpeed);
+
+    Update=true;
+  }
+
+  oldMouseX = evt.x;
+  oldMouseY = evt.y;
+}
+
+function execute_kernel() {
+  //log('execute_kernel...');
 
   if (Update) {
     Update = false;
 
-    // Update filter parameters
-    log('Updating for new radius: ' + iRadius);
-    fScale = 1 / (2 * iRadius + 1);
-    resetKernelArgs(image.width, image.height, iRadius, fScale);
+    resetKernelArgs(cX, cY, scale, nmax, width, height);
   }
 
   // Sync GL and acquire buffer from GL
   gl.finish();
   ComputeCommands.enqueueAcquireGLObjects(ComputePBO);
 
-  BoxFilterGPU(image, ComputePBO, iRadius, fScale);
+  executeKernel(width, height, ComputePBO);
 
   // Release buffer
   ComputeCommands.enqueueReleaseGLObjects(ComputePBO);
@@ -631,7 +611,7 @@ function recompute() {
   // Update the texture from the pbo
   gl.bindTexture(gl.TEXTURE_2D, TextureId);
   gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, pbo);
-  gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, image.width, image.height, gl.RGBA,
+  gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, width, height, gl.RGBA,
       gl.UNSIGNED_BYTE, null);
   gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, null);
   gl.bindTexture(gl.TEXTURE_2D, null);
@@ -639,65 +619,30 @@ function recompute() {
   return cl.SUCCESS;
 }
 
-function BoxFilterGPU(image, cmOutputBuffer, r, scale) {
+function executeKernel(image_width, image_height, cmOutputBuffer) {
   // Setup Kernel Args
-  ckBoxColumns.setArg(1, cmOutputBuffer, cl.type.MEM);
-
-  // 2D Image (Texture)
-  var TexOrigin = [ 0, 0, 0 ]; // Offset of input texture origin relative to host image
-  var TexRegion = [ image.width, image.height, 1 ]; // Size of texture region to operate on
-  ComputeCommands.enqueueWriteImage(ComputeTexture, cl.TRUE, TexOrigin,
-      TexRegion, 0, 0, image);
-
-  // sync host
-  //ComputeCommands.finish();
+  ckCompute.setArg(0, cmOutputBuffer);
 
   // Set global and local work sizes for row kernel
-  var local = [ uiNumOutputPix, 1 ];
-  var global = [ clu.DivUp(image.height, local[0]) * local[0], 1 ];
+  var global = [ image_width, image_height ];
 
   try {
-    ComputeCommands.enqueueNDRangeKernel(ckBoxRowsTex, null, global, local);
+    ComputeCommands.enqueueNDRangeKernel(ckCompute, null, global, null);
   } catch (err) {
     alert("Failed to enqueue row kernel! " + err);
     return err;
   }
-
-  // Set global and local work sizes for column kernel
-  local = [ uiNumOutputPix, 1 ];
-  global = [ clu.DivUp(image.width, local[0]) * local[0], 1 ];
-
-  try {
-    ComputeCommands.enqueueNDRangeKernel(ckBoxColumns, null, global, local);
-  } catch (err) {
-    alert("Failed to enqueue column kernel! " + err);
-    return err;
-  }
-
-  // sync host
-  ComputeCommands.finish();
 }
 
 function main() {
-  // loading image
-  image = new Image();
-  image.onload=function() { 
-    console.log("Loaded image: " + image.src);
-    log("Image Width = " + image.width + ", Height = " + image.height + ", bpp = 32");
-    image.szBuffBytes = image.height * image.pitch;
-    Width=image.width;
-    Height=image.height;
-    
-    // init window
-    if(initialize(use_gpu)==cl.SUCCESS) {
-      function update() {
-        display();
-        requestAnimationFrame(update);
-      }
-      update();
+  // init window
+  if(initialize(use_gpu)==cl.SUCCESS) {
+    function update() {
+      display();
+      requestAnimationFrame(update);
     }
-  };
-  image.src=__dirname+"/mike_scooter.jpg";
+    update();
+  }
 }
 
 main();

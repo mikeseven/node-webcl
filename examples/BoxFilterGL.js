@@ -346,7 +346,7 @@ function init_cl(device_type) {
   }
 
   var device_found = false;
-  for(var i=0,l=device_ids.length;i<l;++i ) {}
+  for(var i=0,l=device_ids.length;i<l;++i ) {
     device_type = device_ids[i].getInfo(cl.DEVICE_TYPE);
     if (device_type == ComputeDeviceType) {
       ComputeDeviceId = device_ids[i];
