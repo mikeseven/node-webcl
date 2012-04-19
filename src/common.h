@@ -45,6 +45,9 @@
 #include <node_object_wrap.h>
 #include <v8.h>
 #include <string>
+#ifdef LOGGING
+#include <iostream>
+#endif
 using namespace std;
 
 namespace {

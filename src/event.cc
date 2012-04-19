@@ -28,8 +28,6 @@
 #include "context.h"
 #include "commandqueue.h"
 
-#include <iostream>
-using namespace std;
 using namespace node;
 using namespace v8;
 
@@ -109,7 +107,6 @@ JS_METHOD(Event::getProfilingInfo)
   case CL_PROFILING_COMMAND_END: {
     cl_ulong param_value=0;
     ::clGetEventProfilingInfo(e->getEvent(), param_name, sizeof(cl_ulong), &param_value, NULL);
-    //cout<<"param: "<<param_name<<" = "<<param_value<<endl;
     return scope.Close(JS_INT(param_value));
   }
   default:

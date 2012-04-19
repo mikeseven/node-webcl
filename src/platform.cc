@@ -27,11 +27,9 @@
 #include "platform.h"
 #include "device.h"
 
-#include <iostream>
 #include <cstring>
 
 using namespace v8;
-using namespace std;
 
 namespace webcl {
 
@@ -66,7 +64,9 @@ JS_METHOD(Platform::getDevices)
 
   cl_uint n = 0;
   cl_int ret = ::clGetDeviceIDs(platform->platform_id, type, 0, NULL, &n);
+  #ifdef LOGGING
   cout<<"Found "<<n<<" devices"<<endl;
+  #endif
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(CL_INVALID_PLATFORM);
     REQ_ERROR_THROW(CL_INVALID_DEVICE_TYPE);
@@ -91,7 +91,9 @@ JS_METHOD(Platform::getDevices)
 
   Local<Array> deviceArray = Array::New(n);
   for (int i=0; i<n; i++) {
-    //cout<<"Found device: "<<ids[i]<<endl;
+    #ifdef LOGGING
+    cout<<"Found device: "<<ids[i]<<endl;
+    #endif
     deviceArray->Set(i, Device::New(ids[i])->handle_);
   }
 

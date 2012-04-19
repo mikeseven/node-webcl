@@ -35,9 +35,6 @@
 #include <node_buffer.h>
 #include <cstring> // for memcpy
 
-#include <iostream>
-using namespace std;
-
 using namespace v8;
 using namespace node;
 
@@ -117,7 +114,9 @@ CommandQueue::CommandQueue(Handle<Object> wrapper) : command_queue(0)
 }
 
 void CommandQueue::Destructor() {
+  #ifdef LOGGING
   cout<<"  Destroying CL command queue"<<endl;
+  #endif
   if(command_queue) {
     //::clFinish(command_queue);
     ::clReleaseCommandQueue(command_queue);
@@ -259,7 +258,6 @@ JS_METHOD(CommandQueue::enqueueNDRangeKernel)
   }
 
   if(!no_event) {
-    //cout<<"[enqueueNDRangerKernel] create event"<<endl;
     Event *e=ObjectWrap::Unwrap<Event>(args[5]->ToObject());
     e->setEvent(event);
   }
@@ -273,14 +271,12 @@ JS_METHOD(CommandQueue::enqueueTask)
 
   REQ_ARGS(1);
 
-  //cout<<"[enqueueTask] getting kernel"<<endl;
   Kernel *k = ObjectWrap::Unwrap<Kernel>(args[0]->ToObject());
 
   MakeEventWaitList(args[1]);
 
   cl_event event;
   bool no_event = (args[2]->IsUndefined() || args[2]->IsNull());
-  //cout<<"[enqueueTask] no event? "<<no_event<<endl;
 
   cl_int ret=::clEnqueueTask(
       cq->getCommandQueue(), k->getKernel(),

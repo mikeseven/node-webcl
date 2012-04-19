@@ -1,6 +1,6 @@
 {
   "name":"node-webcl",
-  "version":"0.1.0",
+  "version":"0.5.0",
   "description":"A WebCL implementation for desktops with NodeJS",
   "main":"webcl.js",
   "author":"Mikael Bourges-Sevenier <msevenier@motorola.com>",
@@ -38,6 +38,7 @@
     "install":"node-waf configure clean build"
   },
   "dependencies":{
+    "node-webgl" : ""
   }
 }
 

@@ -27,9 +27,6 @@
 #include "memoryobject.h"
 #include <node_buffer.h>
 
-#include <iostream>
-using namespace std;
-
 using namespace v8;
 using namespace node;
 
@@ -58,7 +55,9 @@ MemoryObject::MemoryObject(Handle<Object> wrapper) : memory(0)
 }
 
 void MemoryObject::Destructor() {
+  #ifdef LOGGING
   cout<<"  Destroying CL memory object"<<endl;
+  #endif
   if(memory) ::clReleaseMemObject(memory);
   memory=0;
 }

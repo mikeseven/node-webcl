@@ -32,7 +32,7 @@ from os.path import exists
 top='.'
 srcdir = "."
 blddir = "build"
-VERSION = "0.1.0"
+VERSION = "0.5.0"
 
 def set_options(opt):
   opt.tool_options('compiler_cxx')
@@ -45,7 +45,8 @@ def build(bld):
   obj = bld.new_task_gen("cxx", "shlib", "node_addon")
   obj.target = "webcl"
   obj.source  = bld.path.ant_glob('src/*.cc')
-  obj.cxxflags = ["-g", "-pthread"]
+  obj.cxxflags = ["-pthread"]
+  #obj.cxxflags += ["-g", "-DLOGGING"]
   if sys.platform.startswith('darwin'):
     obj.framework = ['OpenGL','OpenCL']
   elif sys.platform.startswith('linux'):

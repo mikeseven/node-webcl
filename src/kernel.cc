@@ -32,9 +32,6 @@
 #include "platform.h"
 #include "sampler.h"
 
-#include <iostream>
-using namespace std;
-
 using namespace v8;
 
 namespace webcl {
@@ -63,7 +60,9 @@ Kernel::Kernel(Handle<Object> wrapper) : kernel(0)
 }
 
 void Kernel::Destructor() {
+  #ifdef LOGGING
   cout<<"  Destroying CL kernel"<<endl;
+  #endif
   if(kernel) ::clReleaseKernel(kernel);
   kernel=0;
 }

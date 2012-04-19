@@ -28,9 +28,6 @@
 #include "platform.h"
 #include "context.h"
 
-#include <iostream>
-using namespace std;
-
 using namespace v8;
 using namespace node;
 
@@ -58,7 +55,9 @@ Sampler::Sampler(Handle<Object> wrapper) : sampler(0)
 }
 
 void Sampler::Destructor() {
+  #ifdef LOGGING
   cout<<"  Destroying CL sampler"<<endl;
+  #endif
   if(sampler) ::clReleaseSampler(sampler);
   sampler=0;
 }

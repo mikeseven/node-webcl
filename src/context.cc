@@ -34,10 +34,7 @@
 #include "sampler.h"
 
 #include <node_buffer.h>
-
-#include <iostream>
 #include <vector>
-using namespace std;
 
 using namespace node;
 using namespace v8;
@@ -79,7 +76,9 @@ Context::Context(Handle<Object> wrapper) : context(0)
 
 void Context::Destructor()
 {
+  #ifdef LOGGING
   cout<<"  Destroying CL context"<<endl;
+  #endif
   if(context) ::clReleaseContext(context);
   context=0;
 }
@@ -108,7 +107,6 @@ JS_METHOD(Context::getInfo)
     size_t n=0;
     cl_int ret=::clGetContextInfo(context->getContext(),param_name,0,NULL, &n);
     n /= sizeof(cl_device_id);
-    //cout<<"Found "<<n<<" devices"<<endl;
 
     cl_device_id ctx[n];
     ret=::clGetContextInfo(context->getContext(),param_name,sizeof(cl_device_id)*n, ctx, NULL);
@@ -123,7 +121,6 @@ JS_METHOD(Context::getInfo)
     Local<Array> arr = Array::New(n);
     for(int i=0;i<n;i++) {
       if(ctx[i]) {
-        //cout<<"Returning device "<<i<<": "<<ctx[i]<<endl;
         arr->Set(i,Device::New(ctx[i])->handle_);
       }
     }
@@ -167,7 +164,6 @@ JS_METHOD(Context::createProgram)
 
     size_t lengths[]={astr.length()};
     const char *strings[]={*astr};
-    //cout<<"Creating program with source: "<<lengths[0]<<" bytes, \n"<<strings[0]<<endl;
     pw=::clCreateProgramWithSource(context->getContext(), 1, strings, lengths, &ret);
 
     if (ret != CL_SUCCESS) {
@@ -228,7 +224,6 @@ JS_METHOD(Context::createCommandQueue)
   Context *context = UnwrapThis<Context>(args);
   cl_device_id device = ObjectWrap::Unwrap<Device>(args[0]->ToObject())->getDevice();
   cl_command_queue_properties properties = args[1]->IsUndefined() ? 0 : args[1]->NumberValue();
-  //cout<<"Queue properties: "<<properties<<endl;
 
   cl_int ret=CL_SUCCESS;
   cl_command_queue cw = ::clCreateCommandQueue(context->getContext(), device, properties, &ret);
@@ -296,8 +291,10 @@ JS_METHOD(Context::createImage2D)
   size_t row_pitch = args[4]->NumberValue();
   void *host_ptr=NULL;
 
+  #ifdef LOGGING
   cout<<"Creating image: { order: "<<image_format.image_channel_order<<", datatype: "<<image_format.image_channel_data_type<<"} "
       <<"dim: "<<width<<"x"<<height<<" pitch "<<row_pitch<<endl;
+  #endif
 
   if(!args[5]->IsUndefined()) {
     host_ptr = args[5]->ToObject()->GetIndexedPropertiesExternalArrayData();
@@ -321,7 +318,9 @@ JS_METHOD(Context::createImage2D)
     return ThrowError("UNKNOWN ERROR");
   }
 
+  #ifdef LOGGING
   cout<<"Created image2d "<<hex<<mw<<dec<<endl;
+  #endif
   return scope.Close(WebCLImage::New(mw)->handle_);
 }
 
@@ -464,11 +463,15 @@ JS_METHOD(Context::createFromGLBuffer)
   Context *context = UnwrapThis<Context>(args);
   cl_mem_flags flags = args[0]->NumberValue();
   cl_GLuint bufobj = args[1]->NumberValue();
+  #ifdef LOGGING
   cout<<"createFromGLBuffer flags="<<hex<<flags<<dec<<", bufobj="<<bufobj<<endl;
+  #endif
   int ret;
 
   cl_mem clmem = ::clCreateFromGLBuffer(context->getContext(),flags,bufobj,&ret);
+  #ifdef LOGGING
   cout<<" -> clmem="<<hex<<clmem<<dec<<endl;
+  #endif
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(CL_INVALID_CONTEXT);
     REQ_ERROR_THROW(CL_INVALID_VALUE);

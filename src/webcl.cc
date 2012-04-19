@@ -31,12 +31,10 @@
 #include "event.h"
 
 #include <vector>
-#include <iostream>
 #include <algorithm>
 
 using namespace v8;
 using namespace node;
-using namespace std;
 
 namespace webcl {
 
@@ -64,16 +62,14 @@ void unregisterCLObj(WebCLObject* obj) {
 
 void AtExit() {
   atExit=true;
+  #ifdef LOGGIGN
   cout<<"WebCL AtExit() called"<<endl;
   cout<<"  # objects allocated: "<<clobjs.size()<<endl;
+  #endif
   vector<WebCLObject*>::const_iterator it = clobjs.begin();
   while(clobjs.size() && it != clobjs.end()) {
     WebCLObject *clo=*it;
     clo->Destructor();
-    //v8::Persistent<v8::Value> value = clo->handle_;
-    //value.ClearWeak();
-    //value.Dispose();
-    //cout<<"[atExit] calling destructor of "<<clo<<" thread "<<hex<<pthread_self()<<dec<<endl;
     ++it;
   }
 
@@ -103,7 +99,6 @@ JS_METHOD(getPlatforms) {
   Local<Array> platformArray = Array::New(num_entries);
   for (int i=0; i<num_entries; i++) {
     platformArray->Set(i, Platform::New(platforms[i])->handle_);
-    //cout<<"Found platform: "<<hex<<platforms[i]<<endl;
   }
 
   delete[] platforms;
@@ -245,7 +240,10 @@ JS_METHOD(createContext) {
           for (int i=0; i<deviceArray->Length(); i++) {
             Local<Object> obj = deviceArray->Get(i)->ToObject();
             Device *d = ObjectWrap::Unwrap<Device>(obj);
-            cout<<"adding device "<<hex<<d->getDevice()<<dec<<endl;
+            #ifdef LOGGING
+            cout<<"adding device "<<hex<<d->getDevice()
+            <<dec<<endl;
+            #endif
             devices.push_back(d->getDevice());
           }
         }
@@ -269,14 +267,18 @@ JS_METHOD(createContext) {
   else if(args[0]->IsUndefined()) {
 #if defined (__APPLE__) || defined(MACOSX)
     CGLContextObj kCGLContext = CGLGetCurrentContext();
+    #ifdef LOGGING
     cout<<"using CGL context: "<<hex<<kCGLContext<<dec<<endl;
+    #endif
     CGLShareGroupObj kCGLShareGroup = CGLGetShareGroup(kCGLContext);
     cl_context_properties props[] =
     {
         CL_CONTEXT_PROPERTY_USE_CGL_SHAREGROUP_APPLE, (cl_context_properties)kCGLShareGroup,
         0
     };
+    #ifdef LOGGING
     cout<<"[createContext] creating context"<<endl<<flush;
+    #endif
     cw = clCreateContext(props, 0, 0,
         baton ? createContext_callback : NULL /*clLogMessagesToStdoutAPPLE*/,
         baton /*0*/, &ret);
@@ -286,8 +288,9 @@ JS_METHOD(createContext) {
         ThrowError("Error: Failed to create a compute context!");
         return scope.Close(Undefined());
     }
+    #ifdef LOGGING
     cout<<"Apple OpenCL SharedGroup context created"<<endl;
-
+    #endif
 #else
     #ifndef _WIN32
     cl_context_properties props[] =
@@ -337,7 +340,6 @@ JS_METHOD(waitForEvents) {
   for (int i=0; i<eventsArray->Length(); i++) {
    Event *we=ObjectWrap::Unwrap<Event>(eventsArray->Get(i)->ToObject());
     cl_event e = we->getEvent();
-    //cout<<"Waiting for event "<<e<<endl<<flush;
     events.push_back(e);
   }
   cl_int ret=::clWaitForEvents( events.size(), &events.front());

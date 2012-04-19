@@ -29,10 +29,8 @@
 #include "kernel.h"
 #include "context.h"
 
-#include <iostream>
 #include <vector>
 #include <cstring>
-using namespace std;
 
 using namespace v8;
 
@@ -63,7 +61,9 @@ Program::Program(Handle<Object> wrapper) : program(0)
 }
 
 void Program::Destructor() {
+  #ifdef LOGGING
   cout<<"  Destroying CL program"<<endl;
+  #endif
   if(program) ::clReleaseProgram(program);
   program=0;
 }
@@ -270,10 +270,6 @@ JS_METHOD(Program::build)
       options = ::strdup(*str);
     }
   }
-  //cout<<"[Program::build] options=";
-  //if(options) cout<<hex<<options<<dec;
-  //else cout<<"NULL";
-  //cout<<endl<<flush;
 
   Baton *baton=NULL;
   if(args.Length()==4 && !args[3]->IsUndefined() && args[3]->IsFunction()) {
