@@ -32,7 +32,7 @@ from os.path import exists
 top='.'
 srcdir = "."
 blddir = "build"
-VERSION = "0.5.0"
+VERSION = "0.6.0"
 
 def set_options(opt):
   opt.tool_options('compiler_cxx')
