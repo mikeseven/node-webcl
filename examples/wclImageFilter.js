@@ -146,23 +146,17 @@ function ImageFilter(image) {
   log("Local work item size: " + localWS);
 
   // Write our data set into the input array in device memory asynchronously
-  queue.enqueueWriteBuffer(cmPinnedBufIn, false, {
-    origin: 0, 
-    size: image.size, 
-    buffer: image.buffer});
+  queue.enqueueWriteBuffer(cmPinnedBufIn, false, 0, image.size, image.buffer);
 
   // Execute (enqueue) kernel
   queue.enqueueNDRangeKernel(kernel,
       null,
       globalWS,
       localWS);
-  
-  queue.enqueueReadBuffer(cmPinnedBufOut, false, {
-    origin: 0, 
-    size: out.length, 
-    buffer: out});
 
-  queue.finish(); //Finish all the operations
+   queue.enqueueReadBuffer(cmPinnedBufOut, false, 0, out.length, out);
+
+   queue.finish(); //Finish all the operations
 
   return out;
 }

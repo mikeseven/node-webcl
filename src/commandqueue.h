@@ -50,7 +50,7 @@ public:
   static JS_METHOD(enqueueCopyBuffer);
   static JS_METHOD(enqueueWriteBufferRect);
   static JS_METHOD(enqueueReadBufferRect);
-  //static JS_METHOD(enqueueCopyBufferRect);
+  static JS_METHOD(enqueueCopyBufferRect);
   static JS_METHOD(enqueueWriteImage);
   static JS_METHOD(enqueueReadImage);
   static JS_METHOD(enqueueCopyImage);
@@ -60,7 +60,7 @@ public:
   static JS_METHOD(enqueueMapImage);
   static JS_METHOD(enqueueUnmapMemObject);
   static JS_METHOD(enqueueMarker);
-  static JS_METHOD(enqueueWaitForEvents);
+  //static JS_METHOD(enqueueWaitForEvents);
   static JS_METHOD(enqueueBarrier);
   static JS_METHOD(flush);
   static JS_METHOD(finish);

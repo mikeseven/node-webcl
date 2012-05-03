@@ -52,25 +52,6 @@ namespace webcl {
 
 Persistent<FunctionTemplate> CommandQueue::constructor_template;
 
-// e.g. IsUint32Array(v)
-/*#define IS_BUFFER_FUNC(name, type)\
-    bool Is##name(v8::Handle<v8::Value> val) {\
-  if (!val->IsObject()) return false;\
-  v8::Local<v8::Object> obj = val->ToObject();\
-  if (obj->GetIndexedPropertiesExternalArrayDataType() == type)\
-  return true;\
-  return false;\
-}
-
-IS_BUFFER_FUNC(Int8Array, kExternalByteArray);
-IS_BUFFER_FUNC(Uint8Array, kExternalUnsignedByteArray);
-IS_BUFFER_FUNC(Int16Array, kExternalShortArray);
-IS_BUFFER_FUNC(Uint16Array, kExternalUnsignedShortArray);
-IS_BUFFER_FUNC(Int32Array, kExternalIntArray);
-IS_BUFFER_FUNC(Uint32Array, kExternalUnsignedIntArray);
-IS_BUFFER_FUNC(Float32Array, kExternalFloatArray);
-*/
-  
 void CommandQueue::Init(Handle<Object> target)
 {
   HandleScope scope;
@@ -89,7 +70,7 @@ void CommandQueue::Init(Handle<Object> target)
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_enqueueCopyBuffer", enqueueCopyBuffer);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_enqueueWriteBufferRect", enqueueWriteBufferRect);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_enqueueReadBufferRect", enqueueReadBufferRect);
-  //NODE_SET_PROTOTYPE_METHOD(constructor_template, "_enqueueCopyBufferRect", enqueueCopyBufferRect);
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_enqueueCopyBufferRect", enqueueCopyBufferRect);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_enqueueWriteImage", enqueueWriteImage);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_enqueueReadImage", enqueueReadImage);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_enqueueCopyImage", enqueueCopyImage);
@@ -309,94 +290,33 @@ JS_METHOD(CommandQueue::enqueueTask)
   return Undefined();
 }
 
-struct WebCLRegion {
-  cl_mem buffer;
-  size_t *origin;
-  size_t *size;
-  uint32_t *pitch;
-  bool hasPitch;
-
-  WebCLRegion(Local<Value> arg) : buffer(NULL), hasPitch(false),origin(NULL),size(NULL),pitch(NULL) {
-    Local<Array> region=Array::Cast(*arg);
-    Local<Value> v=region->Get(JS_STR("buffer"));
-    if(v->IsUndefined())
-      ThrowError("source buffer undefined");
-    else
-      buffer=ObjectWrap::Unwrap<MemoryObject>(v->ToObject())->getMemory();
-
-    v=region->Get(JS_STR("origin"));
-    if(! v->IsUndefined()) {
-      Local<Array> arr = Array::Cast(*v);
-      int num=arr->Length();
-      if(num>3) num=3;
-      origin=new size_t[num];
-      for (int i=0; i<num; i++)
-        origin[i] = arr->Get(i)->Uint32Value();
-    }
-    v=region->Get(JS_STR("size"));
-    if(! v->IsUndefined()) {
-      Local<Array> arr = Array::Cast(*v);
-      int num=arr->Length();
-      if(num>3) num=3;
-      size=new size_t[num];
-      for (int i=0; i<num; i++)
-        size[i] = arr->Get(i)->Uint32Value();
-    }
-    v=region->Get(JS_STR("pitch"));
-    if(! v->IsUndefined()) {
-      hasPitch=true;
-      Local<Array> arr = Array::Cast(*v);
-      int num=arr->Length();
-      if(num>2) num=2;
-      pitch=new uint32_t[num];
-      for (int i=0; i<num; i++)
-        pitch[i] = arr->Get(i)->Uint32Value();
-    }
-  }
-  ~WebCLRegion() {
-    if(origin) delete[] origin;
-    if(size) delete[] size;
-    if(pitch) delete[] pitch;
-  }
-};
-
 JS_METHOD(CommandQueue::enqueueWriteBuffer)
 {
   HandleScope scope;
   CommandQueue *cq = UnwrapThis<CommandQueue>(args);
   MemoryObject *mo = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
 
-  // TODO: arg checking
   cl_bool blocking_write = args[1]->BooleanValue() ? CL_TRUE : CL_FALSE;
 
-  Local<Array> region=Array::Cast(*args[2]);
-  Local<Value> vbuffer=region->Get(JS_STR("buffer"));
+  uint32_t offset = args[2]->Uint32Value();
+  uint32_t size = args[3]->Uint32Value();
+
   void *ptr=NULL;
-  if(!vbuffer->IsUndefined()) {
-    if(vbuffer->IsArray()) {
-      Local<Array> arr=Array::Cast(*vbuffer);
+  if(!args[4]->IsUndefined()) {
+    if(args[4]->IsArray()) {
+      Local<Array> arr=Array::Cast(*args[4]);
       ptr = arr->GetIndexedPropertiesExternalArrayData();
     }
-    else if(vbuffer->IsObject())
-      ptr = vbuffer->ToObject()->GetIndexedPropertiesExternalArrayData();
+    else if(args[4]->IsObject())
+      ptr = args[4]->ToObject()->GetIndexedPropertiesExternalArrayData();
     else
       ThrowError("Invalid memory object");
   }
 
-  size_t offset=0;
-  Local<Value> voffset=region->Get(JS_STR("origin"));
-  if(!voffset->IsUndefined())
-    offset=voffset->Uint32Value();
-
-  size_t size=0;
-  Local<Value> vsize=region->Get(JS_STR("size"));
-  if(!vsize->IsUndefined())
-    size=vsize->Uint32Value();
-
-  MakeEventWaitList(args[3]);
+  MakeEventWaitList(args[5]);
 
   cl_event event;
-  bool no_event = (args[4]->IsUndefined() || args[4]->IsNull());
+  bool no_event = (args[6]->IsUndefined() || args[6]->IsNull());
 
   cl_int ret=::clEnqueueWriteBuffer(
                   cq->getCommandQueue(), mo->getMemory(), blocking_write, offset, size,
@@ -422,7 +342,7 @@ JS_METHOD(CommandQueue::enqueueWriteBuffer)
   }
 
   if(!no_event) {
-    Event *e=ObjectWrap::Unwrap<Event>(args[4]->ToObject());
+    Event *e=ObjectWrap::Unwrap<Event>(args[6]->ToObject());
     e->setEvent(event);
   }
   return Undefined();
@@ -434,30 +354,58 @@ JS_METHOD(CommandQueue::enqueueWriteBufferRect)
   CommandQueue *cq = UnwrapThis<CommandQueue>(args);
   MemoryObject *mo = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
 
-  // TODO: arg checking
   cl_bool blocking_write = args[1]->BooleanValue() ? CL_TRUE : CL_FALSE;
-  WebCLRegion buffer(args[2]);
-  WebCLRegion host(args[3]);
 
-  MakeEventWaitList(args[4]);
+  size_t buffer_origin[3] = {0,0,0};
+  size_t host_origin[3] = {0,0,0};
+  size_t region[3] = {1,1,1};
+
+  Local<Array> arr= Array::Cast(*args[2]);
+  for(int i=0;i<arr->Length();i++)
+      buffer_origin[i]=arr->Get(i)->Uint32Value();
+
+  arr=Array::Cast(*args[3]);
+  for(int i=0;i<arr->Length();i++)
+      host_origin[i]=arr->Get(i)->Uint32Value();
+
+  arr=Array::Cast(*args[4]);
+  for(int i=0;i<arr->Length();i++)
+      region[i]=arr->Get(i)->Uint32Value();
+
+  uint32_t buffer_row_pitch=args[5]->Uint32Value();
+  uint32_t buffer_slice_pitch=args[6]->Uint32Value();
+  uint32_t host_row_pitch=args[7]->Uint32Value();
+  uint32_t host_slice_pitch=args[8]->Uint32Value();
+
+  void *ptr=NULL;
+  if(!args[9]->IsUndefined()) {
+    if(args[9]->IsArray()) {
+      Local<Array> arr=Array::Cast(*args[9]);
+      ptr = arr->GetIndexedPropertiesExternalArrayData();
+    }
+    else if(args[9]->IsObject())
+      ptr = args[9]->ToObject()->GetIndexedPropertiesExternalArrayData();
+    else
+      ThrowError("Invalid memory object");
+  }
+
+  MakeEventWaitList(args[10]);
 
   cl_event event;
-  bool no_event = (args[5]->IsUndefined() || args[5]->IsNull());
-
-  size_t *size = host.size ? host.size : buffer.size;
+  bool no_event = (args[11]->IsUndefined() || args[11]->IsNull());
 
   cl_int ret=::clEnqueueWriteBufferRect(
       cq->getCommandQueue(),
       mo->getMemory(),
       blocking_write,
-      buffer.origin,
-      host.origin,
-      size,
-      buffer.pitch[0],
-      buffer.pitch[1],
-      host.pitch[0],
-      host.pitch[1],
-      host.buffer,
+      buffer_origin,
+      host_origin,
+      region,
+      buffer_row_pitch,
+      buffer_slice_pitch,
+      host_row_pitch,
+      host_slice_pitch,
+      ptr,
       num_events_wait_list,
       events_wait_list,
       no_event ? NULL : &event);
@@ -479,7 +427,7 @@ JS_METHOD(CommandQueue::enqueueWriteBufferRect)
   }
 
   if(!no_event) {
-    Event *e=ObjectWrap::Unwrap<Event>(args[5]->ToObject());
+    Event *e=ObjectWrap::Unwrap<Event>(args[11]->ToObject());
     e->setEvent(event);
   }
   return Undefined();
@@ -491,38 +439,27 @@ JS_METHOD(CommandQueue::enqueueReadBuffer)
   CommandQueue *cq = UnwrapThis<CommandQueue>(args);
   MemoryObject *mo = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
 
-  // TODO: arg checking
   cl_bool blocking_read = args[1]->BooleanValue() ? CL_TRUE : CL_FALSE;
 
-  Local<Array> region=Array::Cast(*args[2]);
-  Local<Value> vbuffer=region->Get(JS_STR("buffer"));
+  uint32_t offset=args[2]->Uint32Value();
+  uint32_t size=args[3]->Uint32Value();
+
   void *ptr=NULL;
-  if(!vbuffer->IsUndefined()) {
-    if(vbuffer->IsArray()) {
-      Local<Array> arr=Array::Cast(*vbuffer);
+  if(!args[4]->IsUndefined()) {
+    if(args[4]->IsArray()) {
+      Local<Array> arr=Array::Cast(*args[4]);
       ptr = arr->GetIndexedPropertiesExternalArrayData();
     }
-    else if(vbuffer->IsObject())
-      ptr = vbuffer->ToObject()->GetIndexedPropertiesExternalArrayData();
+    else if(args[4]->IsObject())
+      ptr = args[4]->ToObject()->GetIndexedPropertiesExternalArrayData();
     else
       ThrowError("Invalid memory object");
   }
 
-  size_t offset=0;
-  Local<Value> voffset=region->Get(JS_STR("origin"));
-  if(!voffset->IsUndefined())
-    offset=voffset->Uint32Value();
-
-  size_t size=0;
-  Local<Value> vsize=region->Get(JS_STR("size"));
-  if(!vsize->IsUndefined())
-    size=vsize->Uint32Value();
-
-  MakeEventWaitList(args[3]);
+  MakeEventWaitList(args[5]);
 
   cl_event event;
-  bool no_event = (args[4]->IsUndefined() || args[4]->IsNull());
-  //cout<<"[enqueueReadBuffer] no event? "<<no_event<<endl;
+  bool no_event = (args[6]->IsUndefined() || args[6]->IsNull());
 
   cl_int ret=::clEnqueueReadBuffer(
       cq->getCommandQueue(), mo->getMemory(), blocking_read, offset, size,
@@ -548,7 +485,7 @@ JS_METHOD(CommandQueue::enqueueReadBuffer)
   }
 
   if(!no_event) {
-    Event *e=ObjectWrap::Unwrap<Event>(args[4]->ToObject());
+    Event *e=ObjectWrap::Unwrap<Event>(args[6]->ToObject());
     e->setEvent(event);
   }
   return Undefined();
@@ -560,31 +497,58 @@ JS_METHOD(CommandQueue::enqueueReadBufferRect)
   CommandQueue *cq = UnwrapThis<CommandQueue>(args);
   MemoryObject *mo = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
 
-  // TODO: arg checking
   cl_bool blocking_read = args[1]->BooleanValue() ? CL_TRUE : CL_FALSE;
 
-  WebCLRegion buffer(args[2]);
-  WebCLRegion host(args[3]);
+  size_t buffer_origin[3] = {0,0,0};
+  size_t host_origin[3] = {0,0,0};
+  size_t region[3] = {1,1,1};
 
-  MakeEventWaitList(args[4]);
+  Local<Array> arr= Array::Cast(*args[2]);
+  for(int i=0;i<arr->Length();i++)
+      buffer_origin[i]=arr->Get(i)->Uint32Value();
+
+  arr=Array::Cast(*args[3]);
+  for(int i=0;i<arr->Length();i++)
+      host_origin[i]=arr->Get(i)->Uint32Value();
+
+  arr=Array::Cast(*args[4]);
+  for(int i=0;i<arr->Length();i++)
+      region[i]=arr->Get(i)->Uint32Value();
+
+  uint32_t buffer_row_pitch=args[5]->Uint32Value();
+  uint32_t buffer_slice_pitch=args[6]->Uint32Value();
+  uint32_t host_row_pitch=args[7]->Uint32Value();
+  uint32_t host_slice_pitch=args[8]->Uint32Value();
+
+  void *ptr=NULL;
+  if(!args[9]->IsUndefined()) {
+    if(args[9]->IsArray()) {
+      Local<Array> arr=Array::Cast(*args[9]);
+      ptr = arr->GetIndexedPropertiesExternalArrayData();
+    }
+    else if(args[9]->IsObject())
+      ptr = args[9]->ToObject()->GetIndexedPropertiesExternalArrayData();
+    else
+      ThrowError("Invalid memory object");
+  }
+
+  MakeEventWaitList(args[10]);
 
   cl_event event;
-  bool no_event = (args[5]->IsUndefined() || args[5]->IsNull());
-
-  size_t *size = host.size ? host.size : buffer.size;
+  bool no_event = (args[11]->IsUndefined() || args[11]->IsNull());
 
   cl_int ret=::clEnqueueReadBufferRect(
       cq->getCommandQueue(),
       mo->getMemory(),
       blocking_read,
-      buffer.origin,
-      host.origin,
-      size,
-      buffer.pitch[0],
-      buffer.pitch[1],
-      host.pitch[0],
-      host.pitch[1],
-      host.buffer,
+      buffer_origin,
+      host_origin,
+      region,
+      buffer_row_pitch,
+      buffer_slice_pitch,
+      host_row_pitch,
+      host_slice_pitch,
+      ptr,
       num_events_wait_list,
       events_wait_list,
       no_event ? NULL : &event);
@@ -612,16 +576,14 @@ JS_METHOD(CommandQueue::enqueueReadBufferRect)
   return Undefined();
 }
 
-// TODO update with regions
 JS_METHOD(CommandQueue::enqueueCopyBuffer)
 {
   HandleScope scope;
   CommandQueue *cq = UnwrapThis<CommandQueue>(args);
 
-  /*MemoryObject *mo_src = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
+  MemoryObject *mo_src = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
   MemoryObject *mo_dst = ObjectWrap::Unwrap<MemoryObject>(args[1]->ToObject());
 
-  // TODO: arg checking
   size_t src_offset = args[2]->NumberValue();
   size_t dst_offset = args[3]->NumberValue();
   size_t size = args[4]->NumberValue();
@@ -629,48 +591,14 @@ JS_METHOD(CommandQueue::enqueueCopyBuffer)
   MakeEventWaitList(args[5]);
 
   cl_event event=NULL;
-  bool generate_event = !args[6]->IsUndefined() && args[6]->BooleanValue();
+  bool no_event = (args[6]->IsUndefined() || args[6]->IsNull());
+
   cl_int ret=::clEnqueueCopyBuffer(
       cq->getCommandQueue(), mo_src->getMemory(), mo_dst->getMemory(),
       src_offset, dst_offset, size,
       num_events_wait_list,
       events_wait_list,
-      generate_event ? &event : NULL);*/
-
-  WebCLRegion src(args[0]), dst(args[1]);
-
-  MakeEventWaitList(args[2]);
-
-  cl_event event;
-  bool no_event = (args[3]->IsUndefined() || args[3]->IsNull());
-
-  size_t *size=src.size ? src.size : dst.size;
-
-  cl_int ret;
-  if(src.hasPitch || dst.hasPitch) {
-    ret=::clEnqueueCopyBufferRect(
-        cq->getCommandQueue(),
-        src.buffer,
-        dst.buffer,
-        src.origin,
-        dst.origin,
-        size,
-        src.pitch[0],
-        src.pitch[1],
-        dst.pitch[0],
-        dst.pitch[1],
-        num_events_wait_list,
-        events_wait_list,
-        no_event ? NULL : &event);
-  }
-  else {
-    ret=::clEnqueueCopyBuffer(
-        cq->getCommandQueue(), src.buffer, dst.buffer,
-        src.origin[0], dst.origin[0], size[0],
-        num_events_wait_list,
-        events_wait_list,
-        no_event ? NULL : &event);
-  }
+      no_event ? NULL : &event);
 
   if(events_wait_list) delete[] events_wait_list;
 
@@ -689,13 +617,12 @@ JS_METHOD(CommandQueue::enqueueCopyBuffer)
   }
 
   if(!no_event) {
-    Event *e=ObjectWrap::Unwrap<Event>(args[3]->ToObject());
+    Event *e=ObjectWrap::Unwrap<Event>(args[6]->ToObject());
     e->setEvent(event);
   }
   return Undefined();
 }
 
-/*
 JS_METHOD(CommandQueue::enqueueCopyBufferRect)
 {
   HandleScope scope;
@@ -703,27 +630,21 @@ JS_METHOD(CommandQueue::enqueueCopyBufferRect)
   MemoryObject *mo_src = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
   MemoryObject *mo_dst = ObjectWrap::Unwrap<MemoryObject>(args[1]->ToObject());
 
-  size_t src_origin[3];
-  size_t dst_origin[3];
-  size_t region[3];
+  size_t src_origin[3] = {0,0,0};
+  size_t dst_origin[3] = {0,0,0};
+  size_t region[3] = {1,1,1};
 
-  Local<Array> srcOrigin = Array::Cast(*args[2]);
-  for (int i=0; i<3; i++) {
-    size_t s = srcOrigin->Get(i)->Uint32Value();
-    src_origin[i] = s;
-  }
+  Local<Array> arr= Array::Cast(*args[2]);
+  for(int i=0;i<arr->Length();i++)
+      src_origin[i]=arr->Get(i)->Uint32Value();
 
-  Local<Array> dstOrigin = Array::Cast(*args[3]);
-  for (int i=0; i<3; i++) {
-    size_t s = dstOrigin->Get(i)->Uint32Value();
-    dst_origin[i] = s;
-  }
+  arr=Array::Cast(*args[3]);
+  for(int i=0;i<arr->Length();i++)
+      dst_origin[i]=arr->Get(i)->Uint32Value();
 
-  Local<Array> regionArray = Array::Cast(*args[4]);
-  for (int i=0; i<3; i++) {
-    size_t s = regionArray->Get(i)->Uint32Value();
-    region[i] = s;
-  }
+  arr=Array::Cast(*args[4]);
+  for(int i=0;i<arr->Length();i++)
+      region[i]=arr->Get(i)->Uint32Value();
 
   size_t src_row_pitch = args[5]->Uint32Value();
   size_t src_slice_pitch = args[6]->Uint32Value();
@@ -733,21 +654,22 @@ JS_METHOD(CommandQueue::enqueueCopyBufferRect)
   MakeEventWaitList(args[9]);
 
   cl_event event=NULL;
-  bool generate_event = !args[10]->IsUndefined() && args[10]->BooleanValue();
+  bool no_event = (args[10]->IsUndefined() || args[10]->IsNull());
+
   cl_int ret=::clEnqueueCopyBufferRect(
       cq->getCommandQueue(),
       mo_src->getMemory(),
       mo_dst->getMemory(),
-      (const size_t *)src_origin,
-      (const size_t *)dst_origin,
-      (const size_t *)region,
+      src_origin,
+      dst_origin,
+      region,
       src_row_pitch,
       src_slice_pitch,
       dst_row_pitch,
       dst_slice_pitch,
       num_events_wait_list,
       events_wait_list,
-      generate_event ? &event : NULL);
+      no_event ? NULL : &event);
 
   if(events_wait_list) delete[] events_wait_list;
 
@@ -765,41 +687,45 @@ JS_METHOD(CommandQueue::enqueueCopyBufferRect)
     return ThrowError("UNKNOWN ERROR");
   }
 
-  if(generate_event) return scope.Close(Event::New(event)->handle_);
+ if(!no_event) {
+    Event *e=ObjectWrap::Unwrap<Event>(args[10]->ToObject());
+    e->setEvent(event);
+  }
   return Undefined();
 }
-*/
+
 JS_METHOD(CommandQueue::enqueueWriteImage)
 {
   HandleScope scope;
   CommandQueue *cq = UnwrapThis<CommandQueue>(args);
   MemoryObject *mo = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
 
-  // TODO: arg checking
   cl_bool blocking_write = args[1]->BooleanValue() ? CL_TRUE : CL_FALSE;
+
   size_t origin[3]={0,0,0};
   size_t region[3]={1,1,1};
 
-  Local<Array> originArray = Array::Cast(*args[2]);
-  for (int i=0; i<originArray->Length(); i++) {
-    origin[i] = originArray->Get(i)->NumberValue();
-  }
+  Local<Array> arr= Array::Cast(*args[2]);
+  for(int i=0;i<arr->Length();i++)
+      origin[i]=arr->Get(i)->Uint32Value();
 
-  Local<Array> regionArray = Array::Cast(*args[3]);
-  for (int i=0; i<regionArray->Length(); i++) {
-    region[i] = regionArray->Get(i)->NumberValue();
-  }
+  arr= Array::Cast(*args[3]);
+  for(int i=0;i<arr->Length();i++)
+      region[i]=arr->Get(i)->Uint32Value();
 
   size_t row_pitch = args[4]->NumberValue();
   size_t slice_pitch = args[5]->NumberValue();
 
-  void *ptr = NULL;
-  if (!args[6]->IsNull()) {
-    Local<Object> obj = Local<Object>::Cast(args[6]);
-    if (!obj->IsObject())
-      ThrowException(JS_STR("Bad enqueueWriteImage argument"));
-
-    ptr = obj->GetIndexedPropertiesExternalArrayData();
+  void *ptr=NULL;
+  if(!args[6]->IsUndefined()) {
+    if(args[6]->IsArray()) {
+      Local<Array> arr=Array::Cast(*args[6]);
+      ptr = arr->GetIndexedPropertiesExternalArrayData();
+    }
+    else if(args[6]->IsObject())
+      ptr = args[6]->ToObject()->GetIndexedPropertiesExternalArrayData();
+    else
+      ThrowError("Invalid memory object");
   }
 
   MakeEventWaitList(args[7]);
@@ -848,27 +774,33 @@ JS_METHOD(CommandQueue::enqueueReadImage)
   CommandQueue *cq = UnwrapThis<CommandQueue>(args);
   MemoryObject *mo = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
 
-  // TODO: arg checking
   cl_bool blocking_read = args[1]->BooleanValue() ? CL_TRUE : CL_FALSE;
-  size_t origin[3];
-  size_t region[3];
 
-  Local<Array> originArray = Array::Cast(*args[2]);
-  for (int i=0; i<3; i++) {
-    size_t s = originArray->Get(i)->Uint32Value();
-    origin[i] = s;
+  size_t origin[3] = {0,0,0};
+  size_t region[3] = {1,1,1};
+
+  Local<Array> arr= Array::Cast(*args[2]);
+  for(int i=0;i<arr->Length();i++)
+      origin[i]=arr->Get(i)->Uint32Value();
+
+  arr=Array::Cast(*args[3]);
+  for(int i=0;i<arr->Length();i++)
+      region[i]=arr->Get(i)->Uint32Value();
+
+  size_t row_pitch = args[4]->NumberValue();
+  size_t slice_pitch = args[5]->NumberValue();
+
+  void *ptr=NULL;
+  if(!args[6]->IsUndefined()) {
+    if(args[6]->IsArray()) {
+      Local<Array> arr=Array::Cast(*args[6]);
+      ptr = arr->GetIndexedPropertiesExternalArrayData();
+    }
+    else if(args[6]->IsObject())
+      ptr = args[6]->ToObject()->GetIndexedPropertiesExternalArrayData();
+    else
+      ThrowError("Invalid memory object");
   }
-
-  Local<Array> regionArray = Array::Cast(*args[3]);
-  for (int i=0; i<3; i++) {
-    size_t s = regionArray->Get(i)->Uint32Value();
-    region[i] = s;
-  }
-
-  size_t row_pitch = args[4]->Uint32Value();
-  size_t slice_pitch = args[5]->Uint32Value();
-
-  void *ptr = args[6]->ToObject()->GetIndexedPropertiesExternalArrayData();
 
   MakeEventWaitList(args[7]);
 
@@ -915,28 +847,21 @@ JS_METHOD(CommandQueue::enqueueCopyImage)
   MemoryObject *mo_src = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
   MemoryObject *mo_dst = ObjectWrap::Unwrap<MemoryObject>(args[1]->ToObject());
 
-  // TODO: arg checking
-  size_t src_origin[3];
-  size_t dst_origin[3];
-  size_t region[3];
+  size_t src_origin[3] = {0,0,0};
+  size_t dst_origin[3] = {0,0,0};
+  size_t region[3] = {1,1,1};
 
-  Local<Array> srcOriginArray = Array::Cast(*args[2]);
-  for (int i=0; i<3; i++) {
-    size_t s = srcOriginArray->Get(i)->NumberValue();
-    src_origin[i] = s;
-  }
+  Local<Array> arr= Array::Cast(*args[2]);
+  for(int i=0;i<arr->Length();i++)
+      src_origin[i]=arr->Get(i)->Uint32Value();
 
-  Local<Array> dstOriginArray = Array::Cast(*args[3]);
-  for (int i=0; i<3; i++) {
-    size_t s = dstOriginArray->Get(i)->NumberValue();
-    dst_origin[i] = s;
-  }
+  arr=Array::Cast(*args[3]);
+  for(int i=0;i<arr->Length();i++)
+      dst_origin[i]=arr->Get(i)->Uint32Value();
 
-  Local<Array> regionArray = Array::Cast(*args[4]);
-  for (int i=0; i<3; i++) {
-    size_t s = regionArray->Get(i)->NumberValue();
-    region[i] = s;
-  }
+  arr=Array::Cast(*args[4]);
+  for(int i=0;i<arr->Length();i++)
+      region[i]=arr->Get(i)->Uint32Value();
 
   MakeEventWaitList(args[5]);
 
@@ -984,21 +909,16 @@ JS_METHOD(CommandQueue::enqueueCopyImageToBuffer)
   MemoryObject *mo_src = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
   MemoryObject *mo_dst = ObjectWrap::Unwrap<MemoryObject>(args[1]->ToObject());
 
-  // TODO: arg checking
-  size_t src_origin[3];
-  size_t region[3];
+  size_t src_origin[3] = {0,0,0};
+  size_t region[3] = {1,1,1};
 
-  Local<Array> srcOriginArray = Array::Cast(*args[2]);
-  for (int i=0; i<3; i++) {
-    size_t s = srcOriginArray->Get(i)->NumberValue();
-    src_origin[i] = s;
-  }
+  Local<Array> arr= Array::Cast(*args[2]);
+  for(int i=0;i<arr->Length();i++)
+      src_origin[i]=arr->Get(i)->Uint32Value();
 
-  Local<Array> regionArray = Array::Cast(*args[3]);
-  for (int i=0; i<3; i++) {
-    size_t s = regionArray->Get(i)->NumberValue();
-    region[i] = s;
-  }
+  arr=Array::Cast(*args[3]);
+  for(int i=0;i<arr->Length();i++)
+      region[i]=arr->Get(i)->Uint32Value();
 
   size_t dst_offset = args[4]->NumberValue();
 
@@ -1009,8 +929,9 @@ JS_METHOD(CommandQueue::enqueueCopyImageToBuffer)
 
   cl_int ret=::clEnqueueCopyImageToBuffer(
       cq->getCommandQueue(), mo_src->getMemory(), mo_dst->getMemory(),
-      src_origin,
-      region, dst_offset,
+      (const size_t*) src_origin,
+      (const size_t*) region,
+      dst_offset,
       num_events_wait_list,
       events_wait_list,
       no_event ? NULL : &event);
@@ -1046,23 +967,17 @@ JS_METHOD(CommandQueue::enqueueCopyBufferToImage)
   MemoryObject *mo_src = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
   MemoryObject *mo_dst = ObjectWrap::Unwrap<MemoryObject>(args[1]->ToObject());
 
-  // TODO: arg checking
-  size_t dst_origin[3];
-  size_t region[3];
-
   size_t src_offset = args[2]->NumberValue();
+  size_t dst_origin[3]={0,0,0};
+  size_t region[3]={1,1,1};
 
-  Local<Array> dstOriginArray = Array::Cast(*args[3]);
-  for (int i=0; i<3; i++) {
-    size_t s = dstOriginArray->Get(i)->NumberValue();
-    dst_origin[i] = s;
-  }
+  Local<Array> arr=Array::Cast(*args[3]);
+  for(int i=0;i<arr->Length();i++)
+      dst_origin[i]=arr->Get(i)->Uint32Value();
 
-  Local<Array> regionArray = Array::Cast(*args[4]);
-  for (int i=0; i<3; i++) {
-    size_t s = regionArray->Get(i)->NumberValue();
-    region[i] = s;
-  }
+  arr=Array::Cast(*args[4]);
+  for(int i=0;i<arr->Length();i++)
+      region[i]=arr->Get(i)->Uint32Value();
 
   MakeEventWaitList(args[5]);
 

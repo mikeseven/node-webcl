@@ -114,16 +114,9 @@ function VectorAdd() {
   log("Local work item size: " + localWS);
   
   // Do the work
-  queue.enqueueWriteBuffer (aBuffer, false, {
-    buffer: A,
-    origin: [0],
-    size: [A.length*Uint32Array.BYTES_PER_ELEMENT]});
+  queue.enqueueWriteBuffer (aBuffer, false, 0, A.length*Uint32Array.BYTES_PER_ELEMENT, A);
+  queue.enqueueWriteBuffer (bBuffer, false, 0, B.length*Uint32Array.BYTES_PER_ELEMENT, B);
 
-  queue.enqueueWriteBuffer (bBuffer, false, {
-    buffer: B,
-    origin: [0],
-    size: [B.length*Uint32Array.BYTES_PER_ELEMENT]});
-  
   // Execute (enqueue) kernel
   log("using enqueueNDRangeKernel");
   queue.enqueueNDRangeKernel(kernel,
@@ -133,11 +126,8 @@ function VectorAdd() {
 
   // get results and block while getting them
   var C=new Uint32Array(BUFFER_SIZE);
-  queue.enqueueReadBuffer (cBuffer, true, {
-    buffer: C,
-    origin: [0], 
-    size: [C.length*Uint32Array.BYTES_PER_ELEMENT]});
-  
+  queue.enqueueReadBuffer (cBuffer, true, 0, C.length*Uint32Array.BYTES_PER_ELEMENT, C);
+
   // print results
   printResults(A,B,C);
 }

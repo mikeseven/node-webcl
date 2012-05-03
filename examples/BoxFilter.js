@@ -141,11 +141,7 @@ queue.finish();
 
 // Copy results back to host memory, block until complete
 var uiOutput=new Uint8Array(szBuffBytes);
-queue.enqueueReadBuffer(cmDevBufOut, cl.TRUE, {
-  offset: 0, 
-  size: szBuffBytes, 
-  buffer: uiOutput
-});
+queue.enqueueReadBuffer(cmDevBufOut, cl.TRUE, 0, szBuffBytes, uiOutput);
 
 // PNG uses 32-bit images, JPG can only work on 24-bit images
 if(!Image.save('out_'+iRadius+'.png',uiOutput, image.width,image.height, image.pitch, image.bpp, 0xFF0000, 0x00FF00, 0xFF))
