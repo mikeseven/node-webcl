@@ -289,7 +289,9 @@ JS_METHOD(Context::createImage)
   bool is2D = (size->Length()<3);
   size_t width = size->Get(0)->Uint32Value();
   size_t height = size->Get(1)->Uint32Value();
-  size_t row_pitch = obj->Get(JS_STR("rowPitch"))->Uint32Value();
+  size_t row_pitch = 0;
+  if(!obj->Get(JS_STR("rowPitch"))->IsUndefined())
+    row_pitch=obj->Get(JS_STR("rowPitch"))->Uint32Value();
 
   void *host_ptr=args[2]->IsUndefined() ? NULL : args[2]->ToObject()->GetIndexedPropertiesExternalArrayData();
 
