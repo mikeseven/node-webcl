@@ -513,24 +513,14 @@ cl.WebCLContext.prototype.createBuffer=function (flags, size, host_ptr) {
   return this._createBuffer(flags, size, host_ptr);
 }
 
-cl.WebCLContext.prototype.createImage2D=function (flags, image_format, width, height, row_pitch, host_ptr) {
-  if (!(arguments.length >= 5 && typeof flags === 'number' && typeof image_format === 'object' && 
-      typeof width === 'number' && typeof height === 'number' && typeof row_pitch === 'number' && 
-      (typeof host_ptr === 'undefined' || typeof host_ptr === 'object'))) {
-    throw new TypeError('Expected WebCLContext.createImage2D(CLenum flags, cl.WebCLImageFormat format, int width, int height, int row_pitch, optional ArrayBuffer host_ptr)');
+cl.WebCLContext.prototype.createImage=function (flags, descriptor, host_ptr) {
+  if (!(arguments.length === 3 && typeof flags === 'number' &&
+    typeof descriptor === 'object' &&
+    typeof host_ptr === 'object')) {
+    throw new TypeError('Expected WebCLContext.createImage3D(CLenum flags, cl.WebCLImageDescriptor descriptor, ' +
+      'ArrayBuffer host_ptr)');
   }
-  return this._createImage2D(flags, image_format, width, height, row_pitch, host_ptr);
-}
-
-cl.WebCLContext.prototype.createImage3D=function (flags, image_format, width, height, depth, row_pitch, slice_pitch, host_ptr) {
-  if (!(arguments.length === 8 && typeof flags === 'number' && typeof image_format === 'number' && 
-      typeof width === 'number' && typeof height === 'number' && typeof depth === 'number' && 
-      typeof row_pitch === 'number' && typeof slice_pitch === 'number' && typeof host_ptr === 'object')) {
-    throw new TypeError('Expected WebCLContext.createImage3D(CLenum flags, cl.WebCLImageFormat format, ' +
-      'int width, int height, int depth, ' +
-      'int row_pitch, int slice_pitch, ArrayBuffer host_ptr)');
-  }
-  return this._createImage3D(flags, image_format, width, height, depth, row_pitch, slice_pitch, host_ptr);
+  return this._createImage(flags, descriptor, host_ptr);
 }
 
 cl.WebCLContext.prototype.createSampler=function (normalized_coords, addressing_mode, filter_mode) {

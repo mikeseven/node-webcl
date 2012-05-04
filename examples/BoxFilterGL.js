@@ -489,10 +489,11 @@ function init_cl_buffers() {
   // 2D Image (Texture) on device
   var InputFormat = {
     order : cl.RGBA,
-    data_type : cl.UNSIGNED_INT8
+    data_type : cl.UNSIGNED_INT8,
+    size: [ image.width, image.height ],
+    rowPitch: image.pitch
   };
-  ComputeTexture = ComputeContext.createImage2D(cl.MEM_READ_ONLY
-      | cl.MEM_USE_HOST_PTR, InputFormat, image.width, image.height, image.pitch, image);
+  ComputeTexture = ComputeContext.createImage(cl.MEM_READ_ONLY | cl.MEM_USE_HOST_PTR, InputFormat, image);
   if (!ComputeTexture) {
     alert("Error: Failed to create a Image2D on device");
     return -1;

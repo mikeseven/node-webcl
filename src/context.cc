@@ -57,8 +57,7 @@ void Context::Init(Handle<Object> target)
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_createProgram", createProgram);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_createCommandQueue", createCommandQueue);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_createBuffer", createBuffer);
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_createImage2D", createImage2D);
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_createImage3D", createImage3D);
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_createImage", createImage);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_createSampler", createSampler);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_createUserEvent", createUserEvent);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_createFromGLBuffer", createFromGLBuffer);
@@ -275,7 +274,7 @@ JS_METHOD(Context::createBuffer)
   return scope.Close(WebCLBuffer::New(mw)->handle_);
 }
 
-JS_METHOD(Context::createImage2D)
+JS_METHOD(Context::createImage)
 {
   HandleScope scope;
   Context *context = UnwrapThis<Context>(args);
@@ -286,67 +285,32 @@ JS_METHOD(Context::createImage2D)
   image_format.image_channel_order = obj->Get(JS_STR("order"))->Uint32Value();
   image_format.image_channel_data_type = obj->Get(JS_STR("data_type"))->Uint32Value();
 
-  size_t width = args[2]->NumberValue();
-  size_t height = args[3]->NumberValue();
-  size_t row_pitch = args[4]->NumberValue();
-  void *host_ptr=NULL;
+  Local<Array> size=Array::Cast(*obj->Get(JS_STR("size")));
+  bool is2D = (size->Length()<3);
+  size_t width = size->Get(0)->Uint32Value();
+  size_t height = size->Get(1)->Uint32Value();
+  size_t row_pitch = obj->Get(JS_STR("rowPitch"))->Uint32Value();
 
-  #ifdef LOGGING
-  cout<<"Creating image: { order: "<<image_format.image_channel_order<<", datatype: "<<image_format.image_channel_data_type<<"} "
-      <<"dim: "<<width<<"x"<<height<<" pitch "<<row_pitch<<endl;
-  #endif
-
-  if(!args[5]->IsUndefined()) {
-    host_ptr = args[5]->ToObject()->GetIndexedPropertiesExternalArrayData();
-  }
-  cl_int ret=CL_SUCCESS;
-  cl_mem mw = ::clCreateImage2D(
-      context->getContext(), flags,&image_format,
-      width, height, row_pitch, host_ptr, &ret);
-
-  if (ret != CL_SUCCESS) {
-    REQ_ERROR_THROW(CL_INVALID_CONTEXT);
-    REQ_ERROR_THROW(CL_INVALID_VALUE);
-    REQ_ERROR_THROW(CL_INVALID_IMAGE_FORMAT_DESCRIPTOR);
-    REQ_ERROR_THROW(CL_INVALID_IMAGE_SIZE);
-    REQ_ERROR_THROW(CL_INVALID_HOST_PTR);
-    REQ_ERROR_THROW(CL_IMAGE_FORMAT_NOT_SUPPORTED);
-    REQ_ERROR_THROW(CL_MEM_OBJECT_ALLOCATION_FAILURE);
-    REQ_ERROR_THROW(CL_INVALID_OPERATION);
-    REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
-  }
-
-  #ifdef LOGGING
-  cout<<"Created image2d "<<hex<<mw<<dec<<endl;
-  #endif
-  return scope.Close(WebCLImage::New(mw)->handle_);
-}
-
-JS_METHOD(Context::createImage3D)
-{
-  HandleScope scope;
-  Context *context = UnwrapThis<Context>(args);
-  cl_mem_flags flags = args[0]->NumberValue();
-
-  cl_image_format image_format;
-  Local<Object> obj = args[1]->ToObject();
-  image_format.image_channel_order = obj->Get(JS_STR("order"))->Uint32Value();
-  image_format.image_channel_data_type = obj->Get(JS_STR("data_type"))->Uint32Value();
-
-  size_t width = args[2]->NumberValue();
-  size_t height = args[3]->NumberValue();
-  size_t depth = args[4]->NumberValue();
-  size_t row_pitch = args[5]->NumberValue();
-  size_t slice_pitch = args[6]->NumberValue();
-  void *host_ptr=args[7]->IsUndefined() ? NULL : args[7]->ToObject()->GetIndexedPropertiesExternalArrayData();
+  void *host_ptr=args[2]->IsUndefined() ? NULL : args[2]->ToObject()->GetIndexedPropertiesExternalArrayData();
 
   cl_int ret=CL_SUCCESS;
-  cl_mem mw = ::clCreateImage3D(
-              context->getContext(), flags, &image_format,
-              width, height, depth, row_pitch,
-              slice_pitch, host_ptr, &ret);
+  cl_mem mw;
+  if(is2D) {
+    mw = ::clCreateImage2D(
+                context->getContext(), flags, &image_format,
+                width, height, row_pitch,
+                host_ptr, &ret);
+
+  }
+  else {
+    size_t depth = size->Get(2)->Uint32Value();
+    size_t slice_pitch = obj->Get(JS_STR("slicePitch"))->Uint32Value();
+    mw = ::clCreateImage3D(
+                context->getContext(), flags, &image_format,
+                width, height, depth, row_pitch,
+                slice_pitch, host_ptr, &ret);
+  }
+
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(CL_INVALID_CONTEXT);
     REQ_ERROR_THROW(CL_INVALID_VALUE);
@@ -434,6 +398,8 @@ JS_METHOD(Context::getSupportedImageFormats)
     Local<Object> format = Object::New();
     format->Set(JS_STR("order"), JS_INT(image_formats[i].image_channel_order));
     format->Set(JS_STR("data_type"), JS_INT(image_formats[i].image_channel_data_type));
+    format->Set(JS_STR("row_pitch"), JS_INT(0));
+    format->Set(JS_STR("slice_pitch"), JS_INT(0));
     imageFormats->Set(i, format);
   }
   delete[] image_formats;

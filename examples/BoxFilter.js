@@ -105,13 +105,14 @@ queue=context.createCommandQueue(device, 0);
 
 // Allocate OpenCL object for the source data
 var InputFormat= {
-    order : cl.RGBA,
-    data_type : cl.UNSIGNED_INT8
+  order : cl.RGBA,
+  data_type : cl.UNSIGNED_INT8,
+  size : [ image.width, image.height ],
+  rowPitch : image.pitch
 };
 
 //2D Image (Texture) on device
-cmDevBufIn = context.createImage2D(cl.MEM_READ_ONLY | cl.MEM_USE_HOST_PTR, InputFormat, 
-    image.width, image.height, image.pitch /*image.width*Uint32Array.BYTES_PER_ELEMENT*/, image.buffer);
+cmDevBufIn = context.createImage(cl.MEM_READ_ONLY | cl.MEM_USE_HOST_PTR, InputFormat, image.buffer);
 
 RowSampler = context.createSampler(false, cl.ADDRESS_CLAMP, cl.FILTER_NEAREST);
 
