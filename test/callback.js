@@ -26,10 +26,12 @@
 
 var nodejs = (typeof window === 'undefined');
 if(nodejs) {
-  cl = require('../webcl');
+  WebCL = require('../webcl');
   log = console.log;
   exit = process.exit;
 }
+
+var cl = new WebCL();
 
 // kernel callback
 function kernel_complete(status, data) {
@@ -163,11 +165,7 @@ function main() {
   var data=new Float32Array(4096);
   try {
     read_event=new cl.WebCLEvent();
-    queue.enqueueReadBuffer(data_buffer, false, { 
-      buffer: data,
-      origin: [0],
-      size: [4096*4]
-    }, null, read_event);
+    queue.enqueueReadBuffer(data_buffer, false, 0, 4096*4, data, null, read_event);
   } catch(ex) {
     log("Couldn't read the buffer. "+ex);
     exit(1);   

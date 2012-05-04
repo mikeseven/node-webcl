@@ -26,12 +26,13 @@
 
 var nodejs = (typeof window === 'undefined');
 if(nodejs) {
-  cl = require('../webcl');
+  WebCL = require('../webcl');
   clu = require('../lib/clUtils');
   util = require('util');
   log = console.log;
 }
 
+var cl=new WebCL();
 
 //list of platforms
 log("OpenCL SW Info:\n");

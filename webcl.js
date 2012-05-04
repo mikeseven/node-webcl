@@ -24,9 +24,13 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-var cl = module.exports = require('./build/Release/webcl.node');
-
 "use strict";
+
+var cl = require('./build/Release/webcl.node');
+
+module.exports = function WebCL() {
+  return cl;
+};
 
 cl.size = {};
 cl.size.CHAR = cl.size_CHAR;

@@ -26,7 +26,7 @@
 
 var nodejs = (typeof window === 'undefined');
 if(nodejs) {
-  cl = require('../webcl');
+  WebCL = require('../webcl');
   clu = require('../lib/clUtils');
   util = require('util');
   fs = require('fs');
@@ -40,6 +40,8 @@ if(nodejs) {
 }
 
 requestAnimationFrame = document.requestAnimationFrame;
+
+var cl = new WebCL();
 
 //First check if the webcl extension is installed at all
 if (cl == undefined) {

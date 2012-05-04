@@ -26,7 +26,7 @@
 
 var nodejs = (typeof window === 'undefined');
 if(nodejs) {
-  cl = require('../webcl');
+  WebCL = require('../webcl');
   log = console.log;
   exit = process.exit;
 }
@@ -38,6 +38,7 @@ function read_complete(status, data) {
 
 function main() {
   /* CL objects */
+  var cl = new WebCL();
   var /* WebCLPlatform */     platform;
   var /* WebCLDevice */       device;
   var /* WebCLContext */      context;
@@ -153,10 +154,7 @@ function main() {
     if(PROFILE_READ) {
       /* Read the buffer */
       try {
-        queue.enqueueReadBuffer(data_buffer, true, {
-          buffer: data,
-          size: data.byteLength
-        }, null, prof_event);
+        queue.enqueueReadBuffer(data_buffer, true, 0, data.byteLength, data, null, prof_event);
       } catch(ex) {
         log("Couldn't read the buffer. "+ex);
         exit(1);   

@@ -26,13 +26,15 @@
 
 var nodejs = (typeof window === 'undefined');
 if(nodejs) {
-  cl = require('../webcl');
+  WebCL = require('../webcl');
   clu = require('../lib/clUtils');
   util = require('util');
   fs = require('fs');
   Image = require('node-image').Image;
   log = console.log;
 }
+
+var cl=new WebCL();
 
 //First check if the webcl extension is installed at all 
 if (cl == undefined) {

@@ -26,7 +26,7 @@
 
 var nodejs = (typeof window === 'undefined');
 if(nodejs) {
-  cl = require('../../webcl');
+  WebCL = require('../../webcl');
   clu = require('../../lib/clUtils');
   util = require('util');
   fs = require('fs');
@@ -46,6 +46,7 @@ var WIDTH = 800;
 var HEIGHT = 800;
 
 // cl stuff
+var cl = new WebCL();
 var /* cl_context */        ComputeContext;
 var /* cl_command_queue */  ComputeCommands;
 var /* cl_program */        ComputeProgram;

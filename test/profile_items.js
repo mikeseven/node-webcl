@@ -26,7 +26,7 @@
 
 var nodejs = (typeof window === 'undefined');
 if(nodejs) {
-  cl = require('../webcl');
+  WebCL = require('../webcl');
   log = console.log;
   exit = process.exit;
 }
@@ -38,6 +38,7 @@ function read_complete(status, data) {
 
 function main() {
   /* CL objects */
+  var cl = new WebCL();
   var /* WebCLPlatform */     platform;
   var /* WebCLDevice */       device;
   var /* WebCLContext */      context;
