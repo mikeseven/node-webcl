@@ -24,12 +24,10 @@ See LICENSES in this distribution for all licenses used in samples from other co
 
 Dependencies
 ------------
-- [node-webgl][NODE_WEBGL]
-This module is used for samples using WebGL interoperability with WebCL.
+- [node-webgl][NODE_WEBGL]. This module is used for samples using WebGL interoperability with WebCL.
 In turns, [node-webgl][NODE_WEBGL] relies on [node-glfw][NODE_GLFW] that relies on [GLFW][GLFW], [GLEW][GLEW], [AntTweakBar][ANTTWEAKBAR]. See node-webgl and node-glfw for instructions on how to install these modules.
 
-- OpenCL 1.1
-OpenCL 1.1 must be installed on your machine. Typically, this means your machine has a not too old graphic card (maybe not more than 3 years old) and its latest graphic drivers installed.
+- OpenCL 1.1 must be installed on your machine. Typically, this means your machine has a not too old graphic card (maybe not more than 3 years old) and its latest graphic drivers installed.
 
 On Mac, you must use OSX 10.7 "Lion" at minimum since OSX 10.6 "Snow Leopard" only supports OpenCL 1.0 and is buggy.
 

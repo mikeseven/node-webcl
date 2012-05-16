@@ -29,12 +29,22 @@
 
 // OpenCL includes
 #if defined (__APPLE__) || defined(MACOSX)
+  #ifdef __ECLIPSE__
+    #include <gltypes.h>
+    #include <gl3.h>
+    #include <cl_platform.h>
+    #include <cl.h>
+    #include <cl_gl.h>
+    #include <cl_gl_ext.h>
+    #include <cl_ext.h>
+  #else
     #include <OpenGL/gl3.h>
     #include <OpenGL/gl3ext.h>
     #include <OpenGL/OpenGL.h>
     #include <OpenCL/opencl.h>
     #define CL_GL_CONTEXT_KHR 0x2008
     #define CL_EGL_DISPLAY_KHR 0x2009
+  #endif
 #else
     #include <GL/gl.h>
     #include <CL/opencl.h>
@@ -113,8 +123,11 @@ struct Baton {
     char *error_msg;
     pthread_t init_thread;
 
-    // Custom data
+    // Custom user data
     v8::Persistent<v8::Value> data;
+
+    // parent of this callback (WebCLEvent object)
+    v8::Persistent<v8::Object> parent;
 
     Baton() : error(CL_SUCCESS),error_msg(NULL)  {}
 };

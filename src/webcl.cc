@@ -280,7 +280,7 @@ JS_METHOD(createContext) {
     cout<<"[createContext] creating context"<<endl<<flush;
     #endif
     cw = clCreateContext(props, 0, 0,
-        baton ? createContext_callback : NULL /*clLogMessagesToStdoutAPPLE*/,
+        baton ? createContext_callback : clLogMessagesToStdoutAPPLE,
         baton /*0*/, &ret);
 
     if (!cw)

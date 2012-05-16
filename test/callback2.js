@@ -44,7 +44,8 @@ var /* WebCLBuffer */       data_buffer;
 var done=false;
 
 // kernel callback
-function kernel_complete(status, data) {
+function kernel_complete(event, data) {
+  var status=event.status;
   log('in JS kernel_complete, status: '+status);
   if(status<0) 
     log('Error: '+status);
@@ -52,7 +53,8 @@ function kernel_complete(status, data) {
 }
 
 // read buffer callback
-function read_complete(status, data) {
+function read_complete(event, data) {
+  var status=event.status;
   log('in JS read_complete, status: '+status);
   if(status<0) 
     log('Error: '+status);

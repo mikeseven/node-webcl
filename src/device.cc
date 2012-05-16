@@ -112,9 +112,9 @@ JS_METHOD(Device::getInfo)
   }
   break;
   case CL_DEVICE_MAX_WORK_ITEM_SIZES: {
-    size_t param_value_size_ret=0;
+    size_t nbytes=0;
     cl_int param_value[1024];
-    cl_int ret=::clGetDeviceInfo(device->device_id, param_name, 1024*sizeof(cl_int), param_value, &param_value_size_ret);
+    cl_int ret=::clGetDeviceInfo(device->device_id, param_name, 1024*sizeof(cl_int), param_value, &nbytes);
     if (ret != CL_SUCCESS) {
       REQ_ERROR_THROW(CL_INVALID_PLATFORM);
       REQ_ERROR_THROW(CL_INVALID_VALUE);
@@ -122,7 +122,7 @@ JS_METHOD(Device::getInfo)
       return ThrowError("UNKNOWN ERROR");
     }
 
-    int n=param_value_size_ret;
+    size_t n=nbytes/sizeof(size_t);
     Local<Array> arr = Array::New(n);
     for(int i=0;i<n;i++)
       arr->Set(i,JS_INT(param_value[i]));

@@ -50,10 +50,14 @@ void Event::Init(Handle<Object> target)
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_setUserEventStatus", setUserEventStatus);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_setCallback", setCallback);
 
+  // attributes
+  constructor_template->InstanceTemplate()->SetAccessor(JS_STR("status"), GetStatus, NULL);
+  constructor_template->InstanceTemplate()->SetAccessor(JS_STR("buffer"), GetBuffer, NULL);
+
   target->Set(JS_STR("WebCLEvent"), constructor_template->GetFunction());
 }
 
-Event::Event(Handle<Object> wrapper) : event(0)
+Event::Event(Handle<Object> wrapper) : event(0), buffer(NULL), status(0)
 {
 }
 
@@ -143,6 +147,9 @@ void Event::callback (cl_event event, cl_int event_command_exec_status, void *us
   Baton *baton = static_cast<Baton*>(user_data);
   baton->error = event_command_exec_status;
 
+  Event *e = node::ObjectWrap::Unwrap<Event>(baton->parent);
+  e->status=event_command_exec_status;
+
   uv_async_init(uv_default_loop(), &baton->async, After_cb);
   uv_async_send(&baton->async);
 }
@@ -157,10 +164,9 @@ Event::After_cb(uv_async_t* handle, int status) {
   uv_close((uv_handle_t*) &baton->async,NULL);
 
   Handle<Value> argv[]={
-      JS_INT(baton->error),
+      baton->parent,
       baton->data
   };
-
 
   TryCatch try_catch;
 
@@ -170,6 +176,7 @@ Event::After_cb(uv_async_t* handle, int status) {
       FatalException(try_catch);
 
   baton->callback.Dispose();
+  baton->parent.Dispose();
   baton->data.Dispose();
   delete baton;
 }
@@ -186,6 +193,7 @@ JS_METHOD(Event::setCallback)
   //baton->type=command_exec_callback_type;
   baton->callback=Persistent<Function>::New(fct);
   baton->data=Persistent<Value>::New(data);
+  baton->parent=Persistent<Object>::New(e->handle_);
 
   baton->async.data=baton;
 
@@ -200,6 +208,18 @@ JS_METHOD(Event::setCallback)
   }
 
   return scope.Close(Undefined());
+}
+
+Handle<Value> Event::GetStatus(Local<String> property, const AccessorInfo& info) {
+  Event *event = ObjectWrap::Unwrap<Event>(info.Holder());
+  return JS_INT(event->status);
+}
+
+// TODO buffer can only be set by enqueueReadBuffer/ReadBufferRect/Image
+// TODO update callback to return the event object, not the status
+Handle<Value> Event::GetBuffer(Local<String> property, const AccessorInfo& info) {
+  Event *event = ObjectWrap::Unwrap<Event>(info.Holder());
+  return Undefined();
 }
 
 JS_METHOD(Event::New)

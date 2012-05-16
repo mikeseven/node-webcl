@@ -554,6 +554,13 @@ cl.WebCLContext.prototype.createFromGLBuffer=function (flags, buffer) {
   return this._createFromGLBuffer(flags, buffer ? buffer._ : 0);
 }
 
+cl.WebCLContext.prototype.createFromGLRenderbuffer=function (flags, buffer) {
+  if (!(arguments.length === 2 && typeof flags === 'number' && typeof buffer ==='object')) {
+    throw new TypeError('Expected WebCLContext.createFromGLRenderbuffer(CLenum flags, WebGLRenderbuffer buffer)');
+  }
+  return this._createFromGLRenderbuffer(flags, buffer ? buffer._ : 0);
+}
+
 cl.WebCLContext.prototype.createFromGLTexture2D=function (flags, texture_target, miplevel, texture) {
   if (!(arguments.length === 4 && typeof flags === 'number' && 
       typeof texture_target ==='number' &&

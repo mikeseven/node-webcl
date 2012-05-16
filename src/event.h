@@ -51,6 +51,9 @@ public:
   cl_event getEvent() const { return event; };
   void setEvent(cl_event e);
 
+  static v8::Handle<v8::Value> GetStatus(v8::Local<v8::String> property, const v8::AccessorInfo& info);
+  static v8::Handle<v8::Value> GetBuffer(v8::Local<v8::String> property, const v8::AccessorInfo& info);
+
 private:
   Event(v8::Handle<v8::Object> wrapper);
 
@@ -60,6 +63,9 @@ private:
   static v8::Persistent<v8::FunctionTemplate> constructor_template;
 
   cl_event event;
+
+  cl_int status;
+  void *buffer;
 };
 
 } // namespace
