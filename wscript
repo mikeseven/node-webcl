@@ -43,7 +43,7 @@ def configure(conf):
 
 def build(bld):
   obj = bld.new_task_gen("cxx", "shlib", "node_addon")
-  obj.target = "webcl"
+  obj.target = "node-webcl"
   obj.source  = bld.path.ant_glob('src/*.cc')
   obj.cxxflags = ["-pthread"]
   #obj.cxxflags += ["-g", "-DLOGGING"]
