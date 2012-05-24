@@ -32,6 +32,7 @@
 
 #include <vector>
 #include <algorithm>
+#include <cstring>
 
 using namespace v8;
 using namespace node;

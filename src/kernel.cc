@@ -32,6 +32,8 @@
 #include "platform.h"
 #include "sampler.h"
 
+#include <cstring>
+
 using namespace v8;
 
 namespace webcl {

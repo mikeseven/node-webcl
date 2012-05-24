@@ -21,6 +21,7 @@
       'conditions': [
         ['OS=="mac"', {'libraries': ['-framework OpenGL', '-framework OpenCL']}],
         ['OS=="win"', {'libraries': ['opengl32.lib', 'opencl.lib']}],
+        ['OS=="linux"', {'libraries': ['-lGL', '-lOpenCL']}],
       ],
     }
   ]

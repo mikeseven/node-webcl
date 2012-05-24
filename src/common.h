@@ -27,6 +27,15 @@
 #ifndef WEBCL_COMMON_H_
 #define WEBCL_COMMON_H_
 
+// Node includes
+#include <node.h>
+#include <node_object_wrap.h>
+#include <v8.h>
+#include <string>
+#ifdef LOGGING
+#include <iostream>
+#endif
+
 // OpenCL includes
 #if defined (__APPLE__) || defined(MACOSX)
   #ifdef __ECLIPSE__
@@ -45,19 +54,15 @@
     #define CL_GL_CONTEXT_KHR 0x2008
     #define CL_EGL_DISPLAY_KHR 0x2009
   #endif
+#elif defined(_WIN32)
+    #include <GL/gl.h>
+    #include <CL/opencl.h>
 #else
     #include <GL/gl.h>
+    #include <GL/glx.h>
     #include <CL/opencl.h>
 #endif
 
-// Node includes
-#include <node.h>
-#include <node_object_wrap.h>
-#include <v8.h>
-#include <string>
-#ifdef LOGGING
-#include <iostream>
-#endif
 using namespace std;
 
 namespace {
