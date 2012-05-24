@@ -35,7 +35,7 @@
     "node":">=0.7.0"
   },
   "scripts":{
-    "install":"node-waf configure clean build"
+    "install":"node-gyp rebuild"
   },
   "dependencies":{
     "node-webgl" : ""
