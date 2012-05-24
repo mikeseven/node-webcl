@@ -104,17 +104,14 @@ static T* UnwrapThis(const v8::Arguments& args) {
   return node::ObjectWrap::Unwrap<T>(args.This());
 }
 
-v8::Handle<v8::Value> ThrowError(const char* msg) {
-  return v8::ThrowException(v8::Exception::Error(v8::String::New(msg)));
-}
+#define ThrowError(msg) \
+    v8::ThrowException(v8::Exception::Error(v8::String::New(msg)))
 
-v8::Handle<v8::Value> ThrowTypeError(const char* msg) {
-  return v8::ThrowException(v8::Exception::TypeError(v8::String::New(msg)));
-}
+#define ThrowTypeError(msg) \
+    v8::ThrowException(v8::Exception::TypeError(v8::String::New(msg)))
 
-v8::Handle<v8::Value> ThrowRangeError(const char* msg) {
-  return v8::ThrowException(v8::Exception::RangeError(v8::String::New(msg)));
-}
+#define ThrowRangeError(msg) \
+    v8::ThrowException(v8::Exception::RangeError(v8::String::New(msg)))
 
 }
 

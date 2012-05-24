@@ -124,7 +124,7 @@ JS_METHOD(Device::getInfo)
 
     size_t n=nbytes/sizeof(size_t);
     Local<Array> arr = Array::New(n);
-    for(int i=0;i<n;i++)
+    for(size_t i=0;i<n;i++)
       arr->Set(i,JS_INT(param_value[i]));
 
     return scope.Close(arr);
@@ -149,7 +149,7 @@ JS_METHOD(Device::getInfo)
 JS_METHOD(Device::getExtension)
 {
   HandleScope scope;
-  cl_device_info param_name = args[0]->Uint32Value();
+  //cl_device_info param_name = args[0]->Uint32Value();
 
   return Undefined();
 }

@@ -98,7 +98,7 @@ JS_METHOD(getPlatforms) {
 
 
   Local<Array> platformArray = Array::New(num_entries);
-  for (int i=0; i<num_entries; i++) {
+  for (uint32_t i=0; i<num_entries; i++) {
     platformArray->Set(i, Platform::New(platforms[i])->handle_);
   }
 
@@ -238,7 +238,7 @@ JS_METHOD(createContext) {
       if(!obj->IsNull()) {
         if(obj->IsArray()) {
           Local<Array> deviceArray = Array::Cast(*obj);
-          for (int i=0; i<deviceArray->Length(); i++) {
+          for (uint32_t i=0; i<deviceArray->Length(); i++) {
             Local<Object> obj = deviceArray->Get(i)->ToObject();
             Device *d = ObjectWrap::Unwrap<Device>(obj);
             #ifdef LOGGING
@@ -338,7 +338,7 @@ JS_METHOD(waitForEvents) {
 
   Local<Array> eventsArray = Array::Cast(*args[0]);
   std::vector<cl_event> events;
-  for (int i=0; i<eventsArray->Length(); i++) {
+  for (uint32_t i=0; i<eventsArray->Length(); i++) {
    Event *we=ObjectWrap::Unwrap<Event>(eventsArray->Get(i)->ToObject());
     cl_event e = we->getEvent();
     events.push_back(e);

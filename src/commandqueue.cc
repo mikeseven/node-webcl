@@ -46,7 +46,7 @@ namespace webcl {
       Local<Array> arr = Array::Cast(*arg); \
       num_events_wait_list=arr->Length(); \
       events_wait_list=new cl_event[num_events_wait_list]; \
-      for(int i=0;i<num_events_wait_list;i++) \
+      for(cl_uint i=0;i<num_events_wait_list;i++) \
         events_wait_list[i]=ObjectWrap::Unwrap<Event>(arr->Get(i)->ToObject())->getEvent(); \
     }
 
@@ -170,7 +170,7 @@ JS_METHOD(CommandQueue::enqueueNDRangeKernel)
     num_offsets=arr->Length();
     if (num_offsets > 0) {
       offsets = new size_t[num_offsets];
-      for (int i = 0; i < num_offsets; i++)
+      for (cl_uint i = 0; i < num_offsets; i++)
         offsets[i] = arr->Get(i)->Uint32Value();
     }
   }
@@ -183,7 +183,7 @@ JS_METHOD(CommandQueue::enqueueNDRangeKernel)
     if(num_globals == 0)
       ThrowError("# globals must be at least 1");
     globals=new size_t[num_globals];
-    for(int i=0;i<num_globals;i++)
+    for(cl_uint i=0;i<num_globals;i++)
       globals[i]=arr->Get(i)->Uint32Value();
   }
 
@@ -195,7 +195,7 @@ JS_METHOD(CommandQueue::enqueueNDRangeKernel)
     if(num_locals == 0)
       ThrowError("# locals must be at least 1");
     locals=new size_t[num_locals];
-    for(int i=0;i<num_locals;i++)
+    for(cl_uint i=0;i<num_locals;i++)
       locals[i]=arr->Get(i)->Uint32Value();
   }
 
@@ -361,15 +361,16 @@ JS_METHOD(CommandQueue::enqueueWriteBufferRect)
   size_t region[3] = {1,1,1};
 
   Local<Array> arr= Array::Cast(*args[2]);
-  for(int i=0;i<arr->Length();i++)
+  uint32_t i;
+  for(i=0;i<arr->Length();i++)
       buffer_origin[i]=arr->Get(i)->Uint32Value();
 
   arr=Array::Cast(*args[3]);
-  for(int i=0;i<arr->Length();i++)
+  for(i=0;i<arr->Length();i++)
       host_origin[i]=arr->Get(i)->Uint32Value();
 
   arr=Array::Cast(*args[4]);
-  for(int i=0;i<arr->Length();i++)
+  for(i=0;i<arr->Length();i++)
       region[i]=arr->Get(i)->Uint32Value();
 
   uint32_t buffer_row_pitch=args[5]->Uint32Value();
@@ -504,15 +505,16 @@ JS_METHOD(CommandQueue::enqueueReadBufferRect)
   size_t region[3] = {1,1,1};
 
   Local<Array> arr= Array::Cast(*args[2]);
-  for(int i=0;i<arr->Length();i++)
+  uint32_t i;
+  for(i=0;i<arr->Length();i++)
       buffer_origin[i]=arr->Get(i)->Uint32Value();
 
   arr=Array::Cast(*args[3]);
-  for(int i=0;i<arr->Length();i++)
+  for(i=0;i<arr->Length();i++)
       host_origin[i]=arr->Get(i)->Uint32Value();
 
   arr=Array::Cast(*args[4]);
-  for(int i=0;i<arr->Length();i++)
+  for(i=0;i<arr->Length();i++)
       region[i]=arr->Get(i)->Uint32Value();
 
   uint32_t buffer_row_pitch=args[5]->Uint32Value();
@@ -635,15 +637,16 @@ JS_METHOD(CommandQueue::enqueueCopyBufferRect)
   size_t region[3] = {1,1,1};
 
   Local<Array> arr= Array::Cast(*args[2]);
-  for(int i=0;i<arr->Length();i++)
+  uint32_t i;
+  for(i=0;i<arr->Length();i++)
       src_origin[i]=arr->Get(i)->Uint32Value();
 
   arr=Array::Cast(*args[3]);
-  for(int i=0;i<arr->Length();i++)
+  for(i=0;i<arr->Length();i++)
       dst_origin[i]=arr->Get(i)->Uint32Value();
 
   arr=Array::Cast(*args[4]);
-  for(int i=0;i<arr->Length();i++)
+  for(i=0;i<arr->Length();i++)
       region[i]=arr->Get(i)->Uint32Value();
 
   size_t src_row_pitch = args[5]->Uint32Value();
@@ -706,11 +709,12 @@ JS_METHOD(CommandQueue::enqueueWriteImage)
   size_t region[3]={1,1,1};
 
   Local<Array> arr= Array::Cast(*args[2]);
-  for(int i=0;i<arr->Length();i++)
+  uint32_t i;
+  for(i=0;i<arr->Length();i++)
       origin[i]=arr->Get(i)->Uint32Value();
 
   arr= Array::Cast(*args[3]);
-  for(int i=0;i<arr->Length();i++)
+  for(i=0;i<arr->Length();i++)
       region[i]=arr->Get(i)->Uint32Value();
 
   size_t row_pitch = args[4]->NumberValue();
@@ -780,11 +784,12 @@ JS_METHOD(CommandQueue::enqueueReadImage)
   size_t region[3] = {1,1,1};
 
   Local<Array> arr= Array::Cast(*args[2]);
-  for(int i=0;i<arr->Length();i++)
+  uint32_t i;
+  for(i=0;i<arr->Length();i++)
       origin[i]=arr->Get(i)->Uint32Value();
 
   arr=Array::Cast(*args[3]);
-  for(int i=0;i<arr->Length();i++)
+  for(i=0;i<arr->Length();i++)
       region[i]=arr->Get(i)->Uint32Value();
 
   size_t row_pitch = args[4]->NumberValue();
@@ -852,15 +857,16 @@ JS_METHOD(CommandQueue::enqueueCopyImage)
   size_t region[3] = {1,1,1};
 
   Local<Array> arr= Array::Cast(*args[2]);
-  for(int i=0;i<arr->Length();i++)
+  uint32_t i;
+  for(i=0;i<arr->Length();i++)
       src_origin[i]=arr->Get(i)->Uint32Value();
 
   arr=Array::Cast(*args[3]);
-  for(int i=0;i<arr->Length();i++)
+  for(i=0;i<arr->Length();i++)
       dst_origin[i]=arr->Get(i)->Uint32Value();
 
   arr=Array::Cast(*args[4]);
-  for(int i=0;i<arr->Length();i++)
+  for(i=0;i<arr->Length();i++)
       region[i]=arr->Get(i)->Uint32Value();
 
   MakeEventWaitList(args[5]);
@@ -913,11 +919,12 @@ JS_METHOD(CommandQueue::enqueueCopyImageToBuffer)
   size_t region[3] = {1,1,1};
 
   Local<Array> arr= Array::Cast(*args[2]);
-  for(int i=0;i<arr->Length();i++)
+  uint32_t i;
+  for(i=0;i<arr->Length();i++)
       src_origin[i]=arr->Get(i)->Uint32Value();
 
   arr=Array::Cast(*args[3]);
-  for(int i=0;i<arr->Length();i++)
+  for(i=0;i<arr->Length();i++)
       region[i]=arr->Get(i)->Uint32Value();
 
   size_t dst_offset = args[4]->NumberValue();
@@ -972,11 +979,12 @@ JS_METHOD(CommandQueue::enqueueCopyBufferToImage)
   size_t region[3]={1,1,1};
 
   Local<Array> arr=Array::Cast(*args[3]);
-  for(int i=0;i<arr->Length();i++)
+  uint32_t i;
+  for(i=0;i<arr->Length();i++)
       dst_origin[i]=arr->Get(i)->Uint32Value();
 
   arr=Array::Cast(*args[4]);
-  for(int i=0;i<arr->Length();i++)
+  for(i=0;i<arr->Length();i++)
       region[i]=arr->Get(i)->Uint32Value();
 
   MakeEventWaitList(args[5]);

@@ -90,7 +90,7 @@ JS_METHOD(Platform::getDevices)
   }
 
   Local<Array> deviceArray = Array::New(n);
-  for (int i=0; i<n; i++) {
+  for (uint32_t i=0; i<n; i++) {
     #ifdef LOGGING
     cout<<"Found device: "<<ids[i]<<endl;
     #endif

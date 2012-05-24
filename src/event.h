@@ -64,8 +64,8 @@ private:
 
   cl_event event;
 
-  cl_int status;
   void *buffer;
+  cl_int status;
 };
 
 } // namespace

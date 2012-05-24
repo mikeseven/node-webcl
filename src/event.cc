@@ -218,7 +218,7 @@ Handle<Value> Event::GetStatus(Local<String> property, const AccessorInfo& info)
 // TODO buffer can only be set by enqueueReadBuffer/ReadBufferRect/Image
 // TODO update callback to return the event object, not the status
 Handle<Value> Event::GetBuffer(Local<String> property, const AccessorInfo& info) {
-  Event *event = ObjectWrap::Unwrap<Event>(info.Holder());
+  //Event *event = ObjectWrap::Unwrap<Event>(info.Holder());
   return Undefined();
 }
 

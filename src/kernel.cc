@@ -284,8 +284,9 @@ JS_METHOD(Kernel::setArg)
           arg = (float*) args[1]->ToObject()->GetIndexedPropertiesExternalArrayData();
           ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_float) * 4, arg);
         }
-      } else if (!args[1]->IsNumber())
+      } else if (!args[1]->IsNumber()) {
         return ThrowError("ARG is not of specified type");
+      }
       else {
         cl_float arg = args[1]->NumberValue();
         ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_float), &arg);

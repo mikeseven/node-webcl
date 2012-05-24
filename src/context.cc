@@ -118,7 +118,7 @@ JS_METHOD(Context::getInfo)
     }
 
     Local<Array> arr = Array::New(n);
-    for(int i=0;i<n;i++) {
+    for(uint32_t i=0;i<n;i++) {
       if(ctx[i]) {
         arr->Set(i,Device::New(ctx[i])->handle_);
       }
@@ -139,7 +139,7 @@ JS_METHOD(Context::getInfo)
     }
 
     Local<Array> arr = Array::New(n);
-    for(int i=0;i<n;i++) {
+    for(uint32_t i=0;i<n;i++) {
       arr->Set(i,JS_INT(ctx[i]));
     }
     return scope.Close(arr);
@@ -396,7 +396,7 @@ JS_METHOD(Context::getSupportedImageFormats)
   }
 
   Local<Array> imageFormats = Array::New();
-  for (int i=0; i<numEntries; i++) {
+  for (uint32_t i=0; i<numEntries; i++) {
     Local<Object> format = Object::New();
     format->Set(JS_STR("order"), JS_INT(image_formats[i].image_channel_order));
     format->Set(JS_STR("data_type"), JS_INT(image_formats[i].image_channel_data_type));
