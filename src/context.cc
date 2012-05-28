@@ -107,9 +107,10 @@ JS_METHOD(Context::getInfo)
     cl_int ret=::clGetContextInfo(context->getContext(),param_name,0,NULL, &n);
     n /= sizeof(cl_device_id);
 
-    cl_device_id ctx[n];
+    cl_device_id *ctx=new cl_device_id[n];
     ret=::clGetContextInfo(context->getContext(),param_name,sizeof(cl_device_id)*n, ctx, NULL);
     if (ret != CL_SUCCESS) {
+	  delete[] ctx;
       REQ_ERROR_THROW(CL_INVALID_CONTEXT);
       REQ_ERROR_THROW(CL_INVALID_VALUE);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
@@ -123,14 +124,16 @@ JS_METHOD(Context::getInfo)
         arr->Set(i,Device::New(ctx[i])->handle_);
       }
     }
+    delete[] ctx;
     return scope.Close(arr);
   }
   case CL_CONTEXT_PROPERTIES: {
     size_t n=0;
     cl_int ret=::clGetContextInfo(context->getContext(),param_name,0,NULL, &n);
-    cl_context_properties ctx[n];
+    cl_context_properties *ctx=new cl_context_properties[n];
     ret=::clGetContextInfo(context->getContext(),param_name,sizeof(cl_context_properties)*n, ctx, NULL);
     if (ret != CL_SUCCESS) {
+	  delete[] ctx;
       REQ_ERROR_THROW(CL_INVALID_CONTEXT);
       REQ_ERROR_THROW(CL_INVALID_VALUE);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
@@ -142,6 +145,7 @@ JS_METHOD(Context::getInfo)
     for(uint32_t i=0;i<n;i++) {
       arr->Set(i,JS_INT(ctx[i]));
     }
+	delete[] ctx;
     return scope.Close(arr);
   }
   default:

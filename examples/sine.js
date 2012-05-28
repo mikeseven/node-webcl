@@ -115,7 +115,7 @@ function main() {
   cpPlatform = platformList[0];
 
   // Query the set of GPU devices on this platform
-  cdDevices = cpPlatform.getDevices(cl.DEVICE_TYPE_GPU);
+  cdDevices = cpPlatform.getDevices(cl.DEVICE_TYPE_DEFAULT);
   log("  # of Devices Available = " + cdDevices.length);
   var device = cdDevices[0];
   log("  Using Device 0: " + device.getInfo(cl.DEVICE_NAME));

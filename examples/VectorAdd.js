@@ -58,12 +58,12 @@ function VectorAdd() {
   log('using platform: '+platform.getInfo(cl.PLATFORM_NAME));
   
   //Query the set of devices on this platform
-  devices = platform.getDevices(cl.DEVICE_TYPE_GPU);
+  devices = platform.getDevices(cl.DEVICE_TYPE_DEFAULT);
   log('using device: '+devices[0].getInfo(cl.DEVICE_NAME));
 
   // create GPU context for this platform
   context=cl.createContext({
-	  deviceType: cl.DEVICE_TYPE_GPU, 
+	  deviceType: cl.DEVICE_TYPE_DEFAULT, 
 	  platform: platform
   });
 

@@ -39,7 +39,7 @@ if(nodejs) {
 
 requestAnimationFrame = document.requestAnimationFrame;
 
-var use_gpu = true;
+var use_gpu = false;
 var image;
 
 var COMPUTE_KERNEL_FILENAME = "BoxFilter.cl";
@@ -328,7 +328,7 @@ function renderTexture() {
 
 function init_cl(device_type) {
   log('init CL');
-  ComputeDeviceType = device_type ? cl.DEVICE_TYPE_GPU : cl.DEVICE_TYPE_CPU;
+  ComputeDeviceType = device_type ? cl.DEVICE_TYPE_GPU : cl.DEVICE_TYPE_DEFAULT;
 
   // Pick platform
   var platformList = cl.getPlatforms();

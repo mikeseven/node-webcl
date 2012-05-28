@@ -63,7 +63,7 @@ void unregisterCLObj(WebCLObject* obj) {
 
 void AtExit() {
   atExit=true;
-  #ifdef LOGGIGN
+  #ifdef LOGGING
   cout<<"WebCL AtExit() called"<<endl;
   cout<<"  # objects allocated: "<<clobjs.size()<<endl;
   #endif
@@ -174,7 +174,9 @@ JS_METHOD(createContext) {
       //cout<<"  adding user_data '"<<*str<<"' to baton"<<endl<<flush;
     }
 
-    baton->init_thread=pthread_self();
+#ifndef _WIN32
+	baton->init_thread=pthread_self();
+#endif
 
     //uv_async_init(uv_default_loop(), &baton->async, createContext_After_cb);
     baton->async.data=baton;

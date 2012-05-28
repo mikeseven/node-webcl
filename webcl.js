@@ -26,7 +26,7 @@
 
 "use strict";
 
-var cl = require('./build/Release/node-webcl.node');
+var cl = require('./build/Release/webcl.node');
 
 module.exports = function WebCL() {
   return cl;

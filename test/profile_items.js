@@ -72,7 +72,7 @@ function main() {
   log('using platform: '+platform.getInfo(cl.PLATFORM_NAME));
   
   //Query the set of devices on this platform
-  var devices = platform.getDevices(cl.DEVICE_TYPE_GPU);
+  var devices = platform.getDevices(cl.DEVICE_TYPE_DEFAULT);
   device=devices[0];
   log('using device: '+device.getInfo(cl.DEVICE_NAME));
 

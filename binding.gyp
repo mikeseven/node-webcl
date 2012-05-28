@@ -1,7 +1,7 @@
 {
   'targets': [
     {
-      'target_name': 'node-webcl',
+      'target_name': 'webcl',
       'defines': [
         'VERSION=0.6.0'
       ],
@@ -20,8 +20,15 @@
       ],
       'conditions': [
         ['OS=="mac"', {'libraries': ['-framework OpenGL', '-framework OpenCL']}],
-        ['OS=="win"', {'libraries': ['opengl32.lib', 'opencl.lib']}],
         ['OS=="linux"', {'libraries': ['-lGL', '-lOpenCL']}],
+        ['OS=="win"', {
+          'libraries': ['opengl32.lib', 'opencl.lib'],
+          'defines' : [
+            'WIN32_LEAN_AND_MEAN',
+            'VC_EXTRALEAN'
+          ]
+          }
+        ],
       ],
     }
   ]

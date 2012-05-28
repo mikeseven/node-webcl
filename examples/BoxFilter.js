@@ -79,7 +79,7 @@ var platformList=cl.getPlatforms();
 var platform=platformList[0];
 
 //Query the set of GPU devices on this platform
-var devices = platform.getDevices(cl.DEVICE_TYPE_GPU);
+var devices = platform.getDevices(cl.DEVICE_TYPE_ALL);
 log("  # of Devices Available = "+devices.length); 
 var uiTargetDevice = clu.clamp(uiTargetDevice, 0, (devices.length - 1));
 var device=devices[uiTargetDevice];

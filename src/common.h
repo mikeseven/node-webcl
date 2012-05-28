@@ -36,7 +36,11 @@
 #include <iostream>
 #endif
 
+using namespace std;
+
 // OpenCL includes
+#define CL_USE_DEPRECATED_OPENCL_1_1_APIS
+
 #if defined (__APPLE__) || defined(MACOSX)
   #ifdef __ECLIPSE__
     #include <gltypes.h>
@@ -62,8 +66,6 @@
     #include <GL/glx.h>
     #include <CL/opencl.h>
 #endif
-
-using namespace std;
 
 namespace {
 #define JS_STR(...) v8::String::New(__VA_ARGS__)
@@ -123,8 +125,9 @@ struct Baton {
     int error;
     uv_async_t async;
     char *error_msg;
-    pthread_t init_thread;
-
+#ifndef _WIN32
+	pthread_t init_thread;
+#endif
     // Custom user data
     v8::Persistent<v8::Value> data;
 
