@@ -40,7 +40,7 @@ if(nodejs) {
 
 requestAnimationFrame = document.requestAnimationFrame;
 var cl = new WebCL();
-var use_gpu=false;
+var use_gpu=true;
 
 main();
 
