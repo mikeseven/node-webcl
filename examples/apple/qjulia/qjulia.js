@@ -575,7 +575,7 @@ function CLGL() {
       this.renderTexture(HostImageBuffer);
       //this.reportInfo();
       
-      this.drawATB();
+      //this.drawATB();
 
       gl.finish(); // for timing
       

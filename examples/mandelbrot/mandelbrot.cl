@@ -1,12 +1,13 @@
-#ifdef cl_khr_fp64
-#pragma OPENCL EXTENSION cl_khr_fp64 : enable
-#else
-#pragma OPENCL EXTENSION cl_amd_fp64 : enable
+#ifdef cl_amd_fp64
+  #pragma OPENCL EXTENSION cl_amd_fp64 : enable
+#elif defined(cl_khr_fp64)
+  #pragma OPENCL EXTENSION cl_khr_fp64 : enable
 #endif
 
-__constant unsigned int nc = 30, nc2=2*nc;
-__constant unsigned int maxCol = nc*3;
-__constant float st=255.0f/(float)nc;
+__constant uint nc = 30;
+#define nc2 (2*nc)
+#define maxCol (nc*3)
+#define st (255.0f/(float)nc)
 
 /* This could be implemented as another kernel that would be executed after
 the Mandelbrot rendering. By doing so we could use many color maps without

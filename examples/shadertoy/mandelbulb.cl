@@ -14,8 +14,8 @@ inline bool isphere( float4 sph, float3 ro, float3 rd, float2 *t )
   return false;
 
   float g = sqrt( h );
-  t->x = - b - g;
-  t->y = - b + g;
+  (*t).x = - b - g;
+  (*t).y = - b + g;
 
   return true;
 }
