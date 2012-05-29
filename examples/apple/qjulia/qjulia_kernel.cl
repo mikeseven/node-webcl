@@ -316,8 +316,9 @@ QJuliaKernel(
     if(valid)
     {
         float4 color = QJulia(coord, mu, diffuse, epsilon, ITERATIONS, SHADOWS, WIDTH, HEIGHT);
-        //color = clamp(color, (float4)(0.f, 0.f ,0.f, 0.f), (float4)(1.f, 1.f ,1.f, 0.f));
+        color = clamp(color, (float4)(0.f), (float4)(1.f));
         uchar4 output = convert_uchar4_sat_rte(color * 255.0f);
+
         result[index] = output;
     }
 }

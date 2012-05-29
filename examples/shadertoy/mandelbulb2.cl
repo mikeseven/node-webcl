@@ -58,7 +58,7 @@ inline bool iterate( const float3 q, float *resPot, float4 *resColor )
     return false;
   }
 
-#pragma unroll 4
+//#pragma unroll 4
   for( int i=0; i<NumIte; i++ )
   {
     const float x = zz.x; const float x2 = x*x; const float x4 = x2*x2;

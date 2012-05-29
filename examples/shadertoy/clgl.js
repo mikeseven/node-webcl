@@ -42,8 +42,10 @@ log = console.log;
 requestAnimationFrame = document.requestAnimationFrame;
 
 //var COMPUTE_KERNEL_ID = "704Tex.cl";
-var COMPUTE_KERNEL_ID = "mandelbulb.cl";
-var COMPUTE_KERNEL_NAME = "compute";
+//var COMPUTE_KERNEL_ID = "mandelbulb2.cl";
+//var COMPUTE_KERNEL_NAME = "compute";
+var COMPUTE_KERNEL_ID = "qjulia_kernel.cl";
+var COMPUTE_KERNEL_NAME = "QJuliaKernel";
 var WIDTH = 256;
 var HEIGHT = 256;
 var Width = WIDTH;

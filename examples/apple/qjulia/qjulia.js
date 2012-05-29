@@ -310,15 +310,6 @@ function CLGL() {
       gl.activeTexture(gl.TEXTURE0);
       gl.viewport(0, 0, Width, Height);
       
-      /*pMatrix[0]=pMatrix[5]=pMatrix[15]=1;
-      pMatrix[10]=-1;
-      
-      mvMatrix[0]=mvMatrix[5]=mvMatrix[10]=mvMatrix[15]=1;*/
-
-      
-      //gl.enableClientState(gl.VERTEX_ARRAY);
-      //gl.enableClientState(gl.TEXTURE_COORD_ARRAY);
-      //gl.vertexPointer(2, gl.FLOAT, 0, VertexPos);
       gl.activeTexture(gl.TEXTURE0);
       return cl.SUCCESS;
     },
@@ -575,7 +566,7 @@ function CLGL() {
       this.renderTexture(HostImageBuffer);
       //this.reportInfo();
       
-      //this.drawATB();
+      this.drawATB();
 
       gl.finish(); // for timing
       
@@ -755,7 +746,9 @@ function CLGL() {
             alert("Failed to enqueue kernel! " + err);
             return err;
         }
-
+        
+        // sync GL
+        gl.finish();
         try {
           ComputeCommands.enqueueAcquireGLObjects(ComputeImage);
         }
@@ -787,6 +780,8 @@ function CLGL() {
             return -1;
         }
 
+        // sync CL
+        ComputeCommands.finish();
         return cl.SUCCESS;
     },
 

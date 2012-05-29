@@ -125,7 +125,7 @@ function Compute() {
 
     // Build the program executable
     try {
-      clProgram.build(clDevice, '-cl-unsafe-math-optimizations -cl-single-precision-constant -cl-fast-relaxed-math -cl-mad-enable');
+      clProgram.build(clDevice, '-cl-fast-relaxed-math -cl-mad-enable');
     } catch (err) {
       throw "Error: Failed to build program executable!\n"
           + clProgram.getBuildInfo(clDevice, cl.PROGRAM_BUILD_LOG);
