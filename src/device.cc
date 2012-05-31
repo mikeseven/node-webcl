@@ -76,7 +76,7 @@ JS_METHOD(Device::getInfo)
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
       return ThrowError("UNKNOWN ERROR");
     }
-    return scope.Close(JS_STR(param_value,param_value_size_ret));
+    return scope.Close(JS_STR(param_value,(int)param_value_size_ret));
   }
   break;
   case CL_DEVICE_PLATFORM: {
@@ -122,9 +122,9 @@ JS_METHOD(Device::getInfo)
       return ThrowError("UNKNOWN ERROR");
     }
 
-    size_t n=nbytes/sizeof(size_t);
+    int n=(int) nbytes/sizeof(size_t);
     Local<Array> arr = Array::New(n);
-    for(size_t i=0;i<n;i++)
+    for(int i=0;i<n;i++)
       arr->Set(i,JS_INT(param_value[i]));
 
     return scope.Close(arr);
@@ -140,7 +140,7 @@ JS_METHOD(Device::getInfo)
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
       return ThrowError("UNKNOWN ERROR");
     }
-    return scope.Close(JS_INT(param_value));
+    return scope.Close(JS_INT((int32_t)param_value));
   }
   }
   return Undefined();

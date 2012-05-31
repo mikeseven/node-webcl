@@ -87,7 +87,7 @@ JS_METHOD(Kernel::getInfo)
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
       return ThrowError("UNKNOWN ERROR");
     }
-    return scope.Close(JS_STR(param_value,param_value_size_ret));
+    return scope.Close(JS_STR(param_value,(int)param_value_size_ret));
   }
   case CL_KERNEL_CONTEXT: {
     cl_context param_value=NULL;
@@ -136,7 +136,7 @@ JS_METHOD(Kernel::getWorkGroupInfo)
   HandleScope scope;
   Kernel *kernel = UnwrapThis<Kernel>(args);
   Device *device = ObjectWrap::Unwrap<Device>(args[0]->ToObject());
-  cl_kernel_work_group_info param_name = args[1]->NumberValue();
+  cl_kernel_work_group_info param_name = args[1]->Uint32Value();
 
   switch (param_name) {
   case CL_KERNEL_WORK_GROUP_SIZE:
@@ -151,7 +151,7 @@ JS_METHOD(Kernel::getWorkGroupInfo)
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
       return ThrowError("UNKNOWN ERROR");
     }
-    return scope.Close(JS_INT(param_value));
+    return scope.Close(JS_INT((int32_t)param_value));
   }
   case CL_KERNEL_LOCAL_MEM_SIZE:
   case CL_KERNEL_PRIVATE_MEM_SIZE: {
@@ -165,7 +165,7 @@ JS_METHOD(Kernel::getWorkGroupInfo)
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
       return ThrowError("UNKNOWN ERROR");
     }
-    return scope.Close(JS_NUM(param_value));
+    return scope.Close(JS_NUM((double)param_value));
   }
   case CL_KERNEL_COMPILE_WORK_GROUP_SIZE: {
     ::size_t param_value[]={0,0,0};
@@ -180,8 +180,8 @@ JS_METHOD(Kernel::getWorkGroupInfo)
     }
 
     Local<Array> sizeArray = Array::New(3);
-    for (std::size_t i=0; i<3; i++) {
-      sizeArray->Set(i, JS_INT(param_value[i]));
+    for (int i=0; i<3; i++) {
+      sizeArray->Set(i, JS_INT((int32_t)param_value[i]));
     }
     return scope.Close(sizeArray);
   }
@@ -252,14 +252,14 @@ JS_METHOD(Kernel::setArg)
     case types::LONG: {
       if (!args[1]->IsNumber())
         return ThrowError("ARG is not of specified type");
-      cl_long arg = args[1]->NumberValue();
+      cl_long arg = (cl_long)args[1]->NumberValue();
       ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_long), &arg);
       break;
     }
     case types::ULONG: {
       if (!args[1]->IsNumber())
         return ThrowError("ARG is not of specified type");
-      cl_ulong arg = args[1]->NumberValue();
+      cl_ulong arg = (cl_ulong)args[1]->NumberValue();
       ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_ulong), &arg);
       break;
     }
@@ -271,10 +271,10 @@ JS_METHOD(Kernel::setArg)
           if (arr->GetIndexedPropertiesExternalArrayDataLength() < 0) {
             // pure JS array, no native backend
             float _arg[4];
-            _arg[0] = arr->Get(0)->NumberValue();
-            _arg[1] = arr->Get(1)->NumberValue();
-            _arg[2] = arr->Get(2)->NumberValue();
-            _arg[3] = arr->Get(3)->NumberValue();
+            _arg[0] = (float) arr->Get(0)->NumberValue();
+            _arg[1] = (float) arr->Get(1)->NumberValue();
+            _arg[2] = (float) arr->Get(2)->NumberValue();
+            _arg[3] = (float) arr->Get(3)->NumberValue();
             ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_float) * 4, _arg);
           } else {
             arg = (float*) arr->GetIndexedPropertiesExternalArrayData();
@@ -288,7 +288,7 @@ JS_METHOD(Kernel::setArg)
         return ThrowError("ARG is not of specified type");
       }
       else {
-        cl_float arg = args[1]->NumberValue();
+        cl_float arg = (float) args[1]->NumberValue();
         ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_float), &arg);
       }
       break;
@@ -296,35 +296,35 @@ JS_METHOD(Kernel::setArg)
     case types::HALF: { // TODO HALF may not be mapped correctly!
       if (!args[1]->IsNumber())
         return ThrowError("ARG is not of specified type");
-      cl_half arg = args[1]->NumberValue();
+      cl_half arg = (cl_half) args[1]->NumberValue();
       ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_half), &arg);
       break;
     }
     case types::SHORT: {
       if (!args[1]->IsNumber())
         return ThrowError("ARG is not of specified type");
-      cl_short arg = args[1]->NumberValue();
+      cl_short arg = (cl_short) args[1]->NumberValue();
       ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_short), &arg);
       break;
     }
     case types::USHORT: {
       if (!args[1]->IsNumber())
         return ThrowError("ARG is not of specified type");
-      cl_ushort arg = args[1]->NumberValue();
+      cl_ushort arg = (cl_ushort) args[1]->NumberValue();
       ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_ushort), &arg);
       break;
     }
     case types::CHAR: {
       if (!args[1]->IsNumber())
         return ThrowError("ARG is not of specified type");
-      cl_char arg = args[1]->NumberValue();
+      cl_char arg =(cl_char)  args[1]->NumberValue();
       ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_char), &arg);
       break;
     }
     case types::UCHAR: {
       if (!args[1]->IsNumber())
         return ThrowError("ARG is not of specified type");
-      cl_uchar arg = args[1]->NumberValue();
+      cl_uchar arg = (cl_uchar) args[1]->NumberValue();
       ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_uchar), &arg);
       break;
     }

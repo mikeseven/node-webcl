@@ -28,7 +28,8 @@
           'include_dirs' : ['<(OPENCL_SDK)\\include'],
           'defines' : [
             'WIN32_LEAN_AND_MEAN',
-            'VC_EXTRALEAN'
+            'VC_EXTRALEAN',
+            'LOGGING'
           ],
           'cflags' : [
             '/Ox','/Ob2','/Oi','/Ot','/Oy','/GL','/GF','/Gm-','/EHsc','/MT','/GS','/Gy','/GR-','/Gd','/wd"4530"','/wd"4251"' 

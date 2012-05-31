@@ -68,6 +68,7 @@ public:
   static JS_METHOD(enqueueReleaseGLObjects);
 
   cl_command_queue getCommandQueue() const { return command_queue; };
+  bool isCommandQueue() const { return true; }
 
 private:
   CommandQueue(v8::Handle<v8::Object> wrapper);

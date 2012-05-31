@@ -149,6 +149,8 @@ protected:
 
 public:
   virtual void Destructor() {}
+  virtual bool isKernel() const { return false; }
+  virtual bool isCommandQueue() const { return false; }
 };
 
 }

@@ -29,6 +29,7 @@
 #include "context.h"
 #include "device.h"
 #include "event.h"
+#include "commandqueue.h"
 
 #include <vector>
 #include <algorithm>
@@ -67,11 +68,37 @@ void AtExit() {
   cout<<"WebCL AtExit() called"<<endl;
   cout<<"  # objects allocated: "<<clobjs.size()<<endl;
   #endif
-  vector<WebCLObject*>::const_iterator it = clobjs.begin();
+
+  // make sure all queues are flushed
+  vector<WebCLObject*>::iterator it = clobjs.begin();
   while(clobjs.size() && it != clobjs.end()) {
-    WebCLObject *clo=*it;
-    clo->Destructor();
+    WebCLObject *clo = *it;
+    if(clo->isCommandQueue()) {
+      cout<<"  Flushing commandqueue"<<endl;
+      CommandQueue *queue=static_cast<CommandQueue*>(clo);
+      clFlush(queue->getCommandQueue());
+    }
     ++it;
+  }
+
+  // must kill kernels first
+  it = clobjs.begin();
+  while(clobjs.size() && it != clobjs.end()) {
+    WebCLObject *clo = *it;
+    if(clo->isKernel()) {
+      cout<<"  Destroying kernel"<<endl;
+      clobjs.erase(it);
+      clo->Destructor();
+    }
+    ++it;
+  }
+
+  #ifdef LOGGING
+  cout<<"  # objects allocated: "<<clobjs.size()<<endl;
+  #endif
+  for(size_t n=clobjs.size(),i=0; i<n; ++i) {
+    WebCLObject *clo=clobjs[i];
+    clo->Destructor();
   }
 
   clobjs.clear();
@@ -150,6 +177,7 @@ createContext_After_cb(uv_async_t* handle, int status) {
 
   baton->callback.Dispose();
   baton->data.Dispose();
+  baton->parent.Dispose();
   if(baton->error_msg) free(baton->error_msg);
   delete baton;
 }
@@ -254,7 +282,7 @@ JS_METHOD(createContext) {
 
       //cout<<"[createContext] creating context with devices"<<endl<<flush;
       cw = ::clCreateContext(properties.size() ? &properties.front() : NULL,
-                             devices.size(), &devices.front(),
+                             (int) devices.size(), &devices.front(),
                              baton ? createContext_callback : NULL,
                              baton , &ret);
     }
@@ -341,7 +369,7 @@ JS_METHOD(waitForEvents) {
     cl_event e = we->getEvent();
     events.push_back(e);
   }
-  cl_int ret=::clWaitForEvents( events.size(), &events.front());
+  cl_int ret=::clWaitForEvents( (int) events.size(), &events.front());
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(CL_INVALID_VALUE);
     REQ_ERROR_THROW(CL_INVALID_CONTEXT);

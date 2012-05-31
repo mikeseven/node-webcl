@@ -38,7 +38,7 @@
 
 using namespace v8;
 
-#define JS_CL_CONSTANT(name) target->Set(JS_STR( #name ), JS_NUM(CL_ ## name))
+#define JS_CL_CONSTANT(name) target->Set(JS_STR( #name ), JS_INT(CL_ ## name))
 
 #define NODE_DEFINE_CONSTANT_VALUE(target, name, value)                   \
   (target)->Set(v8::String::NewSymbol(name),                         \
@@ -496,7 +496,7 @@ void init(Handle<Object> target)
   /* cl_device_partition_property_ext list terminators */
   JS_CL_CONSTANT(PROPERTIES_LIST_END_EXT);
   JS_CL_CONSTANT(PARTITION_BY_COUNTS_LIST_END_EXT);
-  JS_CL_CONSTANT(PARTITION_BY_NAMES_LIST_END_EXT);
+  target->Set(JS_STR( "PARTITION_BY_NAMES_LIST_END_EXT" ), JS_NUM((double)CL_PARTITION_BY_NAMES_LIST_END_EXT));
 
   /*********************************
   * cl_amd_device_attribute_query *

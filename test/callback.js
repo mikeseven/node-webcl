@@ -32,6 +32,7 @@ if(nodejs) {
 }
 
 var cl = new WebCL();
+var completed_kernel=false, completed_read=false;
 
 // kernel callback
 function kernel_complete(event, data) {
@@ -40,6 +41,7 @@ function kernel_complete(event, data) {
   if(status<0) 
     log('Error: '+status);
   log(data);
+  completed_kernel=true;
 }
 
 // read buffer callback
@@ -63,9 +65,10 @@ function read_complete(event, data) {
     log("The data has been initialized successfully.");
   else
     log("The data has not been initialized successfully.");
+  completed_read=true;
 }
 
-function main() {
+(function main() {
   /* CL objects */
   var /* WebCLPlatform */     platform;
   var /* WebCLDevice */       device;
@@ -95,6 +98,7 @@ function main() {
     platform: platform
   } ,'Error occured in context', function(err,data){
     log(data+" : "+err);
+    exit(1);
   });
 
   /* Build the program and create a kernel */
@@ -183,9 +187,7 @@ function main() {
   read_event.setCallback(cl.COMPLETE, read_complete, data);
   
   queue.finish(); // wait for everything to finish
-  //read_complete(read_event, cl.COMPLETE, data);
-  log("main app thread END");
-  //exit(0);
-}
 
-main();
+  log("main app thread END"); 
+})();
+

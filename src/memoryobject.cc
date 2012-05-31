@@ -67,7 +67,7 @@ JS_METHOD(MemoryObject::getInfo)
   HandleScope scope;
 
   MemoryObject *mo = ObjectWrap::Unwrap<MemoryObject>(args.This());
-  cl_mem_info param_name = args[0]->NumberValue();
+  cl_mem_info param_name = args[0]->Uint32Value();
 
   switch (param_name) {
   case CL_MEM_TYPE:
@@ -98,7 +98,7 @@ JS_METHOD(MemoryObject::getInfo)
       return ThrowError("UNKNOWN ERROR");
     }
 
-    return scope.Close(JS_INT(param_value));
+    return scope.Close(JS_INT((int32_t)param_value));
   }
   case CL_MEM_ASSOCIATED_MEMOBJECT: {
     cl_mem param_value=NULL;
@@ -135,8 +135,8 @@ JS_METHOD(MemoryObject::getGLObjectInfo)
 {
   HandleScope scope;
   MemoryObject *memobj = UnwrapThis<MemoryObject>(args);
-  cl_gl_object_type gl_object_type = args[0]->IsNull() ? 0 : args[0]->NumberValue();
-  cl_GLuint gl_object_name = args[1]->IsNull() ? 0 : args[1]->NumberValue();
+  cl_gl_object_type gl_object_type = args[0]->IsNull() ? 0 : args[0]->Uint32Value();
+  cl_GLuint gl_object_name = args[1]->IsNull() ? 0 : args[1]->Uint32Value();
   int ret = ::clGetGLObjectInfo(memobj->getMemory(),
                                 gl_object_type==0 ? NULL : &gl_object_type,
                                 gl_object_name==0 ? NULL : &gl_object_name);
@@ -292,7 +292,7 @@ JS_METHOD(WebCLImage::getInfo)
 {
   HandleScope scope;
   WebCLImage *mo = UnwrapThis<WebCLImage>(args);
-  cl_mem_info param_name = args[0]->NumberValue();
+  cl_mem_info param_name = args[0]->Uint32Value();
 
   switch (param_name) {
   case CL_IMAGE_ELEMENT_SIZE:
@@ -310,7 +310,7 @@ JS_METHOD(WebCLImage::getInfo)
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
       return ThrowError("UNKNOWN ERROR");
     }
-    return scope.Close(JS_INT(param_value));
+    return scope.Close(JS_INT((int32_t)param_value));
   }
   case CL_IMAGE_FORMAT: {
     cl_image_format param_value;
@@ -338,7 +338,7 @@ JS_METHOD(WebCLImage::getGLTextureInfo)
 {
   HandleScope scope;
   WebCLImage *memobj = UnwrapThis<WebCLImage>(args);
-  cl_gl_texture_info param_name = args[0]->NumberValue();
+  cl_gl_texture_info param_name = args[0]->Uint32Value();
   GLint param_value;
 
   // TODO no other value that GLenum/GLint returned in OpenCL 1.1

@@ -74,6 +74,8 @@ public:
   static JS_METHOD(setArg);
 
   cl_kernel getKernel() const { return kernel; };
+  
+  bool isKernel() const { return true; }
 
 private:
   Kernel(v8::Handle<v8::Object> wrapper);

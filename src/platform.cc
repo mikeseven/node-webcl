@@ -120,7 +120,7 @@ JS_METHOD(Platform::getInfo)
     return ThrowError("UNKNOWN ERROR");
   }
 
-  return scope.Close(JS_STR(param_value,param_value_size_ret));
+  return scope.Close(JS_STR(param_value,(int)param_value_size_ret));
 }
 
 JS_METHOD(Platform::New)

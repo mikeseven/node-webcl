@@ -99,8 +99,11 @@ void CommandQueue::Destructor() {
   cout<<"  Destroying CL command queue"<<endl;
   #endif
   if(command_queue) {
-    //::clFinish(command_queue);
-    ::clReleaseCommandQueue(command_queue);
+    cl_uint count;
+    clGetCommandQueueInfo(command_queue,CL_QUEUE_REFERENCE_COUNT,sizeof(cl_uint),&count,0);
+    cout<<"CommandQueue ref count is: "<<count<<endl;
+    clReleaseCommandQueue(command_queue);
+    cout<<"CommandQueue released"<<endl;
   }
   command_queue=0;
 }
@@ -586,9 +589,9 @@ JS_METHOD(CommandQueue::enqueueCopyBuffer)
   MemoryObject *mo_src = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
   MemoryObject *mo_dst = ObjectWrap::Unwrap<MemoryObject>(args[1]->ToObject());
 
-  size_t src_offset = args[2]->NumberValue();
-  size_t dst_offset = args[3]->NumberValue();
-  size_t size = args[4]->NumberValue();
+  size_t src_offset = args[2]->Uint32Value();
+  size_t dst_offset = args[3]->Uint32Value();
+  size_t size = args[4]->Uint32Value();
 
   MakeEventWaitList(args[5]);
 
@@ -717,8 +720,8 @@ JS_METHOD(CommandQueue::enqueueWriteImage)
   for(i=0;i<arr->Length();i++)
       region[i]=arr->Get(i)->Uint32Value();
 
-  size_t row_pitch = args[4]->NumberValue();
-  size_t slice_pitch = args[5]->NumberValue();
+  size_t row_pitch = args[4]->Uint32Value();
+  size_t slice_pitch = args[5]->Uint32Value();
 
   void *ptr=NULL;
   if(!args[6]->IsUndefined()) {
@@ -792,8 +795,8 @@ JS_METHOD(CommandQueue::enqueueReadImage)
   for(i=0;i<arr->Length();i++)
       region[i]=arr->Get(i)->Uint32Value();
 
-  size_t row_pitch = args[4]->NumberValue();
-  size_t slice_pitch = args[5]->NumberValue();
+  size_t row_pitch = args[4]->Uint32Value();
+  size_t slice_pitch = args[5]->Uint32Value();
 
   void *ptr=NULL;
   if(!args[6]->IsUndefined()) {
@@ -927,7 +930,7 @@ JS_METHOD(CommandQueue::enqueueCopyImageToBuffer)
   for(i=0;i<arr->Length();i++)
       region[i]=arr->Get(i)->Uint32Value();
 
-  size_t dst_offset = args[4]->NumberValue();
+  size_t dst_offset = args[4]->Uint32Value();
 
   MakeEventWaitList(args[5]);
 
@@ -974,7 +977,7 @@ JS_METHOD(CommandQueue::enqueueCopyBufferToImage)
   MemoryObject *mo_src = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
   MemoryObject *mo_dst = ObjectWrap::Unwrap<MemoryObject>(args[1]->ToObject());
 
-  size_t src_offset = args[2]->NumberValue();
+  size_t src_offset = args[2]->Uint32Value();
   size_t dst_origin[3]={0,0,0};
   size_t region[3]={1,1,1};
 

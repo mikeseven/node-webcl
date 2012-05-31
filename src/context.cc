@@ -118,7 +118,7 @@ JS_METHOD(Context::getInfo)
       return ThrowError("UNKNOWN ERROR");
     }
 
-    Local<Array> arr = Array::New(n);
+    Local<Array> arr = Array::New((int)n);
     for(uint32_t i=0;i<n;i++) {
       if(ctx[i]) {
         arr->Set(i,Device::New(ctx[i])->handle_);
@@ -141,9 +141,9 @@ JS_METHOD(Context::getInfo)
       return ThrowError("UNKNOWN ERROR");
     }
 
-    Local<Array> arr = Array::New(n);
+    Local<Array> arr = Array::New((int)n);
     for(uint32_t i=0;i<n;i++) {
-      arr->Set(i,JS_INT(ctx[i]));
+      arr->Set(i,JS_INT((int32_t)ctx[i]));
     }
 	delete[] ctx;
     return scope.Close(arr);
@@ -183,7 +183,7 @@ JS_METHOD(Context::createProgram)
     const size_t num=devArray->Length();
     vector<cl_device_id> devices;
 
-    for (size_t i=0; i<num; i++) {
+    for (uint32_t i=0; i<num; i++) {
       Device *device = ObjectWrap::Unwrap<Device>(devArray->Get(i)->ToObject());
       devices.push_back(device->getDevice());
     }
@@ -193,7 +193,7 @@ JS_METHOD(Context::createProgram)
     ::size_t* lengths = new size_t[n];
     const unsigned char** images =  new const unsigned char*[n];
 
-    for (::size_t i = 0; i < n; ++i) {
+    for (uint32_t i = 0; i < n; ++i) {
       Local<Object> obj=binArray->Get(i)->ToObject();
         images[i] = (const unsigned char*) obj->GetIndexedPropertiesExternalArrayData();
         lengths[i] = obj->GetIndexedPropertiesExternalArrayDataLength();
@@ -226,7 +226,7 @@ JS_METHOD(Context::createCommandQueue)
   HandleScope scope;
   Context *context = UnwrapThis<Context>(args);
   cl_device_id device = ObjectWrap::Unwrap<Device>(args[0]->ToObject())->getDevice();
-  cl_command_queue_properties properties = args[1]->IsUndefined() ? 0 : args[1]->NumberValue();
+  cl_command_queue_properties properties = args[1]->IsUndefined() ? 0 : args[1]->Uint32Value();
 
   cl_int ret=CL_SUCCESS;
   cl_command_queue cw = ::clCreateCommandQueue(context->getContext(), device, properties, &ret);
@@ -282,7 +282,7 @@ JS_METHOD(Context::createImage)
 {
   HandleScope scope;
   Context *context = UnwrapThis<Context>(args);
-  cl_mem_flags flags = args[0]->NumberValue();
+  cl_mem_flags flags = args[0]->Uint32Value();
 
   cl_image_format image_format;
   Local<Object> obj = args[1]->ToObject();
@@ -339,8 +339,8 @@ JS_METHOD(Context::createSampler)
   HandleScope scope;
   Context *context = UnwrapThis<Context>(args);
   cl_bool normalized_coords = args[0]->BooleanValue() ? CL_TRUE : CL_FALSE;
-  cl_addressing_mode addressing_mode = args[1]->NumberValue();
-  cl_filter_mode filter_mode = args[2]->NumberValue();
+  cl_addressing_mode addressing_mode = args[1]->Uint32Value();
+  cl_filter_mode filter_mode = args[2]->Uint32Value();
 
   cl_int ret=CL_SUCCESS;
   cl_sampler sw = ::clCreateSampler(
@@ -365,8 +365,8 @@ JS_METHOD(Context::getSupportedImageFormats)
 {
   HandleScope scope;
   Context *context = UnwrapThis<Context>(args);
-  cl_mem_flags flags = args[0]->NumberValue();
-  cl_mem_object_type image_type = args[1]->NumberValue();
+  cl_mem_flags flags = args[0]->Uint32Value();
+  cl_mem_object_type image_type = args[1]->Uint32Value();
   cl_uint numEntries=0;
 
   cl_int ret = ::clGetSupportedImageFormats(
@@ -433,8 +433,8 @@ JS_METHOD(Context::createFromGLBuffer)
 {
   HandleScope scope;
   Context *context = UnwrapThis<Context>(args);
-  cl_mem_flags flags = args[0]->NumberValue();
-  cl_GLuint bufobj = args[1]->NumberValue();
+  cl_mem_flags flags = args[0]->Uint32Value();
+  cl_GLuint bufobj = args[1]->Uint32Value();
   #ifdef LOGGING
   cout<<"createFromGLBuffer flags="<<hex<<flags<<dec<<", bufobj="<<bufobj<<endl;
   #endif
@@ -460,10 +460,10 @@ JS_METHOD(Context::createFromGLTexture2D)
 {
   HandleScope scope;
   Context *context = UnwrapThis<Context>(args);
-  cl_mem_flags flags = args[0]->NumberValue();
-  cl_GLenum target = args[1]->NumberValue();
-  cl_GLint miplevel = args[2]->NumberValue();
-  cl_GLuint texture = args[3]->NumberValue();
+  cl_mem_flags flags = args[0]->Uint32Value();
+  cl_GLenum target = args[1]->Uint32Value();
+  cl_GLint miplevel = args[2]->Uint32Value();
+  cl_GLuint texture = args[3]->Uint32Value();
   int ret;
   cl_mem clmem = ::clCreateFromGLTexture2D(context->getContext(),flags,target,miplevel,texture,&ret);
 
@@ -483,10 +483,10 @@ JS_METHOD(Context::createFromGLTexture3D)
 {
   HandleScope scope;
   Context *context = UnwrapThis<Context>(args);
-  cl_mem_flags flags = args[0]->NumberValue();
-  cl_GLenum target = args[1]->NumberValue();
-  cl_GLint miplevel = args[2]->NumberValue();
-  cl_GLuint texture = args[3]->NumberValue();
+  cl_mem_flags flags = args[0]->Uint32Value();
+  cl_GLenum target = args[1]->Uint32Value();
+  cl_GLint miplevel = args[2]->Uint32Value();
+  cl_GLuint texture = args[3]->Uint32Value();
   int ret;
   cl_mem clmem = ::clCreateFromGLTexture3D(context->getContext(),flags,target,miplevel,texture,&ret);
 
@@ -506,8 +506,8 @@ JS_METHOD(Context::createFromGLRenderbuffer)
 {
   HandleScope scope;
   Context *context = UnwrapThis<Context>(args);
-  cl_mem_flags flags = args[0]->NumberValue();
-  cl_GLuint renderbuffer = args[1]->NumberValue();
+  cl_mem_flags flags = args[0]->Uint32Value();
+  cl_GLuint renderbuffer = args[1]->Uint32Value();
   int ret;
   cl_mem clmem = ::clCreateFromGLRenderbuffer(context->getContext(),flags,renderbuffer, &ret);
 

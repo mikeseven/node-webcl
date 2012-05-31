@@ -72,7 +72,7 @@ JS_METHOD(Program::getInfo)
 {
   HandleScope scope;
   Program *prog = UnwrapThis<Program>(args);
-  cl_program_info param_name = args[1]->NumberValue();
+  cl_program_info param_name = args[1]->Uint32Value();
 
   switch (param_name) {
   case CL_PROGRAM_REFERENCE_COUNT:
@@ -111,9 +111,9 @@ JS_METHOD(Program::getInfo)
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
       return ThrowError("UNKNOWN ERROR");
     }
-    size_t num_devices=param_value_size_ret;
+    int num_devices=(int)param_value_size_ret;
     Local<Array> deviceArray = Array::New(num_devices);
-    for (std::size_t i=0; i<num_devices; i++) {
+    for (int i=0; i<num_devices; i++) {
       cl_device_id d = devices[i];
       deviceArray->Set(i, Device::New(d)->handle_);
     }
@@ -130,7 +130,7 @@ JS_METHOD(Program::getInfo)
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
       return ThrowError("UNKNOWN ERROR");
     }
-    return scope.Close(JS_STR(source,param_value_size_ret));
+    return scope.Close(JS_STR(source,(int)param_value_size_ret));
   }
   case CL_PROGRAM_BINARY_SIZES:
     return ThrowError("CL_PROGRAM_BINARY_SIZES unimplemented");
@@ -177,7 +177,7 @@ JS_METHOD(Program::getBuildInfo)
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
       return ThrowError("UNKNOWN ERROR");
     }
-    Local<Value> obj = scope.Close(JS_STR(param_value,param_value_size_ret));
+    Local<Value> obj = scope.Close(JS_STR(param_value,(int)param_value_size_ret));
     delete[] param_value;
     return obj;
   }
@@ -231,6 +231,7 @@ Program::After_cb(uv_async_t* handle, int status) {
 
   baton->callback.Dispose();
   baton->data.Dispose();
+  baton->parent.Dispose();
   delete baton;
 }
 

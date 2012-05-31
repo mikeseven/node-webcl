@@ -72,7 +72,7 @@ JS_METHOD(Event::getInfo)
 {
   HandleScope scope;
   Event *e = UnwrapThis<Event>(args);
-  cl_event_info param_name = args[0]->NumberValue();
+  cl_event_info param_name = args[0]->Uint32Value();
 
   switch (param_name) {
   case CL_EVENT_CONTEXT:{
@@ -102,7 +102,7 @@ JS_METHOD(Event::getProfilingInfo)
 {
   HandleScope scope;
   Event *e = UnwrapThis<Event>(args);
-  cl_event_info param_name = args[0]->NumberValue();
+  cl_event_info param_name = args[0]->Uint32Value();
 
   switch (param_name) {
   case CL_PROFILING_COMMAND_QUEUED:
@@ -111,7 +111,7 @@ JS_METHOD(Event::getProfilingInfo)
   case CL_PROFILING_COMMAND_END: {
     cl_ulong param_value=0;
     ::clGetEventProfilingInfo(e->getEvent(), param_name, sizeof(cl_ulong), &param_value, NULL);
-    return scope.Close(JS_INT(param_value));
+    return scope.Close(JS_INT((int32_t)param_value));
   }
   default:
     return ThrowError("UNKNOWN param_name");
