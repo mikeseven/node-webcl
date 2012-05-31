@@ -1,3 +1,5 @@
+var nodejs = (typeof window === 'undefined');
+
 /*
  * Graphics module object contains all WebGL initializations for a simple
  * 2-triangle textured screen aligned scene and its rendering.
@@ -7,7 +9,10 @@ function Graphics() {
   var shaderProgram;
   var TextureId = null;
   var VertexPosBuffer, TexCoordsBuffer;
-
+  if(nodejs)
+    var ATB;
+  var fpsFrame=0, fpsTo=0, ffps=0;
+  
   /*
    * Init WebGL array buffers
    */
@@ -139,6 +144,17 @@ function Graphics() {
    gl.bindTexture(gl.TEXTURE_2D, null);
    gl.disable(gl.TEXTURE_2D);
    
+   if(nodejs) {
+     fpsFrame++;
+     var dt=timestamp - fpsTo;
+     if( dt>1000 ) {
+         ffps = 1000.0 * fpsFrame / dt;
+         fpsFrame = 0;
+         fpsTo = timestamp;
+     }
+     drawATB();
+   }
+   
    gl.flush();
   }
   
@@ -155,6 +171,9 @@ function Graphics() {
   
     init_buffers();
     init_shaders();
+
+    ATB=canvas.AntTweakBar;
+    initAntTweakBar(canvas);
   }
   
   /*
@@ -169,6 +188,9 @@ function Graphics() {
       TextureId = null;
     }
 
+    if(nodejs)
+      ATB.WindowSize(TextureWidth,TextureHeight);
+    
     gl.viewportWidth = TextureWidth;
     gl.viewportHeight = TextureHeight;
 
@@ -185,6 +207,53 @@ function Graphics() {
     return TextureId;
   }
     
+  function initAntTweakBar(canvas) {
+    if(!nodejs) return;
+    
+    ATB.Init();
+    ATB.Define(" GLOBAL help='WebGL interop with WebCL' "); // Message added to the help bar.
+    ATB.WindowSize(canvas.width, canvas.height);
+
+
+    var twBar=new ATB.NewBar("clgl");
+    
+    /*var scenes=['mandelbulb','704'];
+    var sceneTypes=ATB.DefineEnum('Scene Types',scenes, 2);
+    log('[JS] returned type: '+sceneTypes);
+    twBar.AddVar("scenes", sceneTypes, scenes,null);*/
+    
+    twBar.AddVar("fps", ATB.TYPE_FLOAT, {
+      getter: function(data){ return ffps; },
+    },
+    " label='fps' precision=0 help='frames-per-second.'");
+
+    ATB.Define(" clgl valueswidth=fit "); // column width fits content 
+    ATB.Define(" GLOBAL contained=true "); // bars always within window
+    ATB.Define(" clgl size='256,100' "); 
+}
+
+  /*
+   * Before calling AntTweakBar or any other library that could use programs, one
+   * must make sure to disable the VertexAttribArray used by the current program
+   * otherwise this may have some unpredictable consequences aka wrong vertex
+   * attrib arrays being used by another program!
+   */
+  function drawATB() {
+    if(!nodejs) return;
+    
+    gl.disableVertexAttribArray(shaderProgram.vertexPositionAttribute);
+    gl.disableVertexAttribArray(shaderProgram.textureCoordAttribute);
+    gl.useProgram(null);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+
+    ATB.Draw();
+
+    gl.useProgram(shaderProgram);
+    gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
+    gl.enableVertexAttribArray(shaderProgram.textureCoordAttribute);
+  }
+
   return {
     'gl': function() { return gl; },
     'TextureId': function() { return TextureId; },

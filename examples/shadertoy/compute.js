@@ -232,6 +232,7 @@ function Compute() {
     'configure_shared_data': configure_shared_data,
     'resetKernelArgs': resetKernelArgs,
     'execute_kernel': execute_kernel,
+    'getKernel' : function() { return clKernel; },
     'clean': function() {}
   }
 }

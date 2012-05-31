@@ -35,19 +35,18 @@ if(nodejs) {
   Image = WebGL.Image;
   alert = console.log;
   Graphics = require('./graphics');
-  Compute = require('./compute');
+  Compute = require('./compute_julia');
 }
 
 log = console.log;
 requestAnimationFrame = document.requestAnimationFrame;
 
-//var COMPUTE_KERNEL_ID = "704Tex.cl";
+//var COMPUTE_KERNEL_ID = "704.cl";
 //var COMPUTE_KERNEL_ID = "mandelbulb2.cl";
-//var COMPUTE_KERNEL_NAME = "compute";
-var COMPUTE_KERNEL_ID = "qjulia_kernel.cl";
-var COMPUTE_KERNEL_NAME = "QJuliaKernel";
-var WIDTH = 256;
-var HEIGHT = 256;
+var COMPUTE_KERNEL_ID = "qjulia.cl";
+var COMPUTE_KERNEL_NAME = "compute";
+var WIDTH = 512;
+var HEIGHT = 512;
 var Width = WIDTH;
 var Height = HEIGHT;
 var Reshaped = true;
@@ -66,6 +65,7 @@ function keydown(evt) {
 
   //Update = true;
 }
+
 
 (function main() {
   log('Initializing');
@@ -133,7 +133,7 @@ function keydown(evt) {
       compute.execute_kernel(gfx.gl());
     }
     catch(err) {
-      alert('[Error] While executing kernel: '+ex);
+      alert('[Error] While executing kernel: '+err);
       return;
     }
     
@@ -146,15 +146,17 @@ function keydown(evt) {
       return;
     }
     
-    fpsFrame++;
-    var dt=timestamp - fpsTo;
-    if( dt>1000 ) {
-        var ffps = 1000.0 * fpsFrame / dt;
-        log("myFramerate: " + ffps.toFixed(1) + " fps");
-        fpsFrame = 0;
-        fpsTo = timestamp;
+    if(typeof(LOG_FPS)!=='undefined' && LOG_FPS==true) {
+      fpsFrame++;
+      var dt=timestamp - fpsTo;
+      if( dt>1000 ) {
+          var ffps = 1000.0 * fpsFrame / dt;
+          log("myFramerate: " + ffps.toFixed(1) + " fps");
+          fpsFrame = 0;
+          fpsTo = timestamp;
+      }
     }
     
-    requestAnimationFrame(update);
+    requestAnimationFrame(update,0);
   })();
 })();
