@@ -125,9 +125,7 @@ struct Baton {
     int error;
     uv_async_t async;
     char *error_msg;
-#ifndef _WIN32
-	pthread_t init_thread;
-#endif
+
     // Custom user data
     v8::Persistent<v8::Value> data;
 

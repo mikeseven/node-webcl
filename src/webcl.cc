@@ -174,10 +174,6 @@ JS_METHOD(createContext) {
       //cout<<"  adding user_data '"<<*str<<"' to baton"<<endl<<flush;
     }
 
-#ifndef _WIN32
-	baton->init_thread=pthread_self();
-#endif
-
     //uv_async_init(uv_default_loop(), &baton->async, createContext_After_cb);
     baton->async.data=baton;
   }

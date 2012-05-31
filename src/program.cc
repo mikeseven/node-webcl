@@ -285,9 +285,6 @@ JS_METHOD(Program::build)
       baton->data=Persistent<Value>::New(data);
     }
 
-#ifndef _WIN32
-	baton->init_thread=pthread_self();
-#endif
 	//uv_async_init(uv_default_loop(), &baton->async, After_cb);
     baton->async.data=baton;
   }
