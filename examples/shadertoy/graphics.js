@@ -47,24 +47,29 @@ function Graphics() {
    * @param id <script> id where the source of the shader resides
    */
   function compile_shader(gl, id) {
-    var shaders = {
-      "shader-vs" : [ 
-          "attribute vec3 aCoords;",
-          "attribute vec2 aTexCoords;", 
-          "varying vec2 vTexCoords;",
-          "void main(void) {", 
-          "    gl_Position = vec4(aCoords, 1.0);",
-          "    vTexCoords = aTexCoords;", 
-          "}" ].join("\n"),
-      "shader-fs" : [
+    var shaders= {
+        "shader-fs" : 
+          [     
            "#ifdef GL_ES",
            "  precision mediump float;",
            "#endif",
-           "varying vec2 vTexCoords;",
+           "varying vec2 vTextureCoord;",
            "uniform sampler2D uSampler;",
            "void main(void) {",
-           "    gl_FragColor = texture2D(uSampler, vTexCoords.st);",
-           "}" ].join("\n"),
+           "    gl_FragColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));",
+           "}"
+           ].join("\n"),
+
+           "shader-vs" : 
+             [ 
+              "attribute vec3 aVertexPosition;",
+              "attribute vec2 aTextureCoord;",
+              "varying vec2 vTextureCoord;",
+              "void main(void) {",
+              "    gl_Position = vec4(aVertexPosition, 1.0);",
+              "    vTextureCoord = aTextureCoord;",
+              "}"
+              ].join("\n")
     };
 
     var shader;
@@ -106,10 +111,10 @@ function Graphics() {
 
     gl.useProgram(shaderProgram);
 
-    shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aCoords");
+    shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
     gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
 
-    shaderProgram.textureCoordAttribute = gl.getAttribLocation(shaderProgram, "aTexCoords");
+    shaderProgram.textureCoordAttribute = gl.getAttribLocation(shaderProgram, "aTextureCoord");
     gl.enableVertexAttribArray(shaderProgram.textureCoordAttribute);
     
     shaderProgram.samplerUniform = gl.getUniformLocation(shaderProgram, "uSampler");
@@ -144,18 +149,16 @@ function Graphics() {
    gl.bindTexture(gl.TEXTURE_2D, null);
    gl.disable(gl.TEXTURE_2D);
    
-   if(nodejs) {
-     fpsFrame++;
-     var dt=timestamp - fpsTo;
-     if( dt>1000 ) {
-         ffps = 1000.0 * fpsFrame / dt;
-         fpsFrame = 0;
-         fpsTo = timestamp;
-     }
-     drawATB();
+   fpsFrame++;
+   var dt=timestamp - fpsTo;
+   if( dt>1000 ) {
+       ffps = 1000.0 * fpsFrame / dt;
+       fpsFrame = 0;
+       fpsTo = timestamp;
    }
-   
-   gl.flush();
+
+   if(nodejs)
+     drawATB();
   }
   
   /*
@@ -207,6 +210,7 @@ function Graphics() {
     return TextureId;
   }
     
+  var twBar;
   function initAntTweakBar(canvas) {
     if(!nodejs) return;
     
@@ -215,7 +219,7 @@ function Graphics() {
     ATB.WindowSize(canvas.width, canvas.height);
 
 
-    var twBar=new ATB.NewBar("clgl");
+    twBar=new ATB.NewBar("clgl");
     
     /*var scenes=['mandelbulb','704'];
     var sceneTypes=ATB.DefineEnum('Scene Types',scenes, 2);
@@ -228,8 +232,6 @@ function Graphics() {
     " label='fps' precision=0 help='frames-per-second.'");
 
     ATB.Define(" clgl valueswidth=fit "); // column width fits content 
-    ATB.Define(" GLOBAL contained=true "); // bars always within window
-    ATB.Define(" clgl size='256,100' "); 
 }
 
   /*
@@ -249,9 +251,9 @@ function Graphics() {
 
     ATB.Draw();
 
-    gl.useProgram(shaderProgram);
     gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
     gl.enableVertexAttribArray(shaderProgram.textureCoordAttribute);
+    gl.useProgram(shaderProgram);
   }
 
   return {
@@ -260,6 +262,8 @@ function Graphics() {
     'configure_shared_data': configure_shared_data,
     'init': init,
     'display': display,
+    'getATB': function () { return ATB}, 
+    'getBar': function () { return twBar}, 
     'clean': function() {}
   };
 }

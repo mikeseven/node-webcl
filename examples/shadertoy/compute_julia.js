@@ -6,6 +6,7 @@ function Compute() {
   var cl=new WebCL();
   var orig=require('./compute')();
   var orig_resetKernelArgs = orig.resetKernelArgs;
+  var orig_init = orig.init;
 
   var Epsilon                 = 0.003;
   var ColorA                  = [ 0.25, 0.45, 1, 1 ];
@@ -44,6 +45,28 @@ function Compute() {
     return t;
   }
 
+  function init(gfx, kernel_id, kernel_name) {
+    orig_init(gfx, kernel_id, kernel_name);
+    var ATB=gfx.getATB();
+    var twBar=gfx.getBar();
+    
+    twBar.AddVar("epsilon", ATB.TYPE_FLOAT, {
+      getter: function(data){ return Epsilon; },
+      setter: function(val,data) { Epsilon=val; },
+    },
+    " label='epsilon' min=0.001 max=0.05 step=0.001 keyIncr=s keyDecr=S help='epsilon' ");
+
+    twBar.AddVar("MuC", ATB.TYPE_QUAT4F, {
+      getter: function(data){ return mu; },
+    },
+    " label='Mu' opened=true help='Mu' ");
+
+    twBar.AddVar("Color", ATB.TYPE_COLOR4F, {
+      getter: function(data){ return diffuse; },
+    },
+    " label='Color' opened=true help='Color' ");
+  }
+  
   /*
    * (Re-)set kernel arguments
    * 
@@ -69,6 +92,7 @@ function Compute() {
     }
   }
   
+  orig.init = init;
   orig.resetKernelArgs = resetKernelArgs;
   return orig;
 }

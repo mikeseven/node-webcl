@@ -24,8 +24,9 @@ function Compute() {
    * @param kernel_id the <script> id of the kernel source code
    * @param kernel_name name of the __kernel method
    */
-  function init(gl, kernel_id, kernel_name) {
+  function init(gfx, kernel_id, kernel_name) {
     log('init CL');
+    var gl = gfx.gl();
     if(gl === 'undefined' || kernel_id === 'undefined'
       || kernel_name === 'undefined')
       throw 'Expecting init(gl, kernel_id, kernel_name)';
@@ -182,7 +183,9 @@ function Compute() {
    * @param gl WebGLContext
    * @param glTexture WebGLTexture to share with WebCL
    */
-  function configure_shared_data(gl, glTexture) {
+  function configure_shared_data(gfx, glTexture) {
+    var gl=gfx.gl();
+    
     // Create OpenCL representation of OpenGL Texture
     clTexture = null;
     try {

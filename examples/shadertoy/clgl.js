@@ -92,7 +92,7 @@ function keydown(evt) {
   // init WebCL
   var compute=Compute();
   try {
-    compute.init(gfx.gl(), COMPUTE_KERNEL_ID, COMPUTE_KERNEL_NAME);
+    compute.init(gfx, COMPUTE_KERNEL_ID, COMPUTE_KERNEL_NAME);
   }
   catch(err) {
     log('[Error] While initializing CL: '+err);
@@ -102,7 +102,6 @@ function keydown(evt) {
   
   // render scene
   var startTime=-1;
-  var fpsFrame=0, fpsTo=0;
   
   (function update(timestamp) {
     if(timestamp) {
@@ -117,7 +116,7 @@ function keydown(evt) {
       log('reshaping texture');
       try {
         var glTexture=gfx.configure_shared_data(Width,Height);
-        var clTexture=compute.configure_shared_data(gfx.gl(), glTexture);
+        var clTexture=compute.configure_shared_data(gfx, glTexture);
         Reshaped=false;
       }
       catch(err) {
@@ -147,17 +146,69 @@ function keydown(evt) {
       return;
     }
     
-    if(typeof(LOG_FPS)!=='undefined' && LOG_FPS==true) {
-      fpsFrame++;
-      var dt=timestamp - fpsTo;
-      if( dt>1000 ) {
-          var ffps = 1000.0 * fpsFrame / dt;
-          log("myFramerate: " + ffps.toFixed(1) + " fps");
-          fpsFrame = 0;
-          fpsTo = timestamp;
-      }
-    }
-    
     requestAnimationFrame(update,0);
   })();
 })();
+
+function initAntTweakBar(canvas) {
+  if(!nodejs) return;
+  
+  ATB.Init();
+  ATB.Define(" GLOBAL help='WebGL interop with WebCL' "); // Message added to the help bar.
+  ATB.WindowSize(canvas.width, canvas.height);
+
+
+  var twBar=new ATB.NewBar("clgl");
+  
+  /*var scenes=['mandelbulb','704'];
+  var sceneTypes=ATB.DefineEnum('Scene Types',scenes, 2);
+  log('[JS] returned type: '+sceneTypes);
+  twBar.AddVar("scenes", sceneTypes, scenes,null);*/
+  
+  twBar.AddVar("epsilon", ATB.TYPE_FLOAT, {
+    getter: function(data){ return Epsilon; },
+    setter: function(val,data) { Epsilon=val; },
+  },
+  " label='epsilon' min=0.001 max=0.05 step=0.001 keyIncr=s keyDecr=S help='epsilon' ");
+
+  twBar.AddVar("MuC", ATB.TYPE_QUAT4F, {
+    getter: function(data){ return MuC; },
+    //setter: function(val,data) { MuC=val; },
+  },
+  " label='Mu' opened=true help='Mu' ");
+
+  twBar.AddVar("Color", ATB.TYPE_COLOR4F, {
+    getter: function(data){ return ColorC; },
+    //setter: function(val,data) { MuC=val; },
+  },
+  " label='Color' opened=true help='Color' ");
+
+  twBar.AddVar("fps", ATB.TYPE_FLOAT, {
+    getter: function(data){ return ffps; },
+  },
+  " label='fps' precision=0 help='frames-per-second.'");
+
+  ATB.Define(" clgl valueswidth=fit "); // column width fits content 
+}
+
+/*
+ * Before calling AntTweakBar or any other library that could use programs, one
+ * must make sure to disable the VertexAttribArray used by the current program
+ * otherwise this may have some unpredictable consequences aka wrong vertex
+ * attrib arrays being used by another program!
+ */
+function drawATB(gl) {
+  if(!nodejs) return;
+  
+  gl.disableVertexAttribArray(shaderProgram.vertexPositionAttribute);
+  gl.disableVertexAttribArray(shaderProgram.textureCoordAttribute);
+  gl.useProgram(null);
+  gl.bindBuffer(gl.ARRAY_BUFFER, null);
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+
+  ATB.Draw();
+
+  gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
+  gl.enableVertexAttribArray(shaderProgram.textureCoordAttribute);
+  gl.useProgram(shaderProgram);
+}
