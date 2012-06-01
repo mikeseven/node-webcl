@@ -1,5 +1,5 @@
-#ifndef WARPSIZE
-#define WARPSIZE 64
+#ifndef MAX_WORKGROUP_SIZE
+#define MAX_WORKGROUP_SIZE 256
 #endif
 
 typedef struct {
@@ -185,7 +185,7 @@ void compute(__write_only image2d_t pix, const float time)
   const float3 cv = fast_normalize(cross(cu,cw));
 
   // ray
-  __local Ray rays[WARPSIZE+1],*ray=rays+tid;
+  __local Ray rays[MAX_WORKGROUP_SIZE+1],*ray=rays+tid;
   ray->origin=campos;
   ray->dir = fast_normalize( s.x*cu + s.y*cv + 1.5f*cw );
   ray->fovfactor = fovfactor;
@@ -193,6 +193,8 @@ void compute(__write_only image2d_t pix, const float time)
   barrier(CLK_LOCAL_MEM_FENCE);
 
   const bool res=ifractal(ray);
+
+  barrier(CLK_LOCAL_MEM_FENCE);
 
   if( !res )
   {
@@ -217,7 +219,7 @@ void compute(__write_only image2d_t pix, const float time)
 
     // shadow: cast a lightray from intersection point
     if( dif1 > EPS ) {
-      __local Ray *lray=rays+WARPSIZE;
+      __local Ray *lray=rays+MAX_WORKGROUP_SIZE;
       lray->origin=xyz;
       lray->dir=light1;
       lray->fovfactor = fovfactor;
