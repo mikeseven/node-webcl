@@ -35,6 +35,7 @@ if(nodejs) {
   Image = WebGL.Image;
   alert = console.log;
   Graphics = require('./graphics');
+  //Compute = require('./compute');
   Compute = require('./compute_julia');
 }
 

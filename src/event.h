@@ -50,6 +50,7 @@ public:
 
   cl_event getEvent() const { return event; };
   void setEvent(cl_event e);
+  bool isEvent() const { return true; }
 
   static v8::Handle<v8::Value> GetStatus(v8::Local<v8::String> property, const v8::AccessorInfo& info);
   static v8::Handle<v8::Value> GetBuffer(v8::Local<v8::String> property, const v8::AccessorInfo& info);

@@ -74,9 +74,25 @@ void AtExit() {
   while(clobjs.size() && it != clobjs.end()) {
     WebCLObject *clo = *it;
     if(clo->isCommandQueue()) {
+#ifdef LOGGING
       cout<<"  Flushing commandqueue"<<endl;
+#endif
       CommandQueue *queue=static_cast<CommandQueue*>(clo);
       clFlush(queue->getCommandQueue());
+    }
+    ++it;
+  }
+
+  // must kill events first
+  it = clobjs.begin();
+  while(clobjs.size() && it != clobjs.end()) {
+    WebCLObject *clo = *it;
+    if(clo->isEvent()) {
+#ifdef LOGGING
+      cout<<"  Destroying event"<<endl;
+#endif
+      clobjs.erase(it);
+      clo->Destructor();
     }
     ++it;
   }
@@ -86,7 +102,9 @@ void AtExit() {
   while(clobjs.size() && it != clobjs.end()) {
     WebCLObject *clo = *it;
     if(clo->isKernel()) {
+#ifdef LOGGING
       cout<<"  Destroying kernel"<<endl;
+#endif
       clobjs.erase(it);
       clo->Destructor();
     }
@@ -96,7 +114,7 @@ void AtExit() {
   #ifdef LOGGING
   cout<<"  # objects allocated: "<<clobjs.size()<<endl;
   #endif
-  for(size_t n=clobjs.size(),i=0; i<n; ++i) {
+  for(int i=clobjs.size(); i>=0; --i) {
     WebCLObject *clo=clobjs[i];
     clo->Destructor();
   }

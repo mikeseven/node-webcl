@@ -63,8 +63,12 @@ Event::Event(Handle<Object> wrapper) : event(0), buffer(NULL), status(0)
 
 void Event::Destructor()
 {
-  //cout<<"  Destroying CL event "<<event<<" thread: 0x"<<hex<<pthread_self()<<dec<<endl;
-  if(event) ::clReleaseEvent(event);
+  if(event) {
+#ifdef LOGGING
+    cout<<"  Destroying CL event "<<event<<endl;//<<" thread: 0x"<<hex<<pthread_self()<<dec<<endl;
+#endif
+    ::clReleaseEvent(event);
+  }
   event=0;
 }
 

@@ -100,11 +100,15 @@ void CommandQueue::Destructor() {
   #endif
   if(command_queue) {
     cl_uint count;
-    clGetCommandQueueInfo(command_queue,CL_QUEUE_REFERENCE_COUNT,sizeof(cl_uint),&count,0);
+    ::clGetCommandQueueInfo(command_queue,CL_QUEUE_REFERENCE_COUNT,sizeof(cl_uint),&count,0);
+#ifdef LOGGING
     cout<<"CommandQueue ref count is: "<<count<<endl;
-    clReleaseCommandQueue(command_queue);
+#endif
+    ::clReleaseCommandQueue(command_queue);
+#ifdef LOGGING
     cout<<"CommandQueue released"<<endl;
-  }
+#endif
+    }
   command_queue=0;
 }
 
