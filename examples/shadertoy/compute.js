@@ -137,7 +137,7 @@ function Compute() {
       clKernel = clProgram.createKernel(COMPUTE_KERNEL_NAME);
     }
     catch(ex) {
-      throw "Error: Failed to create compute row kernel! "+ex;
+      throw "Error: Failed to create compute kernel! "+ex;
     }
 
     // Get the device intrinsics for executing the kernel on the device

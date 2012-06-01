@@ -35,16 +35,16 @@ if(nodejs) {
   Image = WebGL.Image;
   alert = console.log;
   Graphics = require('./graphics');
-  //Compute = require('./compute');
-  Compute = require('./compute_julia');
+  Compute = require('./compute');
+  //Compute = require('./compute_julia');
 }
 
 log = console.log;
 requestAnimationFrame = document.requestAnimationFrame;
 
 //var COMPUTE_KERNEL_ID = "704.cl";
-//var COMPUTE_KERNEL_ID = "mandelbulb2.cl";
-var COMPUTE_KERNEL_ID = "qjulia.cl";
+var COMPUTE_KERNEL_ID = "mandelbulb2.cl";
+//var COMPUTE_KERNEL_ID = "qjulia.cl";
 var COMPUTE_KERNEL_NAME = "compute";
 var WIDTH = 512;
 var HEIGHT = 512;
@@ -146,6 +146,7 @@ function keydown(evt) {
       return;
     }
     
+    gfx.gl().finish(); // for timing
     requestAnimationFrame(update,0);
   })();
 })();
