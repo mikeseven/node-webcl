@@ -1,5 +1,9 @@
 #ifndef MAX_WORKGROUP_SIZE
+#ifdef AMD
+#define MAX_WORKGROUP_SIZE 128
+#else
 #define MAX_WORKGROUP_SIZE 256
+#endif
 #endif
 
 typedef struct {
@@ -60,6 +64,8 @@ inline bool iterate( const float3 q, float *resPot, float4 *resColor )
     return false;
   }
 
+  *resPot = 0;
+
 #pragma unroll 4
   for( int i=0; i<NumIte; i++ )
   {
@@ -82,15 +88,13 @@ inline bool iterate( const float3 q, float *resPot, float4 *resColor )
 
     if( m > Bailout )
     {
-      *resColor = trap;
       *resPot = 0.5f*native_log(m)/native_powr(8.0f,i);
-      return false;
+      break;
     }
   }
 
   *resColor = trap;
-  *resPot = 0;
-  return true;
+  return (m<=Bailout);
 }
 
 inline bool ifractal( __local Ray *ray)
@@ -190,11 +194,7 @@ void compute(__write_only image2d_t pix, const float time)
   ray->dir = fast_normalize( s.x*cu + s.y*cv + 1.5f*cw );
   ray->fovfactor = fovfactor;
 
-  barrier(CLK_LOCAL_MEM_FENCE);
-
   const bool res=ifractal(ray);
-
-  barrier(CLK_LOCAL_MEM_FENCE);
 
   if( !res )
   {

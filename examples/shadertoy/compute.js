@@ -126,7 +126,7 @@ function Compute() {
 
     // Build the program executable
     try {
-      clProgram.build(clDevice, '-cl-fast-relaxed-math -cl-mad-enable');
+      clProgram.build(clDevice, '-cl-fast-relaxed-math -cl-mad-enable -DAMD');
     } catch (err) {
       throw "Error: Failed to build program executable!\n"
           + clProgram.getBuildInfo(clDevice, cl.PROGRAM_BUILD_LOG);
@@ -210,8 +210,8 @@ function Compute() {
 
     // Set global and local work sizes for kernel
     var local = [];
-    local[0] = warp_size;
-    local[1] = max_workgroup_size / local[0];
+    local[0] = 16;//warp_size;
+    local[1] = 8;//max_workgroup_size / local[0];
     var global = [ clu.DivUp(TextureWidth, local[0]) * local[0],
                    clu.DivUp(TextureHeight, local[1]) * local[1] ];
 
