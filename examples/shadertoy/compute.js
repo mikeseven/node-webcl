@@ -73,7 +73,13 @@ function Compute() {
     // Report the device vendor and device name
     var vendor_name = clDevice.getInfo(cl.DEVICE_VENDOR);
     var device_name = clDevice.getInfo(cl.DEVICE_NAME);
-    log("Connecting to " + vendor_name + " " + device_name);
+    log("  Connecting to " + vendor_name + " " + device_name);
+
+    log("    Global mem cache size: " + (clDevice.getInfo(cl.DEVICE_GLOBAL_MEM_CACHE_SIZE)/1024) + "kB " );
+    log("    Local mem size       : " + (clDevice.getInfo(cl.DEVICE_LOCAL_MEM_SIZE)/1024) + "kB " );
+    log("    Max compute units    : " + clDevice.getInfo(cl.DEVICE_MAX_COMPUTE_UNITS));
+    log("    Max work-item sizes  : "+clDevice.getInfo(cl.DEVICE_MAX_WORK_ITEM_SIZES));
+    log("    Max work-group size  : "+clDevice.getInfo(cl.DEVICE_MAX_WORK_GROUP_SIZE));
 
     if (!clDevice.getInfo(cl.DEVICE_IMAGE_SUPPORT)) 
       throw "Application requires images: Images not supported on this device.";
@@ -126,7 +132,7 @@ function Compute() {
 
     // Build the program executable
     try {
-      clProgram.build(clDevice, '-cl-fast-relaxed-math -cl-mad-enable -DAMD');
+      clProgram.build(clDevice, '-cl-fast-relaxed-math -cl-mad-enable -DMAC');
     } catch (err) {
       throw "Error: Failed to build program executable!\n"
           + clProgram.getBuildInfo(clDevice, cl.PROGRAM_BUILD_LOG);
@@ -142,11 +148,11 @@ function Compute() {
 
     // Get the device intrinsics for executing the kernel on the device
     max_workgroup_size = clKernel.getWorkGroupInfo(clDevice, cl.KERNEL_WORK_GROUP_SIZE);
-    max_workitem_sizes=clDevice.getInfo(cl.DEVICE_MAX_WORK_ITEM_SIZES);
     warp_size=clKernel.getWorkGroupInfo(clDevice, cl.KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE);
     log('  max workgroup size: '+max_workgroup_size);
-    log('  max workitem sizes: '+max_workitem_sizes);
-    log('  warp size: '+warp_size);
+    log('  local mem used    : '+clKernel.getWorkGroupInfo(clDevice, cl.KERNEL_LOCAL_MEM_SIZE)+" bytes");
+    log('  private mem used  : '+clKernel.getWorkGroupInfo(clDevice, cl.KERNEL_PRIVATE_MEM_SIZE)+" bytes");
+    log('  warp size         : '+warp_size);
   }
 
   /*
@@ -210,8 +216,8 @@ function Compute() {
 
     // Set global and local work sizes for kernel
     var local = [];
-    local[0] = 16;//warp_size;
-    local[1] = 8;//max_workgroup_size / local[0];
+    local[0] = warp_size;
+    local[1] = max_workgroup_size / local[0];
     var global = [ clu.DivUp(TextureWidth, local[0]) * local[0],
                    clu.DivUp(TextureHeight, local[1]) * local[1] ];
 

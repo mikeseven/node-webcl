@@ -29,11 +29,18 @@ In turns, [node-webgl][NODE_WEBGL] relies on [node-glfw][NODE_GLFW] that relies 
 
 - OpenCL 1.1 must be installed on your machine. Typically, this means your machine has a not too old graphic card (maybe not more than 3 years old) and its latest graphic drivers installed.
 
-On Mac, you must use OSX 10.7 "Lion" at minimum since OSX 10.6 "Snow Leopard" only supports OpenCL 1.0 and is buggy.
+On Mac, we recommend using OSX 10.7 "Lion" since OSX 10.6 "Snow Leopard" only supports OpenCL 1.0 and is buggy.
 
-On Windows, use Windows 7.
+On Windows, use Windows 7. Note that if your machine is 64-bit, you should use node.js 64-bit distribution, not the 32-bit default to avoid mismatch between node libraries and these native dependencies when node-gyp build the modules.
 
-On Linux, make sure you use the latest AMD or NVidia drivers. This module has been tested with Ubuntu 10.10, 11.04 and 11.10.
+On Linux, make sure you use the latest AMD or NVidia drivers. This module has been tested with Ubuntu 10.10, 11.04 and 11.10 64-bit.
+
+Pre-built binaries are available in submodule deps. Don't forget to do:
+
+	git submodule init
+	git submodule udpate
+	
+if you need these binaries. 
 
 Installation
 ------------
@@ -44,6 +51,12 @@ Note that installing the usual way:
 	npm install node-webcl
 
 will also install node-webgl and node-glfw.
+
+If you want to use the latest code, simply do
+
+	node-gyp rebuild
+	
+in node-webcl, node-webgl, and node-glfw.
 
 A crash course on WebCL
 =======================
