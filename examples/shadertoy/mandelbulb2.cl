@@ -23,8 +23,7 @@ bool isphere( __local Ray *ray );
 bool iterate( const float3 q, float *resPot, float4 *resColor );
 bool ifractal( __local Ray *ray);
 
-inline bool isphere( __local Ray *ray )
-{
+inline bool isphere( __local Ray *ray ) {
   const float3 oc = ray->origin - ray->sph.origin;
   const float b = dot(oc,ray->dir);
   const float c = dot(oc,oc) - ray->sph.r*ray->sph.r;
@@ -45,32 +44,48 @@ __constant const float EPS=0.001f;
 __constant const float MAXT=1.e20f;
 __constant const float3 light1 = (float3)( 0.577f, 0.577f, 0.577f );
 __constant const float3 light2 = (float3)( -0.707f, 0, 0.707f );
+__constant const float3 material1=(float3)(0.8f,0.6f,0.2f);
+__constant const float3 material2=(float3)(0.8f,0.3f,0.3f);
+__constant const float3 material3=(float3)(0.7f,0.4f,0.3f);
 
-inline bool iterate( const float3 q, float *resPot, float4 *resColor )
-{
+/*#define NumIte 8
+#define Bailout 100.f
+#define EPS 0.001f
+#define MAXT 1.e20f
+#define light1 (float3)( 0.577f, 0.577f, 0.577f )
+#define light2 (float3)( -0.707f, 0, 0.707f )
+#define material1 (float3)(0.8f,0.6f,0.2f)
+#define material2 (float3)(0.8f,0.3f,0.3f)
+#define material3 (float3)(0.7f,0.4f,0.3f)*/
+
+inline bool iterate( const float3 q, float *resPot, float4 *resColor ) {
   float4 trap = (float4)(100.f);
   float3 zz = q;
   float m = dot(zz,zz);
 
   if( m > Bailout ) {
-    *resPot = 0.5f*native_log(m); // /native_powr(8.0f,0.0f);
+    *resPot = 0.5f*native_log(m);
     *resColor = (float4)(1.f);
     return false;
   }
 
   *resPot = 0;
 
-#pragma unroll 4
-  for( int i=0; i<NumIte; i++ )
-  {
-    const float x = zz.x; const float x2 = x*x; const float x4 = x2*x2;
-    const float y = zz.y; const float y2 = y*y; const float y4 = y2*y2;
-    const float z = zz.z; const float z2 = z*z; const float z4 = z2*z2;
+  float x, x2, x4;
+  float y, y2, y4;
+  float z, z2, z4 ;
+  float k1,k2,k3,k4;
 
-    const float k3 = x2 + z2;
-    const float k2 = rsqrt( k3*k3*k3*k3*k3*k3*k3 );
-    const float k1 = x4 + y4 + z4 - 6*y2*z2 - 6*x2*y2 + 2*z2*x2;
-    const float k4 = x2 - y2 + z2;
+#pragma unroll 4
+  for( int i=0; i<NumIte; i++ ) {
+    x = zz.x; x2 = x*x; x4 = x2*x2;
+    y = zz.y; y2 = y*y; y4 = y2*y2;
+    z = zz.z; z2 = z*z; z4 = z2*z2;
+
+    k3 = x2 + z2;
+    k2 = rsqrt( k3*k3*k3*k3*k3*k3*k3 );
+    k1 = x4 + y4 + z4 - 6*y2*z2 - 6*x2*y2 + 2*z2*x2;
+    k4 = x2 - y2 + z2;
 
     zz.x = q.x + 64.f*x*y*z*(x2-z2)*k4*(x4-6.f*x2*z2+z4)*k1*k2;
     zz.y = q.y + -16.f*y2*k3*k4*k4 + k1*k1;
@@ -78,7 +93,7 @@ inline bool iterate( const float3 q, float *resPot, float4 *resColor )
 
     m = dot(zz,zz);
 
-    trap = min( trap, (float4)(zz.xyz*zz.xyz,m) );
+    trap = min( trap, (float4)(zz.xyz*zz.xyz, m) );
 
     if( m > Bailout ) {
       *resPot = 0.5f*native_log(m)/native_powr(8.0f,i);
@@ -90,15 +105,13 @@ inline bool iterate( const float3 q, float *resPot, float4 *resColor )
   return (m<=Bailout);
 }
 
-inline bool ifractal( __local Ray *ray)
-{
+inline bool ifractal( __local Ray *ray) {
   __local Sphere *sph=&ray->sph;
   sph->origin = (float3)(0.f);
   sph->r = 1.25f;
 
   // bounding sphere
-  if( !isphere(ray) )
-  return false;
+  if( !isphere(ray) ) return false;
 
   // early skip
   if( sph->dis.y<EPS ) return false;
@@ -135,8 +148,7 @@ inline bool ifractal( __local Ray *ray)
     gra = (float3)( pot2-pot1, pot3-pot1, pot4-pot1 );
     dt = 0.5f*pot1*eps/fast_length(gra);
 
-    if( dt<Surface )
-    {
+    if( dt<Surface ) {
       ray->col = color;
       ray->nor = fast_normalize( gra );
       ray->t = t;
@@ -152,8 +164,7 @@ inline bool ifractal( __local Ray *ray)
 
 // Note: autovectorize assuming float4 as the basic computation width
 __kernel __attribute__((vec_type_hint(float4)))
-void compute(__write_only image2d_t pix, const float time)
-{
+void compute(__write_only image2d_t pix, const float time) {
   const int x = get_global_id(0);
   const int y = get_global_id(1);
   const int xl = get_local_id(0);
@@ -220,9 +231,9 @@ void compute(__write_only image2d_t pix, const float time)
 
     // material color
     ray->rgb = (float3)(1.f);
-    ray->rgb = mix( ray->rgb, (float3)(0.8f,0.6f,0.2f), (float3)(native_sqrt(ray->col.x)*1.25f) );
-    ray->rgb = mix( ray->rgb, (float3)(0.8f,0.3f,0.3f), (float3)(native_sqrt(ray->col.y)*1.25f) );
-    ray->rgb = mix( ray->rgb, (float3)(0.7f,0.4f,0.3f), (float3)(native_sqrt(ray->col.z)*1.25f) );
+    ray->rgb = mix( ray->rgb, material1, (float3)(native_sqrt(ray->col.x)*1.25f) );
+    ray->rgb = mix( ray->rgb, material2, (float3)(native_sqrt(ray->col.y)*1.25f) );
+    ray->rgb = mix( ray->rgb, material3, (float3)(native_sqrt(ray->col.z)*1.25f) );
 
     // lighting
     ray->rgb *= (0.5f+0.5f * ray->nor.y)*
@@ -237,7 +248,6 @@ void compute(__write_only image2d_t pix, const float time)
 
   const float2 uv = 0.5f*(p+1.f);
   ray->rgb *= 0.7f + 0.3f*16.f*uv.x*uv.y*(1.f-uv.x)*(1.f-uv.y);
-
   ray->rgb = clamp( ray->rgb, (float3)(0.f), (float3)(1.f) );
 
   write_imagef(pix,(int2)(x,y),(float4)(ray->rgb,1.0f));
