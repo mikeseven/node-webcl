@@ -24,9 +24,17 @@
         ['OS=="linux"', {'libraries': ['-lGL', '-lOpenCL']}],
         ['OS=="win"', {
           'variables' : {
-            'OPENCL_SDK' : 'C:\\Program Files (x86)\\AMD APP'
+          # AMD APP SDK
+#            'OPENCL_SDK' : 'C:\\Program Files (x86)\\AMD APP',
+#            'OPENCL_SDK_INCLUDE' : '<(OPENCL_SDK)\\include',
+#            'OPENCL_SDK_LIB' : '<(OPENCL_SDK)\\lib\\x86_64',
+
+          # Intel OpenCL SDK
+            'OPENCL_SDK' : 'C:\\Program Files (x86)\\Intel\\OpenCL SDK\\2.0',
+            'OPENCL_SDK_INCLUDE' : '<(OPENCL_SDK)\\include',
+            'OPENCL_SDK_LIB' : '<(OPENCL_SDK)\\lib\\x64',
           },
-          'include_dirs' : ['<(OPENCL_SDK)\\include'],
+          'include_dirs' : ['<(OPENCL_SDK_INCLUDE)'],
           'defines' : [
             'WIN32_LEAN_AND_MEAN',
             'VC_EXTRALEAN',
@@ -37,7 +45,7 @@
           'ldflags' : [
             '/OPT:REF','/OPT:ICF','/LTCG'
           ],
-          'libraries': ['opengl32.lib', '<(OPENCL_SDK)\\lib\\x86_64\\opencl.lib'],
+          'libraries': ['opengl32.lib', '<(OPENCL_SDK_LIB)\\OpenCL.lib'],
         },
        ],
     ]
