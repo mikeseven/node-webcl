@@ -76,7 +76,8 @@ JS_METHOD(Device::getInfo)
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
       return ThrowError("UNKNOWN ERROR");
     }
-    return scope.Close(JS_STR(param_value,(int)param_value_size_ret));
+    // NOTE: Adjust length because API returns NULL terminated string
+    return scope.Close(JS_STR(param_value,(int)param_value_size_ret - 1));
   }
   break;
   case CL_DEVICE_PLATFORM: {
