@@ -31,6 +31,7 @@
 #include "event.h"
 #include "commandqueue.h"
 
+#include <set>
 #include <vector>
 #include <algorithm>
 #include <cstring>
@@ -40,26 +41,19 @@ using namespace node;
 
 namespace webcl {
 
-static vector<WebCLObject*> clobjs;
+static set<WebCLObject*> clobjs;
 static bool atExit=false;
 
 void registerCLObj(WebCLObject* obj) {
   if(obj) {
-    clobjs.push_back(obj);
+    clobjs.insert(obj);
   }
 }
 
 void unregisterCLObj(WebCLObject* obj) {
   if(atExit || !obj) return;
 
-  vector<WebCLObject*>::iterator it = clobjs.begin();
-  while(clobjs.size() && it != clobjs.end()) {
-    if(*it==obj) {
-      clobjs.erase(it);
-      break;
-    }
-    ++it;
-  }
+  clobjs.erase(obj);
 }
 
 void AtExit() {
@@ -70,9 +64,10 @@ void AtExit() {
   #endif
 
   // make sure all queues are flushed
-  vector<WebCLObject*>::iterator it = clobjs.begin();
-  while(clobjs.size() && it != clobjs.end()) {
+  set<WebCLObject*>::iterator it = clobjs.begin();
+  while(it != clobjs.end()) {
     WebCLObject *clo = *it;
+    ++it;
     if(clo->isCommandQueue()) {
 #ifdef LOGGING
       cout<<"  Flushing commandqueue"<<endl;
@@ -80,42 +75,44 @@ void AtExit() {
       CommandQueue *queue=static_cast<CommandQueue*>(clo);
       clFlush(queue->getCommandQueue());
     }
-    ++it;
   }
 
   // must kill events first
   it = clobjs.begin();
-  while(clobjs.size() && it != clobjs.end()) {
+  while(it != clobjs.end()) {
     WebCLObject *clo = *it;
+    ++it;
     if(clo->isEvent()) {
 #ifdef LOGGING
       cout<<"  Destroying event"<<endl;
 #endif
-      clobjs.erase(it);
+      clobjs.erase(clo);
       clo->Destructor();
     }
-    ++it;
   }
 
   // must kill kernels first
   it = clobjs.begin();
-  while(clobjs.size() && it != clobjs.end()) {
+  while(it != clobjs.end()) {
     WebCLObject *clo = *it;
+    ++it;
     if(clo->isKernel()) {
 #ifdef LOGGING
       cout<<"  Destroying kernel"<<endl;
 #endif
-      clobjs.erase(it);
+      clobjs.erase(clo);
       clo->Destructor();
     }
-    ++it;
   }
+  printf("  Kernels destroyed\n");
 
   #ifdef LOGGING
   cout<<"  # objects allocated: "<<clobjs.size()<<endl;
   #endif
-  for(int i=clobjs.size(); i>=0; --i) {
-    WebCLObject *clo=clobjs[i];
+  it = clobjs.begin();
+  while(it != clobjs.end()) {
+    WebCLObject *clo = *it;
+    ++it;
     clo->Destructor();
   }
 

@@ -44,7 +44,20 @@ platforms.forEach(function(p) {
   log("  PLATFORM_PROFILE: \t"+p.getInfo(cl.PLATFORM_PROFILE));
   log("  PLATFORM_VERSION: \t"+p.getInfo(cl.PLATFORM_VERSION));
   log("  PLATFORM_VENDOR: \t"+p.getInfo(cl.PLATFORM_VENDOR));
-  log("  PLATFORM_EXTENSIONS: \t"+p.getInfo(cl.PLATFORM_EXTENSIONS));
+
+  // PLATFORM_EXTENSIONS: get platform extensions, and if any then parse & log the string onto separate lines
+  log("  PLATFORM_EXTENSIONS:");
+  var platform_ext_string=p.getInfo(cl.PLATFORM_EXTENSIONS);
+  if (platform_ext_string.length > 0) 
+  {
+    var extensions=platform_ext_string.trim().split(' ');
+    for(var i=0;i<extensions.length;i++) {
+      log("\t\t\t\t\t"+extensions[i]);
+    }
+  }
+  else 
+    log("\t\t\t\t\tNone");
+  log();
 
   //list for devices for a platform
   log("OpenCL Device Info:\n");
@@ -129,21 +142,26 @@ function printDeviceInfo(device)
   log("  DEVICE_PLATFORM: \t\t\t0x"+device.getInfo(cl.DEVICE_PLATFORM).toString(16));
   log("  DEVICE_OPENCL_C_VERSION: \t\t"+device.getInfo(cl.DEVICE_OPENCL_C_VERSION));
   var type=parseInt(device.getInfo(cl.DEVICE_TYPE));
+  var type_strings=[];
   if( type & cl.DEVICE_TYPE_CPU )
-    log("  DEVICE_TYPE:\t\t\tDEVICE_TYPE_CPU");
+    type_strings.push("cpu");
   if( type & cl.DEVICE_TYPE_GPU )
-    log("  DEVICE_TYPE:\t\t\tDEVICE_TYPE_GPU");
+    type_strings.push("gpu");
   if( type & cl.DEVICE_TYPE_ACCELERATOR )
-    log("  DEVICE_TYPE:\t\t\tDEVICE_TYPE_ACCELERATOR");
+    type_strings.push("accelerator");
   if( type & cl.DEVICE_TYPE_DEFAULT )
-    log("  DEVICE_TYPE:\t\t\tDEVICE_TYPE_DEFAULT");
+    type_strings.push("default");
+  // FIXME: 1.2
+  //if( type & cl.DEVICE_TYPE_CUSTOM )
+  //  type_strings.push("custom");
+  log("  DEVICE_TYPE:\t\t\t"+type_strings.join(" "));
 
   var compute_units=0;
   log("  DEVICE_MAX_COMPUTE_UNITS:\t\t"+(compute_units=device.getInfo(cl.DEVICE_MAX_COMPUTE_UNITS)));
   log("  DEVICE_MAX_WORK_ITEM_DIMENSIONS:\t"+device.getInfo(cl.DEVICE_MAX_WORK_ITEM_DIMENSIONS));
 
-  var workitem_size=device.getInfo(cl.DEVICE_MAX_WORK_ITEM_SIZES);
-  log("  DEVICE_MAX_WORK_ITEM_SIZES:\t"+workitem_size[0]+" / "+workitem_size[1]+" / "+workitem_size[2]);
+  var workitem_sizes=device.getInfo(cl.DEVICE_MAX_WORK_ITEM_SIZES);
+  log("  DEVICE_MAX_WORK_ITEM_SIZES:\t"+workitem_sizes.join(" / "));
 
   log("  DEVICE_MAX_WORK_GROUP_SIZE:\t"+device.getInfo(cl.DEVICE_MAX_WORK_GROUP_SIZE));
   log("  DEVICE_MAX_CLOCK_FREQUENCY:\t"+device.getInfo(cl.DEVICE_MAX_CLOCK_FREQUENCY)+" MHz");
@@ -151,7 +169,16 @@ function printDeviceInfo(device)
   log("  DEVICE_MAX_MEM_ALLOC_SIZE:\t\t"+(device.getInfo(cl.DEVICE_MAX_MEM_ALLOC_SIZE) / (1024 * 1024))+" MBytes");
   log("  DEVICE_GLOBAL_MEM_SIZE:\t\t"+(device.getInfo(cl.DEVICE_GLOBAL_MEM_SIZE) / (1024 * 1024))+" MBytes");
   log("  DEVICE_ERROR_CORRECTION_SUPPORT:\t"+(device.getInfo(cl.DEVICE_ERROR_CORRECTION_SUPPORT) == cl.TRUE ? "yes" : "no"));
-  log("  DEVICE_LOCAL_MEM_TYPE:\t\t"+(device.getInfo(cl.DEVICE_LOCAL_MEM_TYPE) == 1 ? "local" : "global"));
+
+  // DEVICE_LOCAL_MEM_TYPE
+  var local_mem_type=device.getInfo(cl.DEVICE_LOCAL_MEM_TYPE);
+  if( cache_type === cl.NONE )
+    log("  DEVICE_LOCAL_MEM_TYPE:\t\tNONE");
+  if( cache_type === cl.LOCAL )
+    log("  DEVICE_LOCAL_MEM_TYPE:\t\tLOCAL");
+  if( cache_type === cl.GLOBAL )
+    log("  DEVICE_LOCAL_MEM_TYPE:\t\tGLOBAL");
+
   log("  DEVICE_LOCAL_MEM_SIZE:\t\t"+(device.getInfo(cl.DEVICE_LOCAL_MEM_SIZE) / 1024)+" KBytes");
   log("  DEVICE_MAX_CONSTANT_BUFFER_SIZE:\t"+(device.getInfo(cl.DEVICE_MAX_CONSTANT_BUFFER_SIZE) / 1024)+" KBytes");
   log("  DEVICE_MAX_CONSTANT_BUFFER_SIZE:\t"+(device.getInfo(cl.DEVICE_MAX_CONSTANT_BUFFER_SIZE) / 1024)+" KBytes");
@@ -162,12 +189,15 @@ function printDeviceInfo(device)
   log("  DEVICE_MIN_DATA_TYPE_ALIGN_SIZE:\t"+device.getInfo(cl.DEVICE_MIN_DATA_TYPE_ALIGN_SIZE));
 
   var cache_type=device.getInfo(cl.DEVICE_GLOBAL_MEM_CACHE_TYPE);
-  if( cache_type & cl.NONE)
+  if( cache_type === cl.NONE )
     log("  DEVICE_GLOBAL_MEM_CACHE_TYPE:\t\tNONE");
-  if( cache_type & cl.READ_ONLY_CACHE)
+  if( cache_type === cl.READ_ONLY_CACHE )
     log("  DEVICE_GLOBAL_MEM_CACHE_TYPE:\t\tREAD_ONLY_CACHE");
-  if( cache_type & cl.READ_WRITE_CACHE)
+  if( cache_type === cl.READ_WRITE_CACHE )
     log("  DEVICE_GLOBAL_MEM_CACHE_TYPE:\t\tREAD_WRITE_CACHE");
+
+  log("  DEVICE_GLOBAL_MEM_CACHE_SIZE:\t\t"+(device.getInfo(cl.DEVICE_GLOBAL_MEM_CACHE_SIZE) / (1024))+" KBytes");
+  log("  DEVICE_GLOBAL_MEM_CACHELINE_SIZE:\t\t"+device.getInfo(cl.DEVICE_GLOBAL_MEM_CACHELINE_SIZE)+" Bytes");
     
   log("  DEVICE_MAX_CONSTANT_ARGS:\t"+device.getInfo(cl.DEVICE_MAX_CONSTANT_ARGS));
   log("  DEVICE_HOST_UNIFIED_MEMORY:\t"+device.getInfo(cl.DEVICE_HOST_UNIFIED_MEMORY));
@@ -176,29 +206,55 @@ function printDeviceInfo(device)
 
   log("  DEVICE_AVAILABLE:\t"+device.getInfo(cl.DEVICE_AVAILABLE));
   log("  DEVICE_COMPILER_AVAILABLE:\t"+device.getInfo(cl.DEVICE_COMPILER_AVAILABLE));
-  log("  DEVICE_EXECUTION_CAPABILITIES:\t"+device.getInfo(cl.DEVICE_EXECUTION_CAPABILITIES));
+
+  // DEVICE_EXECUTION_CAPABILITIES
+  var execution_capabilities=device.getInfo(cl.DEVICE_EXECUTION_CAPABILITIES);
+  var execution_capabilities_strings=[];
+  if( execution_capabilities & cl.EXEC_KERNEL )
+    execution_capabilities_strings.push("kernel");
+  if( execution_capabilities & cl.EXEC_NATIVE_KERNEL )
+    execution_capabilities_strings.push("native-kernel");
+  log("  DEVICE_EXECUTION_CAPABILITIES:\t\t"+execution_capabilities_strings.join(" "));
 
   // DEVICE_QUEUE_PROPERTIES
   var queue_properties=device.getInfo(cl.DEVICE_QUEUE_PROPERTIES);
+  var queue_properties_strings=[];
   if( queue_properties & cl.QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE )
-    log("  DEVICE_QUEUE_PROPERTIES:\t\tQUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE");
+    queue_properties_strings.push("out-of-order-exec-mode");
   if( queue_properties & cl.QUEUE_PROFILING_ENABLE )
-    log("  DEVICE_QUEUE_PROPERTIES:\t\tQUEUE_PROFILING_ENABLE");
+    queue_properties_strings.push("profiling");
+  log("  DEVICE_QUEUE_PROPERTIES:\t\t"+queue_properties_strings.join(" "));
 
   // image support
   log("  DEVICE_IMAGE_SUPPORT:\t\t"+device.getInfo(cl.DEVICE_IMAGE_SUPPORT));
   log("  DEVICE_MAX_READ_IMAGE_ARGS:\t"+device.getInfo(cl.DEVICE_MAX_READ_IMAGE_ARGS));
   log("  DEVICE_MAX_WRITE_IMAGE_ARGS:\t"+device.getInfo(cl.DEVICE_MAX_WRITE_IMAGE_ARGS));
 
-  // DEVICE_SINGLE_FP_CONFIG
-  var fp_config=device.getInfo(cl.DEVICE_SINGLE_FP_CONFIG);
-  log("  DEVICE_SINGLE_FP_CONFIG:\t\t"+
-      (fp_config & cl.FP_DENORM ? "denorms " : "")+
-      (fp_config & cl.FP_INF_NAN ? "INF-quietNaNs " : "")+
-      (fp_config & cl.FP_ROUND_TO_NEAREST ? "round-to-nearest " : "")+
-      (fp_config & cl.FP_ROUND_TO_ZERO ? "round-to-zero " : "")+
-      (fp_config & cl.FP_ROUND_TO_INF ? "round-to-inf " : "")+
-      (fp_config & cl.FP_FMA ? "fma " : ""));
+  function fp_config_info(type, name)
+  {
+    // DEVICE_*_FP_CONFIG
+    var fp_config=device.getInfo(type);
+    var fp_config_strings=[];
+    if( fp_config & cl.FP_DENORM )
+      fp_config_strings.push("denorms");
+    if( fp_config & cl.FP_INF_NAN )
+      fp_config_strings.push("INF-quietNaNs");
+    if( fp_config & cl.FP_ROUND_TO_NEAREST )
+      fp_config_strings.push("round-to-nearest");
+    if( fp_config & cl.FP_ROUND_TO_ZERO )
+      fp_config_strings.push("round-to-zero");
+    if( fp_config & cl.FP_ROUND_TO_INF )
+      fp_config_strings.push("round-to-inf");
+    if( fp_config & cl.FP_FMA )
+      fp_config_strings.push("fma");
+    if( fp_config & cl.FP_SOFT_FLOAT )
+      fp_config_strings.push("soft-float");
+    log("  "+name+":\t\t"+fp_config_strings.join(" "));
+  };
+
+  fp_config_info(cl.DEVICE_HALF_FP_CONFIG, "DEVICE_HALF_FP_CONFIG");
+  fp_config_info(cl.DEVICE_SINGLE_FP_CONFIG, "DEVICE_SINGLE_FP_CONFIG");
+  fp_config_info(cl.DEVICE_DOUBLE_FP_CONFIG, "DEVICE_DOUBLE_FP_CONFIG");
 
   log("\n  DEVICE_IMAGE <dim>"); 
   log("\t\t\t\t\t2D_MAX_WIDTH\t "+device.getInfo(cl.DEVICE_IMAGE2D_MAX_WIDTH));
@@ -213,7 +269,7 @@ function printDeviceInfo(device)
   var nv_device_attibute_query=false;
   if (device_string.length > 0) 
   {
-    var extensions=device_string.split(' ');
+    var extensions=device_string.trim().split(' ');
     for(var i=0;i<extensions.length;i++) {
       if("nv_device_attribute_query"===extensions[i])
         nv_device_attibute_query=true;
@@ -221,7 +277,7 @@ function printDeviceInfo(device)
     }
   }
   else 
-    log("  DEVICE_EXTENSIONS: None");
+    log("\t\t\t\t\tNone");
 
   if(nv_device_attibute_query) 
   {
