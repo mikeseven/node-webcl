@@ -104,7 +104,6 @@ void AtExit() {
       clo->Destructor();
     }
   }
-  printf("  Kernels destroyed\n");
 
   #ifdef LOGGING
   cout<<"  # objects allocated: "<<clobjs.size()<<endl;
