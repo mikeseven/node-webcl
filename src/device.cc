@@ -192,7 +192,6 @@ JS_METHOD(Device::getInfo)
     }
 
     // get CL_DEVICE_MAX_WORK_ITEM_SIZES array param
-    size_t nbytes=0;
     size_t param_value[max_work_item_dimensions];
     ret=::clGetDeviceInfo(device->device_id, param_name, max_work_item_dimensions*sizeof(size_t), param_value, NULL);
     if (ret != CL_SUCCESS) {
@@ -204,7 +203,7 @@ JS_METHOD(Device::getInfo)
     }
 
     Local<Array> arr = Array::New(max_work_item_dimensions);
-    for(int i=0;i<max_work_item_dimensions;i++)
+    for(cl_uint i=0;i<max_work_item_dimensions;i++)
       arr->Set(i,JS_INT(param_value[i]));
 
     return scope.Close(arr);
@@ -250,7 +249,6 @@ JS_METHOD(Device::getInfo)
   case CL_DEVICE_NATIVE_VECTOR_WIDTH_FLOAT:
   case CL_DEVICE_NATIVE_VECTOR_WIDTH_DOUBLE:
   case CL_DEVICE_NATIVE_VECTOR_WIDTH_HALF:
-  case CL_DEVICE_PARTITION_MAX_SUB_DEVICES:
   case CL_DEVICE_PREFERRED_VECTOR_WIDTH_CHAR:
   case CL_DEVICE_PREFERRED_VECTOR_WIDTH_SHORT:
   case CL_DEVICE_PREFERRED_VECTOR_WIDTH_INT:
@@ -258,8 +256,12 @@ JS_METHOD(Device::getInfo)
   case CL_DEVICE_PREFERRED_VECTOR_WIDTH_FLOAT:
   case CL_DEVICE_PREFERRED_VECTOR_WIDTH_DOUBLE:
   case CL_DEVICE_PREFERRED_VECTOR_WIDTH_HALF:
-  case CL_DEVICE_REFERENCE_COUNT:
-  case CL_DEVICE_VENDOR_ID: {
+  case CL_DEVICE_VENDOR_ID: 
+  
+  // OpenCL 1.2 constants
+  //case CL_DEVICE_REFERENCE_COUNT:
+  //case CL_DEVICE_PARTITION_MAX_SUB_DEVICES:
+  {
     cl_uint param_value;
     cl_int ret=::clGetDeviceInfo(device->device_id, param_name, sizeof(cl_uint), &param_value, NULL);
     if (ret != CL_SUCCESS) {
@@ -299,11 +301,14 @@ JS_METHOD(Device::getInfo)
   case CL_DEVICE_IMAGE3D_MAX_DEPTH:
   case CL_DEVICE_IMAGE3D_MAX_HEIGHT:
   case CL_DEVICE_IMAGE3D_MAX_WIDTH:
-  case CL_DEVICE_IMAGE_MAX_BUFFER_SIZE:
-  case CL_DEVICE_IMAGE_MAX_ARRAY_SIZE:
   case CL_DEVICE_MAX_PARAMETER_SIZE:
   case CL_DEVICE_MAX_WORK_GROUP_SIZE:
-  case CL_DEVICE_PROFILING_TIMER_RESOLUTION: {
+  case CL_DEVICE_PROFILING_TIMER_RESOLUTION: 
+  
+  // OpenCL 1.2 constants
+  //case CL_DEVICE_IMAGE_MAX_BUFFER_SIZE:
+  //case CL_DEVICE_IMAGE_MAX_ARRAY_SIZE:
+  {
     size_t param_value;
     cl_int ret=::clGetDeviceInfo(device->device_id, param_name, sizeof(size_t), &param_value, NULL);
     if (ret != CL_SUCCESS) {
