@@ -217,9 +217,7 @@ JS_METHOD(Device::getInfo)
   case CL_DEVICE_ERROR_CORRECTION_SUPPORT:
   case CL_DEVICE_HOST_UNIFIED_MEMORY:
   case CL_DEVICE_IMAGE_SUPPORT:
-  case CL_DEVICE_LINKER_AVAILABLE: {
-  // FIXME: 1.2
-  //case CL_DEVICE_PREFERRED_INTEROP_USER_SYNC:
+  {
     cl_bool param_value;
     cl_int ret=::clGetDeviceInfo(device->device_id, param_name, sizeof(cl_bool), &param_value, NULL);
     if (ret != CL_SUCCESS) {
@@ -305,7 +303,6 @@ JS_METHOD(Device::getInfo)
   case CL_DEVICE_IMAGE_MAX_ARRAY_SIZE:
   case CL_DEVICE_MAX_PARAMETER_SIZE:
   case CL_DEVICE_MAX_WORK_GROUP_SIZE:
-  case CL_DEVICE_PRINTF_BUFFER_SIZE:
   case CL_DEVICE_PROFILING_TIMER_RESOLUTION: {
     size_t param_value;
     cl_int ret=::clGetDeviceInfo(device->device_id, param_name, sizeof(size_t), &param_value, NULL);
