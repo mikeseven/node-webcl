@@ -10,7 +10,7 @@ typedef struct {
   float3 origin;
   float r;
   float2 dis;
-} __attribute__((aligned(16))) Sphere; // 4*(3+1+2)=24 bytes aligned to 32 bytes
+} Sphere; // 4*(3+1+2)=24 bytes aligned to 32 bytes
 
 typedef struct {
   float3 origin;
@@ -20,25 +20,25 @@ typedef struct {
   float fovfactor;
   float t;
   float3 rgb;
+  Sphere sph;
 } __attribute__((aligned(16))) Ray; // (3+3+3+4+1+1+3)*4=72 bytes aligned to 96 bytes
 
-
 // forward declarations
-bool isphere( __local Sphere *sph, __local Ray *ray );
+bool isphere( __local Ray *ray );
 bool iterate( const float3 q, float *resPot, float4 *resColor );
-bool ifractal( __local Sphere *sph, __local Ray *ray);
+bool ifractal( __local Ray *ray);
 
-inline bool isphere( __local Sphere *sph, __local Ray *ray ) {
-  const float3 oc = ray->origin - sph->origin;
+inline bool isphere( __local Ray *ray ) {
+  const float3 oc = ray->origin - ray->sph.origin;
   const float b = dot(oc,ray->dir);
-  const float c = dot(oc,oc) - sph->r*sph->r;
+  const float c = dot(oc,oc) - ray->sph.r*ray->sph.r;
 
   const float h = b*b - c;
   if( h<0 )
     return false;
 
   const float g = native_sqrt( h );
-  sph->dis = (float2) ( - b - g, - b + g);
+  ray->sph.dis = (float2) ( - b - g, - b + g);
 
   return true;
 }
@@ -110,12 +110,13 @@ inline bool iterate( const float3 q, float *resPot, float4 *resColor ) {
   return (m<=Bailout);
 }
 
-inline bool ifractal( __local Sphere *sph, __local Ray *ray) {
+inline bool ifractal(__local Ray *ray) {
+  __local Sphere *sph=&ray->sph;
   sph->origin = (float3)(0.f);
   sph->r = 1.25f;
 
   // bounding sphere
-  if( !isphere(sph, ray) ) return false;
+  if( !isphere(ray) ) return false;
 
   // early skip
   if( sph->dis.y<EPS ) return false;
@@ -167,7 +168,7 @@ inline bool ifractal( __local Sphere *sph, __local Ray *ray) {
 }
 
 // Note: autovectorize assuming float4 as the basic computation width
-__kernel __attribute__((vec_type_hint(float4)))
+__kernel /*__attribute__((vec_type_hint(float4)))*/
 void compute(__write_only image2d_t pix, const float time) {
   //#if defined(cl_amd_printf) || defined(cl_intel_printf)
   //printf("Sizeof Sphere %d, Ray %d\n",sizeof(Sphere),sizeof(Ray));
@@ -191,8 +192,8 @@ void compute(__write_only image2d_t pix, const float time) {
 
   const float ct=native_cos(2*M_PI_F*time/20.f), st=native_sin(2*M_PI_F*time/20.f);
   const float r = 1.4f+0.2f*ct;
-  const float3 campos = (float3)( r*st, 0.3f-0.4f*st, r*ct );
-  const float3 camtar = (float3)(0.f,0.1f,0.f);
+  const float3 campos = (float3)( r*st, 0.3f-0.4f*st, r*ct ); // camera origin
+  const float3 camtar = (float3)(0.f,0.1f,0.f); // camera target
 
   //camera matrix
   const float3 cw = fast_normalize(camtar-campos);
@@ -201,14 +202,11 @@ void compute(__write_only image2d_t pix, const float time) {
   const float3 cv = fast_normalize(cross(cu,cw));
 
   // ray
-  __local Ray rays[MAX_WORKGROUP_SIZE+1],*ray=rays+tid;
-  __local Sphere sph;
-
-  ray->origin=campos;
+  __local Ray rays[MAX_WORKGROUP_SIZE+1], *ray=rays+tid;
+  ray->origin=campos; // camera is at ray origin
   ray->dir = fast_normalize( s.x*cu + s.y*cv + 1.5f*cw );
   ray->fovfactor = fovfactor;
-
-  const bool res=ifractal(&sph, ray);
+  const bool res=ifractal(ray);
 
   if( !res ) {
     // background color
@@ -232,11 +230,10 @@ void compute(__write_only image2d_t pix, const float time) {
     // shadow: cast a lightray from intersection point
     if( dif1 > EPS ) {
       __local Ray *lray=rays+MAX_WORKGROUP_SIZE;
-      __local Sphere ssph;
       lray->origin=xyz;
       lray->dir=light1;
       lray->fovfactor = fovfactor;
-      if( ifractal(&ssph,lray) )
+      if( ifractal(lray) )
         dif1 = 0.1f;
     }
 
