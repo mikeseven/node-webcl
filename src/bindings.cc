@@ -36,6 +36,8 @@
 #include "program.h"
 #include "sampler.h"
 
+#include <cstdlib>
+
 using namespace v8;
 
 #define JS_CL_CONSTANT(name) target->Set(JS_STR( #name ), JS_INT(CL_ ## name))

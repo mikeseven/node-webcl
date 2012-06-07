@@ -30,6 +30,7 @@
 #include "context.h"
 
 #include <vector>
+#include <cstdlib>
 #include <cstring>
 
 using namespace v8;
