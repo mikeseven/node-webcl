@@ -82,9 +82,8 @@ JS_METHOD(Device::getInfo)
   break;
   case CL_DEVICE_PLATFORM: {
     cl_platform_id param_value;
-    size_t param_value_size_ret=0;
 
-    cl_int ret=::clGetDeviceInfo(device->device_id, param_name, sizeof(cl_platform_id), &param_value, &param_value_size_ret);
+    cl_int ret=::clGetDeviceInfo(device->device_id, param_name, sizeof(cl_platform_id), &param_value, NULL);
     if (ret != CL_SUCCESS) {
       REQ_ERROR_THROW(CL_INVALID_DEVICE);
       REQ_ERROR_THROW(CL_INVALID_VALUE);
@@ -92,16 +91,15 @@ JS_METHOD(Device::getInfo)
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
       return ThrowError("UNKNOWN ERROR");
     }
-    return scope.Close(JS_INT((unsigned long)param_value));
+    return scope.Close(Integer::NewFromUnsigned((unsigned long)param_value));
   }
   break;
   case CL_DEVICE_TYPE: {
-    cl_device_id param_value;
-    size_t param_value_size_ret=0;
+    cl_device_type param_value;
     #ifdef LOGGING
     cout<<"Device "<<device->device_id<<endl;
     #endif
-    cl_int ret=::clGetDeviceInfo(device->device_id, param_name, sizeof(cl_device_id), &param_value, &param_value_size_ret);
+    cl_int ret=::clGetDeviceInfo(device->device_id, param_name, sizeof(cl_device_type), &param_value, NULL);
     if (ret != CL_SUCCESS) {
       REQ_ERROR_THROW(CL_INVALID_DEVICE);
       REQ_ERROR_THROW(CL_INVALID_VALUE);
@@ -109,30 +107,207 @@ JS_METHOD(Device::getInfo)
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
       return ThrowError("UNKNOWN ERROR");
     }
-    return scope.Close(JS_INT((unsigned long)param_value));
+    return scope.Close(Integer::NewFromUnsigned((unsigned long)param_value));
+  }
+  break;
+  case CL_DEVICE_LOCAL_MEM_TYPE: {
+    cl_device_local_mem_type param_value;
+    cl_int ret=::clGetDeviceInfo(device->device_id, param_name, sizeof(cl_device_local_mem_type), &param_value, NULL);
+    if (ret != CL_SUCCESS) {
+      REQ_ERROR_THROW(CL_INVALID_DEVICE);
+      REQ_ERROR_THROW(CL_INVALID_VALUE);
+      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      return ThrowError("UNKNOWN ERROR");
+    }
+    return scope.Close(Integer::New(param_value));
+  }
+  break;
+  case CL_DEVICE_GLOBAL_MEM_CACHE_TYPE: {
+    cl_device_mem_cache_type param_value;
+    cl_int ret=::clGetDeviceInfo(device->device_id, param_name, sizeof(cl_device_mem_cache_type), &param_value, NULL);
+    if (ret != CL_SUCCESS) {
+      REQ_ERROR_THROW(CL_INVALID_DEVICE);
+      REQ_ERROR_THROW(CL_INVALID_VALUE);
+      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      return ThrowError("UNKNOWN ERROR");
+    }
+    return scope.Close(Integer::New(param_value));
+  }
+  break;
+  case CL_DEVICE_EXECUTION_CAPABILITIES: {
+    cl_device_exec_capabilities param_value;
+    cl_int ret=::clGetDeviceInfo(device->device_id, param_name, sizeof(cl_device_exec_capabilities), &param_value, NULL);
+    if (ret != CL_SUCCESS) {
+      REQ_ERROR_THROW(CL_INVALID_DEVICE);
+      REQ_ERROR_THROW(CL_INVALID_VALUE);
+      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      return ThrowError("UNKNOWN ERROR");
+    }
+    return scope.Close(Integer::NewFromUnsigned(param_value));
+  }
+  break;
+  case CL_DEVICE_QUEUE_PROPERTIES: {
+    cl_command_queue_properties param_value;
+    cl_int ret=::clGetDeviceInfo(device->device_id, param_name, sizeof(cl_command_queue_properties), &param_value, NULL);
+    if (ret != CL_SUCCESS) {
+      REQ_ERROR_THROW(CL_INVALID_DEVICE);
+      REQ_ERROR_THROW(CL_INVALID_VALUE);
+      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      return ThrowError("UNKNOWN ERROR");
+    }
+    return scope.Close(Integer::NewFromUnsigned(param_value));
+  }
+  break;
+  case CL_DEVICE_HALF_FP_CONFIG:
+  case CL_DEVICE_SINGLE_FP_CONFIG:
+  case CL_DEVICE_DOUBLE_FP_CONFIG: {
+    cl_device_fp_config param_value;
+    cl_int ret=::clGetDeviceInfo(device->device_id, param_name, sizeof(cl_device_fp_config), &param_value, NULL);
+    if (ret != CL_SUCCESS) {
+      REQ_ERROR_THROW(CL_INVALID_DEVICE);
+      REQ_ERROR_THROW(CL_INVALID_VALUE);
+      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      return ThrowError("UNKNOWN ERROR");
+    }
+    return scope.Close(Integer::NewFromUnsigned(param_value));
   }
   break;
   case CL_DEVICE_MAX_WORK_ITEM_SIZES: {
-    size_t nbytes=0;
-    cl_int param_value[1024];
-    cl_int ret=::clGetDeviceInfo(device->device_id, param_name, 1024*sizeof(cl_int), param_value, &nbytes);
+    cl_int ret;
+
+    // get CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS param
+    cl_uint max_work_item_dimensions;
+    ret=::clGetDeviceInfo(device->device_id, CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS, sizeof(size_t), &max_work_item_dimensions, NULL);
     if (ret != CL_SUCCESS) {
       REQ_ERROR_THROW(CL_INVALID_PLATFORM);
       REQ_ERROR_THROW(CL_INVALID_VALUE);
+      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
       return ThrowError("UNKNOWN ERROR");
     }
 
-    int n=(int) nbytes/sizeof(size_t);
-    Local<Array> arr = Array::New(n);
-    for(int i=0;i<n;i++)
+    // get CL_DEVICE_MAX_WORK_ITEM_SIZES array param
+    size_t nbytes=0;
+    size_t param_value[max_work_item_dimensions];
+    ret=::clGetDeviceInfo(device->device_id, param_name, max_work_item_dimensions*sizeof(size_t), param_value, NULL);
+    if (ret != CL_SUCCESS) {
+      REQ_ERROR_THROW(CL_INVALID_PLATFORM);
+      REQ_ERROR_THROW(CL_INVALID_VALUE);
+      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      return ThrowError("UNKNOWN ERROR");
+    }
+
+    Local<Array> arr = Array::New(max_work_item_dimensions);
+    for(int i=0;i<max_work_item_dimensions;i++)
       arr->Set(i,JS_INT(param_value[i]));
 
     return scope.Close(arr);
   }
   break;
-  default: {
-    size_t param_value=0;
+  // cl_bool params
+  case CL_DEVICE_AVAILABLE:
+  case CL_DEVICE_COMPILER_AVAILABLE:
+  case CL_DEVICE_ENDIAN_LITTLE:
+  case CL_DEVICE_ERROR_CORRECTION_SUPPORT:
+  case CL_DEVICE_HOST_UNIFIED_MEMORY:
+  case CL_DEVICE_IMAGE_SUPPORT:
+  case CL_DEVICE_LINKER_AVAILABLE: {
+  // FIXME: 1.2
+  //case CL_DEVICE_PREFERRED_INTEROP_USER_SYNC:
+    cl_bool param_value;
+    cl_int ret=::clGetDeviceInfo(device->device_id, param_name, sizeof(cl_bool), &param_value, NULL);
+    if (ret != CL_SUCCESS) {
+      REQ_ERROR_THROW(CL_INVALID_DEVICE);
+      REQ_ERROR_THROW(CL_INVALID_VALUE);
+      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      return ThrowError("UNKNOWN ERROR");
+    }
+    // keeping as Integer vs Boolean so comparisons with cl.TRUE/cl.FALSE work
+    return scope.Close(Integer::New(param_value));
+  }
+  break;
+  // cl_uint params
+  case CL_DEVICE_ADDRESS_BITS:
+  case CL_DEVICE_GLOBAL_MEM_CACHELINE_SIZE:
+  case CL_DEVICE_MAX_CLOCK_FREQUENCY:
+  case CL_DEVICE_MAX_COMPUTE_UNITS:
+  case CL_DEVICE_MAX_CONSTANT_ARGS:
+  case CL_DEVICE_MAX_READ_IMAGE_ARGS:
+  case CL_DEVICE_MAX_SAMPLERS:
+  case CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS:
+  case CL_DEVICE_MAX_WRITE_IMAGE_ARGS:
+  case CL_DEVICE_MEM_BASE_ADDR_ALIGN:
+  case CL_DEVICE_MIN_DATA_TYPE_ALIGN_SIZE:
+  case CL_DEVICE_NATIVE_VECTOR_WIDTH_CHAR:
+  case CL_DEVICE_NATIVE_VECTOR_WIDTH_SHORT:
+  case CL_DEVICE_NATIVE_VECTOR_WIDTH_INT:
+  case CL_DEVICE_NATIVE_VECTOR_WIDTH_LONG:
+  case CL_DEVICE_NATIVE_VECTOR_WIDTH_FLOAT:
+  case CL_DEVICE_NATIVE_VECTOR_WIDTH_DOUBLE:
+  case CL_DEVICE_NATIVE_VECTOR_WIDTH_HALF:
+  case CL_DEVICE_PARTITION_MAX_SUB_DEVICES:
+  case CL_DEVICE_PREFERRED_VECTOR_WIDTH_CHAR:
+  case CL_DEVICE_PREFERRED_VECTOR_WIDTH_SHORT:
+  case CL_DEVICE_PREFERRED_VECTOR_WIDTH_INT:
+  case CL_DEVICE_PREFERRED_VECTOR_WIDTH_LONG:
+  case CL_DEVICE_PREFERRED_VECTOR_WIDTH_FLOAT:
+  case CL_DEVICE_PREFERRED_VECTOR_WIDTH_DOUBLE:
+  case CL_DEVICE_PREFERRED_VECTOR_WIDTH_HALF:
+  case CL_DEVICE_REFERENCE_COUNT:
+  case CL_DEVICE_VENDOR_ID: {
+    cl_uint param_value;
+    cl_int ret=::clGetDeviceInfo(device->device_id, param_name, sizeof(cl_uint), &param_value, NULL);
+    if (ret != CL_SUCCESS) {
+      REQ_ERROR_THROW(CL_INVALID_DEVICE);
+      REQ_ERROR_THROW(CL_INVALID_VALUE);
+      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      return ThrowError("UNKNOWN ERROR");
+    }
+    return scope.Close(Integer::NewFromUnsigned(param_value));
+  }
+  break;
+  // cl_ulong params
+  case CL_DEVICE_GLOBAL_MEM_CACHE_SIZE:
+  case CL_DEVICE_GLOBAL_MEM_SIZE:
+  case CL_DEVICE_LOCAL_MEM_SIZE:
+  case CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE:
+  case CL_DEVICE_MAX_MEM_ALLOC_SIZE: {
+    cl_ulong param_value;
+    cl_int ret=::clGetDeviceInfo(device->device_id, param_name, sizeof(cl_ulong), &param_value, NULL);
+    if (ret != CL_SUCCESS) {
+      REQ_ERROR_THROW(CL_INVALID_DEVICE);
+      REQ_ERROR_THROW(CL_INVALID_VALUE);
+      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      return ThrowError("UNKNOWN ERROR");
+    }
+    // FIXME: handle uint64 somehow
+    // JS only supports doubles, v8 has ints, CL params can be uint64
+    // the memory params can certainly overflow uint32 size
+    return scope.Close(Integer::NewFromUnsigned((unsigned int)param_value));
+  }
+  break;
+  // size_t params
+  case CL_DEVICE_IMAGE2D_MAX_HEIGHT:
+  case CL_DEVICE_IMAGE2D_MAX_WIDTH:
+  case CL_DEVICE_IMAGE3D_MAX_DEPTH:
+  case CL_DEVICE_IMAGE3D_MAX_HEIGHT:
+  case CL_DEVICE_IMAGE3D_MAX_WIDTH:
+  case CL_DEVICE_IMAGE_MAX_BUFFER_SIZE:
+  case CL_DEVICE_IMAGE_MAX_ARRAY_SIZE:
+  case CL_DEVICE_MAX_PARAMETER_SIZE:
+  case CL_DEVICE_MAX_WORK_GROUP_SIZE:
+  case CL_DEVICE_PRINTF_BUFFER_SIZE:
+  case CL_DEVICE_PROFILING_TIMER_RESOLUTION: {
+    size_t param_value;
     cl_int ret=::clGetDeviceInfo(device->device_id, param_name, sizeof(size_t), &param_value, NULL);
     if (ret != CL_SUCCESS) {
       REQ_ERROR_THROW(CL_INVALID_DEVICE);
@@ -141,7 +316,13 @@ JS_METHOD(Device::getInfo)
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
       return ThrowError("UNKNOWN ERROR");
     }
-    return scope.Close(JS_INT((int32_t)param_value));
+    // FIXME: handle 64 bit size_t somehow
+    // assume for these params it will fit in an int
+    return scope.Close(Integer::New(param_value));
+  }
+  break;
+  default: {
+    return ThrowError("UNKNOWN PARAM NAME");
   }
   }
   return Undefined();
