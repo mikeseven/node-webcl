@@ -43,7 +43,7 @@ if(nodejs) {
   var /* WebCLBuffer */       data_buffer, ret_buffer;
   var /* ArrayBuffer */       mapped_memory;
   
-  var NUM_ELEMS = 1024; 
+  var NUM_ELEMS = 256; 
   
   /* Initialize data */
   var data=new Uint32Array(NUM_ELEMS);
@@ -71,21 +71,21 @@ if(nodejs) {
   /* Build the program and create a kernel */
   var source = [
     "typedef struct {",
-    "  float3 origin;",
-    "  float r;",
-    "  float2 dis;",
-    "} Sphere;", // should be 32
+    "  float3 origin;", // 16
+    "  float r;",       // 4
+    "  float2 dis;",    // 8
+    "} Sphere;",        // 28 but aligned to 32
     "         ",
     "typedef struct {",
-    "  float3 origin;",
-    "  float3 dir;",
-    "  float3 nor;",
-    "  float4 col;",
-    "  float fovfactor;",
-    "  float t;",
-    "  float3 rgb;",
-    "  Sphere sph;",
-    "} __attribute__((aligned(16))) RayAligned;", // should be 128
+    "  float3 origin;",     // 16
+    "  float3 dir;",        // 16
+    "  float3 nor;",        // 16
+    "  float4 col;",        // 16
+    "  float fovfactor;",   // 4
+    "  float t;",           // 4
+    "  float3 rgb;",        // 16
+    "  Sphere sph;",        // 32
+    "} __attribute__((aligned(16))) RayAligned;", // 120 aligned to 128
     "         ",
     "typedef struct {",
     "  float3 origin;",
@@ -136,6 +136,16 @@ if(nodejs) {
                 'float','float2','float3','float4',
                 'Sphere',
                 'Ray','RayAligned'
+                ];
+  
+  var itemGoldValue=[1,
+                1,4,4,4,
+                2,4,8,8,
+                4,8,16,16,
+                8,16,32,32,
+                4,8,16,16,
+                32,
+                128,128
                 ];
   
   // Create and program from source
@@ -223,7 +233,7 @@ if(nodejs) {
   }
 
   for(var i=0;i<ret[0];++i) {
-    log(itemName[i]+" size: "+data[i]);
+    log(itemName[i]+" must be "+itemGoldValue[i]+" found: "+data[i]+(itemGoldValue[i]==data[i] ? ' OK': ' FAIL'));
   }
     
   queue.finish();
