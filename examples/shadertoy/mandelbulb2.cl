@@ -1,9 +1,3 @@
-#ifdef cl_amd_printf
-#pragma OPENCL EXTENSION cl_amd_printf : enable
-#elif defined(cl_intel_printf)
-#pragma OPENCL EXTENSION cl_intel_printf : enable
-#endif
-
 #define MAX_WORKGROUP_SIZE 256
 
 typedef struct {
@@ -21,7 +15,7 @@ typedef struct {
   float t;
   float3 rgb;
   Sphere sph;
-} __attribute__((aligned(16))) Ray; // (3+3+3+4+1+1+3)*4=72 bytes aligned to 96 bytes
+} __attribute__((aligned(16))) Ray; // aligned to 128 bytes
 
 // forward declarations
 bool isphere( __local Ray *ray );
@@ -53,16 +47,6 @@ __constant const float3 material1=(float3)(0.8f,0.6f,0.2f);
 __constant const float3 material2=(float3)(0.8f,0.3f,0.3f);
 __constant const float3 material3=(float3)(0.7f,0.4f,0.3f);
 
-/*#define NumIte 8
-#define Bailout 100.f
-#define EPS 0.001f
-#define MAXT 1.e20f
-#define light1 (float3)( 0.577f, 0.577f, 0.577f )
-#define light2 (float3)( -0.707f, 0, 0.707f )
-#define material1 (float3)(0.8f,0.6f,0.2f)
-#define material2 (float3)(0.8f,0.3f,0.3f)
-#define material3 (float3)(0.7f,0.4f,0.3f)*/
-
 inline bool iterate( const float3 q, float *resPot, float4 *resColor ) {
   float4 trap = (float4)(100.f);
   float3 zz = q;
@@ -81,7 +65,7 @@ inline bool iterate( const float3 q, float *resPot, float4 *resColor ) {
   float z, z2, z4 ;
   float k1,k2,k3,k4;
 
-#pragma unroll 4
+//#pragma unroll 2
   for( int i=0; i<NumIte; i++ ) {
     x = zz.x; x2 = x*x; x4 = x2*x2;
     y = zz.y; y2 = y*y; y4 = y2*y2;
@@ -170,10 +154,6 @@ inline bool ifractal(__local Ray *ray) {
 // Note: autovectorize assuming float4 as the basic computation width
 __kernel /*__attribute__((vec_type_hint(float4)))*/
 void compute(__write_only image2d_t pix, const float time) {
-  //#if defined(cl_amd_printf) || defined(cl_intel_printf)
-  //printf("Sizeof Sphere %d, Ray %d\n",sizeof(Sphere),sizeof(Ray));
-  //#endif
-
   const int x = get_global_id(0);
   const int y = get_global_id(1);
   const int xl = get_local_id(0);
@@ -190,7 +170,7 @@ void compute(__write_only image2d_t pix, const float time) {
 
   const float fov = 0.5f, fovfactor = rsqrt(1.0f+fov*fov);
 
-  const float ct=native_cos(2*M_PI_F*time/20.f), st=native_sin(2*M_PI_F*time/20.f);
+  const float ct=native_cos(2.f*M_PI_F*time/20.f), st=native_sin(2.f*M_PI_F*time/20.f);
   const float r = 1.4f+0.2f*ct;
   const float3 campos = (float3)( r*st, 0.3f-0.4f*st, r*ct ); // camera origin
   const float3 camtar = (float3)(0.f,0.1f,0.f); // camera target
@@ -206,6 +186,9 @@ void compute(__write_only image2d_t pix, const float time) {
   ray->origin=campos; // camera is at ray origin
   ray->dir = fast_normalize( s.x*cu + s.y*cv + 1.5f*cw );
   ray->fovfactor = fovfactor;
+  ray->rgb = (float3)(1.f);
+
+  //barrier(CLK_LOCAL_MEM_FENCE);
   const bool res=ifractal(ray);
 
   if( !res ) {
@@ -238,7 +221,6 @@ void compute(__write_only image2d_t pix, const float time) {
     }
 
     // material color
-    ray->rgb = (float3)(1.f);
     ray->rgb = mix( ray->rgb, material1, (float3)(native_sqrt(ray->col.x)*1.25f) );
     ray->rgb = mix( ray->rgb, material2, (float3)(native_sqrt(ray->col.y)*1.25f) );
     ray->rgb = mix( ray->rgb, material3, (float3)(native_sqrt(ray->col.z)*1.25f) );
@@ -258,5 +240,6 @@ void compute(__write_only image2d_t pix, const float time) {
   ray->rgb *= 0.7f + 0.3f*16.f*uv.x*uv.y*(1.f-uv.x)*(1.f-uv.y);
   ray->rgb = clamp( ray->rgb, (float3)(0.f), (float3)(1.f) );
 
+  //barrier(CLK_LOCAL_MEM_FENCE);
   write_imagef(pix,(int2)(x,y),(float4)(ray->rgb,1.0f));
 }

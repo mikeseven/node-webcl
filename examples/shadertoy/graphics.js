@@ -157,8 +157,8 @@ function Graphics() {
        fpsTo = timestamp;
    }
 
-   if(nodejs)
-     drawATB();
+   //if(nodejs)
+   //  drawATB();
   }
   
   /*
@@ -175,8 +175,8 @@ function Graphics() {
     init_buffers();
     init_shaders();
 
-    ATB=canvas.AntTweakBar;
-    initAntTweakBar(canvas);
+    //ATB=canvas.AntTweakBar;
+    //initATB(canvas);
   }
   
   /*
@@ -191,8 +191,8 @@ function Graphics() {
       TextureId = null;
     }
 
-    if(nodejs)
-      ATB.WindowSize(TextureWidth,TextureHeight);
+    //if(nodejs)
+    //  ATB.WindowSize(TextureWidth,TextureHeight);
     
     gl.viewportWidth = TextureWidth;
     gl.viewportHeight = TextureHeight;
@@ -210,29 +210,37 @@ function Graphics() {
     return TextureId;
   }
     
-  var twBar;
-  function initAntTweakBar(canvas) {
+  var twBar,sceneChoice=0;
+  var scenes=['mandelbulb','704'];
+  function initATB(canvas) {
     if(!nodejs) return;
     
     ATB.Init();
     ATB.Define(" GLOBAL help='WebGL interop with WebCL' "); // Message added to the help bar.
     ATB.WindowSize(canvas.width, canvas.height);
 
-
     twBar=new ATB.NewBar("clgl");
+    ATB.Define("clgl label='CLGL' refresh=0.1 position='16 16' size='200 100' valueswidth='fit' ");
     
-    /*var scenes=['mandelbulb','704'];
     var sceneTypes=ATB.DefineEnum('Scene Types',scenes, 2);
-    log('[JS] returned type: '+sceneTypes);
-    twBar.AddVar("scenes", sceneTypes, scenes,null);*/
+    twBar.AddVar("scenes", sceneTypes, {
+      getter: function(){ return sceneChoice; },
+      setter: function(val){ sceneChoice=val; },
+    }, " label='scene' help='select a scene' ");
+    
+    twBar.AddButton("Pause", function() {
+      log('Pause button clicked');
+    }, "label='pause' help='Pause the animation'");
+    
+    twBar.AddButton("Reset", function() {
+      log('Reset button clicked');
+    }, "label='reset' help='Reset the animation'");
     
     twBar.AddVar("fps", ATB.TYPE_FLOAT, {
       getter: function(data){ return ffps; },
     },
     " label='fps' precision=0 help='frames-per-second.'");
-
-    ATB.Define(" clgl valueswidth=fit "); // column width fits content 
-}
+  }
 
   /*
    * Before calling AntTweakBar or any other library that could use programs, one

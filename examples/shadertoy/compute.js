@@ -39,16 +39,22 @@ function Compute() {
     var platform = platformList[0];
 
     // create the OpenCL context
-    clContext = cl.createContext({
-      deviceType: clDeviceType, 
-      shareGroup: gl, 
-      platform: platform });
-
+    try {
+      clContext = cl.createContext({
+        deviceType: clDeviceType, 
+        shareGroup: gl, 
+        platform: platform });
+    }
+    catch(err) {
+      throw "Error: Failed to create context! "+err;
+    }
+    
     var device_ids = clContext.getInfo(cl.CONTEXT_DEVICES);
     if (!device_ids) {
       throw "Error: Failed to retrieve compute devices for context!";
     }
 
+    // check we have the right device type
     var device_found = false;
     for(var i=0,l=device_ids.length;i<l;++i ) {
       device_type = device_ids[i].getInfo(cl.DEVICE_TYPE);
@@ -61,6 +67,9 @@ function Compute() {
 
     if (!device_found) 
       throw "Error: Failed to locate compute device!";
+
+    if (!clDevice.getInfo(cl.DEVICE_IMAGE_SUPPORT)) 
+      throw "Application requires images: Images not supported on this device.";
 
     // Create a command queue
     try {
@@ -80,9 +89,6 @@ function Compute() {
     log("    Max compute units    : " + clDevice.getInfo(cl.DEVICE_MAX_COMPUTE_UNITS));
     log("    Max work-item sizes  : "+clDevice.getInfo(cl.DEVICE_MAX_WORK_ITEM_SIZES));
     log("    Max work-group size  : "+clDevice.getInfo(cl.DEVICE_MAX_WORK_GROUP_SIZE));
-
-    if (!clDevice.getInfo(cl.DEVICE_IMAGE_SUPPORT)) 
-      throw "Application requires images: Images not supported on this device.";
 
     init_cl_buffers();
     init_cl_kernels();
@@ -168,7 +174,6 @@ function Compute() {
     
     // set the kernel args
     try {
-      // Set the Argument values for the row kernel
       clKernel.setArg(0, clTexture);
       clKernel.setArg(1, time, cl.type.FLOAT);
     } catch (err) {
