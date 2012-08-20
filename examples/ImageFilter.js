@@ -34,10 +34,8 @@ if(nodejs) {
   log   = console.log;
 }
 
-var cl = new WebCL();
-
 //First check if the webcl extension is installed at all 
-if (cl == undefined) {
+if (WebCL == undefined) {
   alert("Unfortunately your system does not support WebCL. " +
   "Make sure that you have the WebCL extension installed.");
   process.exit(-1);
@@ -63,16 +61,16 @@ function ImageFilter(image) {
   var out=new Uint8Array(image.size);
 
   //Pick platform
-  var platformList=cl.getPlatforms();
+  var platformList=WebCL.getPlatforms();
   var platform=platformList[0];
 
   // create GPU context for this platform
-  var context=cl.createContext({
-    deviceType: cl.DEVICE_TYPE_GPU,
+  var context=WebCL.createContext({
+    deviceType: WebCL.DEVICE_TYPE_GPU,
     platform: platform});
 
   // find the device for this context
-  var devices = context.getInfo(cl.CONTEXT_DEVICES);
+  var devices = context.getInfo(WebCL.CONTEXT_DEVICES);
   if(!devices) {
       alert("Error: Failed to retrieve compute devices for context!");
       return -1;
@@ -82,8 +80,8 @@ function ImageFilter(image) {
   var device;
   for(var i=0,l=devices.length;i<l;++i ) 
   {
-    var device_type=devices[i].getInfo(cl.DEVICE_TYPE);
-    if(device_type == cl.DEVICE_TYPE_GPU) 
+    var device_type=devices[i].getInfo(WebCL.DEVICE_TYPE);
+    if(device_type == WebCL.DEVICE_TYPE_GPU) 
     {
         device = devices[i];
         device_found = true;
@@ -99,8 +97,8 @@ function ImageFilter(image) {
 
   // Report the device vendor and device name
   // 
-  var vendor_name = device.getInfo(cl.DEVICE_VENDOR);
-  var device_name = device.getInfo(cl.DEVICE_NAME);
+  var vendor_name = device.getInfo(WebCL.DEVICE_VENDOR);
+  var device_name = device.getInfo(WebCL.DEVICE_NAME);
 
   log("Connecting to: "+vendor_name+" "+device_name);
 
@@ -114,8 +112,8 @@ function ImageFilter(image) {
 
   // create device buffers
   try {
-    cmPinnedBufIn = context.createBuffer(cl.MEM_READ_ONLY | cl.MEM_ALLOC_HOST_PTR, image.size);
-    cmPinnedBufOut = context.createBuffer(cl.MEM_WRITE_ONLY | cl.MEM_ALLOC_HOST_PTR, image.size);
+    cmPinnedBufIn = context.createBuffer(WebCL.MEM_READ_ONLY | WebCL.MEM_ALLOC_HOST_PTR, image.size);
+    cmPinnedBufOut = context.createBuffer(WebCL.MEM_WRITE_ONLY | WebCL.MEM_ALLOC_HOST_PTR, image.size);
   }
   catch(err) {
     console.log('error creating buffers');
@@ -127,21 +125,21 @@ function ImageFilter(image) {
     kernel= program.createKernel("swapRB");
   }
   catch(err) {
-    console.log(program.getBuildInfo(device,cl.PROGRAM_BUILD_LOG));
+    console.log(program.getBuildInfo(device,WebCL.PROGRAM_BUILD_LOG));
   }
 
   // Set the arguments to our compute kernel
   kernel.setArg(0, cmPinnedBufIn);
   kernel.setArg(1, cmPinnedBufOut);
-  kernel.setArg(2, image.width, cl.type.UINT);
-  kernel.setArg(3, image.height, cl.type.UINT);
+  kernel.setArg(2, image.width, WebCL.type.UINT);
+  kernel.setArg(3, image.height, WebCL.type.UINT);
 
   //Create command queue
   queue=context.createCommandQueue(device, 0);
 
   // Init ND-range
   // Get the maximum work group size for executing the kernel on the device
-  var localWS=[ kernel.getWorkGroupInfo(device, cl.KERNEL_WORK_GROUP_SIZE) ];
+  var localWS=[ kernel.getWorkGroupInfo(device, WebCL.KERNEL_WORK_GROUP_SIZE) ];
   var globalWS = [ localWS[0] * clu.DivUp(image.size, localWS[0]) ];
 
   log("Global work item size: " + globalWS);

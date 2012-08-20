@@ -31,10 +31,8 @@ if(nodejs) {
   log=console.log;
 }
 
-var cl = new WebCL();
-
 //First check if the WebCL extension is installed at all 
-if (cl == undefined) {
+if (WebCL == undefined) {
   alert("Unfortunately your system does not support WebCL. " +
   "Make sure that you have the WebCL extension installed.");
   return;
@@ -53,17 +51,17 @@ function VectorAdd() {
   }
 
   //Pick platform
-  var platformList=cl.getPlatforms();
+  var platformList=WebCL.getPlatforms();
   platform=platformList[0];
-  log('using platform: '+platform.getInfo(cl.PLATFORM_NAME));
+  log('using platform: '+platform.getInfo(WebCL.PLATFORM_NAME));
   
   //Query the set of devices on this platform
-  devices = platform.getDevices(cl.DEVICE_TYPE_DEFAULT);
-  log('using device: '+devices[0].getInfo(cl.DEVICE_NAME));
+  devices = platform.getDevices(WebCL.DEVICE_TYPE_DEFAULT);
+  log('using device: '+devices[0].getInfo(WebCL.DEVICE_NAME));
 
   // create GPU context for this platform
-  context=cl.createContext({
-	  deviceType: cl.DEVICE_TYPE_DEFAULT, 
+  context=WebCL.createContext({
+	  deviceType: WebCL.DEVICE_TYPE_DEFAULT, 
 	  platform: platform
   });
 
@@ -85,25 +83,25 @@ function VectorAdd() {
   size=BUFFER_SIZE*Uint32Array.BYTES_PER_ELEMENT; // size in bytes
   
   // Create buffer for A and B and copy host contents
-  aBuffer = context.createBuffer(cl.MEM_READ_ONLY, size);
-  bBuffer = context.createBuffer(cl.MEM_READ_ONLY, size);
+  aBuffer = context.createBuffer(WebCL.MEM_READ_ONLY, size);
+  bBuffer = context.createBuffer(WebCL.MEM_READ_ONLY, size);
 
   // Create buffer for C to read results
-  cBuffer = context.createBuffer(cl.MEM_WRITE_ONLY, size);
+  cBuffer = context.createBuffer(WebCL.MEM_WRITE_ONLY, size);
 
   // Create kernel object
   try {
     kernel= program.createKernel("vadd");
   }
   catch(err) {
-    console.log(program.getBuildInfo(devices[0],cl.PROGRAM_BUILD_LOG));
+    console.log(program.getBuildInfo(devices[0],WebCL.PROGRAM_BUILD_LOG));
   }
   
   // Set kernel args
   kernel.setArg(0, aBuffer);
   kernel.setArg(1, bBuffer);
   kernel.setArg(2, cBuffer);
-  kernel.setArg(3, BUFFER_SIZE, cl.type.UINT);
+  kernel.setArg(3, BUFFER_SIZE, WebCL.type.UINT);
 
   // Create command queue
   queue=context.createCommandQueue(devices[0], 0);

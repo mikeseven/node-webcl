@@ -38,7 +38,6 @@ function read_complete(status, data) {
 
 function main() {
   /* CL objects */
-  var cl = new WebCL();
   var /* WebCLPlatform */     platform;
   var /* WebCLDevice */       device;
   var /* WebCLContext */      context;
@@ -57,17 +56,17 @@ function main() {
   log('creating context');
   
   //Pick platform
-  var platformList=cl.getPlatforms();
+  var platformList=WebCL.getPlatforms();
   platform=platformList[0];
-  log('using platform: '+platform.getInfo(cl.PLATFORM_NAME));
+  log('using platform: '+platform.getInfo(WebCL.PLATFORM_NAME));
   
   //Query the set of devices on this platform
-  var devices = platform.getDevices(cl.DEVICE_TYPE_GPU);
+  var devices = platform.getDevices(WebCL.DEVICE_TYPE_GPU);
   device=devices[0];
-  log('using device: '+device.getInfo(cl.DEVICE_NAME));
+  log('using device: '+device.getInfo(WebCL.DEVICE_NAME));
 
   // create GPU context for this platform
-  var context=cl.createContext({
+  var context=WebCL.createContext({
     devices: device, 
     platform: platform
   });
@@ -92,7 +91,7 @@ function main() {
     program.build(devices);
   } catch(ex) {
     /* Find size of log and print to std output */
-    var info=program.getBuildInfo(devices[0], cl.PROGRAM_BUILD_LOG);
+    var info=program.getBuildInfo(devices[0], WebCL.PROGRAM_BUILD_LOG);
     log(info);
     exit(1);
   }
@@ -106,7 +105,7 @@ function main() {
 
   /* Create a write-only buffer to hold the output data */
   try {
-    data_buffer = context.createBuffer(cl.MEM_READ_WRITE | cl.MEM_COPY_HOST_PTR, 4*Float32Array.BYTES_PER_ELEMENT,data);
+    data_buffer = context.createBuffer(WebCL.MEM_READ_WRITE | WebCL.MEM_COPY_HOST_PTR, 4*Float32Array.BYTES_PER_ELEMENT,data);
   } catch(ex) {
     log("Couldn't create a buffer. "+ex);
     exit(1);   
@@ -122,7 +121,7 @@ function main() {
 
   /* Create a command queue */
   try {
-    queue = context.createCommandQueue(device, cl.QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE);
+    queue = context.createCommandQueue(device, WebCL.QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE);
   } catch(ex) {
     log("Couldn't create an out of order command queue, using in-order queue. "+ex);
     queue = context.createCommandQueue(device);
@@ -138,7 +137,7 @@ function main() {
 
   /* Enqueue kernel */
   try {
-    kernel_event=new cl.WebCLEvent();
+    kernel_event=new WebCL.WebCLEvent();
     queue.enqueueTask(kernel , [user_event], kernel_event);
   } catch(ex) {
     log("Couldn't enqueue the kernel. "+ex);
@@ -147,7 +146,7 @@ function main() {
 
   /* Read the buffer */
   try {
-    read_event=new cl.WebCLEvent();
+    read_event=new WebCL.WebCLEvent();
     queue.enqueueReadBuffer(data_buffer, false, 0, data.byteLength, data, [ kernel_event ], read_event);
   } catch(ex) {
     log("Couldn't read the buffer. "+ex);
@@ -156,7 +155,7 @@ function main() {
 
   /* Set event handling routines */
   try {
-    read_event.setCallback(cl.COMPLETE, read_complete, data);
+    read_event.setCallback(WebCL.COMPLETE, read_complete, data);
   } catch(ex) {
     log("Couldn't set callback for read event. "+ex);
     exit(1);   
@@ -165,7 +164,7 @@ function main() {
   log("Old data: "+data[0]+', '+data[1]+', '+data[2]+', '+data[3]);
 
   /* Set user event to success */
-  user_event.setUserEventStatus(cl.SUCCESS);
+  user_event.setUserEventStatus(WebCL.SUCCESS);
   
   queue.finish();
   log('queue finished');

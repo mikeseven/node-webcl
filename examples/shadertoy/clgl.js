@@ -35,22 +35,28 @@ if(nodejs) {
   Image = WebGL.Image;
   alert = console.log;
   Graphics = require('./graphics');
-  Compute = require('./compute');
-  //Compute = require('./compute_julia');
+  argv=require('optimist').argv;
+  Compute = require(argv.compute || './compute');
+  //Compute = require('./compute_droplet2d');
+  //Compute = require('./compute_droplet3d');
 }
 
 log = console.log;
 requestAnimationFrame = document.requestAnimationFrame;
 
 //var COMPUTE_KERNEL_ID = "704.cl";
-var COMPUTE_KERNEL_ID = "mandelbulb2.cl";
+var COMPUTE_KERNEL_ID = argv.kernel || "mandelbulb_AoS.cl";
+//var COMPUTE_KERNEL_ID = "mandelbulb_SoA.cl";
 //var COMPUTE_KERNEL_ID = "qjulia.cl";
+//var COMPUTE_KERNEL_ID = "droplet2d.cl";
+//var COMPUTE_KERNEL_ID = "droplet3d.cl";
 var COMPUTE_KERNEL_NAME = "compute";
-var WIDTH = 512;
-var HEIGHT = 512;
+var WIDTH = argv.width || 512;
+var HEIGHT = argv.height || 512;
 var Width = WIDTH;
 var Height = HEIGHT;
 var Reshaped = true;
+var cango=false;
 
 /*
  * reshape() is called if document is resized
@@ -65,6 +71,7 @@ function keydown(evt) {
   //log('process key: ' + evt.which);
 
   //Update = true;
+  cango=true;
 }
 
 
@@ -76,7 +83,7 @@ function keydown(evt) {
   
   // install UX callbacks
   document.addEventListener('resize', reshape);
-  //document.addEventListener('keydown', keydown);
+  document.addEventListener('keydown', keydown);
   
   // init WebGL
   var gfx=Graphics();
@@ -146,8 +153,10 @@ function keydown(evt) {
       return;
     }
     
-    gfx.gl().finish(); // for timing
-    requestAnimationFrame(update,0);
+    //gfx.gl().flush(); // for timing
+    if(!cango)
+      startTime=-1;
+    requestAnimationFrame(update,cango ? 0 : 5000);
   })();
 })();
 

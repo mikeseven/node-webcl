@@ -39,7 +39,6 @@ if(nodejs) {
 }
 
 requestAnimationFrame = document.requestAnimationFrame;
-var cl = new WebCL();
 var use_gpu=true;
 
 main();
@@ -113,7 +112,7 @@ function CLGL() {
       document.addEventListener('resize', this.reshape);
 
       var err=this.setupGraphics(canvas);
-      if(err != cl.SUCCESS)
+      if(err != WebCL.SUCCESS)
         return err;
       this.initAntTweakBar(canvas);
       
@@ -121,31 +120,31 @@ function CLGL() {
       if(err != 0)
         return err;
       
-      var image_support = ComputeDeviceId.getInfo(cl.DEVICE_IMAGE_SUPPORT);
+      var image_support = ComputeDeviceId.getInfo(WebCL.DEVICE_IMAGE_SUPPORT);
       if (!image_support) {
           printf("Unable to query device for image support");
           process.exit(-1);
       }
       if (image_support == 0) {
           log("Application requires images: Images not supported on this device.");
-          return cl.IMAGE_FORMAT_NOT_SUPPORTED;
+          return WebCL.IMAGE_FORMAT_NOT_SUPPORTED;
       }
       
       err = this.setupComputeKernel();
-      if (err != cl.SUCCESS)
+      if (err != WebCL.SUCCESS)
       {
           log("Failed to setup compute kernel! Error " + err);
           return err;
       }
       
       err = this.createComputeResult();
-      if(err != cl.SUCCESS)
+      if(err != WebCL.SUCCESS)
       {
           log ("Failed to create compute result! Error " + err);
           return err;
       }
       
-      return cl.SUCCESS;
+      return WebCL.SUCCESS;
     },
     
     // /////////////////////////////////////////////////////////////////////
@@ -311,7 +310,7 @@ function CLGL() {
       gl.viewport(0, 0, Width, Height);
       
       gl.activeTexture(gl.TEXTURE0);
-      return cl.SUCCESS;
+      return WebCL.SUCCESS;
     },
     renderTexture: function( pvData )
     {
@@ -349,16 +348,16 @@ function CLGL() {
       log('setup compute devices');
       
       //Pick platform
-      var platformList=cl.getPlatforms();
+      var platformList=WebCL.getPlatforms();
       var platform=platformList[0];
 
-      ComputeDeviceType = device_type ? cl.DEVICE_TYPE_GPU : cl.DEVICE_TYPE_CPU;
-      ComputeContext = cl.createContext({
+      ComputeDeviceType = device_type ? WebCL.DEVICE_TYPE_GPU : WebCL.DEVICE_TYPE_CPU;
+      ComputeContext = WebCL.createContext({
         deviceType: ComputeDeviceType,
         platform: platform,
         shareGroup: gl});
 
-      var device_ids = ComputeContext.getInfo(cl.CONTEXT_DEVICES);
+      var device_ids = ComputeContext.getInfo(WebCL.CONTEXT_DEVICES);
       if(!device_ids)
       {
           alert("Error: Failed to retrieve compute devices for context!");
@@ -368,7 +367,7 @@ function CLGL() {
       var device_found=false;
       for(var i=0,l=device_ids.length;i<l;++i ) 
       {
-        device_type=device_ids[i].getInfo(cl.DEVICE_TYPE);
+        device_type=device_ids[i].getInfo(WebCL.DEVICE_TYPE);
         if(device_type == ComputeDeviceType) 
         {
             ComputeDeviceId = device_ids[i];
@@ -394,12 +393,12 @@ function CLGL() {
 
       // Report the device vendor and device name
       // 
-      var vendor_name = ComputeDeviceId.getInfo(cl.DEVICE_VENDOR);
-      var device_name = ComputeDeviceId.getInfo(cl.DEVICE_NAME);
+      var vendor_name = ComputeDeviceId.getInfo(WebCL.DEVICE_VENDOR);
+      var device_name = ComputeDeviceId.getInfo(WebCL.DEVICE_NAME);
 
       log("Connecting to "+vendor_name+" "+device_name);
       
-      return cl.SUCCESS;
+      return WebCL.SUCCESS;
     },
     setupComputeKernel:function() {
       log('setup compute kernel');
@@ -438,7 +437,7 @@ function CLGL() {
       } catch (err) {
         log('Error building program: ' + err);
           alert("Error: Failed to build program executable!\n"+
-              ComputeProgram.getBuildInfo(ComputeDeviceId, cl.PROGRAM_BUILD_LOG));
+              ComputeProgram.getBuildInfo(ComputeDeviceId, WebCL.PROGRAM_BUILD_LOG));
           return -1;
       }
 
@@ -454,7 +453,7 @@ function CLGL() {
 
       // Get the maximum work group size for executing the kernel on the device
       //
-      MaxWorkGroupSize = ComputeKernel.getWorkGroupInfo(ComputeDeviceId, cl.KERNEL_WORK_GROUP_SIZE);
+      MaxWorkGroupSize = ComputeKernel.getWorkGroupInfo(ComputeDeviceId, WebCL.KERNEL_WORK_GROUP_SIZE);
 
       log("MaxWorkGroupSize: " + MaxWorkGroupSize);
       log("WorkGroupItems: " + WorkGroupItems);
@@ -462,14 +461,14 @@ function CLGL() {
       WorkGroupSize[0] = (MaxWorkGroupSize > 1) ? (MaxWorkGroupSize / WorkGroupItems) : MaxWorkGroupSize;
       WorkGroupSize[1] = MaxWorkGroupSize / WorkGroupSize[0];
       log("WorkGroupSize: " + WorkGroupSize);
-      return cl.SUCCESS;
+      return WebCL.SUCCESS;
     },
     createComputeResult: function() {
       log('create compute result');
       ComputeImage = null;
 
       log("Allocating compute result image in device memory...");
-      ComputeImage = ComputeContext.createFromGLTexture2D(cl.MEM_WRITE_ONLY, TextureTarget, 0, TextureId);
+      ComputeImage = ComputeContext.createFromGLTexture2D(WebCL.MEM_WRITE_ONLY, TextureTarget, 0, TextureId);
       if (!ComputeImage)
       {
         alert("Failed to create OpenGL texture reference! " + err);
@@ -478,13 +477,13 @@ function CLGL() {
       ComputeResult = null;
 
       log("Allocating compute result buffer in device memory...");
-      ComputeResult = ComputeContext.createBuffer(cl.MEM_WRITE_ONLY, TextureTypeSize * 4 * TextureWidth * TextureHeight);
+      ComputeResult = ComputeContext.createBuffer(WebCL.MEM_WRITE_ONLY, TextureTypeSize * 4 * TextureWidth * TextureHeight);
       if (!ComputeResult)
       {
         log("Failed to create OpenCL array!");
         return -1;
       }
-      return cl.SUCCESS;
+      return WebCL.SUCCESS;
     },
     cleanup: function()
     {
@@ -540,7 +539,7 @@ function CLGL() {
           this.cleanup();
           Width=newWidth;
           Height=newHeight;
-          if(this.initialize(ComputeDeviceType == cl.DEVICE_TYPE_GPU) != cl.SUCCESS)
+          if(this.initialize(ComputeDeviceType == WebCL.DEVICE_TYPE_GPU) != WebCL.SUCCESS)
             this.shutdown();
         }
         gl.viewport(0, 0, newWidth, newHeight);
@@ -574,7 +573,7 @@ function CLGL() {
       //ReportStats(uiStartTime, uiEndTime);
       //DrawText(TextOffset[0], TextOffset[1], 1, (Animated == 0) ? "Press space to animate" : " ");
             
-      return cl.SUCCESS;
+      return WebCL.SUCCESS;
     },
     reshape: function (evt)
     {
@@ -718,16 +717,16 @@ function CLGL() {
     recompute: function()
     {
         if(!ComputeKernel || !ComputeResult)
-            return cl.SUCCESS;
+            return WebCL.SUCCESS;
             
         if(Animated || Update)
         {
             Update = false;
             try {
               ComputeKernel.setArg(0, ComputeResult);
-              ComputeKernel.setArg(1, MuC, cl.type.FLOAT | cl.type.VEC4);
-              ComputeKernel.setArg(2, ColorC, cl.type.FLOAT | cl.type.VEC4);
-              ComputeKernel.setArg(3, Epsilon, cl.type.FLOAT);
+              ComputeKernel.setArg(1, MuC, WebCL.type.FLOAT | WebCL.type.VEC4);
+              ComputeKernel.setArg(2, ColorC, WebCL.type.FLOAT | WebCL.type.VEC4);
+              ComputeKernel.setArg(3, Epsilon, WebCL.type.FLOAT);
             } catch (err) {
               alert("Failed to set kernel args! " + err);
               return -10;
@@ -782,7 +781,7 @@ function CLGL() {
 
         // sync CL
         ComputeCommands.finish();
-        return cl.SUCCESS;
+        return WebCL.SUCCESS;
     },
 
     initAntTweakBar: function (canvas) {
@@ -821,7 +820,7 @@ function CLGL() {
 function main() {
   // init window
   clgl=new CLGL();
-  if(clgl.initialize(use_gpu)==cl.SUCCESS) {
+  if(clgl.initialize(use_gpu)==WebCL.SUCCESS) {
     function update() {
       clgl.display();
       requestAnimationFrame(update);

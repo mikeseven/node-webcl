@@ -38,7 +38,6 @@ function read_complete(status, data) {
 
 function main() {
   /* CL objects */
-  var cl = new WebCL();
   var /* WebCLPlatform */     platform;
   var /* WebCLDevice */       device;
   var /* WebCLContext */      context;
@@ -67,17 +66,17 @@ function main() {
   log('creating context');
   
   //Pick platform
-  var platformList=cl.getPlatforms();
+  var platformList=WebCL.getPlatforms();
   platform=platformList[0];
-  log('using platform: '+platform.getInfo(cl.PLATFORM_NAME));
+  log('using platform: '+platform.getInfo(WebCL.PLATFORM_NAME));
   
   //Query the set of devices on this platform
-  var devices = platform.getDevices(cl.DEVICE_TYPE_DEFAULT);
+  var devices = platform.getDevices(WebCL.DEVICE_TYPE_DEFAULT);
   device=devices[0];
-  log('using device: '+device.getInfo(cl.DEVICE_NAME));
+  log('using device: '+device.getInfo(WebCL.DEVICE_NAME));
 
   // create GPU context for this platform
-  var context=cl.createContext({
+  var context=WebCL.createContext({
     devices: device, 
     platform: platform
   });
@@ -108,7 +107,7 @@ function main() {
     program.build(devices);
   } catch(ex) {
     /* Find size of log and print to std output */
-    var info=program.getBuildInfo(devices[0], cl.PROGRAM_BUILD_LOG);
+    var info=program.getBuildInfo(devices[0], WebCL.PROGRAM_BUILD_LOG);
     log(info);
     exit(1);
   }
@@ -122,7 +121,7 @@ function main() {
 
   /* Create a write-only buffer to hold the output data */
   try {
-    data_buffer = context.createBuffer(cl.MEM_READ_WRITE | cl.MEM_COPY_HOST_PTR, data.byteLength, data);
+    data_buffer = context.createBuffer(WebCL.MEM_READ_WRITE | WebCL.MEM_COPY_HOST_PTR, data.byteLength, data);
   } catch(ex) {
     log("Couldn't create a buffer. "+ex);
     exit(1);   
@@ -131,7 +130,7 @@ function main() {
   /* Create kernel argument */
   try {
     kernel.setArg(0, data_buffer);
-    kernel.setArg(1, num_ints, cl.type.INT);
+    kernel.setArg(1, num_ints, WebCL.type.INT);
   } catch(ex) {
     log("Couldn't set a kernel argument. "+ex);
     exit(1);   
@@ -139,13 +138,13 @@ function main() {
 
   /* Create a command queue */
   try {
-    queue = context.createCommandQueue(device, cl.QUEUE_PROFILING_ENABLE);
+    queue = context.createCommandQueue(device, WebCL.QUEUE_PROFILING_ENABLE);
   } catch(ex) {
     log("Couldn't create a command queue for profiling. "+ex);
   };
 
   var total_time = 0, time_start, time_end;
-  prof_event=new cl.WebCLEvent();
+  prof_event=new WebCL.WebCLEvent();
   
   for(var i=0;i<NUM_ITERATIONS;i++) {
     /* Enqueue kernel */
@@ -159,8 +158,8 @@ function main() {
     /* Finish processing the queue and get profiling information */
     queue.finish();
     
-    time_start = prof_event.getProfilingInfo(cl.PROFILING_COMMAND_START);
-    time_end = prof_event.getProfilingInfo(cl.PROFILING_COMMAND_END);
+    time_start = prof_event.getProfilingInfo(WebCL.PROFILING_COMMAND_START);
+    time_end = prof_event.getProfilingInfo(WebCL.PROFILING_COMMAND_END);
     //log("time: start="+time_start+" end="+time_end);
     total_time += time_end - time_start;
   }
