@@ -293,6 +293,13 @@ JS_METHOD(Kernel::setArg)
       }
       break;
     }
+    case types::DOUBLE: {
+      if (!args[1]->IsNumber())
+        return ThrowError("ARG is not of specified type");
+      cl_double arg = (cl_double)args[1]->NumberValue();
+      ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_double), &arg);
+      break;
+    }
     case types::HALF: { // TODO HALF may not be mapped correctly!
       if (!args[1]->IsNumber())
         return ThrowError("ARG is not of specified type");

@@ -129,6 +129,10 @@ function Graphics() {
    // we just draw a screen-aligned texture
    gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
   
+   gl.disable(gl.DEPTH_TEST);
+   gl.disable(gl.CULL_FACE);
+   //gl.clear(gl.COLOR_BUFFER_BIT);
+   
    gl.enable(gl.TEXTURE_2D);
    gl.bindTexture(gl.TEXTURE_2D, TextureId);
   
@@ -150,15 +154,22 @@ function Graphics() {
    gl.disable(gl.TEXTURE_2D);
    
    fpsFrame++;
-   var dt=timestamp - fpsTo;
+   var ti=new Date().getTime();
+   var dt=ti - fpsTo;
    if( dt>1000 ) {
-       ffps = 1000.0 * fpsFrame / dt;
+       ffps = 2*1000 * fpsFrame / dt;
        fpsFrame = 0;
-       fpsTo = timestamp;
+       fpsTo = ti;
    }
+   /*if( fpsFrame==10 ) {
+      var ti=new Date().getTime();
+      ffps = 2*1000.0 * fpsFrame / (ti-fpsTo);
+      fpsFrame = 0;
+      fpsTo = ti;
+   }*/
 
-   //if(nodejs)
-   //  drawATB();
+   if(nodejs)
+     drawATB();
   }
   
   /*
@@ -175,8 +186,10 @@ function Graphics() {
     init_buffers();
     init_shaders();
 
-    //ATB=canvas.AntTweakBar;
-    //initATB(canvas);
+    if(nodejs) {
+      ATB=canvas.AntTweakBar;
+      initATB(canvas);
+    }
   }
   
   /*
@@ -191,8 +204,8 @@ function Graphics() {
       TextureId = null;
     }
 
-    //if(nodejs)
-    //  ATB.WindowSize(TextureWidth,TextureHeight);
+    if(nodejs)
+      ATB.WindowSize(TextureWidth,TextureHeight);
     
     gl.viewportWidth = TextureWidth;
     gl.viewportHeight = TextureHeight;
@@ -220,9 +233,9 @@ function Graphics() {
     ATB.WindowSize(canvas.width, canvas.height);
 
     twBar=new ATB.NewBar("clgl");
-    ATB.Define("clgl label='CLGL' refresh=0.1 position='16 16' size='200 100' valueswidth='fit' ");
+    ATB.Define("clgl label='CLGL' refresh=0.1 position='16 16' size='100 25' valueswidth='fit' valuesheight='fit' ");
     
-    var sceneTypes=ATB.DefineEnum('Scene Types',scenes, 2);
+    /*var sceneTypes=ATB.DefineEnum('Scene Types',scenes, 2);
     twBar.AddVar("scenes", sceneTypes, {
       getter: function(){ return sceneChoice; },
       setter: function(val){ sceneChoice=val; },
@@ -235,7 +248,7 @@ function Graphics() {
     twBar.AddButton("Reset", function() {
       log('Reset button clicked');
     }, "label='reset' help='Reset the animation'");
-    
+    */
     twBar.AddVar("fps", ATB.TYPE_FLOAT, {
       getter: function(data){ return ffps; },
     },

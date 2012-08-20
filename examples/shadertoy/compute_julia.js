@@ -3,7 +3,6 @@
  * that update a texture.
  */
 function Compute() {
-  var cl=new WebCL();
   var orig=require('./compute')();
   var orig_resetKernelArgs = orig.resetKernelArgs;
   var orig_init = orig.init;
@@ -84,9 +83,9 @@ function Compute() {
     var clKernel = orig.getKernel();
     try {
       // Set the Argument values for the row kernel
-      clKernel.setArg(2, mu, cl.type.FLOAT | cl.type.VEC4);
-      clKernel.setArg(3, diffuse, cl.type.FLOAT | cl.type.VEC4);
-      clKernel.setArg(4, Epsilon, cl.type.FLOAT);
+      clKernel.setArg(2, mu, WebCL.type.FLOAT | WebCL.type.VEC4);
+      clKernel.setArg(3, diffuse, WebCL.type.FLOAT | WebCL.type.VEC4);
+      clKernel.setArg(4, Epsilon, WebCL.type.FLOAT);
     } catch (err) {
       throw "Failed to set Julia kernel args! " + err;
     }

@@ -33,7 +33,6 @@ if(nodejs) {
 
 (function main() {
   /* CL objects */
-  var cl = new WebCL();
   var /* WebCLPlatform */     platform;
   var /* WebCLDevice */       device;
   var /* WebCLContext */      context;
@@ -53,17 +52,17 @@ if(nodejs) {
   log('creating context');
   
   //Pick platform
-  var platformList=cl.getPlatforms();
+  var platformList=WebCL.getPlatforms();
   platform=platformList[0];
-  log('using platform: '+platform.getInfo(cl.PLATFORM_NAME));
+  log('using platform: '+platform.getInfo(WebCL.PLATFORM_NAME));
   
   //Query the set of devices on this platform
-  var devices = platform.getDevices(cl.DEVICE_TYPE_DEFAULT);
+  var devices = platform.getDevices(WebCL.DEVICE_TYPE_DEFAULT);
   device=devices[0];
-  log('using device: '+device.getInfo(cl.DEVICE_NAME));
+  log('using device: '+device.getInfo(WebCL.DEVICE_NAME));
 
   // create GPU context for this platform
-  var context=cl.createContext({
+  var context=WebCL.createContext({
     devices: device, 
     platform: platform
   });
@@ -161,7 +160,7 @@ if(nodejs) {
     program.build(devices);
   } catch(ex) {
     /* Find size of log and print to std output */
-    var info=program.getBuildInfo(devices[0], cl.PROGRAM_BUILD_LOG);
+    var info=program.getBuildInfo(devices[0], WebCL.PROGRAM_BUILD_LOG);
     log(info);
     exit(1);
   }
@@ -175,14 +174,14 @@ if(nodejs) {
 
   /* Create a write-only buffer to hold the output data */
   try {
-    data_buffer = context.createBuffer(cl.MEM_WRITE_ONLY, NUM_ELEMS*Uint32Array.BYTES_PER_ELEMENT);
+    data_buffer = context.createBuffer(WebCL.MEM_WRITE_ONLY, NUM_ELEMS*Uint32Array.BYTES_PER_ELEMENT);
   } catch(ex) {
     log("Couldn't create a buffer. "+ex);
     exit(1);   
   }
   
   try {
-    ret_buffer = context.createBuffer(cl.MEM_WRITE_ONLY, 1*Uint32Array.BYTES_PER_ELEMENT);
+    ret_buffer = context.createBuffer(WebCL.MEM_WRITE_ONLY, 1*Uint32Array.BYTES_PER_ELEMENT);
   } catch(ex) {
     log("Couldn't create a buffer. "+ex);
     exit(1);   
@@ -191,7 +190,7 @@ if(nodejs) {
   /* Create kernel argument */
   try {
     kernel.setArg(0, data_buffer);
-    kernel.setArg(1, NUM_ELEMS, cl.type.UINT); /* Tell kernel number of elements */
+    kernel.setArg(1, NUM_ELEMS, WebCL.type.UINT); /* Tell kernel number of elements */
     kernel.setArg(2, ret_buffer); /* Pass pointer to returned number of values */
 
   } catch(ex) {

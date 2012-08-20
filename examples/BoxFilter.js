@@ -34,10 +34,8 @@ if(nodejs) {
   log = console.log;
 }
 
-var cl=new WebCL();
-
 //First check if the webcl extension is installed at all 
-if (cl == undefined) {
+if (WebCL == undefined) {
   alert("Unfortunately your system does not support WebCL. " +
   "Make sure that you have the WebCL extension installed.");
   return;
@@ -75,27 +73,27 @@ var szBuffBytes = image.height*image.pitch;
 log('Image '+file+': \n'+util.inspect(image));
 
 //Pick platform
-var platformList=cl.getPlatforms();
+var platformList=WebCL.getPlatforms();
 var platform=platformList[0];
 
 //Query the set of GPU devices on this platform
-var devices = platform.getDevices(cl.DEVICE_TYPE_ALL);
+var devices = platform.getDevices(WebCL.DEVICE_TYPE_ALL);
 log("  # of Devices Available = "+devices.length); 
 var uiTargetDevice = clu.clamp(uiTargetDevice, 0, (devices.length - 1));
 var device=devices[uiTargetDevice];
-log("  Using Device "+ uiTargetDevice+": "+device.getInfo(cl.DEVICE_NAME)); 
+log("  Using Device "+ uiTargetDevice+": "+device.getInfo(WebCL.DEVICE_NAME)); 
 
-var hasImageSupport=device.getInfo(cl.DEVICE_IMAGE_SUPPORT);
-if(hasImageSupport != cl.TRUE) {
+var hasImageSupport=device.getInfo(WebCL.DEVICE_IMAGE_SUPPORT);
+if(hasImageSupport != WebCL.TRUE) {
   log("No image support");
   return;
 }
 
-var numComputeUnits=device.getInfo(cl.DEVICE_MAX_COMPUTE_UNITS);
+var numComputeUnits=device.getInfo(WebCL.DEVICE_MAX_COMPUTE_UNITS);
 log('  # of Compute Units = '+numComputeUnits);
 
 log('  createContext...');
-context=cl.createContext({
+context=WebCL.createContext({
   devices: device, 
   platform: platform
 });
@@ -105,20 +103,20 @@ queue=context.createCommandQueue(device, 0);
 
 // Allocate OpenCL object for the source data
 var InputFormat= {
-  order : cl.RGBA,
-  data_type : cl.UNSIGNED_INT8,
+  order : WebCL.RGBA,
+  data_type : WebCL.UNSIGNED_INT8,
   size : [ image.width, image.height ],
   rowPitch : image.pitch
 };
 
 //2D Image (Texture) on device
-cmDevBufIn = context.createImage(cl.MEM_READ_ONLY | cl.MEM_USE_HOST_PTR, InputFormat, image.buffer);
+cmDevBufIn = context.createImage(WebCL.MEM_READ_ONLY | WebCL.MEM_USE_HOST_PTR, InputFormat, image.buffer);
 
-RowSampler = context.createSampler(false, cl.ADDRESS_CLAMP, cl.FILTER_NEAREST);
+RowSampler = context.createSampler(false, WebCL.ADDRESS_CLAMP, WebCL.FILTER_NEAREST);
 
 // Allocate the OpenCL intermediate and result buffer memory objects on the device GMEM
-cmDevBufTemp = context.createBuffer(cl.MEM_READ_WRITE, szBuffBytes);
-cmDevBufOut = context.createBuffer(cl.MEM_WRITE_ONLY, szBuffBytes);
+cmDevBufTemp = context.createBuffer(WebCL.MEM_READ_WRITE, szBuffBytes);
+cmDevBufOut = context.createBuffer(WebCL.MEM_WRITE_ONLY, szBuffBytes);
 
 //Create the program 
 sourceCL = fs.readFileSync(__dirname+'/BoxFilter.cl','ascii');
@@ -144,7 +142,7 @@ queue.finish();
 
 // Copy results back to host memory, block until complete
 var uiOutput=new Uint8Array(szBuffBytes);
-queue.enqueueReadBuffer(cmDevBufOut, cl.TRUE, 0, szBuffBytes, uiOutput);
+queue.enqueueReadBuffer(cmDevBufOut, WebCL.TRUE, 0, szBuffBytes, uiOutput);
 
 // PNG uses 32-bit images, JPG can only work on 24-bit images
 if(!Image.save('out_'+iRadius+'.png',uiOutput, image.width,image.height, image.pitch, image.bpp, 0xFF0000, 0x00FF00, 0xFF))
@@ -159,18 +157,18 @@ function ResetKernelArgs(width, height, r, fScale)
   ckBoxRowsTex.setArg(0, cmDevBufIn);
   ckBoxRowsTex.setArg(1, cmDevBufTemp);
   ckBoxRowsTex.setArg(2, RowSampler); 
-  ckBoxRowsTex.setArg(3, width, cl.type.UINT);
-  ckBoxRowsTex.setArg(4, height, cl.type.UINT);
-  ckBoxRowsTex.setArg(5, r, cl.type.INT);
-  ckBoxRowsTex.setArg(6, fScale, cl.type.FLOAT);
+  ckBoxRowsTex.setArg(3, width, WebCL.type.UINT);
+  ckBoxRowsTex.setArg(4, height, WebCL.type.UINT);
+  ckBoxRowsTex.setArg(5, r, WebCL.type.INT);
+  ckBoxRowsTex.setArg(6, fScale, WebCL.type.FLOAT);
 
   // Set the Argument values for the column kernel
   ckBoxColumns.setArg(0, cmDevBufTemp);
   ckBoxColumns.setArg(1, cmDevBufOut);
-  ckBoxColumns.setArg(2, width, cl.type.UINT);
-  ckBoxColumns.setArg(3, height, cl.type.UINT);
-  ckBoxColumns.setArg(4, r, cl.type.INT);
-  ckBoxColumns.setArg(5, fScale, cl.type.FLOAT);
+  ckBoxColumns.setArg(2, width, WebCL.type.UINT);
+  ckBoxColumns.setArg(3, height, WebCL.type.UINT);
+  ckBoxColumns.setArg(4, r, WebCL.type.INT);
+  ckBoxColumns.setArg(5, fScale, WebCL.type.FLOAT);
 }
 
 //OpenCL computation function for GPU:  
@@ -185,7 +183,7 @@ function BoxFilterGPU(image, cmOutputBuffer, r, fScale)
   var szTexOrigin = [0, 0, 0];                // Offset of input texture origin relative to host image
   var szTexRegion = [image.width, image.height, 1];   // Size of texture region to operate on
   log('enqueue image: origin='+szTexOrigin+", region="+szTexRegion);
-  queue.enqueueWriteImage(cmDevBufIn, cl.TRUE, szTexOrigin, szTexRegion, 0, 0, image.buffer);
+  queue.enqueueWriteImage(cmDevBufIn, WebCL.TRUE, szTexOrigin, szTexRegion, 0, 0, image.buffer);
 
   // Set global and local work sizes for row kernel
   szLocalWorkSize[0] = uiNumOutputPix;

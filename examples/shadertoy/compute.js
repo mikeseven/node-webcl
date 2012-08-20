@@ -3,12 +3,11 @@
  * that update a texture.
  */
 function Compute() {
-  var cl=new WebCL();
   var /* cl_context */        clContext;
   var /* cl_command_queue */  clQueue;
   var /* cl_program */        clProgram;
   var /* cl_device_id */      clDevice;
-  var /* cl_device_type */    clDeviceType = cl.DEVICE_TYPE_GPU;
+  var /* cl_device_type */    clDeviceType = WebCL.DEVICE_TYPE_GPU;
   var /* cl_image */          clTexture;
   var /* cl_kernel */         clKernel;
   var max_workgroup_size, max_workitem_sizes, warp_size;
@@ -35,12 +34,12 @@ function Compute() {
     COMPUTE_KERNEL_NAME = kernel_name;
     
     // Pick platform
-    var platformList = cl.getPlatforms();
+    var platformList = WebCL.getPlatforms();
     var platform = platformList[0];
 
     // create the OpenCL context
     try {
-      clContext = cl.createContext({
+      clContext = WebCL.createContext({
         deviceType: clDeviceType, 
         shareGroup: gl, 
         platform: platform });
@@ -49,7 +48,7 @@ function Compute() {
       throw "Error: Failed to create context! "+err;
     }
     
-    var device_ids = clContext.getInfo(cl.CONTEXT_DEVICES);
+    var device_ids = clContext.getInfo(WebCL.CONTEXT_DEVICES);
     if (!device_ids) {
       throw "Error: Failed to retrieve compute devices for context!";
     }
@@ -57,7 +56,7 @@ function Compute() {
     // check we have the right device type
     var device_found = false;
     for(var i=0,l=device_ids.length;i<l;++i ) {
-      device_type = device_ids[i].getInfo(cl.DEVICE_TYPE);
+      device_type = device_ids[i].getInfo(WebCL.DEVICE_TYPE);
       if (device_type == clDeviceType) {
         clDevice = device_ids[i];
         device_found = true;
@@ -68,7 +67,7 @@ function Compute() {
     if (!device_found) 
       throw "Error: Failed to locate compute device!";
 
-    if (!clDevice.getInfo(cl.DEVICE_IMAGE_SUPPORT)) 
+    if (!clDevice.getInfo(WebCL.DEVICE_IMAGE_SUPPORT)) 
       throw "Application requires images: Images not supported on this device.";
 
     // Create a command queue
@@ -80,15 +79,15 @@ function Compute() {
     }
 
     // Report the device vendor and device name
-    var vendor_name = clDevice.getInfo(cl.DEVICE_VENDOR);
-    var device_name = clDevice.getInfo(cl.DEVICE_NAME);
+    var vendor_name = clDevice.getInfo(WebCL.DEVICE_VENDOR);
+    var device_name = clDevice.getInfo(WebCL.DEVICE_NAME);
     log("  Connecting to " + vendor_name + " " + device_name);
 
-    log("    Global mem cache size: " + (clDevice.getInfo(cl.DEVICE_GLOBAL_MEM_CACHE_SIZE)/1024) + "kB " );
-    log("    Local mem size       : " + (clDevice.getInfo(cl.DEVICE_LOCAL_MEM_SIZE)/1024) + "kB " );
-    log("    Max compute units    : " + clDevice.getInfo(cl.DEVICE_MAX_COMPUTE_UNITS));
-    log("    Max work-item sizes  : "+clDevice.getInfo(cl.DEVICE_MAX_WORK_ITEM_SIZES));
-    log("    Max work-group size  : "+clDevice.getInfo(cl.DEVICE_MAX_WORK_GROUP_SIZE));
+    log("    Global mem cache size: " + (clDevice.getInfo(WebCL.DEVICE_GLOBAL_MEM_CACHE_SIZE)/1024) + "kB " );
+    log("    Local mem size       : " + (clDevice.getInfo(WebCL.DEVICE_LOCAL_MEM_SIZE)/1024) + "kB " );
+    log("    Max compute units    : " + clDevice.getInfo(WebCL.DEVICE_MAX_COMPUTE_UNITS));
+    log("    Max work-item sizes  : "+clDevice.getInfo(WebCL.DEVICE_MAX_WORK_ITEM_SIZES));
+    log("    Max work-group size  : "+clDevice.getInfo(WebCL.DEVICE_MAX_WORK_GROUP_SIZE));
 
     init_cl_buffers();
     init_cl_kernels();
@@ -141,7 +140,7 @@ function Compute() {
       clProgram.build(clDevice, '-cl-fast-relaxed-math -cl-mad-enable -DMAC');
     } catch (err) {
       throw "Error: Failed to build program executable!\n"
-          + clProgram.getBuildInfo(clDevice, cl.PROGRAM_BUILD_LOG);
+          + clProgram.getBuildInfo(clDevice, WebCL.PROGRAM_BUILD_LOG);
     }
 
     // Create the compute kernels from within the program
@@ -153,11 +152,11 @@ function Compute() {
     }
 
     // Get the device intrinsics for executing the kernel on the device
-    max_workgroup_size = clKernel.getWorkGroupInfo(clDevice, cl.KERNEL_WORK_GROUP_SIZE);
-    warp_size=clKernel.getWorkGroupInfo(clDevice, cl.KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE);
+    max_workgroup_size = clKernel.getWorkGroupInfo(clDevice, WebCL.KERNEL_WORK_GROUP_SIZE);
+    warp_size=clKernel.getWorkGroupInfo(clDevice, WebCL.KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE);
     log('  max workgroup size: '+max_workgroup_size);
-    log('  local mem used    : '+clKernel.getWorkGroupInfo(clDevice, cl.KERNEL_LOCAL_MEM_SIZE)+" bytes");
-    log('  private mem used  : '+clKernel.getWorkGroupInfo(clDevice, cl.KERNEL_PRIVATE_MEM_SIZE)+" bytes");
+    log('  local mem used    : '+clKernel.getWorkGroupInfo(clDevice, WebCL.KERNEL_LOCAL_MEM_SIZE)+" bytes");
+    log('  private mem used  : '+clKernel.getWorkGroupInfo(clDevice, WebCL.KERNEL_PRIVATE_MEM_SIZE)+" bytes");
     log('  warp size         : '+warp_size);
   }
 
@@ -175,7 +174,7 @@ function Compute() {
     // set the kernel args
     try {
       clKernel.setArg(0, clTexture);
-      clKernel.setArg(1, time, cl.type.FLOAT);
+      clKernel.setArg(1, time, WebCL.type.FLOAT);
     } catch (err) {
       throw "Failed to set row kernel args! " + err;
     }
@@ -200,7 +199,7 @@ function Compute() {
     // Create OpenCL representation of OpenGL Texture
     clTexture = null;
     try {
-      clTexture = clContext.createFromGLTexture2D(cl.MEM_WRITE_ONLY,
+      clTexture = clContext.createFromGLTexture2D(WebCL.MEM_WRITE_ONLY,
           gl.TEXTURE_2D, 0, glTexture);
     } catch (ex) {
       throw "Error: Failed to create CL Texture object. " + ex;

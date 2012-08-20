@@ -38,7 +38,6 @@ function read_complete(status, data) {
 
 function main() {
   /* CL objects */
-  var cl = new WebCL();
   var /* WebCLPlatform */     platform;
   var /* WebCLDevice */       device;
   var /* WebCLContext */      context;
@@ -60,17 +59,17 @@ function main() {
   log('creating context');
   
   //Pick platform
-  var platformList=cl.getPlatforms();
+  var platformList=WebCL.getPlatforms();
   platform=platformList[0];
-  log('using platform: '+platform.getInfo(cl.PLATFORM_NAME));
+  log('using platform: '+platform.getInfo(WebCL.PLATFORM_NAME));
   
   //Query the set of devices on this platform
-  var devices = platform.getDevices(cl.DEVICE_TYPE_DEFAULT);
+  var devices = platform.getDevices(WebCL.DEVICE_TYPE_DEFAULT);
   device=devices[0];
-  log('using device: '+device.getInfo(cl.DEVICE_NAME));
+  log('using device: '+device.getInfo(WebCL.DEVICE_NAME));
 
   // create GPU context for this platform
-  var context=cl.createContext({
+  var context=WebCL.createContext({
     devices: device, 
     platform: platform
   });
@@ -97,7 +96,7 @@ function main() {
     program.build(devices);
   } catch(ex) {
     /* Find size of log and print to std output */
-    var info=program.getBuildInfo(devices[0], cl.PROGRAM_BUILD_LOG);
+    var info=program.getBuildInfo(devices[0], WebCL.PROGRAM_BUILD_LOG);
     log(info);
     exit(1);
   }
@@ -111,7 +110,7 @@ function main() {
 
   /* Create a write-only buffer to hold the output data */
   try {
-    data_buffer = context.createBuffer(cl.MEM_WRITE_ONLY, NUM_BYTES);
+    data_buffer = context.createBuffer(WebCL.MEM_WRITE_ONLY, NUM_BYTES);
   } catch(ex) {
     log("Couldn't create a buffer. "+ex);
     exit(1);   
@@ -127,17 +126,17 @@ function main() {
 
   /* Tell kernel number of char16 vectors */
   var num_vectors = NUM_BYTES/16;
-  kernel.setArg(1, num_vectors, cl.type.INT);
+  kernel.setArg(1, num_vectors, WebCL.type.INT);
 
   /* Create a command queue */
   try {
-    queue = context.createCommandQueue(device, cl.QUEUE_PROFILING_ENABLE);
+    queue = context.createCommandQueue(device, WebCL.QUEUE_PROFILING_ENABLE);
   } catch(ex) {
     log("Couldn't create a command queue for profiling. "+ex);
   }
 
   var total_time = 0, time_start, time_end;
-  var prof_event=new cl.WebCLEvent();
+  var prof_event=new WebCL.WebCLEvent();
   var loop_time=0, loop_start, loop_end;
 
   for(var i=0;i<NUM_ITERATIONS;i++) {
@@ -163,7 +162,7 @@ function main() {
     else {
       /* Create memory map */
       try {
-        mapped_memory = queue.enqueueMapBuffer(data_buffer, true, cl.MAP_READ, 0, data.byteLength, null, prof_event);
+        mapped_memory = queue.enqueueMapBuffer(data_buffer, true, WebCL.MAP_READ, 0, data.byteLength, null, prof_event);
         if(mapped_memory[0]!=5) {
           Throw("Kernel didn't work or mapping is wrong");
         }
@@ -174,8 +173,8 @@ function main() {
     }
     
     /* Get profiling information */
-    time_start = prof_event.getProfilingInfo(cl.PROFILING_COMMAND_START);
-    time_end = prof_event.getProfilingInfo(cl.PROFILING_COMMAND_END);
+    time_start = prof_event.getProfilingInfo(WebCL.PROFILING_COMMAND_START);
+    time_end = prof_event.getProfilingInfo(WebCL.PROFILING_COMMAND_END);
     total_time += time_end - time_start;
     
     if(!PROFILE_READ) {

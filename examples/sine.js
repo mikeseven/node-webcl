@@ -41,10 +41,8 @@ if(nodejs) {
 
 requestAnimationFrame = document.requestAnimationFrame;
 
-var cl = new WebCL();
-
 //First check if the webcl extension is installed at all
-if (cl == undefined) {
+if (WebCL == undefined) {
   alert("Unfortunately your system does not support WebCL. "
       + "Make sure that you have the WebCL extension installed.");
   return;
@@ -53,8 +51,8 @@ if (cl == undefined) {
 //Rendering window vars
 var window_width = 512;
 var window_height = 512;
-var mesh_width = 512;
-var mesh_height = 512;
+var mesh_width = 128;
+var mesh_height = 128;
 
 //OpenCL vars
 var cpPlatform;
@@ -111,24 +109,24 @@ function main() {
   initGL();
 
   // Pick platform
-  var platformList = cl.getPlatforms();
+  var platformList = WebCL.getPlatforms();
   cpPlatform = platformList[0];
 
   // Query the set of GPU devices on this platform
-  cdDevices = cpPlatform.getDevices(cl.DEVICE_TYPE_DEFAULT);
+  cdDevices = cpPlatform.getDevices(WebCL.DEVICE_TYPE_DEFAULT);
   log("  # of Devices Available = " + cdDevices.length);
   var device = cdDevices[0];
-  log("  Using Device 0: " + device.getInfo(cl.DEVICE_NAME));
+  log("  Using Device 0: " + device.getInfo(WebCL.DEVICE_NAME));
 
   // get CL-GL extension
-  var extensions = device.getInfo(cl.DEVICE_EXTENSIONS);
+  var extensions = device.getInfo(WebCL.DEVICE_EXTENSIONS);
   var hasGLSupport = extensions.search(/gl.sharing/i) >= 0;
   log(hasGLSupport ? "GL-CL extension available ;-)" : "No GL support");
   if (!hasGLSupport)
     return;
 
   // create the OpenCL context
-  cxGPUContext = cl.createContext({
+  cxGPUContext = WebCL.createContext({
     devices: device, 
     shareGroup: gl, 
     platform: cpPlatform });
@@ -147,10 +145,10 @@ function main() {
     log('Error building program: ' + err);
   }
   log("Build Status: "
-      + cpProgram.getBuildInfo(device, cl.PROGRAM_BUILD_STATUS));
+      + cpProgram.getBuildInfo(device, WebCL.PROGRAM_BUILD_STATUS));
   log("Build Options: "
-      + cpProgram.getBuildInfo(device, cl.PROGRAM_BUILD_OPTIONS));
-  log("Build Log: " + cpProgram.getBuildInfo(device, cl.PROGRAM_BUILD_LOG));
+      + cpProgram.getBuildInfo(device, WebCL.PROGRAM_BUILD_OPTIONS));
+  log("Build Log: " + cpProgram.getBuildInfo(device, WebCL.PROGRAM_BUILD_LOG));
 
   // create the kernel
   try {
@@ -165,8 +163,8 @@ function main() {
 
   // set the args values
   ckKernel.setArg(0, vbo_cl);
-  ckKernel.setArg(1, mesh_width, cl.type.UINT);
-  ckKernel.setArg(2, mesh_height, cl.type.UINT);
+  ckKernel.setArg(1, mesh_width, WebCL.type.UINT);
+  ckKernel.setArg(2, mesh_height, WebCL.type.UINT);
 
   // run OpenCL kernel once to generate vertex positions
   runKernel(0);
@@ -287,7 +285,7 @@ function runKernel(time) {
   cqCommandQueue.enqueueAcquireGLObjects(vbo_cl);
 
   // Set arg 3 and execute the kernel
-  ckKernel.setArg(3, time, cl.type.FLOAT);
+  ckKernel.setArg(3, time, WebCL.type.FLOAT);
   cqCommandQueue.enqueueNDRangeKernel(ckKernel, null, szGlobalWorkSize, null);
 
   // unmap buffer object
@@ -307,7 +305,7 @@ function createVBO() {
   gl.bufferData(gl.ARRAY_BUFFER, size, gl.DYNAMIC_DRAW);
 
   // create OpenCL buffer from GL VBO
-  vbo_cl = cxGPUContext.createFromGLBuffer(cl.MEM_WRITE_ONLY, vbo);
+  vbo_cl = cxGPUContext.createFromGLBuffer(WebCL.MEM_WRITE_ONLY, vbo);
 }
 
 function setMatrixUniforms() {

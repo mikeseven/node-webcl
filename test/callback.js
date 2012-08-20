@@ -31,7 +31,6 @@ if(nodejs) {
   exit = process.exit;
 }
 
-var cl = new WebCL();
 var completed_kernel=false, completed_read=false;
 
 // kernel callback
@@ -51,12 +50,12 @@ function read_complete(event, data) {
   if(status<0) 
     log('Error: '+status);
 
-  var check = cl.TRUE;
+  var check = WebCL.TRUE;
   //var str="";
   for(i=0; i<4096; i++) {
     //str+=data[i]+' ';
     if(data[i] != 5.0) {
-      check = cl.FALSE;
+      check = WebCL.FALSE;
       break;
     }  
   }
@@ -83,17 +82,17 @@ function read_complete(event, data) {
   log('creating context');
   
   //Pick platform
-  var platformList=cl.getPlatforms();
+  var platformList=WebCL.getPlatforms();
   platform=platformList[0];
-  log('using platform: '+platform.getInfo(cl.PLATFORM_NAME));
+  log('using platform: '+platform.getInfo(WebCL.PLATFORM_NAME));
   
   //Query the set of devices on this platform
-  var devices = platform.getDevices(cl.DEVICE_TYPE_GPU);
+  var devices = platform.getDevices(WebCL.DEVICE_TYPE_GPU);
   device=devices[0];
-  log('using device: '+device.getInfo(cl.DEVICE_NAME));
+  log('using device: '+device.getInfo(WebCL.DEVICE_NAME));
 
   // create GPU context for this platform
-  var context=cl.createContext({
+  var context=WebCL.createContext({
     devices: device, 
     platform: platform
   } ,'Error occured in context', function(err,data){
@@ -122,7 +121,7 @@ function read_complete(event, data) {
     program.build(devices);
   } catch(ex) {
     /* Find size of log and print to std output */
-    var info=program.getBuildInfo(devices[0], cl.PROGRAM_BUILD_LOG);
+    var info=program.getBuildInfo(devices[0], WebCL.PROGRAM_BUILD_LOG);
     log(info);
     exit(1);
   }
@@ -136,7 +135,7 @@ function read_complete(event, data) {
 
   /* Create a write-only buffer to hold the output data */
   try {
-    data_buffer = context.createBuffer(cl.MEM_WRITE_ONLY, 4096*4);
+    data_buffer = context.createBuffer(WebCL.MEM_WRITE_ONLY, 4096*4);
   } catch(ex) {
     log("Couldn't create a buffer. "+ex);
     exit(1);   
@@ -160,7 +159,7 @@ function read_complete(event, data) {
 
   /* Enqueue kernel */
   try {
-    kernel_event=new cl.WebCLEvent();
+    kernel_event=new WebCL.WebCLEvent();
     queue.enqueueTask(kernel , null, kernel_event);
   } catch(ex) {
     log("Couldn't enqueue the kernel. "+ex);
@@ -170,7 +169,7 @@ function read_complete(event, data) {
   /* Read the buffer */
   var data=new Float32Array(4096);
   try {
-    read_event=new cl.WebCLEvent();
+    read_event=new WebCL.WebCLEvent();
     queue.enqueueReadBuffer(data_buffer, false, 0, 4096*4, data, null, read_event);
   } catch(ex) {
     log("Couldn't read the buffer. "+ex);
@@ -179,12 +178,12 @@ function read_complete(event, data) {
 
   /* Set event handling routines */
   try {
-    kernel_event.setCallback(cl.COMPLETE, kernel_complete, "The kernel finished successfully.");
+    kernel_event.setCallback(WebCL.COMPLETE, kernel_complete, "The kernel finished successfully.");
   } catch(ex) {
     log("Couldn't set callback for event. "+ex);
     exit(1);   
   }
-  read_event.setCallback(cl.COMPLETE, read_complete, data);
+  read_event.setCallback(WebCL.COMPLETE, read_complete, data);
   
   queue.finish(); // wait for everything to finish
 

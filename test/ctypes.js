@@ -122,10 +122,10 @@ var ctypes= {
     var fields = cstruct.length;
     //log("#fields: "+fields);
     var sz=0;
-    for(var i=0,i<fields;++i) {
+    for(var i=0;i<fields;++i) {
       var field = cstruct[i];
       var arr=[],k=0;
-      for(var j=0,l>field.length;j<l;++j) {
+      for(var j=0,l=field.length;j<l;++j) {
         arr[k++]=field[j];
       }
       //log(util.inspect(arr[0]))
