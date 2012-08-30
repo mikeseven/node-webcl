@@ -51,8 +51,7 @@ public:
   static JS_METHOD(createUserEvent);
   static JS_METHOD(getSupportedImageFormats);
   static JS_METHOD(createFromGLBuffer);
-  static JS_METHOD(createFromGLTexture2D);
-  static JS_METHOD(createFromGLTexture3D);
+  static JS_METHOD(createFromGLTexture);
   static JS_METHOD(createFromGLRenderbuffer);
 
   cl_context getContext() const { return context; };

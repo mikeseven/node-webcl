@@ -100,14 +100,6 @@ cl.waitForEvents = function (events) {
   return _waitForEvents(events);
 }
 
-var _unloadCompiler = cl.unloadCompiler;
-cl.unloadCompiler = function () {
-  if (!(arguments.length === 0 )) {
-    throw new TypeError('Expected unloadCompiler()');
-  }
-  return _unloadCompiler();
-}
-
 //////////////////////////////
 //WebCLCommandQueue object
 //////////////////////////////
@@ -559,26 +551,15 @@ cl.WebCLContext.prototype.createFromGLRenderbuffer=function (flags, buffer) {
   return this._createFromGLRenderbuffer(flags, buffer ? buffer._ : 0);
 }
 
-cl.WebCLContext.prototype.createFromGLTexture2D=function (flags, texture_target, miplevel, texture) {
+cl.WebCLContext.prototype.createFromGLTexture=function (flags, texture_target, miplevel, texture) {
   if (!(arguments.length === 4 && typeof flags === 'number' && 
       typeof texture_target ==='number' &&
       typeof miplevel ==='number' &&
       typeof texture ==='object' 
     )) {
-    throw new TypeError('Expected WebCLContext.createFromGLTexture2D(CLenum flags, GLenum texture_target, GLint miplevel, WebGLTexture2D texture)');
+    throw new TypeError('Expected WebCLContext.createFromGLTexture(CLenum flags, GLenum texture_target, GLint miplevel, WebGLTexture2D texture)');
   }
-  return this._createFromGLTexture2D(flags, texture_target, miplevel, texture ? texture._ : 0);
-}
-
-cl.WebCLContext.prototype.createFromGLTexture3D=function (flags, texture_target, miplevel, texture) {
-  if (!(arguments.length === 4 && typeof flags === 'number' && 
-      typeof texture_target ==='number' &&
-      typeof miplevel ==='number' &&
-      typeof texture ==='object' 
-    )) {
-    throw new TypeError('Expected WebCLContext.createFromGLTexture3D(CLenum flags, GLenum texture_target, GLint miplevel, WebGLTexture3D texture)');
-  }
-  return this._createFromGLTexture3D(flags, texture_target, miplevel, texture ? texture._ : 0);
+  return this._createFromGLTexture(flags, texture_target, miplevel, texture ? texture._ : 0);
 }
 
 //////////////////////////////

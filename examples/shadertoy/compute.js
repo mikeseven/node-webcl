@@ -199,7 +199,7 @@ function Compute() {
     // Create OpenCL representation of OpenGL Texture
     clTexture = null;
     try {
-      clTexture = clContext.createFromGLTexture2D(WebCL.MEM_WRITE_ONLY,
+      clTexture = clContext.createFromGLTexture(WebCL.MEM_WRITE_ONLY,
           gl.TEXTURE_2D, 0, glTexture);
     } catch (ex) {
       throw "Error: Failed to create CL Texture object. " + ex;

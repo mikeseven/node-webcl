@@ -36,7 +36,6 @@ namespace webcl {
 JS_METHOD(getPlatforms);
 JS_METHOD(createContext);
 JS_METHOD(waitForEvents);
-JS_METHOD(unloadCompiler);
 
 void createContext_callback (const char *errinfo, const void *private_info, size_t cb, void *user_data);
 void createContext_After_cb(uv_async_t* handle, int status);

@@ -118,7 +118,7 @@ function configure_shared_data(width, height) {
 
   // Create OpenCL representation of OpenGL PBO
   try {
-    ComputePBO = ComputeContext.createFromGLTexture2D(WebCL.MEM_WRITE_ONLY, gl.TEXTURE_2D, 0, TextureId);
+    ComputePBO = ComputeContext.createFromGLTexture(WebCL.MEM_WRITE_ONLY, gl.TEXTURE_2D, 0, TextureId);
   }
   catch(ex) {
     alert("Error: Failed to create CL PBO buffer. "+ex);

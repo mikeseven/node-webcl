@@ -46,7 +46,6 @@ requestAnimationFrame = document.requestAnimationFrame;
 
 //var COMPUTE_KERNEL_ID = "704.cl";
 var COMPUTE_KERNEL_ID = argv.kernel || "mandelbulb_AoS.cl";
-//var COMPUTE_KERNEL_ID = "mandelbulb_SoA.cl";
 //var COMPUTE_KERNEL_ID = "qjulia.cl";
 //var COMPUTE_KERNEL_ID = "droplet2d.cl";
 //var COMPUTE_KERNEL_ID = "droplet3d.cl";

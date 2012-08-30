@@ -468,7 +468,7 @@ function CLGL() {
       ComputeImage = null;
 
       log("Allocating compute result image in device memory...");
-      ComputeImage = ComputeContext.createFromGLTexture2D(WebCL.MEM_WRITE_ONLY, TextureTarget, 0, TextureId);
+      ComputeImage = ComputeContext.createFromGLTexture(WebCL.MEM_WRITE_ONLY, TextureTarget, 0, TextureId);
       if (!ComputeImage)
       {
         alert("Failed to create OpenGL texture reference! " + err);

@@ -397,16 +397,4 @@ JS_METHOD(waitForEvents) {
   return Undefined();
 }
 
-
-JS_METHOD(unloadCompiler) {
-  cl_int ret = ::clUnloadCompiler();
-
-  if (ret != CL_SUCCESS) {
-    return ThrowError("UNKNOWN ERROR");
-  }
-
-  return Undefined();
-}
-
-
 }

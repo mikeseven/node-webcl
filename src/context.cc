@@ -61,8 +61,7 @@ void Context::Init(Handle<Object> target)
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_createSampler", createSampler);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_createUserEvent", createUserEvent);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_createFromGLBuffer", createFromGLBuffer);
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_createFromGLTexture2D", createFromGLTexture2D);
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_createFromGLTexture3D", createFromGLTexture3D);
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_createFromGLTexture", createFromGLTexture);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_createFromGLRenderbuffer", createFromGLRenderbuffer);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getSupportedImageFormats", getSupportedImageFormats);
 
@@ -456,7 +455,7 @@ JS_METHOD(Context::createFromGLBuffer)
   return scope.Close(WebCLBuffer::New(clmem)->handle_);
 }
 
-JS_METHOD(Context::createFromGLTexture2D)
+JS_METHOD(Context::createFromGLTexture)
 {
   HandleScope scope;
   Context *context = UnwrapThis<Context>(args);
@@ -466,29 +465,6 @@ JS_METHOD(Context::createFromGLTexture2D)
   cl_GLuint texture = args[3]->Uint32Value();
   int ret;
   cl_mem clmem = ::clCreateFromGLTexture2D(context->getContext(),flags,target,miplevel,texture,&ret);
-
-  if (ret != CL_SUCCESS) {
-    REQ_ERROR_THROW(CL_INVALID_CONTEXT);
-    REQ_ERROR_THROW(CL_INVALID_VALUE);
-    REQ_ERROR_THROW(CL_INVALID_GL_OBJECT);
-    REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
-  }
-
-  return scope.Close(WebCLImage::New(clmem)->handle_);
-}
-
-JS_METHOD(Context::createFromGLTexture3D)
-{
-  HandleScope scope;
-  Context *context = UnwrapThis<Context>(args);
-  cl_mem_flags flags = args[0]->Uint32Value();
-  cl_GLenum target = args[1]->Uint32Value();
-  cl_GLint miplevel = args[2]->Uint32Value();
-  cl_GLuint texture = args[3]->Uint32Value();
-  int ret;
-  cl_mem clmem = ::clCreateFromGLTexture3D(context->getContext(),flags,target,miplevel,texture,&ret);
 
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(CL_INVALID_CONTEXT);
