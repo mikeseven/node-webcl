@@ -729,9 +729,6 @@ cl.WebCLImage.prototype.getGLTextureInfo=function (param_name) {
 //////////////////////////////
 //WebCLPlatform object
 //////////////////////////////
-cl.WebCLPlatform.prototype.release=function () {
-	return this._release();
-}
 
 cl.WebCLPlatform.prototype.getInfo=function (param_name) {
 if (!(arguments.length === 1 && typeof param_name === 'number')) {
