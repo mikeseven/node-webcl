@@ -100,9 +100,18 @@ cl.waitForEvents = function (events) {
   return _waitForEvents(events);
 }
 
+var _release = cl.release;
+cl.release = function () {
+  return _release();
+}
+
 //////////////////////////////
 //WebCLCommandQueue object
 //////////////////////////////
+cl.WebCLCommandQueue.prototype.release=function () {
+  return this._release();
+}
+
 cl.WebCLCommandQueue.prototype.getInfo=function (param_name) {
   if (!(arguments.length === 1 && typeof param_name === 'number')) {
     throw new TypeError('Expected WebCLCommandQueue.getInfo(CLenum param_name)');
@@ -465,6 +474,10 @@ cl.WebCLCommandQueue.prototype.enqueueReleaseGLObjects=function (mem_objects, ev
 //////////////////////////////
 //WebCLContext object
 //////////////////////////////
+cl.WebCLContext.prototype.release=function () {
+  return this._release();
+}
+
 cl.WebCLContext.prototype.getInfo=function (param_name) {
   if (!(arguments.length === 1 && typeof param_name === 'number')) {
     throw new TypeError('Expected WebCLContext.getInfo(CLenum param_name)');
@@ -565,6 +578,10 @@ cl.WebCLContext.prototype.createFromGLTexture=function (flags, texture_target, m
 //////////////////////////////
 //WebCLDevice object
 //////////////////////////////
+cl.WebCLDevice.prototype.release=function () {
+  return this._release();
+}
+
 cl.WebCLDevice.prototype.getInfo=function (param_name) {
   if (!(arguments.length === 1 && typeof param_name === 'number')) {
     throw new TypeError('Expected WebCLDevice.getInfo(CLenum param_name)');
@@ -582,6 +599,10 @@ cl.WebCLDevice.prototype.getExtension=function (param_name) {
 //////////////////////////////
 //WebCLEvent object
 //////////////////////////////
+cl.WebCLEvent.prototype.release=function () {
+  return this._release();
+}
+
 cl.WebCLEvent.prototype.getInfo=function (param_name) {
   if (!(arguments.length === 1 && typeof param_name === 'number')) {
     throw new TypeError('Expected WebCLEvent.getInfo(CLenum param_name)');
@@ -614,6 +635,10 @@ cl.WebCLEvent.prototype.setCallback=function (execution_status, fct, args) {
 //////////////////////////////
 //WebCLKernel object
 //////////////////////////////
+cl.WebCLKernel.prototype.release=function () {
+  return this._release();
+}
+
 cl.WebCLKernel.prototype.getInfo=function (param_name) {
   if (!(arguments.length === 1 && typeof param_name === 'number')) {
     throw new TypeError('Expected WebCLKernel.getInfo(CLenum param_name)');
@@ -646,6 +671,9 @@ cl.WebCLKernel.prototype.setArg=function (index, value, type) {
 //////////////////////////////
 //WebCLMemoryObject object
 //////////////////////////////
+cl.WebCLMemoryObject.prototype.release=function () {
+  return this._release();
+}
 
 cl.WebCLMemoryObject.prototype.getInfo=function (param_name) {
   if (!(arguments.length === 1 && typeof param_name === 'number')) {
@@ -665,6 +693,10 @@ cl.WebCLMemoryObject.prototype.getGLObjectInfo=function (object_type, param_name
 //WebCLBuffer object
 //////////////////////////////
 
+cl.WebCLBuffer.prototype.release=function () {
+  return this._release();
+}
+
 cl.WebCLBuffer.prototype.createSubBuffer=function (flags, type, region) {
   if (!(arguments.length === 3 && typeof flags === 'number' && typeof type === 'number' && typeof region === 'object')) {
     throw new TypeError('Expected WebCLMemoryObject.createSubBuffer(CLenum flags, CLenum type, WebCLRegion region)');
@@ -675,6 +707,10 @@ cl.WebCLBuffer.prototype.createSubBuffer=function (flags, type, region) {
 //////////////////////////////
 //WebCLImage object
 //////////////////////////////
+
+cl.WebCLImage.prototype.release=function () {
+  return this._release();
+}
 
 cl.WebCLImage.prototype.getInfo=function (param_name) {
   if (!(arguments.length === 1 && typeof param_name === 'number')) {
@@ -693,6 +729,10 @@ cl.WebCLImage.prototype.getGLTextureInfo=function (param_name) {
 //////////////////////////////
 //WebCLPlatform object
 //////////////////////////////
+cl.WebCLPlatform.prototype.release=function () {
+	return this._release();
+}
+
 cl.WebCLPlatform.prototype.getInfo=function (param_name) {
 if (!(arguments.length === 1 && typeof param_name === 'number')) {
   throw new TypeError('Expected WebCLPlatform.getInfo(CLenum param_name)');
@@ -710,6 +750,10 @@ cl.WebCLPlatform.prototype.getDevices=function (device_type) {
 //////////////////////////////
 //WebCLProgram object
 //////////////////////////////
+cl.WebCLProgram.prototype.release=function () {
+  return this._release();
+}
+
 cl.WebCLProgram.prototype.getInfo=function (param_name) {
   if (!(arguments.length === 1 && typeof param_name === 'number')) {
     throw new TypeError('Expected WebCLProgram.getInfo(CLenum param_name)');
@@ -746,6 +790,10 @@ cl.WebCLProgram.prototype.createKernel=function (name) {
 //////////////////////////////
 //WebCLSampler object
 //////////////////////////////
+cl.WebCLSampler.prototype.release=function () {
+  return this._release();
+}
+
 cl.WebCLSampler.prototype.getInfo=function (param_name) {
   if (!(arguments.length === 1 && typeof param_name === 'number')) {
     throw new TypeError('Expected WebCLSampler.getInfo(CLenum param_name)');
