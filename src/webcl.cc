@@ -196,6 +196,15 @@ createContext_After_cb(uv_async_t* handle, int status) {
   delete baton;
 }
 
+JS_METHOD(release) {
+	HandleScope scope;
+	
+	AtExit();
+	atExit=true;
+
+	return Undefined();
+}
+
 JS_METHOD(createContext) {
   HandleScope scope;
   cl_int ret=CL_SUCCESS;
@@ -396,5 +405,7 @@ JS_METHOD(waitForEvents) {
 
   return Undefined();
 }
+
+
 
 }
