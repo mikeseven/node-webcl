@@ -66,6 +66,8 @@ public:
   static JS_METHOD(finish);
   static JS_METHOD(enqueueAcquireGLObjects);
   static JS_METHOD(enqueueReleaseGLObjects);
+  // Patch
+  static JS_METHOD(_release);
 
   cl_command_queue getCommandQueue() const { return command_queue; };
   bool isCommandQueue() const { return true; }

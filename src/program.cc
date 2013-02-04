@@ -53,6 +53,7 @@ void Program::Init(Handle<Object> target)
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getBuildInfo", getBuildInfo);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_build", build);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_createKernel", createKernel);
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_release", release);
 
   target->Set(String::NewSymbol("WebCLProgram"), constructor_template->GetFunction());
 }
@@ -67,6 +68,16 @@ void Program::Destructor() {
   #endif
   if(program) ::clReleaseProgram(program);
   program=0;
+}
+
+JS_METHOD(Program::release)
+{
+  HandleScope scope;
+  Program *prog = UnwrapThis<Program>(args);
+  
+  prog->Destructor();
+  
+  return Undefined();
 }
 
 JS_METHOD(Program::getInfo)

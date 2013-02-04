@@ -72,6 +72,8 @@ public:
   static JS_METHOD(getInfo);
   static JS_METHOD(getWorkGroupInfo);
   static JS_METHOD(setArg);
+  //
+  static JS_METHOD(release);
 
   cl_kernel getKernel() const { return kernel; };
   

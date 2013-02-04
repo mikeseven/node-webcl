@@ -44,7 +44,9 @@ public:
 
   static JS_METHOD(getInfo);
   static JS_METHOD(getGLObjectInfo);
-
+  // Patch
+  static JS_METHOD(release);
+  
   cl_mem getMemory() const { return memory; };
 
 private:

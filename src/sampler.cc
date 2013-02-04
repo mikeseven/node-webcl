@@ -46,6 +46,8 @@ void Sampler::Init(Handle<Object> target)
   constructor_template->SetClassName(String::NewSymbol("WebCLSampler"));
 
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getInfo", getInfo);
+  // Patch
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "release", release);
 
   target->Set(String::NewSymbol("WebCLSampler"), constructor_template->GetFunction());
 }
@@ -60,6 +62,16 @@ void Sampler::Destructor() {
   #endif
   if(sampler) ::clReleaseSampler(sampler);
   sampler=0;
+}
+
+JS_METHOD(Sampler::release)
+{
+  HandleScope scope;
+  Sampler *sampler = UnwrapThis<Sampler>(args);
+  
+  sampler->Destructor();
+  
+  return Undefined();
 }
 
 JS_METHOD(Sampler::getInfo)

@@ -53,6 +53,8 @@ void Kernel::Init(Handle<Object> target)
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getInfo", getInfo);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getWorkGroupInfo", getWorkGroupInfo);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_setArg", setArg);
+  // Patch
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_release", release);
 
   target->Set(String::NewSymbol("WebCLKernel"), constructor_template->GetFunction());
 }
@@ -67,6 +69,16 @@ void Kernel::Destructor() {
   #endif
   if(kernel) ::clReleaseKernel(kernel);
   kernel=0;
+}
+
+JS_METHOD(Kernel::release)
+{
+  HandleScope scope;
+  Kernel *kernel = UnwrapThis<Kernel>(args);
+  
+  kernel->Destructor();
+  
+  return Undefined();	
 }
 
 JS_METHOD(Kernel::getInfo)

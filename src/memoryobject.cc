@@ -46,6 +46,8 @@ void MemoryObject::Init(Handle<Object> target)
 
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getInfo", getInfo);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getGLObjectInfo", getGLObjectInfo);
+  // Patch
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_release", release);
 
   target->Set(String::NewSymbol("WebCLMemoryObject"), constructor_template->GetFunction());
 }
@@ -60,6 +62,16 @@ void MemoryObject::Destructor() {
   #endif
   if(memory) ::clReleaseMemObject(memory);
   memory=0;
+}
+
+JS_METHOD(MemoryObject::release)
+{
+  HandleScope scope;
+
+  MemoryObject *mo = ObjectWrap::Unwrap<MemoryObject>(args.This());
+  mo->Destructor();
+  
+  return Undefined();
 }
 
 JS_METHOD(MemoryObject::getInfo)

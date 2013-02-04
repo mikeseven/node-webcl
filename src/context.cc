@@ -64,6 +64,8 @@ void Context::Init(Handle<Object> target)
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_createFromGLTexture", createFromGLTexture);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_createFromGLRenderbuffer", createFromGLRenderbuffer);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getSupportedImageFormats", getSupportedImageFormats);
+  // Patch
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_release", release);
 
   target->Set(String::NewSymbol("WebCLContext"), constructor_template->GetFunction());
 }
@@ -79,6 +81,16 @@ void Context::Destructor()
   #endif
   if(context) ::clReleaseContext(context);
   context=0;
+}
+
+JS_METHOD(Context::release)
+{
+  HandleScope scope;
+  Context *context = UnwrapThis<Context>(args);
+  
+  context->Destructor();
+  
+  return Undefined();
 }
 
 JS_METHOD(Context::getInfo)
