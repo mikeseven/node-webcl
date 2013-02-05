@@ -100,9 +100,9 @@ cl.waitForEvents = function (events) {
   return _waitForEvents(events);
 }
 
-var _release = cl.release;
-cl.release = function () {
-  return _release();
+var _releaseAll = cl.releaseAll;
+cl.releaseAll = function () {
+  return _releaseAll();
 }
 
 //////////////////////////////

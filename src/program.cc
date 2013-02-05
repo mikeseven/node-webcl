@@ -75,7 +75,7 @@ JS_METHOD(Program::release)
   HandleScope scope;
   Program *prog = UnwrapThis<Program>(args);
   
-  prog->Destructor();
+  delete prog;
   
   return Undefined();
 }

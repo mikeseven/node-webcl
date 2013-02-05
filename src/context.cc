@@ -88,7 +88,7 @@ JS_METHOD(Context::release)
   HandleScope scope;
   Context *context = UnwrapThis<Context>(args);
   
-  context->Destructor();
+  delete context;
   
   return Undefined();
 }

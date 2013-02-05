@@ -119,7 +119,18 @@ JS_METHOD(CommandQueue::release)
   HandleScope scope;
   CommandQueue *cq = UnwrapThis<CommandQueue>(args);
   
-  cq->Destructor();
+  // Flush first
+  cl_int ret = ::clFlush(cq->getCommandQueue());
+
+  if (ret != CL_SUCCESS) {
+    REQ_ERROR_THROW(CL_INVALID_COMMAND_QUEUE);
+    REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+    return ThrowError("UNKNOWN ERROR");
+  }
+  
+  // cq->Destructor();
+  delete cq;
   
   return Undefined();
 }

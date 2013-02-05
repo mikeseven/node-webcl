@@ -196,7 +196,7 @@ createContext_After_cb(uv_async_t* handle, int status) {
   delete baton;
 }
 
-JS_METHOD(release) {
+JS_METHOD(releaseAll) {
 	HandleScope scope;
 	
 	AtExit();
