@@ -79,7 +79,7 @@ JS_METHOD(Event::release)
   HandleScope scope;
   Event *e = UnwrapThis<Event>(args);
   
-  delete e;
+  e->Destructor();
   
   return Undefined();
 }

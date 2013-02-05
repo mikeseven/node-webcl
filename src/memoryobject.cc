@@ -69,7 +69,7 @@ JS_METHOD(MemoryObject::release)
   HandleScope scope;
 
   MemoryObject *mo = ObjectWrap::Unwrap<MemoryObject>(args.This());
-  delete mo;
+  mo->Destructor();
   
   return Undefined();
 }
@@ -222,7 +222,7 @@ JS_METHOD(WebCLBuffer::release)
   HandleScope scope;
 
   MemoryObject *mo = (MemoryObject*) ObjectWrap::Unwrap<WebCLBuffer>(args.This());
-  delete mo;
+  mo->Destructor();
   
   return Undefined();
 }
@@ -317,7 +317,7 @@ JS_METHOD(WebCLImage::release)
   HandleScope scope;
 
   MemoryObject *mo = (MemoryObject*) ObjectWrap::Unwrap<WebCLImage>(args.This());
-  delete mo;
+  mo->Destructor();
   
   return Undefined();
 }

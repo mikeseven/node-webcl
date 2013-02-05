@@ -76,9 +76,9 @@ JS_METHOD(Kernel::release)
   HandleScope scope;
   Kernel *kernel = UnwrapThis<Kernel>(args);
   
-  delete kernel;
+  kernel->Destructor();
   
-  return Undefined();	
+  return Undefined();
 }
 
 JS_METHOD(Kernel::getInfo)

@@ -69,7 +69,7 @@ JS_METHOD(Sampler::release)
   HandleScope scope;
   Sampler *sampler = UnwrapThis<Sampler>(args);
   
-  delete sampler;
+  sampler->Destructor();
   
   return Undefined();
 }

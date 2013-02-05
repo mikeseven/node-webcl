@@ -73,7 +73,10 @@ void AtExit() {
       cout<<"  Flushing commandqueue"<<endl;
 #endif
       CommandQueue *queue=static_cast<CommandQueue*>(clo);
-      clFlush(queue->getCommandQueue());
+      // PATCH: Destroyed by release from JS
+      if ( queue->getCommandQueue() != NULL ) {
+	clFlush(queue->getCommandQueue());
+      }
     }
   }
 

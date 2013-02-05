@@ -129,8 +129,7 @@ JS_METHOD(CommandQueue::release)
     return ThrowError("UNKNOWN ERROR");
   }
   
-  // cq->Destructor();
-  delete cq;
+  cq->Destructor();
   
   return Undefined();
 }
