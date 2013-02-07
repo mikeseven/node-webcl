@@ -75,7 +75,7 @@ JS_METHOD(Program::release)
   HandleScope scope;
   Program *prog = UnwrapThis<Program>(args);
   
-  prog->Destructor();
+  DESTROY_WEBCL_OBJECT(prog);
   
   return Undefined();
 }

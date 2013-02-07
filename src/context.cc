@@ -88,7 +88,7 @@ JS_METHOD(Context::release)
   HandleScope scope;
   Context *context = UnwrapThis<Context>(args);
   
-  context->Destructor();
+  DESTROY_WEBCL_OBJECT(context);
   
   return Undefined();
 }

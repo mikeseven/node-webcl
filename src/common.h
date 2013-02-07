@@ -101,6 +101,11 @@ namespace {
 
 #define REQ_ERROR_THROW(error) if (ret == error) return ThrowException(Exception::Error(String::New(#error)));
 
+#define DESTROY_WEBCL_OBJECT(obj)	\
+  obj->Destructor();			\
+  unregisterCLObj(obj);
+  
+
 template <typename T>
 static T* UnwrapThis(const v8::Arguments& args) {
   return node::ObjectWrap::Unwrap<T>(args.This());

@@ -76,7 +76,7 @@ JS_METHOD(Kernel::release)
   HandleScope scope;
   Kernel *kernel = UnwrapThis<Kernel>(args);
   
-  kernel->Destructor();
+  DESTROY_WEBCL_OBJECT(kernel);
   
   return Undefined();
 }

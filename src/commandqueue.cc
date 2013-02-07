@@ -129,7 +129,7 @@ JS_METHOD(CommandQueue::release)
     return ThrowError("UNKNOWN ERROR");
   }
   
-  cq->Destructor();
+  DESTROY_WEBCL_OBJECT(cq);
   
   return Undefined();
 }
