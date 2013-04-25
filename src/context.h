@@ -53,6 +53,8 @@ public:
   static JS_METHOD(createFromGLBuffer);
   static JS_METHOD(createFromGLTexture);
   static JS_METHOD(createFromGLRenderbuffer);
+  // Patch
+  static JS_METHOD(release);
 
   cl_context getContext() const { return context; };
 

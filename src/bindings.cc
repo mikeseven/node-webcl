@@ -67,6 +67,7 @@ void init(Handle<Object> target)
   NODE_SET_METHOD(target, "getPlatforms", webcl::getPlatforms);
   NODE_SET_METHOD(target, "createContext", webcl::createContext);
   NODE_SET_METHOD(target, "waitForEvents", webcl::waitForEvents);
+  NODE_SET_METHOD(target, "releaseAll", webcl::releaseAll);
 
   webcl::CommandQueue::Init(target);
   webcl::Context::Init(target);

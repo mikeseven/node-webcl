@@ -49,6 +49,8 @@ void Event::Init(Handle<Object> target)
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getProfilingInfo", getProfilingInfo);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_setUserEventStatus", setUserEventStatus);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_setCallback", setCallback);
+  // Patch
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_release", release);
 
   // attributes
   constructor_template->InstanceTemplate()->SetAccessor(JS_STR("status"), GetStatus, NULL);
@@ -70,6 +72,16 @@ void Event::Destructor()
     ::clReleaseEvent(event);
   }
   event=0;
+}
+
+JS_METHOD(Event::release)
+{
+  HandleScope scope;
+  Event *e = UnwrapThis<Event>(args);
+  
+  DESTROY_WEBCL_OBJECT(e);
+  
+  return Undefined();
 }
 
 JS_METHOD(Event::getInfo)

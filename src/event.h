@@ -47,6 +47,8 @@ public:
   static JS_METHOD(getProfilingInfo);
   static JS_METHOD(setUserEventStatus);
   static JS_METHOD(setCallback);
+  //
+  static JS_METHOD(release);
 
   cl_event getEvent() const { return event; };
   void setEvent(cl_event e);

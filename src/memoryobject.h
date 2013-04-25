@@ -44,7 +44,9 @@ public:
 
   static JS_METHOD(getInfo);
   static JS_METHOD(getGLObjectInfo);
-
+  // Patch
+  static JS_METHOD(release);
+  
   cl_mem getMemory() const { return memory; };
 
 private:
@@ -62,7 +64,9 @@ public:
 
   static WebCLBuffer *New(cl_mem mw);
   static JS_METHOD(New);
-
+  // Patch
+  static JS_METHOD(release);
+  
   static JS_METHOD(createSubBuffer);
 
 private:
@@ -77,6 +81,8 @@ public:
 
   static WebCLImage *New(cl_mem mw);
   static JS_METHOD(New);
+  // Patch
+  static JS_METHOD(release);  
 
   static JS_METHOD(getInfo);
   static JS_METHOD(getGLTextureInfo);

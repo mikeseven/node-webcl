@@ -46,6 +46,8 @@ void MemoryObject::Init(Handle<Object> target)
 
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getInfo", getInfo);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getGLObjectInfo", getGLObjectInfo);
+  // Patch
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_release", release);
 
   target->Set(String::NewSymbol("WebCLMemoryObject"), constructor_template->GetFunction());
 }
@@ -60,6 +62,16 @@ void MemoryObject::Destructor() {
   #endif
   if(memory) ::clReleaseMemObject(memory);
   memory=0;
+}
+
+JS_METHOD(MemoryObject::release)
+{
+  HandleScope scope;
+
+  MemoryObject *mo = ObjectWrap::Unwrap<MemoryObject>(args.This());
+  DESTROY_WEBCL_OBJECT(mo);
+  
+  return Undefined();
 }
 
 JS_METHOD(MemoryObject::getInfo)
@@ -196,12 +208,23 @@ void WebCLBuffer::Init(Handle<Object> target)
   constructor_template->SetClassName(String::NewSymbol("WebCLBuffer"));
 
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_createSubBuffer", createSubBuffer);
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_release", release);
 
   target->Set(String::NewSymbol("WebCLBuffer"), constructor_template->GetFunction());
 }
 
 WebCLBuffer::WebCLBuffer(Handle<Object> wrapper) : MemoryObject(wrapper)
 {
+}
+
+JS_METHOD(WebCLBuffer::release)
+{
+  HandleScope scope;
+
+  MemoryObject *mo = (MemoryObject*) ObjectWrap::Unwrap<WebCLBuffer>(args.This());
+  DESTROY_WEBCL_OBJECT(mo);
+  
+  return Undefined();
 }
 
 // CL 1.1
@@ -280,12 +303,23 @@ void WebCLImage::Init(Handle<Object> target)
 
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getInfo", getInfo);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getGLTextureInfo", getGLTextureInfo);
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_release", release);
 
   target->Set(String::NewSymbol("WebCLImage"), constructor_template->GetFunction());
 }
 
 WebCLImage::WebCLImage(Handle<Object> wrapper) : MemoryObject(wrapper)
 {
+}
+
+JS_METHOD(WebCLImage::release)
+{
+  HandleScope scope;
+
+  MemoryObject *mo = (MemoryObject*) ObjectWrap::Unwrap<WebCLImage>(args.This());
+  DESTROY_WEBCL_OBJECT(mo);
+  
+  return Undefined();
 }
 
 JS_METHOD(WebCLImage::getInfo)

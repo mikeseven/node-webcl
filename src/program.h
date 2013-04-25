@@ -46,6 +46,8 @@ public:
   static JS_METHOD(getBuildInfo);
   static JS_METHOD(build);
   static JS_METHOD(createKernel);
+  // Patch
+  static JS_METHOD(release);
 
   cl_program getProgram() const { return program; };
 

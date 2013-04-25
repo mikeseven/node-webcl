@@ -86,6 +86,8 @@ void CommandQueue::Init(Handle<Object> target)
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_finish", finish);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_enqueueAcquireGLObjects", enqueueAcquireGLObjects);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_enqueueReleaseGLObjects", enqueueReleaseGLObjects);
+  // Patch
+  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_release", release);
 
   target->Set(String::NewSymbol("WebCLCommandQueue"), constructor_template->GetFunction());
 }
@@ -110,6 +112,26 @@ void CommandQueue::Destructor() {
 #endif
     }
   command_queue=0;
+}
+
+JS_METHOD(CommandQueue::release)
+{
+  HandleScope scope;
+  CommandQueue *cq = UnwrapThis<CommandQueue>(args);
+  
+  // Flush first
+  cl_int ret = ::clFlush(cq->getCommandQueue());
+
+  if (ret != CL_SUCCESS) {
+    REQ_ERROR_THROW(CL_INVALID_COMMAND_QUEUE);
+    REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+    return ThrowError("UNKNOWN ERROR");
+  }
+  
+  DESTROY_WEBCL_OBJECT(cq);
+  
+  return Undefined();
 }
 
 JS_METHOD(CommandQueue::getInfo)

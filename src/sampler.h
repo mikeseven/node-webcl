@@ -43,6 +43,8 @@ public:
   static JS_METHOD(New);
 
   static JS_METHOD(getInfo);
+  // Patch
+  static JS_METHOD(release);
 
   cl_sampler getSampler() const { return sampler; };
 

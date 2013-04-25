@@ -73,7 +73,10 @@ void AtExit() {
       cout<<"  Flushing commandqueue"<<endl;
 #endif
       CommandQueue *queue=static_cast<CommandQueue*>(clo);
-      clFlush(queue->getCommandQueue());
+      // PATCH: Destroyed by release from JS
+      if ( queue->getCommandQueue() != NULL ) {
+	clFlush(queue->getCommandQueue());
+      }
     }
   }
 
@@ -194,6 +197,15 @@ createContext_After_cb(uv_async_t* handle, int status) {
   baton->parent.Dispose();
   if(baton->error_msg) free(baton->error_msg);
   delete baton;
+}
+
+JS_METHOD(releaseAll) {
+	HandleScope scope;
+	
+	AtExit();
+	atExit=true;
+
+	return Undefined();
 }
 
 JS_METHOD(createContext) {
@@ -396,5 +408,7 @@ JS_METHOD(waitForEvents) {
 
   return Undefined();
 }
+
+
 
 }
