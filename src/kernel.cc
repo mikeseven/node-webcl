@@ -212,7 +212,7 @@ JS_METHOD(Kernel::setArg)
 
   Kernel *kernel = UnwrapThis<Kernel>(args);
   cl_uint arg_index = args[0]->Uint32Value();
-  cl_int ret;
+  cl_int ret=CL_SUCCESS;
 
   if(!args[1]->IsArray() && args[1]->IsObject()) {
     String::AsciiValue str(args[1]->ToObject()->GetPrototype()->ToDetailString());

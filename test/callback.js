@@ -151,7 +151,7 @@ function read_complete(event, data) {
 
   /* Create a command queue */
   try {
-    queue = context.createCommandQueue(device, 0);
+    queue = context.createCommandQueue(device,0);
   } catch(ex) {
     log("Couldn't create a command queue. "+ex);
     exit(1);   

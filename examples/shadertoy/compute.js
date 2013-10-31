@@ -197,6 +197,7 @@ function Compute() {
     var gl=gfx.gl();
     
     // Create OpenCL representation of OpenGL Texture
+    if(clTexture) clTexture.release();
     clTexture = null;
     try {
       clTexture = clContext.createFromGLTexture(WebCL.MEM_WRITE_ONLY,

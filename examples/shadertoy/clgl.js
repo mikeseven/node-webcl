@@ -44,8 +44,8 @@ if(nodejs) {
 log = console.log;
 requestAnimationFrame = document.requestAnimationFrame;
 
-//var COMPUTE_KERNEL_ID = "704.cl";
-var COMPUTE_KERNEL_ID = argv.kernel || "mandelbulb_AoS.cl";
+var COMPUTE_KERNEL_ID = "704.cl";
+//var COMPUTE_KERNEL_ID = argv.kernel || "mandelbulb_AoS.cl";
 //var COMPUTE_KERNEL_ID = "qjulia.cl";
 //var COMPUTE_KERNEL_ID = "droplet2d.cl";
 //var COMPUTE_KERNEL_ID = "droplet3d.cl";
@@ -61,16 +61,17 @@ var cango=false;
  * reshape() is called if document is resized
  */
 function reshape(evt) {
-  Width = evt.width;
-  Height = evt.height;
-  Reshaped = true;
+    Width = evt.width;
+    Height = evt.height;
+    Reshaped = true;
+    log('reshape texture to '+Width+'x'+Height);
 }
 
 function keydown(evt) {
   //log('process key: ' + evt.which);
 
-  //Update = true;
-  cango=true;
+  Update = true;
+  //cango=true;
 }
 
 
@@ -119,13 +120,13 @@ function keydown(evt) {
    
     // reinit shared data if document is resized
     if (Reshaped) {
-      log('reshaping texture');
+      log('reshaping texture to '+Width+'x'+Height);
       try {
         var glTexture=gfx.configure_shared_data(Width,Height);
         var clTexture=compute.configure_shared_data(gfx, glTexture);
         Reshaped=false;
       }
-      catch(err) {
+      catch(ex) {
         log('[Error] While reshaping shared data: '+ex);
         return;
       }
@@ -153,9 +154,9 @@ function keydown(evt) {
     }
     
     //gfx.gl().flush(); // for timing
-    if(!cango)
-      startTime=-1;
-    requestAnimationFrame(update,cango ? 0 : 5000);
+    //if(!cango)
+    //  startTime=-1;
+    requestAnimationFrame(update /*,cango ? 0 : 5000*/);
   })();
 })();
 

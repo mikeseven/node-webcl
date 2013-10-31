@@ -240,7 +240,9 @@ JS_METHOD(Context::createCommandQueue)
   cl_command_queue_properties properties = args[1]->IsUndefined() ? 0 : args[1]->Uint32Value();
 
   cl_int ret=CL_SUCCESS;
+  //printf("context = %p device=%p properties %llu\n",context->getContext(),device,properties);
   cl_command_queue cw = ::clCreateCommandQueue(context->getContext(), device, properties, &ret);
+  //printf("clCreateCommandQueue ret=0x%x\n",ret);
 
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(CL_INVALID_CONTEXT);

@@ -131,7 +131,7 @@ function Graphics() {
   
    gl.disable(gl.DEPTH_TEST);
    gl.disable(gl.CULL_FACE);
-   //gl.clear(gl.COLOR_BUFFER_BIT);
+   //gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
    
    gl.enable(gl.TEXTURE_2D);
    gl.bindTexture(gl.TEXTURE_2D, TextureId);

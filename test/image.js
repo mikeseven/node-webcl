@@ -527,7 +527,7 @@ function execute_kernel() {
   ComputeCommands.enqueueAcquireGLObjects(ComputePBO);
 
   // Set global and local work sizes for row kernel
-  var local = [ 32, max_workgroup_size/32 ];
+  var local = [ 16, max_workgroup_size/16 ];
   var global = [ clu.DivUp(TextureWidth, local[0]) * local[0],
                  clu.DivUp(TextureHeight, local[1]) * local[1] ];
 
