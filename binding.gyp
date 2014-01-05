@@ -3,10 +3,9 @@
     {
       'target_name': 'webcl',
       'defines': [
-        'VERSION=0.6.0',
-        'LOGGING'
+        'VERSION=0.6.0'
       ],
-      'sources': [ 
+      'sources': [
         'src/bindings.cc',
         'src/commandqueue.cc',
         'src/context.cc',
@@ -40,7 +39,7 @@
             'VC_EXTRALEAN',
            ],
           'cflags' : [
-            '/Ox','/Ob2','/Oi','/Ot','/Oy','/GL','/GF','/Gm-','/EHsc','/MT','/GS','/Gy','/GR-','/Gd','/wd"4530"','/wd"4251"' 
+            '/Ox','/Ob2','/Oi','/Ot','/Oy','/GL','/GF','/Gm-','/EHsc','/MT','/GS','/Gy','/GR-','/Gd','/wd"4530"','/wd"4251"'
           ],
           'ldflags' : [
             '/OPT:REF','/OPT:ICF','/LTCG'
