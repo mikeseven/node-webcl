@@ -1,6 +1,6 @@
 {
   "name":"node-webcl",
-  "version":"0.6.1",
+  "version":"0.6.2",
   "description":"A WebCL implementation for desktops with NodeJS",
   "main":"webcl.js",
   "author":"Mikael Bourges-Sevenier <msevenier@motorola.com>",
@@ -36,7 +36,7 @@
     "install":"node-gyp rebuild"
   },
   "dependencies":{
-    "node-webgl" : ""
+    "node-webgl" : "0.2.0"
   }
 }
 
