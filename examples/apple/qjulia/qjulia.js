@@ -90,7 +90,8 @@ function CLGL() {
   var ActiveTextureUnit;
   var HostImageBuffer             = 0;
   var twBar;
-  
+  var canvas;
+
   var VertexPos = [ 
      -1, -1,
       1, -1,
@@ -106,7 +107,7 @@ function CLGL() {
     initialize: function(device_type) {
       log('Initializing');
       document.setTitle("fbo");
-      var canvas = document.createElement("fbo-canvas", Width, Height);
+      canvas = document.createElement("fbo-canvas", Width, Height);
       
       // install UX callbacks
       document.addEventListener('resize', this.reshape);
@@ -307,7 +308,7 @@ function CLGL() {
 
       gl.disable(gl.DEPTH_TEST);
       gl.activeTexture(gl.TEXTURE0);
-      gl.viewport(0, 0, Width, Height);
+      gl.viewport(0, 0, canvas.width,canvas.height);
       
       gl.activeTexture(gl.TEXTURE0);
       return WebCL.SUCCESS;
@@ -497,9 +498,9 @@ function CLGL() {
     },
     shutdown: function()
     {
-        log("Shutting down...");
-        this.cleanup();
-        process.exit(0);
+      log("Shutting down...");
+      this.cleanup();
+      process.exit(0);
     },
     
 	/* Before calling AntTweakBar or any other library that could use programs,
@@ -508,17 +509,17 @@ function CLGL() {
 	 * wrong vertex attrib arrays being used by another program!
 	 */
 	drawATB: function() {
-  	  gl.disableVertexAttribArray(shaderProgram.vertexPositionAttribute);
-  	  gl.disableVertexAttribArray(shaderProgram.textureCoordAttribute);
-  	  gl.useProgram(null);
+	  gl.disableVertexAttribArray(shaderProgram.vertexPositionAttribute);
+	  gl.disableVertexAttribArray(shaderProgram.textureCoordAttribute);
+	  gl.useProgram(null);
 	  gl.bindBuffer(gl.ARRAY_BUFFER, null);
 	  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
 
 	  ATB.Draw();
 
 	  gl.useProgram(shaderProgram);
-      gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
-      gl.enableVertexAttribArray(shaderProgram.textureCoordAttribute);
+    gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
+    gl.enableVertexAttribArray(shaderProgram.textureCoordAttribute);
 	},
 
     // /////////////////////////////////////////////////////////////////////
@@ -539,10 +540,12 @@ function CLGL() {
           this.cleanup();
           Width=newWidth;
           Height=newHeight;
+          ATB.Terminate();
+          this.initAntTweakBar(canvas);
           if(this.initialize(ComputeDeviceType == WebCL.DEVICE_TYPE_GPU) != WebCL.SUCCESS)
             this.shutdown();
         }
-        gl.viewport(0, 0, newWidth, newHeight);
+        gl.viewport(0, 0, canvas.width, canvas.height);
         gl.clear(gl.COLOR_BUFFER_BIT);
       }
       
@@ -579,7 +582,7 @@ function CLGL() {
     {
       newWidth=evt.width;
       newHeight=evt.height;
-      //log("reshape to "+w+'x'+h);
+      log("reshape to "+newWidth+'x'+newHeight);
       Reshaped=true;
     },
 
@@ -787,7 +790,7 @@ function CLGL() {
     initAntTweakBar: function (canvas) {
       ATB.Init();
       ATB.Define(" GLOBAL help='Quaternion Julia using WebCL.' "); // Message added to the help bar.
-      ATB.WindowSize(Width,Height);
+      ATB.WindowSize(canvas.width,canvas.height);
 
       twBar=new ATB.NewBar("qjulia");
       twBar.AddVar("epsilon", ATB.TYPE_FLOAT, {

@@ -65,21 +65,35 @@ function main() {
   /* Create a device and context */
   log('creating context');
   
-  //Pick platform
-  var platformList=WebCL.getPlatforms();
-  platform=platformList[0];
-  log('using platform: '+platform.getInfo(WebCL.PLATFORM_NAME));
+  // //Pick platform
+  // var platformList=WebCL.getPlatforms();
+  // platform=platformList[0];
+  // log('using platform: '+platform.getInfo(WebCL.PLATFORM_NAME));
   
-  //Query the set of devices on this platform
-  var devices = platform.getDevices(WebCL.DEVICE_TYPE_DEFAULT);
-  device=devices[0];
-  log('using device: '+device.getInfo(WebCL.DEVICE_NAME));
+  // //Query the set of devices on this platform
+  // var devices = platform.getDevices(WebCL.DEVICE_TYPE_DEFAULT);
+  // device=devices[0];
+  // log('using device: '+device.getInfo(WebCL.DEVICE_NAME));
 
-  // create GPU context for this platform
-  var context=WebCL.createContext({
-    devices: device, 
-    platform: platform
-  });
+  // // create GPU context for this platform
+  // var context=WebCL.createContext({
+  //   devices: device, 
+  //   platform: platform
+  // });
+
+  var context=null;
+  try {
+    context=WebCL.createContext({
+      deviceType: WebCL.DEVICE_TYPE_ALL, 
+    });
+  }
+  catch(ex) {
+    throw new Exception("Can't create CL context");
+  }
+
+  var devices=context.getInfo(WebCL.CONTEXT_DEVICES);
+  log("Found "+devices.length+" devices");
+  var device=devices[0];
 
   /* Build the program and create a kernel */
   var source = [

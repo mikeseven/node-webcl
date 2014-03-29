@@ -58,7 +58,13 @@ function VectorAdd() {
 
   //Query the set of devices on this platform
   devices = platform.getDevices(WebCL.DEVICE_TYPE_DEFAULT);
-  log('using device: '+devices[0].getInfo(WebCL.DEVICE_NAME));
+  log("  # of Devices Available = " + devices.length);
+  var device = devices[0];
+  log("  Using Device 0: " + device.getInfo(WebCL.DEVICE_NAME)+" from "+device.getInfo(WebCL.DEVICE_VENDOR));
+  if(device.getInfo(WebCL.DEVICE_VENDOR).indexOf("Intel")>=0) {
+    device = devices[1];
+    log("  Using Device 1: " + device.getInfo(WebCL.DEVICE_NAME)+" from "+device.getInfo(WebCL.DEVICE_VENDOR));
+  }
 
   // create GPU context for this platform
   context=WebCL.createContext({
@@ -88,11 +94,11 @@ function VectorAdd() {
     kernel= program.createKernel("vadd");
   }
   catch(err) {
-    console.log(program.getBuildInfo(devices[0],WebCL.PROGRAM_BUILD_LOG));
+    console.log(program.getBuildInfo(device,WebCL.PROGRAM_BUILD_LOG));
   }
   
   //Create command queue
-  queue=context.createCommandQueue(devices[0], 0);
+  queue=context.createCommandQueue(device, 0);
 
   //Create buffer for A and copy host contents
   aBuffer = context.createBuffer(WebCL.MEM_READ_ONLY, size);
@@ -155,7 +161,7 @@ function VectorAdd() {
 
   queue.enqueueUnmapMemObject(cBuffer, map);
   
-  queue.finish (); //Finish all the operations
+  queue.finish(); //Finish all the operations
 
   printResults(A,B,C);
 }

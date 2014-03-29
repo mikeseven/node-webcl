@@ -176,7 +176,7 @@ function Compute() {
       clKernel.setArg(0, clTexture);
       clKernel.setArg(1, time, WebCL.type.FLOAT);
     } catch (err) {
-      throw "Failed to set row kernel args! " + err;
+      throw "Failed to set kernel args! " + err;
     }
   }
 
@@ -220,15 +220,16 @@ function Compute() {
     clQueue.enqueueAcquireGLObjects(clTexture);
 
     // Set global and local work sizes for kernel
-    var local = [];
-    local[0] = warp_size;
-    local[1] = max_workgroup_size / local[0];
-    var global = [ clu.DivUp(TextureWidth, local[0]) * local[0],
-                   clu.DivUp(TextureHeight, local[1]) * local[1] ];
+    // doesn't work well on non-power-of-2 sizes on NVidia?
+    // var local = [];
+    // local[0] = warp_size;
+    // local[1] = max_workgroup_size / local[0];
+    // var global = [ clu.DivUp(TextureWidth, local[0]) * local[0],
+    //                clu.DivUp(TextureHeight, local[1]) * local[1] ];
 
     // default values
-    //var local = null;
-    //var global = [ TextureWidth, TextureHeight ];
+    var local = null;
+    var global = [ TextureWidth, TextureHeight ];
 
     try {
       clQueue.enqueueNDRangeKernel(clKernel, null, global, local);

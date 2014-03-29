@@ -76,11 +76,12 @@ var TextureId = null;
 var TextureWidth = WIDTH;
 var TextureHeight = HEIGHT;
 var VertexPosBuffer, TexCoordsBuffer;
+var canvas;
 
 function initialize(device_type) {
   log('Initializing');
   document.setTitle("OpenCL GPU BoxFilter Demo");
-  var canvas = document.createElement("fbo-canvas", Width, Height);
+  canvas = document.createElement("fbo-canvas", Width, Height);
 
   // install UX callbacks
   document.addEventListener('resize', reshape);
@@ -298,7 +299,7 @@ function init_gl(canvas) {
 
 function renderTexture() {
   // we just draw a screen-aligned texture
-  gl.viewport(0, 0, Width, Height);
+  gl.viewport(0, 0, canvas.width, canvas.height);
 
   gl.enable(gl.TEXTURE_2D);
   gl.bindTexture(gl.TEXTURE_2D, TextureId);
@@ -552,7 +553,7 @@ function display(timestamp) {
     cleanup();
     if (initialize(ComputeDeviceType == WebCL.DEVICE_TYPE_GPU) != WebCL.SUCCESS)
       shutdown();
-    gl.viewport(0, 0, Width, Height);
+    gl.viewport(0, 0, canvas.width, canvas.height);
     gl.clear(gl.COLOR_BUFFER_BIT);
   }
 

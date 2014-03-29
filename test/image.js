@@ -68,11 +68,12 @@ var TextureId = null;
 var TextureWidth = WIDTH;
 var TextureHeight = HEIGHT;
 var VertexPosBuffer, TexCoordsBuffer;
+var canvas;
 
 function initialize() {
   log('Initializing');
   document.setTitle("Test Image2D creation from GL");
-  var canvas = document.createElement("mycanvas", Width, Height);
+  canvas = document.createElement("mycanvas", Width, Height);
 
   // install UX callbacks
   document.addEventListener('resize', reshape);
@@ -453,7 +454,7 @@ function display(timestamp) {
   }
 
   // we just draw a screen-aligned texture
-  gl.viewport(0, 0, Width, Height);
+  gl.viewport(0, 0, canvas.width, canvas.height);
 
   gl.enable(gl.TEXTURE_2D);
   gl.bindTexture(gl.TEXTURE_2D, TextureId);
@@ -477,7 +478,7 @@ function display(timestamp) {
 
   //reportInfo();
 
-  gl.finish(); // for timing
+  // gl.finish(); // for timing
 
   //var uiEndTime = new Date().getTime();
   //ReportStats(uiStartTime, uiEndTime);
@@ -527,9 +528,11 @@ function execute_kernel() {
   ComputeCommands.enqueueAcquireGLObjects(ComputePBO);
 
   // Set global and local work sizes for row kernel
-  var local = [ 16, max_workgroup_size/16 ];
-  var global = [ clu.DivUp(TextureWidth, local[0]) * local[0],
-                 clu.DivUp(TextureHeight, local[1]) * local[1] ];
+  // var local = [ 16, max_workgroup_size/16 ];
+  // var global = [ clu.DivUp(TextureWidth, local[0]) * local[0],
+  //                clu.DivUp(TextureHeight, local[1]) * local[1] ];
+  var local = null;
+  var global = [ TextureWidth, TextureHeight ];
 
   try {
     ComputeCommands.enqueueNDRangeKernel(ckCompute, null, global, local);

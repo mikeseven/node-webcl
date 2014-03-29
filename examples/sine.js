@@ -116,7 +116,11 @@ function main() {
   cdDevices = cpPlatform.getDevices(WebCL.DEVICE_TYPE_DEFAULT);
   log("  # of Devices Available = " + cdDevices.length);
   var device = cdDevices[0];
-  log("  Using Device 0: " + device.getInfo(WebCL.DEVICE_NAME));
+  log("  Using Device 0: " + device.getInfo(WebCL.DEVICE_NAME)+" from "+device.getInfo(WebCL.DEVICE_VENDOR));
+  if(device.getInfo(WebCL.DEVICE_VENDOR).indexOf("Intel")>=0) {
+    device = cdDevices[1];
+    log("  Using Device 1: " + device.getInfo(WebCL.DEVICE_NAME)+" from "+device.getInfo(WebCL.DEVICE_VENDOR));
+  }
 
   // get CL-GL extension
   var extensions = device.getInfo(WebCL.DEVICE_EXTENSIONS);
@@ -266,7 +270,7 @@ function initGL() {
   gl.disable(gl.DEPTH_TEST);
 
   // viewport
-  gl.viewport(0, 0, window_width, window_height);
+  gl.viewport(0, 0, canvas.width, canvas.height);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
   // projection
