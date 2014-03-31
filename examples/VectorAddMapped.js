@@ -52,25 +52,44 @@ function VectorAdd() {
     C[i] = 0;
   }
 
-  //Pick platform
-  var platformList=WebCL.getPlatforms();
-  platform=platformList[0];
+  // //Pick platform
+  // var platformList=WebCL.getPlatforms();
+  // platform=platformList[0];
 
-  //Query the set of devices on this platform
-  devices = platform.getDevices(WebCL.DEVICE_TYPE_DEFAULT);
-  log("  # of Devices Available = " + devices.length);
+  // //Query the set of devices on this platform
+  // devices = platform.getDevices(WebCL.DEVICE_TYPE_DEFAULT);
+  // log("  # of Devices Available = " + devices.length);
+  // var device = devices[0];
+  // log("  Using Device 0: " + device.getInfo(WebCL.DEVICE_NAME)+" from "+device.getInfo(WebCL.DEVICE_VENDOR));
+  // if(device.getInfo(WebCL.DEVICE_VENDOR).indexOf("Intel")>=0) {
+  //   device = devices[1];
+  //   log("  Using Device 1: " + device.getInfo(WebCL.DEVICE_NAME)+" from "+device.getInfo(WebCL.DEVICE_VENDOR));
+  // }
+
+  // // create GPU context for this platform
+  // context=WebCL.createContext({
+	 //  deviceType: WebCL.DEVICE_TYPE_DEFAULT, 
+	 //  platform: platform
+  // });
+
+  var context=null;
+  try {
+    context=WebCL.createContext({
+      deviceType: WebCL.DEVICE_TYPE_ALL, 
+    });
+  }
+  catch(ex) {
+    throw new Exception("Can't create CL context");
+  }
+
+  var devices=context.getInfo(WebCL.CONTEXT_DEVICES);
+  log("Found "+devices.length+" devices");
   var device = devices[0];
   log("  Using Device 0: " + device.getInfo(WebCL.DEVICE_NAME)+" from "+device.getInfo(WebCL.DEVICE_VENDOR));
   if(device.getInfo(WebCL.DEVICE_VENDOR).indexOf("Intel")>=0) {
     device = devices[1];
     log("  Using Device 1: " + device.getInfo(WebCL.DEVICE_NAME)+" from "+device.getInfo(WebCL.DEVICE_VENDOR));
   }
-
-  // create GPU context for this platform
-  context=WebCL.createContext({
-	  deviceType: WebCL.DEVICE_TYPE_DEFAULT, 
-	  platform: platform
-  });
 
   kernelSourceCode = [
 "__kernel void vadd(__global int *a, __global int *b, __global int *c, uint iNumElements) ",
@@ -101,27 +120,13 @@ function VectorAdd() {
   queue=context.createCommandQueue(device, 0);
 
   //Create buffer for A and copy host contents
-  aBuffer = context.createBuffer(WebCL.MEM_READ_ONLY, size);
-  map=queue.enqueueMapBuffer(aBuffer, WebCL.TRUE, WebCL.MAP_WRITE, 0, BUFFER_SIZE * Uint32Array.BYTES_PER_ELEMENT);
-  
-  // WARNING: this feature for typed arrays is only in nodejs 0.7.x
-  var buf=new Uint32Array(map);
-  for(var i=0;i<BUFFER_SIZE;i++) {
-    buf.set(i, A[i]);
-  }
-  queue.enqueueUnmapMemObject(aBuffer, map);
+  aBuffer = context.createBuffer(WebCL.MEM_READ_ONLY | WebCL.MEM_COPY_HOST_PTR, size, A);
 
   //Create buffer for B and copy host contents
-  bBuffer = context.createBuffer(WebCL.MEM_READ_ONLY, size);
-  map=queue.enqueueMapBuffer(bBuffer, WebCL.TRUE, WebCL.MAP_WRITE, 0, BUFFER_SIZE * Uint32Array.BYTES_PER_ELEMENT);
-  buf=new Uint32Array(map);
-  for(var i=0;i<BUFFER_SIZE;i++) {
-    buf[i]=B[i];
-  }
-  queue.enqueueUnmapMemObject(bBuffer, map);
+  bBuffer = context.createBuffer(WebCL.MEM_READ_ONLY | WebCL.MEM_COPY_HOST_PTR, size, B);
 
   //Create buffer for that uses the host ptr C
-  cBuffer = context.createBuffer(WebCL.MEM_READ_WRITE, size);
+  cBuffer = context.createBuffer(WebCL.MEM_WRITE_ONLY | WebCL.MEM_COPY_HOST_PTR, size, C);
 
   //Set kernel args
   kernel.setArg(0, aBuffer);
@@ -130,8 +135,10 @@ function VectorAdd() {
   kernel.setArg(3, BUFFER_SIZE, WebCL.type.UINT);
 
   // Execute the OpenCL kernel on the list
-  var localWS = [5]; // process one list at a time
-  var globalWS = [clu.roundUp(localWS, BUFFER_SIZE)]; // process entire list
+  // var localWS = [5]; // process one list at a time
+  // var globalWS = [clu.roundUp(localWS, BUFFER_SIZE)]; // process entire list
+  var localWS=null;
+  var globalWS=[BUFFER_SIZE];
 
   log("Global work item size: " + globalWS);
   log("Local work item size: " + localWS);
@@ -147,21 +154,22 @@ function VectorAdd() {
   log("using enqueueMapBuffer");
   // Map cBuffer to host pointer. This enforces a sync with 
   // the host backing space, remember we choose GPU device.
-  map=queue.enqueueMapBuffer(
+  var map=queue.enqueueMapBuffer(
       cBuffer,
       WebCL.TRUE, // block 
       WebCL.MAP_READ,
       0,
       BUFFER_SIZE * Uint32Array.BYTES_PER_ELEMENT);
 
-  buf=new Uint32Array(map);
-  for(var i=0;i<BUFFER_SIZE;i++) {
-    C[i]=buf[i];
+  var output = "\nC = ";
+  for (var i = 0; i < BUFFER_SIZE; i++) {
+    output += map[i] + ", ";
   }
+  log(output);
 
   queue.enqueueUnmapMemObject(cBuffer, map);
   
-  queue.finish(); //Finish all the operations
+  // queue.finish(); //Finish all the operations
 
   printResults(A,B,C);
 }

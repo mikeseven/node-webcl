@@ -1100,6 +1100,13 @@ JS_METHOD(CommandQueue::enqueueMapBuffer)
     return ThrowError("UNKNOWN ERROR");
   }
 
+  printf("\nmapbuffer = ");
+  for (int i = 0; i < size/sizeof(int); ++i)
+  {
+    printf("%d ",((int*) result)[i]);
+  }
+  printf("\n");
+
   // wrap OpenCL result buffer into a node Buffer
   node::Buffer *buf=node::Buffer::New((char*) result,size, free_callback,
   NULL);
