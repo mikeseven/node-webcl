@@ -269,14 +269,17 @@ JS_METHOD(Context::createBuffer)
       Local<Array> arr=Array::Cast(*args[2]);
       host_ptr=arr->GetIndexedPropertiesExternalArrayData();
     }
-    else if(args[2]->IsObject())
+    else if(args[2]->IsObject()) {
       host_ptr=args[2]->ToObject()->GetIndexedPropertiesExternalArrayData();
+      printf("CreateBuffer host_ptr %p\n",host_ptr);
+    }
     else
       ThrowError("Invalid memory object");
   }
 
   cl_int ret=CL_SUCCESS;
   cl_mem mw = ::clCreateBuffer(context->getContext(), flags, size, host_ptr, &ret);
+  printf("cl_mem %p\n",mw);
 
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(CL_INVALID_VALUE);

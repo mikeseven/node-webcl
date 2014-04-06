@@ -1100,7 +1100,7 @@ JS_METHOD(CommandQueue::enqueueMapBuffer)
     return ThrowError("UNKNOWN ERROR");
   }
 
-  printf("\nmapbuffer = ");
+  printf("\nmapbuffer %p = ",mo->getMemory());
   for (int i = 0; i < size/sizeof(int); ++i)
   {
     printf("%d ",((int*) result)[i]);
@@ -1108,8 +1108,13 @@ JS_METHOD(CommandQueue::enqueueMapBuffer)
   printf("\n");
 
   // wrap OpenCL result buffer into a node Buffer
+  // WARNING: make sure result is shared not copied, otherwise unmapBuffer won't work
   node::Buffer *buf=node::Buffer::New((char*) result,size, free_callback,
   NULL);
+  printf("result %p, wrapped data %p\n", result, node::Buffer::Data(buf));
+  if(node::Buffer::Data(buf) != result) {
+    printf("Error: data buffer has been copied\n");
+  }
 
   if(!no_event) {
     Event *e=ObjectWrap::Unwrap<Event>(args[6]->ToObject());
@@ -1207,12 +1212,25 @@ JS_METHOD(CommandQueue::enqueueUnmapMemObject)
   cl_event event;
   bool no_event = (args[3]->IsUndefined() || args[3]->IsNull());
 
+  printf("wrapped data %p, memobject %p\n", node::Buffer::Data(buf),mo->getMemory());
+  printf("Before Unmap: ");
+  for(int i=0;i<10;i++) {
+    printf("%d ",((int*)node::Buffer::Data(buf))[i]);
+  }
+  printf("\n");
+
   cl_int ret=::clEnqueueUnmapMemObject(
       cq->getCommandQueue(), mo->getMemory(),
       node::Buffer::Data(buf),
       num_events_wait_list,
       events_wait_list,
       no_event ? NULL : &event);
+
+  printf("After Unmap: ");
+  for(int i=0;i<10;i++) {
+    printf("%d ",((int*)node::Buffer::Data(buf))[i]);
+  }
+  printf("\n");
 
   if(events_wait_list) delete[] events_wait_list;
 

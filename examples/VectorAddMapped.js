@@ -53,29 +53,15 @@ function VectorAdd() {
   }
 
   // //Pick platform
-  // var platformList=WebCL.getPlatforms();
-  // platform=platformList[0];
+  var platformList=WebCL.getPlatforms();
+  platform=platformList[0];
 
-  // //Query the set of devices on this platform
-  // devices = platform.getDevices(WebCL.DEVICE_TYPE_DEFAULT);
-  // log("  # of Devices Available = " + devices.length);
-  // var device = devices[0];
-  // log("  Using Device 0: " + device.getInfo(WebCL.DEVICE_NAME)+" from "+device.getInfo(WebCL.DEVICE_VENDOR));
-  // if(device.getInfo(WebCL.DEVICE_VENDOR).indexOf("Intel")>=0) {
-  //   device = devices[1];
-  //   log("  Using Device 1: " + device.getInfo(WebCL.DEVICE_NAME)+" from "+device.getInfo(WebCL.DEVICE_VENDOR));
-  // }
-
-  // // create GPU context for this platform
-  // context=WebCL.createContext({
-	 //  deviceType: WebCL.DEVICE_TYPE_DEFAULT, 
-	 //  platform: platform
-  // });
-
+  // create GPU context for this platform
   var context=null;
   try {
     context=WebCL.createContext({
-      deviceType: WebCL.DEVICE_TYPE_ALL, 
+      deviceType: WebCL.DEVICE_TYPE_GPU, 
+      platform: platform
     });
   }
   catch(ex) {
@@ -106,7 +92,7 @@ function VectorAdd() {
   //Build program
   program.build(devices,"");
 
-  size=BUFFER_SIZE*Uint32Array.BYTES_PER_ELEMENT; // size in bytes
+  var size=BUFFER_SIZE*Uint32Array.BYTES_PER_ELEMENT; // size in bytes
   
   //Create kernel object
   try {
@@ -149,8 +135,6 @@ function VectorAdd() {
       globalWS,
       localWS);
   
-  //printResults(A,B,C);
-
   log("using enqueueMapBuffer");
   // Map cBuffer to host pointer. This enforces a sync with 
   // the host backing space, remember we choose GPU device.
@@ -159,17 +143,26 @@ function VectorAdd() {
       WebCL.TRUE, // block 
       WebCL.MAP_READ,
       0,
-      BUFFER_SIZE * Uint32Array.BYTES_PER_ELEMENT);
+      size);
 
-  var output = "\nC = ";
-  for (var i = 0; i < BUFFER_SIZE; i++) {
+  // we are now reading values as bytes, we need to cast it to the output type we want
+  var output = "\nmap = ";
+  for (var i = 0; i < size; i++) {
     output += map[i] + ", ";
   }
   log(output);
 
+  // let's cast from void* to int*
+  var b=new ArrayBuffer(map.length);
+  var v=new DataView(b);
+  for (var i = 0; i < size; i++) {
+    v.setInt8(i,map[i]);
+  }
+  C=new Int32Array(b);
+
   queue.enqueueUnmapMemObject(cBuffer, map);
   
-  // queue.finish(); //Finish all the operations
+  queue.finish(); //Finish all the operations
 
   printResults(A,B,C);
 }
