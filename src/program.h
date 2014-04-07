@@ -40,14 +40,14 @@ public:
   static void Init(v8::Handle<v8::Object> target);
 
   static Program *New(cl_program pw);
-  static JS_METHOD(New);
+  static NAN_METHOD(New);
 
-  static JS_METHOD(getInfo);
-  static JS_METHOD(getBuildInfo);
-  static JS_METHOD(build);
-  static JS_METHOD(createKernel);
+  static NAN_METHOD(getInfo);
+  static NAN_METHOD(getBuildInfo);
+  static NAN_METHOD(build);
+  static NAN_METHOD(createKernel);
   // Patch
-  static JS_METHOD(release);
+  static NAN_METHOD(release);
 
   cl_program getProgram() const { return program; };
 

@@ -41,14 +41,14 @@ public:
 
   static Event *New(cl_event ew);
 
-  static JS_METHOD(New);
+  static NAN_METHOD(New);
 
-  static JS_METHOD(getInfo);
-  static JS_METHOD(getProfilingInfo);
-  static JS_METHOD(setUserEventStatus);
-  static JS_METHOD(setCallback);
+  static NAN_METHOD(getInfo);
+  static NAN_METHOD(getProfilingInfo);
+  static NAN_METHOD(setUserEventStatus);
+  static NAN_METHOD(setCallback);
   //
-  static JS_METHOD(release);
+  static NAN_METHOD(release);
 
   cl_event getEvent() const { return event; };
   void setEvent(cl_event e);

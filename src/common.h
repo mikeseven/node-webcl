@@ -29,8 +29,7 @@
 
 // Node includes
 #include <node.h>
-#include <node_object_wrap.h>
-#include <v8.h>
+#include "nan.h"
 #include <string>
 #ifdef LOGGING
 #include <iostream>
@@ -72,8 +71,6 @@ namespace {
 #define JS_INT(val) v8::Integer::New(val)
 #define JS_NUM(val) v8::Number::New(val)
 #define JS_BOOL(val) v8::Boolean::New(val)
-#define JS_METHOD(name) v8::Handle<v8::Value> name(const v8::Arguments& args)
-//#define JS_EXCEPTION(reason) v8::ThrowException(v8::Exception::Error(JS_STR(reason)))
 #define JS_RETHROW(tc) v8::Local<v8::Value>::New(tc.Exception());
 
 #define REQ_ARGS(N)                                                     \
@@ -111,16 +108,7 @@ static T* UnwrapThis(const v8::Arguments& args) {
   return node::ObjectWrap::Unwrap<T>(args.This());
 }
 
-#define ThrowError(msg) \
-    v8::ThrowException(v8::Exception::Error(v8::String::New(msg)))
-
-#define ThrowTypeError(msg) \
-    v8::ThrowException(v8::Exception::TypeError(v8::String::New(msg)))
-
-#define ThrowRangeError(msg) \
-    v8::ThrowException(v8::Exception::RangeError(v8::String::New(msg)))
-
-}
+} // namespace
 
 namespace webcl {
 
@@ -159,6 +147,6 @@ public:
   virtual bool isEvent() const { return false; }
 };
 
-}
+} // namespace webcl
 
 #endif

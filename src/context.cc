@@ -45,13 +45,13 @@ Persistent<FunctionTemplate> Context::constructor_template;
 
 void Context::Init(Handle<Object> target)
 {
-  HandleScope scope;
+  NanScope();
 
   Local<FunctionTemplate> t = FunctionTemplate::New(Context::New);
   constructor_template = Persistent<FunctionTemplate>::New(t);
 
   constructor_template->InstanceTemplate()->SetInternalFieldCount(1);
-  constructor_template->SetClassName(String::NewSymbol("WebCLContext"));
+  constructor_template->SetClassName(NanSymbol("WebCLContext"));
 
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getInfo", getInfo);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_createProgram", createProgram);
@@ -67,7 +67,7 @@ void Context::Init(Handle<Object> target)
   // Patch
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_release", release);
 
-  target->Set(String::NewSymbol("WebCLContext"), constructor_template->GetFunction());
+  target->Set(NanSymbol("WebCLContext"), constructor_template->GetFunction());
 }
 
 Context::Context(Handle<Object> wrapper) : context(0)
@@ -83,19 +83,19 @@ void Context::Destructor()
   context=0;
 }
 
-JS_METHOD(Context::release)
+NAN_METHOD(Context::release)
 {
-  HandleScope scope;
+  NanScope();
   Context *context = UnwrapThis<Context>(args);
   
   DESTROY_WEBCL_OBJECT(context);
   
-  return Undefined();
+  NanReturnUndefined();
 }
 
-JS_METHOD(Context::getInfo)
+NAN_METHOD(Context::getInfo)
 {
-  HandleScope scope;
+  NanScope();
   Context *context = UnwrapThis<Context>(args);
   cl_context_info param_name = args[0]->Uint32Value();
 
@@ -109,9 +109,9 @@ JS_METHOD(Context::getInfo)
       REQ_ERROR_THROW(CL_INVALID_VALUE);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowError("UNKNOWN ERROR");
+      return NanThrowError("UNKNOWN ERROR");
     }
-    return scope.Close(JS_INT(param_value));
+    NanReturnValue(JS_INT(param_value));
   }
   case CL_CONTEXT_DEVICES: {
     size_t n=0;
@@ -126,7 +126,7 @@ JS_METHOD(Context::getInfo)
       REQ_ERROR_THROW(CL_INVALID_VALUE);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowError("UNKNOWN ERROR");
+      return NanThrowError("UNKNOWN ERROR");
     }
 
     Local<Array> arr = Array::New((int)n);
@@ -136,7 +136,7 @@ JS_METHOD(Context::getInfo)
       }
     }
     delete[] ctx;
-    return scope.Close(arr);
+    NanReturnValue(arr);
   }
   case CL_CONTEXT_PROPERTIES: {
     size_t n=0;
@@ -149,7 +149,7 @@ JS_METHOD(Context::getInfo)
       REQ_ERROR_THROW(CL_INVALID_VALUE);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowError("UNKNOWN ERROR");
+      return NanThrowError("UNKNOWN ERROR");
     }
 
     Local<Array> arr = Array::New((int)n);
@@ -157,16 +157,16 @@ JS_METHOD(Context::getInfo)
       arr->Set(i,JS_INT((int32_t)ctx[i]));
     }
 	delete[] ctx;
-    return scope.Close(arr);
+    NanReturnValue(arr);
   }
   default:
-    return ThrowError("UNKNOWN param_name");
+    return NanThrowError("UNKNOWN param_name");
   }
 }
 
-JS_METHOD(Context::createProgram)
+NAN_METHOD(Context::createProgram)
 {
-  HandleScope scope;
+  NanScope();
   Context *context = UnwrapThis<Context>(args);
   cl_program pw=NULL;
   cl_int ret = CL_SUCCESS;
@@ -185,9 +185,9 @@ JS_METHOD(Context::createProgram)
       REQ_ERROR_THROW(CL_INVALID_VALUE);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowError("UNKNOWN ERROR");
+      return NanThrowError("UNKNOWN ERROR");
     }
-    return scope.Close(Program::New(pw)->handle_);
+    NanReturnValue(Program::New(pw)->handle_);
   }
   else if(args[0]->IsArray()){
     Local<Array> devArray = Array::Cast(*args[0]);
@@ -222,19 +222,19 @@ JS_METHOD(Context::createProgram)
       REQ_ERROR_THROW(CL_INVALID_BINARY);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowError("UNKNOWN ERROR");
+      return NanThrowError("UNKNOWN ERROR");
     }
 
     // TODO should we return binaryStatus?
-    return scope.Close(Program::New(pw)->handle_);
+    NanReturnValue(Program::New(pw)->handle_);
   }
 
-  return Undefined();
+  NanReturnUndefined();
 }
 
-JS_METHOD(Context::createCommandQueue)
+NAN_METHOD(Context::createCommandQueue)
 {
-  HandleScope scope;
+  NanScope();
   Context *context = UnwrapThis<Context>(args);
   cl_device_id device = ObjectWrap::Unwrap<Device>(args[0]->ToObject())->getDevice();
   cl_command_queue_properties properties = args[1]->IsUndefined() ? 0 : args[1]->Uint32Value();
@@ -251,15 +251,15 @@ JS_METHOD(Context::createCommandQueue)
     REQ_ERROR_THROW(CL_INVALID_QUEUE_PROPERTIES);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }
 
-  return scope.Close(CommandQueue::New(cw)->handle_);
+  NanReturnValue(CommandQueue::New(cw)->handle_);
 }
 
-JS_METHOD(Context::createBuffer)
+NAN_METHOD(Context::createBuffer)
 {
-  HandleScope scope;
+  NanScope();
   Context *context = UnwrapThis<Context>(args);
   cl_mem_flags flags = args[0]->Uint32Value();
   size_t size = args[1]->Uint32Value();
@@ -274,7 +274,7 @@ JS_METHOD(Context::createBuffer)
       printf("CreateBuffer host_ptr %p\n",host_ptr);
     }
     else
-      ThrowError("Invalid memory object");
+      NanThrowError("Invalid memory object");
   }
 
   cl_int ret=CL_SUCCESS;
@@ -288,15 +288,15 @@ JS_METHOD(Context::createBuffer)
     REQ_ERROR_THROW(CL_MEM_OBJECT_ALLOCATION_FAILURE);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }
 
-  return scope.Close(WebCLBuffer::New(mw)->handle_);
+  NanReturnValue(WebCLBuffer::New(mw)->handle_);
 }
 
-JS_METHOD(Context::createImage)
+NAN_METHOD(Context::createImage)
 {
-  HandleScope scope;
+  NanScope();
   Context *context = UnwrapThis<Context>(args);
   cl_mem_flags flags = args[0]->Uint32Value();
 
@@ -344,15 +344,15 @@ JS_METHOD(Context::createImage)
     REQ_ERROR_THROW(CL_INVALID_OPERATION);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }
 
-  return scope.Close(WebCLImage::New(mw)->handle_);
+  NanReturnValue(WebCLImage::New(mw)->handle_);
 }
 
-JS_METHOD(Context::createSampler)
+NAN_METHOD(Context::createSampler)
 {
-  HandleScope scope;
+  NanScope();
   Context *context = UnwrapThis<Context>(args);
   cl_bool normalized_coords = args[0]->BooleanValue() ? CL_TRUE : CL_FALSE;
   cl_addressing_mode addressing_mode = args[1]->Uint32Value();
@@ -371,15 +371,15 @@ JS_METHOD(Context::createSampler)
     REQ_ERROR_THROW(CL_INVALID_OPERATION);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }
 
-  return scope.Close(Sampler::New(sw)->handle_);
+  NanReturnValue(Sampler::New(sw)->handle_);
 }
 
-JS_METHOD(Context::getSupportedImageFormats)
+NAN_METHOD(Context::getSupportedImageFormats)
 {
-  HandleScope scope;
+  NanScope();
   Context *context = UnwrapThis<Context>(args);
   cl_mem_flags flags = args[0]->Uint32Value();
   cl_mem_object_type image_type = args[1]->Uint32Value();
@@ -394,7 +394,7 @@ JS_METHOD(Context::getSupportedImageFormats)
              &numEntries);
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(CL_INVALID_VALUE);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }
 
   cl_image_format* image_formats = new cl_image_format[numEntries];
@@ -412,7 +412,7 @@ JS_METHOD(Context::getSupportedImageFormats)
     REQ_ERROR_THROW(CL_INVALID_VALUE);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }
 
   Local<Array> imageFormats = Array::New();
@@ -425,12 +425,12 @@ JS_METHOD(Context::getSupportedImageFormats)
     imageFormats->Set(i, format);
   }
   delete[] image_formats;
-  return scope.Close(imageFormats);
+  NanReturnValue(imageFormats);
 }
 
-JS_METHOD(Context::createUserEvent)
+NAN_METHOD(Context::createUserEvent)
 {
-  HandleScope scope;
+  NanScope();
   Context *context = UnwrapThis<Context>(args);
   cl_int ret=CL_SUCCESS;
 
@@ -439,15 +439,15 @@ JS_METHOD(Context::createUserEvent)
     REQ_ERROR_THROW(CL_INVALID_CONTEXT);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }
 
-  return scope.Close(Event::New(ew)->handle_);
+  NanReturnValue(Event::New(ew)->handle_);
 }
 
-JS_METHOD(Context::createFromGLBuffer)
+NAN_METHOD(Context::createFromGLBuffer)
 {
-  HandleScope scope;
+  NanScope();
   Context *context = UnwrapThis<Context>(args);
   cl_mem_flags flags = args[0]->Uint32Value();
   cl_GLuint bufobj = args[1]->Uint32Value();
@@ -466,15 +466,15 @@ JS_METHOD(Context::createFromGLBuffer)
     REQ_ERROR_THROW(CL_INVALID_GL_OBJECT);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }
 
-  return scope.Close(WebCLBuffer::New(clmem)->handle_);
+  NanReturnValue(WebCLBuffer::New(clmem)->handle_);
 }
 
-JS_METHOD(Context::createFromGLTexture)
+NAN_METHOD(Context::createFromGLTexture)
 {
-  HandleScope scope;
+  NanScope();
   Context *context = UnwrapThis<Context>(args);
   cl_mem_flags flags = args[0]->Uint32Value();
   cl_GLenum target = args[1]->Uint32Value();
@@ -489,15 +489,15 @@ JS_METHOD(Context::createFromGLTexture)
     REQ_ERROR_THROW(CL_INVALID_GL_OBJECT);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }
 
-  return scope.Close(WebCLImage::New(clmem)->handle_);
+  NanReturnValue(WebCLImage::New(clmem)->handle_);
 }
 
-JS_METHOD(Context::createFromGLRenderbuffer)
+NAN_METHOD(Context::createFromGLRenderbuffer)
 {
-  HandleScope scope;
+  NanScope();
   Context *context = UnwrapThis<Context>(args);
   cl_mem_flags flags = args[0]->Uint32Value();
   cl_GLuint renderbuffer = args[1]->Uint32Value();
@@ -510,28 +510,28 @@ JS_METHOD(Context::createFromGLRenderbuffer)
     REQ_ERROR_THROW(CL_INVALID_GL_OBJECT);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }
 
-  return scope.Close(WebCLBuffer::New(clmem)->handle_);
+  NanReturnValue(WebCLBuffer::New(clmem)->handle_);
 }
 
-JS_METHOD(Context::New)
+NAN_METHOD(Context::New)
 {
   if (!args.IsConstructCall())
-    return ThrowTypeError("Constructor cannot be called as a function.");
+    return NanThrowTypeError("Constructor cannot be called as a function.");
 
-  HandleScope scope;
+  NanScope();
   Context *cl = new Context(args.This());
   cl->Wrap(args.This());
   registerCLObj(cl);
-  return scope.Close(args.This());
+  NanReturnValue(args.This());
 }
 
 Context *Context::New(cl_context cw)
 {
 
-  HandleScope scope;
+  NanScope();
 
   Local<Value> arg = Integer::NewFromUnsigned(0);
   Local<Object> obj = constructor_template->GetFunction()->NewInstance(1, &arg);

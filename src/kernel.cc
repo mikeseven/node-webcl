@@ -42,13 +42,13 @@ Persistent<FunctionTemplate> Kernel::constructor_template;
 
 void Kernel::Init(Handle<Object> target)
 {
-  HandleScope scope;
+  NanScope();
 
   Local<FunctionTemplate> t = FunctionTemplate::New(Kernel::New);
   constructor_template = Persistent<FunctionTemplate>::New(t);
 
   constructor_template->InstanceTemplate()->SetInternalFieldCount(1);
-  constructor_template->SetClassName(String::NewSymbol("WebCLKernel"));
+  constructor_template->SetClassName(NanSymbol("WebCLKernel"));
 
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getInfo", getInfo);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getWorkGroupInfo", getWorkGroupInfo);
@@ -56,7 +56,7 @@ void Kernel::Init(Handle<Object> target)
   // Patch
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_release", release);
 
-  target->Set(String::NewSymbol("WebCLKernel"), constructor_template->GetFunction());
+  target->Set(NanSymbol("WebCLKernel"), constructor_template->GetFunction());
 }
 
 Kernel::Kernel(Handle<Object> wrapper) : kernel(0)
@@ -71,19 +71,19 @@ void Kernel::Destructor() {
   kernel=0;
 }
 
-JS_METHOD(Kernel::release)
+NAN_METHOD(Kernel::release)
 {
-  HandleScope scope;
+  NanScope();
   Kernel *kernel = UnwrapThis<Kernel>(args);
   
   DESTROY_WEBCL_OBJECT(kernel);
   
-  return Undefined();
+  NanReturnUndefined();
 }
 
-JS_METHOD(Kernel::getInfo)
+NAN_METHOD(Kernel::getInfo)
 {
-  HandleScope scope;
+  NanScope();
   Kernel *kernel = UnwrapThis<Kernel>(args);
   cl_kernel_info param_name = args[0]->Uint32Value();
 
@@ -97,9 +97,9 @@ JS_METHOD(Kernel::getInfo)
       REQ_ERROR_THROW(CL_INVALID_KERNEL);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowError("UNKNOWN ERROR");
+      return NanThrowError("UNKNOWN ERROR");
     }
-    return scope.Close(JS_STR(param_value,(int)param_value_size_ret));
+    NanReturnValue(JS_STR(param_value,(int)param_value_size_ret));
   }
   case CL_KERNEL_CONTEXT: {
     cl_context param_value=NULL;
@@ -109,9 +109,9 @@ JS_METHOD(Kernel::getInfo)
       REQ_ERROR_THROW(CL_INVALID_KERNEL);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowError("UNKNOWN ERROR");
+      return NanThrowError("UNKNOWN ERROR");
     }
-    return scope.Close(Context::New(param_value)->handle_);
+    NanReturnValue(Context::New(param_value)->handle_);
   }
   case CL_KERNEL_PROGRAM: {
     cl_program param_value=NULL;
@@ -121,9 +121,9 @@ JS_METHOD(Kernel::getInfo)
       REQ_ERROR_THROW(CL_INVALID_KERNEL);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowError("UNKNOWN ERROR");
+      return NanThrowError("UNKNOWN ERROR");
     }
-    return scope.Close(Program::New(param_value)->handle_);
+    NanReturnValue(Program::New(param_value)->handle_);
   }
   case CL_KERNEL_NUM_ARGS:
   case CL_KERNEL_REFERENCE_COUNT: {
@@ -134,18 +134,18 @@ JS_METHOD(Kernel::getInfo)
       REQ_ERROR_THROW(CL_INVALID_KERNEL);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowError("UNKNOWN ERROR");
+      return NanThrowError("UNKNOWN ERROR");
     }
-    return scope.Close(JS_INT(param_value));
+    NanReturnValue(JS_INT(param_value));
   }
   default:
-    return ThrowError("UNKNOWN param_name");
+    return NanThrowError("UNKNOWN param_name");
   }
 }
 
-JS_METHOD(Kernel::getWorkGroupInfo)
+NAN_METHOD(Kernel::getWorkGroupInfo)
 {
-  HandleScope scope;
+  NanScope();
   Kernel *kernel = UnwrapThis<Kernel>(args);
   Device *device = ObjectWrap::Unwrap<Device>(args[0]->ToObject());
   cl_kernel_work_group_info param_name = args[1]->Uint32Value();
@@ -161,9 +161,9 @@ JS_METHOD(Kernel::getWorkGroupInfo)
       REQ_ERROR_THROW(CL_INVALID_KERNEL);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowError("UNKNOWN ERROR");
+      return NanThrowError("UNKNOWN ERROR");
     }
-    return scope.Close(JS_INT((int32_t)param_value));
+    NanReturnValue(JS_INT((int32_t)param_value));
   }
   case CL_KERNEL_LOCAL_MEM_SIZE:
   case CL_KERNEL_PRIVATE_MEM_SIZE: {
@@ -175,9 +175,9 @@ JS_METHOD(Kernel::getWorkGroupInfo)
       REQ_ERROR_THROW(CL_INVALID_KERNEL);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowError("UNKNOWN ERROR");
+      return NanThrowError("UNKNOWN ERROR");
     }
-    return scope.Close(JS_NUM((double)param_value));
+    NanReturnValue(JS_NUM((double)param_value));
   }
   case CL_KERNEL_COMPILE_WORK_GROUP_SIZE: {
     ::size_t param_value[]={0,0,0};
@@ -188,27 +188,27 @@ JS_METHOD(Kernel::getWorkGroupInfo)
       REQ_ERROR_THROW(CL_INVALID_KERNEL);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowError("UNKNOWN ERROR");
+      return NanThrowError("UNKNOWN ERROR");
     }
 
     Local<Array> sizeArray = Array::New(3);
     for (int i=0; i<3; i++) {
       sizeArray->Set(i, JS_INT((int32_t)param_value[i]));
     }
-    return scope.Close(sizeArray);
+    NanReturnValue(sizeArray);
   }
   default:
-    return ThrowError("UNKNOWN param_name");
+    return NanThrowError("UNKNOWN param_name");
   }
 }
 
 // TODO: setArg is incomplete!!!!
-JS_METHOD(Kernel::setArg)
+NAN_METHOD(Kernel::setArg)
 {
-  HandleScope scope;
+  NanScope();
 
   if (!args[0]->IsUint32())
-    return ThrowError("CL_INVALID_ARG_INDEX");
+    return NanThrowError("CL_INVALID_ARG_INDEX");
 
   Kernel *kernel = UnwrapThis<Kernel>(args);
   cl_uint arg_index = args[0]->Uint32Value();
@@ -226,7 +226,7 @@ JS_METHOD(Kernel::setArg)
       if (args[1]->IsUint32()) {
         cl_uint ptr = args[1]->Uint32Value();
         if (ptr)
-          return ThrowError("ARG is not of specified type");
+          return NanThrowError("ARG is not of specified type");
         sampler = 0;
       } else {
         Sampler *s = ObjectWrap::Unwrap<Sampler>(args[1]->ToObject());
@@ -249,28 +249,28 @@ JS_METHOD(Kernel::setArg)
     }
     case types::INT: {
       if (!args[1]->IsInt32())
-        return ThrowError("ARG is not of specified type");
+        return NanThrowError("ARG is not of specified type");
       cl_int arg = args[1]->Int32Value();
       ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_int), &arg);
       break;
     }
     case types::UINT: {
       if (!args[1]->IsUint32())
-        return ThrowError("ARG is not of specified type");
+        return NanThrowError("ARG is not of specified type");
       cl_uint arg = args[1]->Uint32Value();
       ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_uint), &arg);
       break;
     }
     case types::LONG: {
       if (!args[1]->IsNumber())
-        return ThrowError("ARG is not of specified type");
+        return NanThrowError("ARG is not of specified type");
       cl_long arg = (cl_long)args[1]->NumberValue();
       ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_long), &arg);
       break;
     }
     case types::ULONG: {
       if (!args[1]->IsNumber())
-        return ThrowError("ARG is not of specified type");
+        return NanThrowError("ARG is not of specified type");
       cl_ulong arg = (cl_ulong)args[1]->NumberValue();
       ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_ulong), &arg);
       break;
@@ -297,7 +297,7 @@ JS_METHOD(Kernel::setArg)
           ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_float) * 4, arg);
         }
       } else if (!args[1]->IsNumber()) {
-        return ThrowError("ARG is not of specified type");
+        return NanThrowError("ARG is not of specified type");
       }
       else {
         cl_float arg = (float) args[1]->NumberValue();
@@ -307,48 +307,48 @@ JS_METHOD(Kernel::setArg)
     }
     case types::DOUBLE: {
       if (!args[1]->IsNumber())
-        return ThrowError("ARG is not of specified type");
+        return NanThrowError("ARG is not of specified type");
       cl_double arg = (cl_double)args[1]->NumberValue();
       ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_double), &arg);
       break;
     }
     case types::HALF: { // TODO HALF may not be mapped correctly!
       if (!args[1]->IsNumber())
-        return ThrowError("ARG is not of specified type");
+        return NanThrowError("ARG is not of specified type");
       cl_half arg = (cl_half) args[1]->NumberValue();
       ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_half), &arg);
       break;
     }
     case types::SHORT: {
       if (!args[1]->IsNumber())
-        return ThrowError("ARG is not of specified type");
+        return NanThrowError("ARG is not of specified type");
       cl_short arg = (cl_short) args[1]->NumberValue();
       ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_short), &arg);
       break;
     }
     case types::USHORT: {
       if (!args[1]->IsNumber())
-        return ThrowError("ARG is not of specified type");
+        return NanThrowError("ARG is not of specified type");
       cl_ushort arg = (cl_ushort) args[1]->NumberValue();
       ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_ushort), &arg);
       break;
     }
     case types::CHAR: {
       if (!args[1]->IsNumber())
-        return ThrowError("ARG is not of specified type");
+        return NanThrowError("ARG is not of specified type");
       cl_char arg =(cl_char)  args[1]->NumberValue();
       ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_char), &arg);
       break;
     }
     case types::UCHAR: {
       if (!args[1]->IsNumber())
-        return ThrowError("ARG is not of specified type");
+        return NanThrowError("ARG is not of specified type");
       cl_uchar arg = (cl_uchar) args[1]->NumberValue();
       ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_uchar), &arg);
       break;
     }
     default: {
-      return ThrowError("UNKNOWN TYPE");
+      return NanThrowError("UNKNOWN TYPE");
     }
 
     }
@@ -363,28 +363,28 @@ JS_METHOD(Kernel::setArg)
     REQ_ERROR_THROW(CL_INVALID_ARG_SIZE);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }
 
-  return Undefined();
+  NanReturnUndefined();
 }
 
-JS_METHOD(Kernel::New)
+NAN_METHOD(Kernel::New)
 {
   if (!args.IsConstructCall())
-    return ThrowTypeError("Constructor cannot be called as a function.");
+    return NanThrowTypeError("Constructor cannot be called as a function.");
 
-  HandleScope scope;
+  NanScope();
   Kernel *k = new Kernel(args.This());
   k->Wrap(args.This());
   registerCLObj(k);
-  return scope.Close(args.This());
+  NanReturnValue(args.This());
 }
 
 Kernel *Kernel::New(cl_kernel kw)
 {
 
-  HandleScope scope;
+  NanScope();
 
   Local<Value> arg = Integer::NewFromUnsigned(0);
   Local<Object> obj = constructor_template->GetFunction()->NewInstance(1, &arg);

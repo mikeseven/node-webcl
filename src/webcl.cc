@@ -121,15 +121,15 @@ void AtExit() {
   clobjs.clear();
 }
 
-JS_METHOD(getPlatforms) {
-  HandleScope scope;
+NAN_METHOD(getPlatforms) {
+  NanScope();
 
   cl_uint num_entries = 0;
   cl_int ret = ::clGetPlatformIDs(0, NULL, &num_entries);
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(CL_INVALID_VALUE);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }
 
   cl_platform_id* platforms=new cl_platform_id[num_entries];
@@ -137,7 +137,7 @@ JS_METHOD(getPlatforms) {
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(CL_INVALID_VALUE);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }
 
 
@@ -148,7 +148,7 @@ JS_METHOD(getPlatforms) {
 
   delete[] platforms;
 
-  return scope.Close(platformArray);
+  NanReturnValue(platformArray);
 }
 
 // TODO: no idea what to do with private_info and cb
@@ -172,7 +172,7 @@ void createContext_callback (const char *errinfo, const void *private_info, size
 
 void
 createContext_After_cb(uv_async_t* handle, int status) {
-  HandleScope scope;
+  NanScope();
 
   Baton *baton = static_cast<Baton*>(handle->data);
   uv_close((uv_handle_t*) &baton->async,NULL);
@@ -199,17 +199,17 @@ createContext_After_cb(uv_async_t* handle, int status) {
   delete baton;
 }
 
-JS_METHOD(releaseAll) {
-	HandleScope scope;
+NAN_METHOD(releaseAll) {
+	NanScope();
 	
 	AtExit();
 	atExit=true;
 
-	return Undefined();
+	NanReturnUndefined();
 }
 
-JS_METHOD(createContext) {
-  HandleScope scope;
+NAN_METHOD(createContext) {
+  NanScope();
   cl_int ret=CL_SUCCESS;
   cl_context cw=NULL;
 
@@ -313,7 +313,7 @@ JS_METHOD(createContext) {
                              baton , &ret);
     }
     else
-      return scope.Close(ThrowError("Invalid parameters"));
+      NanReturnValue(NanThrowError("Invalid parameters"));
   }
 
   // automatic context creation
@@ -338,8 +338,8 @@ JS_METHOD(createContext) {
 
     if (!cw)
     {
-        ThrowError("Error: Failed to create a compute context!");
-        return scope.Close(Undefined());
+        NanThrowError("Error: Failed to create a compute context!");
+        NanReturnValue(Undefined());
     }
     #ifdef LOGGING
     cout<<"Apple OpenCL SharedGroup context created"<<endl;
@@ -358,11 +358,11 @@ JS_METHOD(createContext) {
 
     if (!cw)
     {
-        return scope.Close(ThrowError("Error: Failed to create a compute context!"));
+        NanReturnValue(NanThrowError("Error: Failed to create a compute context!"));
     }
     #else
     // TODO add automatic context creation for Unix and Win32
-    return scope.Close(ThrowError("Unsupported createContext() without parameters"));
+    NanReturnValue(NanThrowError("Unsupported createContext() without parameters"));
     #endif
 #endif
   }
@@ -376,17 +376,17 @@ JS_METHOD(createContext) {
     REQ_ERROR_THROW(CL_DEVICE_NOT_FOUND);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }
 
-  return scope.Close(Context::New(cw)->handle_);
+  NanReturnValue(Context::New(cw)->handle_);
 }
 
-JS_METHOD(waitForEvents) {
-  HandleScope scope;
+NAN_METHOD(waitForEvents) {
+  NanScope();
 
   if (!args[0]->IsArray())
-    ThrowError("CL_INVALID_VALUE");
+    NanThrowError("CL_INVALID_VALUE");
 
   Local<Array> eventsArray = Array::Cast(*args[0]);
   std::vector<cl_event> events;
@@ -403,10 +403,10 @@ JS_METHOD(waitForEvents) {
     REQ_ERROR_THROW(CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }
 
-  return Undefined();
+  NanReturnUndefined();
 }
 
 

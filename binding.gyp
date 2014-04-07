@@ -3,7 +3,7 @@
     {
       'target_name': 'webcl',
       'defines': [
-        'VERSION=0.6.0'
+        'VERSION=0.8.0'
       ],
       'sources': [
         'src/bindings.cc',
@@ -17,6 +17,9 @@
         'src/program.cc',
         'src/sampler.cc',
         'src/webcl.cc',
+      ],
+      'include_dirs' : [
+        "<!(node -e \"require('nan')\")",
       ],
       'conditions': [
         ['OS=="mac"', {'libraries': ['-framework OpenGL', '-framework OpenCL']}],
@@ -33,7 +36,9 @@
             'OPENCL_SDK_INCLUDE' : '<(OPENCL_SDK)\\include',
             'OPENCL_SDK_LIB' : '<(OPENCL_SDK)\\lib\\x64',
           },
-          'include_dirs' : ['<(OPENCL_SDK_INCLUDE)'],
+          'include_dirs' : [
+            "<(OPENCL_SDK_INCLUDE)",
+          ],
           'defines' : [
             'WIN32_LEAN_AND_MEAN',
             'VC_EXTRALEAN',

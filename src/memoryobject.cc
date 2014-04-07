@@ -36,20 +36,20 @@ Persistent<FunctionTemplate> MemoryObject::constructor_template;
 
 void MemoryObject::Init(Handle<Object> target)
 {
-  HandleScope scope;
+  NanScope();
 
   Local<FunctionTemplate> t = FunctionTemplate::New(MemoryObject::New);
   constructor_template = Persistent<FunctionTemplate>::New(t);
 
   constructor_template->InstanceTemplate()->SetInternalFieldCount(1);
-  constructor_template->SetClassName(String::NewSymbol("WebCLMemoryObject"));
+  constructor_template->SetClassName(NanSymbol("WebCLMemoryObject"));
 
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getInfo", getInfo);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getGLObjectInfo", getGLObjectInfo);
   // Patch
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_release", release);
 
-  target->Set(String::NewSymbol("WebCLMemoryObject"), constructor_template->GetFunction());
+  target->Set(NanSymbol("WebCLMemoryObject"), constructor_template->GetFunction());
 }
 
 MemoryObject::MemoryObject(Handle<Object> wrapper) : memory(0)
@@ -64,19 +64,19 @@ void MemoryObject::Destructor() {
   memory=0;
 }
 
-JS_METHOD(MemoryObject::release)
+NAN_METHOD(MemoryObject::release)
 {
-  HandleScope scope;
+  NanScope();
 
   MemoryObject *mo = ObjectWrap::Unwrap<MemoryObject>(args.This());
   DESTROY_WEBCL_OBJECT(mo);
   
-  return Undefined();
+  NanReturnUndefined();
 }
 
-JS_METHOD(MemoryObject::getInfo)
+NAN_METHOD(MemoryObject::getInfo)
 {
-  HandleScope scope;
+  NanScope();
 
   MemoryObject *mo = ObjectWrap::Unwrap<MemoryObject>(args.This());
   cl_mem_info param_name = args[0]->Uint32Value();
@@ -93,10 +93,10 @@ JS_METHOD(MemoryObject::getInfo)
       REQ_ERROR_THROW(CL_INVALID_MEM_OBJECT);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowError("UNKNOWN ERROR");
+      return NanThrowError("UNKNOWN ERROR");
     }
 
-    return scope.Close(Integer::NewFromUnsigned(param_value));
+    NanReturnValue(Integer::NewFromUnsigned(param_value));
   }
   case CL_MEM_SIZE:
   case CL_MEM_OFFSET: {
@@ -107,10 +107,10 @@ JS_METHOD(MemoryObject::getInfo)
       REQ_ERROR_THROW(CL_INVALID_MEM_OBJECT);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowError("UNKNOWN ERROR");
+      return NanThrowError("UNKNOWN ERROR");
     }
 
-    return scope.Close(JS_INT((int32_t)param_value));
+    NanReturnValue(JS_INT((int32_t)param_value));
   }
   case CL_MEM_ASSOCIATED_MEMOBJECT: {
     cl_mem param_value=NULL;
@@ -120,10 +120,10 @@ JS_METHOD(MemoryObject::getInfo)
       REQ_ERROR_THROW(CL_INVALID_MEM_OBJECT);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowError("UNKNOWN ERROR");
+      return NanThrowError("UNKNOWN ERROR");
     }
 
-    return scope.Close(MemoryObject::New(param_value)->handle_);
+    NanReturnValue(MemoryObject::New(param_value)->handle_);
   }
   case CL_MEM_HOST_PTR: {
     char *param_value=NULL;
@@ -133,19 +133,19 @@ JS_METHOD(MemoryObject::getInfo)
       REQ_ERROR_THROW(CL_INVALID_MEM_OBJECT);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowError("UNKNOWN ERROR");
+      return NanThrowError("UNKNOWN ERROR");
     }
     size_t nbytes = *(size_t*)param_value;
-    return scope.Close(node::Buffer::New(param_value, nbytes)->handle_);
+    NanReturnValue(node::Buffer::New(param_value, nbytes)->handle_);
   }
   default:
-    return ThrowError("UNKNOWN param_name");
+    return NanThrowError("UNKNOWN param_name");
   }
 }
 
-JS_METHOD(MemoryObject::getGLObjectInfo)
+NAN_METHOD(MemoryObject::getGLObjectInfo)
 {
-  HandleScope scope;
+  NanScope();
   MemoryObject *memobj = UnwrapThis<MemoryObject>(args);
   cl_gl_object_type gl_object_type = args[0]->IsNull() ? 0 : args[0]->Uint32Value();
   cl_GLuint gl_object_name = args[1]->IsNull() ? 0 : args[1]->Uint32Value();
@@ -158,29 +158,29 @@ JS_METHOD(MemoryObject::getGLObjectInfo)
     REQ_ERROR_THROW(CL_INVALID_GL_OBJECT);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }
 
   Local<Array> arr=Array::New();
   arr->Set(JS_STR("gl_object_type"), JS_INT(gl_object_type));
   arr->Set(JS_STR("gl_object_name"), JS_INT(gl_object_name));
 
-  return scope.Close(arr);
+  NanReturnValue(arr);
 }
 
-JS_METHOD(MemoryObject::New)
+NAN_METHOD(MemoryObject::New)
 {
-  HandleScope scope;
+  NanScope();
   MemoryObject *mo = new MemoryObject(args.This());
   mo->Wrap(args.This());
   registerCLObj(mo);
-  return scope.Close(args.This());
+  NanReturnValue(args.This());
 }
 
 MemoryObject *MemoryObject::New(cl_mem mw)
 {
 
-  HandleScope scope;
+  NanScope();
 
   Local<Value> arg = Integer::NewFromUnsigned(0);
   Local<Object> obj = constructor_template->GetFunction()->NewInstance(1, &arg);
@@ -199,44 +199,44 @@ Persistent<FunctionTemplate> WebCLBuffer::constructor_template;
 
 void WebCLBuffer::Init(Handle<Object> target)
 {
-  HandleScope scope;
+  NanScope();
 
   Local<FunctionTemplate> t = FunctionTemplate::New(WebCLBuffer::New);
   constructor_template = Persistent<FunctionTemplate>::New(t);
 
   constructor_template->InstanceTemplate()->SetInternalFieldCount(1);
-  constructor_template->SetClassName(String::NewSymbol("WebCLBuffer"));
+  constructor_template->SetClassName(NanSymbol("WebCLBuffer"));
 
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_createSubBuffer", createSubBuffer);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_release", release);
 
-  target->Set(String::NewSymbol("WebCLBuffer"), constructor_template->GetFunction());
+  target->Set(NanSymbol("WebCLBuffer"), constructor_template->GetFunction());
 }
 
 WebCLBuffer::WebCLBuffer(Handle<Object> wrapper) : MemoryObject(wrapper)
 {
 }
 
-JS_METHOD(WebCLBuffer::release)
+NAN_METHOD(WebCLBuffer::release)
 {
-  HandleScope scope;
+  NanScope();
 
   MemoryObject *mo = (MemoryObject*) ObjectWrap::Unwrap<WebCLBuffer>(args.This());
   DESTROY_WEBCL_OBJECT(mo);
   
-  return Undefined();
+  NanReturnUndefined();
 }
 
 // CL 1.1
-JS_METHOD(WebCLBuffer::createSubBuffer)
+NAN_METHOD(WebCLBuffer::createSubBuffer)
 {
-  HandleScope scope;
+  NanScope();
   WebCLBuffer *mo = UnwrapThis<WebCLBuffer>(args);
   cl_mem_flags flags = args[0]->Uint32Value();
   cl_buffer_create_type buffer_create_type = args[1]->Uint32Value();
 
   if (buffer_create_type != CL_BUFFER_CREATE_TYPE_REGION)
-    return ThrowError("CL_INVALID_VALUE");
+    return NanThrowError("CL_INVALID_VALUE");
 
   cl_buffer_region region;
   Local<Object> obj = args[2]->ToObject();
@@ -257,24 +257,24 @@ JS_METHOD(WebCLBuffer::createSubBuffer)
     REQ_ERROR_THROW(CL_MEM_OBJECT_ALLOCATION_FAILURE);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }
 
-  return scope.Close(WebCLBuffer::New(sub_buffer)->handle_);
+  NanReturnValue(WebCLBuffer::New(sub_buffer)->handle_);
 }
 
-JS_METHOD(WebCLBuffer::New)
+NAN_METHOD(WebCLBuffer::New)
 {
-  HandleScope scope;
+  NanScope();
   WebCLBuffer *mo = new WebCLBuffer(args.This());
   mo->Wrap(args.This());
   registerCLObj(mo);
-  return scope.Close(args.This());
+  NanReturnValue(args.This());
 }
 
 WebCLBuffer *WebCLBuffer::New(cl_mem mw)
 {
-  HandleScope scope;
+  NanScope();
 
   Local<Value> arg = Integer::NewFromUnsigned(0);
   Local<Object> obj = constructor_template->GetFunction()->NewInstance(1, &arg);
@@ -293,38 +293,38 @@ Persistent<FunctionTemplate> WebCLImage::constructor_template;
 
 void WebCLImage::Init(Handle<Object> target)
 {
-  HandleScope scope;
+  NanScope();
 
   Local<FunctionTemplate> t = FunctionTemplate::New(WebCLImage::New);
   constructor_template = Persistent<FunctionTemplate>::New(t);
 
   constructor_template->InstanceTemplate()->SetInternalFieldCount(1);
-  constructor_template->SetClassName(String::NewSymbol("WebCLImage"));
+  constructor_template->SetClassName(NanSymbol("WebCLImage"));
 
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getInfo", getInfo);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getGLTextureInfo", getGLTextureInfo);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_release", release);
 
-  target->Set(String::NewSymbol("WebCLImage"), constructor_template->GetFunction());
+  target->Set(NanSymbol("WebCLImage"), constructor_template->GetFunction());
 }
 
 WebCLImage::WebCLImage(Handle<Object> wrapper) : MemoryObject(wrapper)
 {
 }
 
-JS_METHOD(WebCLImage::release)
+NAN_METHOD(WebCLImage::release)
 {
-  HandleScope scope;
+  NanScope();
 
   MemoryObject *mo = (MemoryObject*) ObjectWrap::Unwrap<WebCLImage>(args.This());
   DESTROY_WEBCL_OBJECT(mo);
   
-  return Undefined();
+  NanReturnUndefined();
 }
 
-JS_METHOD(WebCLImage::getInfo)
+NAN_METHOD(WebCLImage::getInfo)
 {
-  HandleScope scope;
+  NanScope();
   WebCLImage *mo = UnwrapThis<WebCLImage>(args);
   cl_mem_info param_name = args[0]->Uint32Value();
 
@@ -342,9 +342,9 @@ JS_METHOD(WebCLImage::getInfo)
       REQ_ERROR_THROW(CL_INVALID_MEM_OBJECT);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowError("UNKNOWN ERROR");
+      return NanThrowError("UNKNOWN ERROR");
     }
-    return scope.Close(JS_INT((int32_t)param_value));
+    NanReturnValue(JS_INT((int32_t)param_value));
   }
   case CL_IMAGE_FORMAT: {
     cl_image_format param_value;
@@ -354,23 +354,23 @@ JS_METHOD(WebCLImage::getInfo)
       REQ_ERROR_THROW(CL_INVALID_MEM_OBJECT);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowError("UNKNOWN ERROR");
+      return NanThrowError("UNKNOWN ERROR");
     }
     cl_channel_order channel_order = param_value.image_channel_order;
     cl_channel_type channel_type = param_value.image_channel_data_type;
     Local<Object> obj = Object::New();
     obj->Set(JS_STR("order"), JS_INT(channel_order));
     obj->Set(JS_STR("data_type"), JS_INT(channel_type));
-    return scope.Close(obj);
+    NanReturnValue(obj);
   }
   default:
-    return ThrowError("UNKNOWN param_name");
+    return NanThrowError("UNKNOWN param_name");
   }
 }
 
-JS_METHOD(WebCLImage::getGLTextureInfo)
+NAN_METHOD(WebCLImage::getGLTextureInfo)
 {
-  HandleScope scope;
+  NanScope();
   WebCLImage *memobj = UnwrapThis<WebCLImage>(args);
   cl_gl_texture_info param_name = args[0]->Uint32Value();
   GLint param_value;
@@ -382,25 +382,25 @@ JS_METHOD(WebCLImage::getGLTextureInfo)
     REQ_ERROR_THROW(CL_INVALID_GL_OBJECT);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }
 
-  return scope.Close(JS_INT(param_value));
+  NanReturnValue(JS_INT(param_value));
 }
 
-JS_METHOD(WebCLImage::New)
+NAN_METHOD(WebCLImage::New)
 {
-  HandleScope scope;
+  NanScope();
   WebCLImage *mo = new WebCLImage(args.This());
   mo->Wrap(args.This());
   registerCLObj(mo);
-  return scope.Close(args.This());
+  NanReturnValue(args.This());
 }
 
 WebCLImage *WebCLImage::New(cl_mem mw)
 {
 
-  HandleScope scope;
+  NanScope();
 
   Local<Value> arg = Integer::NewFromUnsigned(0);
   Local<Object> obj = constructor_template->GetFunction()->NewInstance(1, &arg);

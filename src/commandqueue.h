@@ -40,34 +40,34 @@ public:
   static void Init(v8::Handle<v8::Object> target);
 
   static CommandQueue *New(cl_command_queue cw);
-  static JS_METHOD(New);
+  static NAN_METHOD(New);
 
-  static JS_METHOD(getInfo);
-  static JS_METHOD(enqueueNDRangeKernel);
-  static JS_METHOD(enqueueTask);
-  static JS_METHOD(enqueueWriteBuffer);
-  static JS_METHOD(enqueueReadBuffer);
-  static JS_METHOD(enqueueCopyBuffer);
-  static JS_METHOD(enqueueWriteBufferRect);
-  static JS_METHOD(enqueueReadBufferRect);
-  static JS_METHOD(enqueueCopyBufferRect);
-  static JS_METHOD(enqueueWriteImage);
-  static JS_METHOD(enqueueReadImage);
-  static JS_METHOD(enqueueCopyImage);
-  static JS_METHOD(enqueueCopyImageToBuffer);
-  static JS_METHOD(enqueueCopyBufferToImage);
-  static JS_METHOD(enqueueMapBuffer);
-  static JS_METHOD(enqueueMapImage);
-  static JS_METHOD(enqueueUnmapMemObject);
-  static JS_METHOD(enqueueMarker);
-  //static JS_METHOD(enqueueWaitForEvents);
-  static JS_METHOD(enqueueBarrier);
-  static JS_METHOD(flush);
-  static JS_METHOD(finish);
-  static JS_METHOD(enqueueAcquireGLObjects);
-  static JS_METHOD(enqueueReleaseGLObjects);
+  static NAN_METHOD(getInfo);
+  static NAN_METHOD(enqueueNDRangeKernel);
+  static NAN_METHOD(enqueueTask);
+  static NAN_METHOD(enqueueWriteBuffer);
+  static NAN_METHOD(enqueueReadBuffer);
+  static NAN_METHOD(enqueueCopyBuffer);
+  static NAN_METHOD(enqueueWriteBufferRect);
+  static NAN_METHOD(enqueueReadBufferRect);
+  static NAN_METHOD(enqueueCopyBufferRect);
+  static NAN_METHOD(enqueueWriteImage);
+  static NAN_METHOD(enqueueReadImage);
+  static NAN_METHOD(enqueueCopyImage);
+  static NAN_METHOD(enqueueCopyImageToBuffer);
+  static NAN_METHOD(enqueueCopyBufferToImage);
+  static NAN_METHOD(enqueueMapBuffer);
+  static NAN_METHOD(enqueueMapImage);
+  static NAN_METHOD(enqueueUnmapMemObject);
+  static NAN_METHOD(enqueueMarker);
+  //static NAN_METHOD(enqueueWaitForEvents);
+  static NAN_METHOD(enqueueBarrier);
+  static NAN_METHOD(flush);
+  static NAN_METHOD(finish);
+  static NAN_METHOD(enqueueAcquireGLObjects);
+  static NAN_METHOD(enqueueReleaseGLObjects);
   // Patch
-  static JS_METHOD(release);
+  static NAN_METHOD(release);
 
   cl_command_queue getCommandQueue() const { return command_queue; };
   bool isCommandQueue() const { return true; }

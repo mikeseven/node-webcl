@@ -37,27 +37,27 @@ Persistent<FunctionTemplate> Platform::constructor_template;
 
 void Platform::Init(Handle<Object> target)
 {
-  HandleScope scope;
+  NanScope();
 
   Local<FunctionTemplate> t = FunctionTemplate::New(Platform::New);
   constructor_template = Persistent<FunctionTemplate>::New(t);
 
   constructor_template->InstanceTemplate()->SetInternalFieldCount(1);
-  constructor_template->SetClassName(String::NewSymbol("WebCLPlatform"));
+  constructor_template->SetClassName(NanSymbol("WebCLPlatform"));
 
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getInfo", getInfo);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getDevices", getDevices);
 
-  target->Set(String::NewSymbol("WebCLPlatform"), constructor_template->GetFunction());
+  target->Set(NanSymbol("WebCLPlatform"), constructor_template->GetFunction());
 }
 
 Platform::Platform(Handle<Object> wrapper) : platform_id(0)
 {
 }
 
-JS_METHOD(Platform::getDevices)
+NAN_METHOD(Platform::getDevices)
 {
-  HandleScope scope;
+  NanScope();
 
   Platform *platform = UnwrapThis<Platform>(args);
   cl_device_type type = args[0]->Uint32Value();
@@ -74,7 +74,7 @@ JS_METHOD(Platform::getDevices)
     REQ_ERROR_THROW(CL_DEVICE_NOT_FOUND);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }
 
   cl_device_id* ids = new cl_device_id[n];
@@ -86,7 +86,7 @@ JS_METHOD(Platform::getDevices)
     REQ_ERROR_THROW(CL_DEVICE_NOT_FOUND);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }
 
   Local<Array> deviceArray = Array::New(n);
@@ -99,12 +99,12 @@ JS_METHOD(Platform::getDevices)
 
   delete[] ids;
 
-  return scope.Close(deviceArray);
+  NanReturnValue(deviceArray);
 }
 
-JS_METHOD(Platform::getInfo)
+NAN_METHOD(Platform::getInfo)
 {
-  HandleScope scope;
+  NanScope();
   Platform *platform = UnwrapThis<Platform>(args);
   cl_platform_info param_name = args[0]->Uint32Value();
 
@@ -117,28 +117,28 @@ JS_METHOD(Platform::getInfo)
     REQ_ERROR_THROW(CL_INVALID_PLATFORM);
     REQ_ERROR_THROW(CL_INVALID_VALUE);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }
 
   // NOTE: Adjust length because API returns NULL terminated string
-  return scope.Close(JS_STR(param_value,(int)param_value_size_ret - 1));
+  NanReturnValue(JS_STR(param_value,(int)param_value_size_ret - 1));
 }
 
-JS_METHOD(Platform::New)
+NAN_METHOD(Platform::New)
 {
   if (!args.IsConstructCall())
-    return ThrowTypeError("Constructor cannot be called as a function.");
+    return NanThrowTypeError("Constructor cannot be called as a function.");
 
-  HandleScope scope;
+  NanScope();
   Platform *cl = new Platform(args.This());
   cl->Wrap(args.This());
-  return scope.Close(args.This());
+  NanReturnValue(args.This());
 }
 
 Platform *Platform::New(cl_platform_id pid)
 {
 
-  HandleScope scope;
+  NanScope();
 
   Local<Value> arg = Integer::NewFromUnsigned(0);
   Local<Object> obj = constructor_template->GetFunction()->NewInstance(1, &arg);
@@ -149,8 +149,8 @@ Platform *Platform::New(cl_platform_id pid)
   return platform;
 }
 
-JS_METHOD(Platform::getExtension) {
-  HandleScope scope;
+NAN_METHOD(Platform::getExtension) {
+  NanScope();
 
   Platform *platform = UnwrapThis<Platform>(args);
   Local<String> vstr = args[0]->ToString();
@@ -167,14 +167,14 @@ JS_METHOD(Platform::getExtension) {
     REQ_ERROR_THROW(CL_INVALID_PLATFORM);
     REQ_ERROR_THROW(CL_INVALID_VALUE);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }
 
   char *p= ::strstr(param_value,str);
   if(!p)
-    return ThrowError("UNKNOWN EXTENSION");
+    return NanThrowError("UNKNOWN EXTENSION");
 
-  return Undefined();
+  NanReturnUndefined();
 }
 
 } // namespace webcl

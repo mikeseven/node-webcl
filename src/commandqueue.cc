@@ -54,13 +54,13 @@ Persistent<FunctionTemplate> CommandQueue::constructor_template;
 
 void CommandQueue::Init(Handle<Object> target)
 {
-  HandleScope scope;
+  NanScope();
 
   Local<FunctionTemplate> t = FunctionTemplate::New(CommandQueue::New);
   constructor_template = Persistent<FunctionTemplate>::New(t);
 
   constructor_template->InstanceTemplate()->SetInternalFieldCount(1);
-  constructor_template->SetClassName(String::NewSymbol("WebCLCommandQueue"));
+  constructor_template->SetClassName(NanSymbol("WebCLCommandQueue"));
 
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getInfo", getInfo);
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_enqueueNDRangeKernel", enqueueNDRangeKernel);
@@ -89,7 +89,7 @@ void CommandQueue::Init(Handle<Object> target)
   // Patch
   NODE_SET_PROTOTYPE_METHOD(constructor_template, "_release", release);
 
-  target->Set(String::NewSymbol("WebCLCommandQueue"), constructor_template->GetFunction());
+  target->Set(NanSymbol("WebCLCommandQueue"), constructor_template->GetFunction());
 }
 
 CommandQueue::CommandQueue(Handle<Object> wrapper) : command_queue(0)
@@ -114,9 +114,9 @@ void CommandQueue::Destructor() {
   command_queue=0;
 }
 
-JS_METHOD(CommandQueue::release)
+NAN_METHOD(CommandQueue::release)
 {
-  HandleScope scope;
+  NanScope();
   CommandQueue *cq = UnwrapThis<CommandQueue>(args);
   
   // Flush first
@@ -126,17 +126,17 @@ JS_METHOD(CommandQueue::release)
     REQ_ERROR_THROW(CL_INVALID_COMMAND_QUEUE);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }
   
   DESTROY_WEBCL_OBJECT(cq);
   
-  return Undefined();
+  NanReturnUndefined();
 }
 
-JS_METHOD(CommandQueue::getInfo)
+NAN_METHOD(CommandQueue::getInfo)
 {
-  HandleScope scope;
+  NanScope();
   CommandQueue *cq = UnwrapThis<CommandQueue>(args);
   cl_command_queue_info param_name = args[0]->Uint32Value();
 
@@ -149,9 +149,9 @@ JS_METHOD(CommandQueue::getInfo)
       REQ_ERROR_THROW(CL_INVALID_VALUE);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowError("UNKNOWN ERROR");
+      return NanThrowError("UNKNOWN ERROR");
     }
-    return scope.Close(Context::New(ctx)->handle_);
+    NanReturnValue(Context::New(ctx)->handle_);
   }
   case CL_QUEUE_DEVICE: {
     cl_device_id dev=0;
@@ -161,9 +161,9 @@ JS_METHOD(CommandQueue::getInfo)
       REQ_ERROR_THROW(CL_INVALID_VALUE);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowError("UNKNOWN ERROR");
+      return NanThrowError("UNKNOWN ERROR");
     }
-    return scope.Close(Device::New(dev)->handle_);
+    NanReturnValue(Device::New(dev)->handle_);
   }
   case CL_QUEUE_REFERENCE_COUNT:
   case CL_QUEUE_PROPERTIES: {
@@ -174,18 +174,18 @@ JS_METHOD(CommandQueue::getInfo)
       REQ_ERROR_THROW(CL_INVALID_VALUE);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowError("UNKNOWN ERROR");
+      return NanThrowError("UNKNOWN ERROR");
     }
-    return scope.Close(JS_INT(param_value));
+    NanReturnValue(JS_INT(param_value));
   }
   default:
-    return ThrowError("CL_INVALID_VALUE");
+    return NanThrowError("CL_INVALID_VALUE");
   }
 }
 
-JS_METHOD(CommandQueue::enqueueNDRangeKernel)
+NAN_METHOD(CommandQueue::enqueueNDRangeKernel)
 {
-  HandleScope scope;
+  NanScope();
   CommandQueue *cq = UnwrapThis<CommandQueue>(args);
 
   REQ_ARGS(4);
@@ -210,7 +210,7 @@ JS_METHOD(CommandQueue::enqueueNDRangeKernel)
     Local<Array> arr = Array::Cast(*args[2]);
     num_globals=arr->Length();
     if(num_globals == 0)
-      ThrowError("# globals must be at least 1");
+      NanThrowError("# globals must be at least 1");
     globals=new size_t[num_globals];
     for(cl_uint i=0;i<num_globals;i++)
       globals[i]=arr->Get(i)->Uint32Value();
@@ -222,7 +222,7 @@ JS_METHOD(CommandQueue::enqueueNDRangeKernel)
     Local<Array> arr = Array::Cast(*args[3]);
     num_locals=arr->Length();
     if(num_locals == 0)
-      ThrowError("# locals must be at least 1");
+      NanThrowError("# locals must be at least 1");
     locals=new size_t[num_locals];
     for(cl_uint i=0;i<num_locals;i++)
       locals[i]=arr->Get(i)->Uint32Value();
@@ -264,19 +264,19 @@ JS_METHOD(CommandQueue::enqueueNDRangeKernel)
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
     REQ_ERROR_THROW(CL_INVALID_EVENT_WAIT_LIST);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }
 
   if(!no_event) {
     Event *e=ObjectWrap::Unwrap<Event>(args[5]->ToObject());
     e->setEvent(event);
   }
-  return Undefined();
+  NanReturnUndefined();
 }
 
-JS_METHOD(CommandQueue::enqueueTask)
+NAN_METHOD(CommandQueue::enqueueTask)
 {
-  HandleScope scope;
+  NanScope();
   CommandQueue *cq = UnwrapThis<CommandQueue>(args);
 
   REQ_ARGS(1);
@@ -309,19 +309,19 @@ JS_METHOD(CommandQueue::enqueueTask)
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
     REQ_ERROR_THROW(CL_INVALID_EVENT_WAIT_LIST);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }
 
   if(!no_event) {
     Event *e=ObjectWrap::Unwrap<Event>(args[2]->ToObject());
     e->setEvent(event);
   }
-  return Undefined();
+  NanReturnUndefined();
 }
 
-JS_METHOD(CommandQueue::enqueueWriteBuffer)
+NAN_METHOD(CommandQueue::enqueueWriteBuffer)
 {
-  HandleScope scope;
+  NanScope();
   CommandQueue *cq = UnwrapThis<CommandQueue>(args);
   MemoryObject *mo = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
 
@@ -339,7 +339,7 @@ JS_METHOD(CommandQueue::enqueueWriteBuffer)
     else if(args[4]->IsObject())
       ptr = args[4]->ToObject()->GetIndexedPropertiesExternalArrayData();
     else
-      ThrowError("Invalid memory object");
+      NanThrowError("Invalid memory object");
   }
 
   MakeEventWaitList(args[5]);
@@ -367,19 +367,19 @@ JS_METHOD(CommandQueue::enqueueWriteBuffer)
     REQ_ERROR_THROW(CL_MEM_OBJECT_ALLOCATION_FAILURE);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }
 
   if(!no_event) {
     Event *e=ObjectWrap::Unwrap<Event>(args[6]->ToObject());
     e->setEvent(event);
   }
-  return Undefined();
+  NanReturnUndefined();
 }
 
-JS_METHOD(CommandQueue::enqueueWriteBufferRect)
+NAN_METHOD(CommandQueue::enqueueWriteBufferRect)
 {
-  HandleScope scope;
+  NanScope();
   CommandQueue *cq = UnwrapThis<CommandQueue>(args);
   MemoryObject *mo = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
 
@@ -416,7 +416,7 @@ JS_METHOD(CommandQueue::enqueueWriteBufferRect)
     else if(args[9]->IsObject())
       ptr = args[9]->ToObject()->GetIndexedPropertiesExternalArrayData();
     else
-      ThrowError("Invalid memory object");
+      NanThrowError("Invalid memory object");
   }
 
   MakeEventWaitList(args[10]);
@@ -453,19 +453,19 @@ JS_METHOD(CommandQueue::enqueueWriteBufferRect)
     REQ_ERROR_THROW(CL_MEM_OBJECT_ALLOCATION_FAILURE);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }
 
   if(!no_event) {
     Event *e=ObjectWrap::Unwrap<Event>(args[11]->ToObject());
     e->setEvent(event);
   }
-  return Undefined();
+  NanReturnUndefined();
 }
 
-JS_METHOD(CommandQueue::enqueueReadBuffer)
+NAN_METHOD(CommandQueue::enqueueReadBuffer)
 {
-  HandleScope scope;
+  NanScope();
   CommandQueue *cq = UnwrapThis<CommandQueue>(args);
   MemoryObject *mo = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
 
@@ -483,7 +483,7 @@ JS_METHOD(CommandQueue::enqueueReadBuffer)
     else if(args[4]->IsObject())
       ptr = args[4]->ToObject()->GetIndexedPropertiesExternalArrayData();
     else
-      ThrowError("Invalid memory object");
+      NanThrowError("Invalid memory object");
   }
 
   MakeEventWaitList(args[5]);
@@ -511,19 +511,19 @@ JS_METHOD(CommandQueue::enqueueReadBuffer)
     REQ_ERROR_THROW(CL_MEM_OBJECT_ALLOCATION_FAILURE);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }
 
   if(!no_event) {
     Event *e=ObjectWrap::Unwrap<Event>(args[6]->ToObject());
     e->setEvent(event);
   }
-  return Undefined();
+  NanReturnUndefined();
 }
 
-JS_METHOD(CommandQueue::enqueueReadBufferRect)
+NAN_METHOD(CommandQueue::enqueueReadBufferRect)
 {
-  HandleScope scope;
+  NanScope();
   CommandQueue *cq = UnwrapThis<CommandQueue>(args);
   MemoryObject *mo = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
 
@@ -560,7 +560,7 @@ JS_METHOD(CommandQueue::enqueueReadBufferRect)
     else if(args[9]->IsObject())
       ptr = args[9]->ToObject()->GetIndexedPropertiesExternalArrayData();
     else
-      ThrowError("Invalid memory object");
+      NanThrowError("Invalid memory object");
   }
 
   MakeEventWaitList(args[10]);
@@ -597,19 +597,19 @@ JS_METHOD(CommandQueue::enqueueReadBufferRect)
     REQ_ERROR_THROW(CL_MEM_OBJECT_ALLOCATION_FAILURE);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }
 
   if(!no_event) {
     Event *e=ObjectWrap::Unwrap<Event>(args[5]->ToObject());
     e->setEvent(event);
   }
-  return Undefined();
+  NanReturnUndefined();
 }
 
-JS_METHOD(CommandQueue::enqueueCopyBuffer)
+NAN_METHOD(CommandQueue::enqueueCopyBuffer)
 {
-  HandleScope scope;
+  NanScope();
   CommandQueue *cq = UnwrapThis<CommandQueue>(args);
 
   MemoryObject *mo_src = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
@@ -644,19 +644,19 @@ JS_METHOD(CommandQueue::enqueueCopyBuffer)
     REQ_ERROR_THROW(CL_MEM_OBJECT_ALLOCATION_FAILURE);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }
 
   if(!no_event) {
     Event *e=ObjectWrap::Unwrap<Event>(args[6]->ToObject());
     e->setEvent(event);
   }
-  return Undefined();
+  NanReturnUndefined();
 }
 
-JS_METHOD(CommandQueue::enqueueCopyBufferRect)
+NAN_METHOD(CommandQueue::enqueueCopyBufferRect)
 {
-  HandleScope scope;
+  NanScope();
   CommandQueue *cq = UnwrapThis<CommandQueue>(args);
   MemoryObject *mo_src = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
   MemoryObject *mo_dst = ObjectWrap::Unwrap<MemoryObject>(args[1]->ToObject());
@@ -716,19 +716,19 @@ JS_METHOD(CommandQueue::enqueueCopyBufferRect)
     REQ_ERROR_THROW(CL_MEM_OBJECT_ALLOCATION_FAILURE);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }
 
  if(!no_event) {
     Event *e=ObjectWrap::Unwrap<Event>(args[10]->ToObject());
     e->setEvent(event);
   }
-  return Undefined();
+  NanReturnUndefined();
 }
 
-JS_METHOD(CommandQueue::enqueueWriteImage)
+NAN_METHOD(CommandQueue::enqueueWriteImage)
 {
-  HandleScope scope;
+  NanScope();
   CommandQueue *cq = UnwrapThis<CommandQueue>(args);
   MemoryObject *mo = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
 
@@ -758,7 +758,7 @@ JS_METHOD(CommandQueue::enqueueWriteImage)
     else if(args[6]->IsObject())
       ptr = args[6]->ToObject()->GetIndexedPropertiesExternalArrayData();
     else
-      ThrowError("Invalid memory object");
+      NanThrowError("Invalid memory object");
   }
 
   MakeEventWaitList(args[7]);
@@ -791,19 +791,19 @@ JS_METHOD(CommandQueue::enqueueWriteImage)
     REQ_ERROR_THROW(CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }
 
   if(!no_event) {
     Event *e=ObjectWrap::Unwrap<Event>(args[8]->ToObject());
     e->setEvent(event);
   }
-  return Undefined();
+  NanReturnUndefined();
 }
 
-JS_METHOD(CommandQueue::enqueueReadImage)
+NAN_METHOD(CommandQueue::enqueueReadImage)
 {
-  HandleScope scope;
+  NanScope();
   CommandQueue *cq = UnwrapThis<CommandQueue>(args);
   MemoryObject *mo = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
 
@@ -833,7 +833,7 @@ JS_METHOD(CommandQueue::enqueueReadImage)
     else if(args[6]->IsObject())
       ptr = args[6]->ToObject()->GetIndexedPropertiesExternalArrayData();
     else
-      ThrowError("Invalid memory object");
+      NanThrowError("Invalid memory object");
   }
 
   MakeEventWaitList(args[7]);
@@ -864,19 +864,19 @@ JS_METHOD(CommandQueue::enqueueReadImage)
     REQ_ERROR_THROW(CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }
 
   if(!no_event) {
     Event *e=ObjectWrap::Unwrap<Event>(args[8]->ToObject());
     e->setEvent(event);
   }
-  return Undefined();
+  NanReturnUndefined();
 }
 
-JS_METHOD(CommandQueue::enqueueCopyImage)
+NAN_METHOD(CommandQueue::enqueueCopyImage)
 {   
-  HandleScope scope;
+  NanScope();
   CommandQueue *cq = UnwrapThis<CommandQueue>(args);
   MemoryObject *mo_src = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
   MemoryObject *mo_dst = ObjectWrap::Unwrap<MemoryObject>(args[1]->ToObject());
@@ -927,19 +927,19 @@ JS_METHOD(CommandQueue::enqueueCopyImage)
     REQ_ERROR_THROW(CL_MEM_COPY_OVERLAP);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }
 
   if(!no_event) {
     Event *e=ObjectWrap::Unwrap<Event>(args[6]->ToObject());
     e->setEvent(event);
   }
-  return Undefined();
+  NanReturnUndefined();
 }
 
-JS_METHOD(CommandQueue::enqueueCopyImageToBuffer)
+NAN_METHOD(CommandQueue::enqueueCopyImageToBuffer)
 {
-  HandleScope scope;
+  NanScope();
   CommandQueue *cq = UnwrapThis<CommandQueue>(args);
   MemoryObject *mo_src = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
   MemoryObject *mo_dst = ObjectWrap::Unwrap<MemoryObject>(args[1]->ToObject());
@@ -986,19 +986,19 @@ JS_METHOD(CommandQueue::enqueueCopyImageToBuffer)
     REQ_ERROR_THROW(CL_INVALID_OPERATION);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }
 
   if(!no_event) {
     Event *e=ObjectWrap::Unwrap<Event>(args[6]->ToObject());
     e->setEvent(event);
   }
-  return Undefined();
+  NanReturnUndefined();
 }
 
-JS_METHOD(CommandQueue::enqueueCopyBufferToImage)
+NAN_METHOD(CommandQueue::enqueueCopyBufferToImage)
 {
-  HandleScope scope;
+  NanScope();
   CommandQueue *cq = UnwrapThis<CommandQueue>(args);
   MemoryObject *mo_src = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
   MemoryObject *mo_dst = ObjectWrap::Unwrap<MemoryObject>(args[1]->ToObject());
@@ -1044,23 +1044,23 @@ JS_METHOD(CommandQueue::enqueueCopyBufferToImage)
     REQ_ERROR_THROW(CL_INVALID_OPERATION);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }
 
   if(!no_event) {
     Event *e=ObjectWrap::Unwrap<Event>(args[6]->ToObject());
     e->setEvent(event);
   }
-  return Undefined();
+  NanReturnUndefined();
 }
 
 void free_callback(char *data, void *hint) {
   //cout<<"enqueueMapBuffer free_callback called"<<endl;
 }
 
-JS_METHOD(CommandQueue::enqueueMapBuffer)
+NAN_METHOD(CommandQueue::enqueueMapBuffer)
 {
-  HandleScope scope;
+  NanScope();
   CommandQueue *cq = UnwrapThis<CommandQueue>(args);
 
   // TODO: arg checking
@@ -1097,7 +1097,7 @@ JS_METHOD(CommandQueue::enqueueMapBuffer)
     REQ_ERROR_THROW(CL_MEM_OBJECT_ALLOCATION_FAILURE);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }
 
   printf("\nmapbuffer %p = ",mo->getMemory());
@@ -1121,12 +1121,12 @@ JS_METHOD(CommandQueue::enqueueMapBuffer)
     e->setEvent(event);
   }
 
-  return scope.Close(buf->handle_);
+  NanReturnValue(buf->handle_);
 }
 
-JS_METHOD(CommandQueue::enqueueMapImage)
+NAN_METHOD(CommandQueue::enqueueMapImage)
 {
-  HandleScope scope;
+  NanScope();
   CommandQueue *cq = UnwrapThis<CommandQueue>(args);
 
   // TODO: arg checking
@@ -1183,7 +1183,7 @@ JS_METHOD(CommandQueue::enqueueMapImage)
     REQ_ERROR_THROW(CL_INVALID_OPERATION);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }
 
   // TODO: return image_row_pitch, image_slice_pitch?
@@ -1194,13 +1194,13 @@ JS_METHOD(CommandQueue::enqueueMapImage)
   }
 
   size_t nbytes = region[0] * region[1] * region[2];
-  return scope.Close(node::Buffer::New((char*)result, nbytes,
+  NanReturnValue(node::Buffer::New((char*)result, nbytes,
   free_callback, NULL)->handle_);
 }
 
-JS_METHOD(CommandQueue::enqueueUnmapMemObject)
+NAN_METHOD(CommandQueue::enqueueUnmapMemObject)
 {
-  HandleScope scope;
+  NanScope();
   CommandQueue *cq = UnwrapThis<CommandQueue>(args);
 
   // TODO: arg checking
@@ -1242,19 +1242,19 @@ JS_METHOD(CommandQueue::enqueueUnmapMemObject)
     REQ_ERROR_THROW(CL_INVALID_EVENT_WAIT_LIST);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }
 
   if(!no_event) {
     Event *e=ObjectWrap::Unwrap<Event>(args[3]->ToObject());
     e->setEvent(event);
   }
-  return Undefined();
+  NanReturnUndefined();
 }
 
-JS_METHOD(CommandQueue::enqueueMarker)
+NAN_METHOD(CommandQueue::enqueueMarker)
 {
-  HandleScope scope;
+  NanScope();
   CommandQueue *cq = UnwrapThis<CommandQueue>(args);
 
   MakeEventWaitList(args[0]);
@@ -1277,7 +1277,7 @@ JS_METHOD(CommandQueue::enqueueMarker)
       REQ_ERROR_THROW(CL_INVALID_EVENT);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowError("UNKNOWN ERROR");
+      return NanThrowError("UNKNOWN ERROR");
     }
 
     delete[] events_wait_list;
@@ -1288,19 +1288,19 @@ JS_METHOD(CommandQueue::enqueueMarker)
     REQ_ERROR_THROW(CL_INVALID_VALUE);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }
 
   if(!no_event) {
     Event *e=ObjectWrap::Unwrap<Event>(args[1]->ToObject());
     e->setEvent(event);
   }
-  return Undefined();
+  NanReturnUndefined();
 }
 
-/*JS_METHOD(CommandQueue::enqueueWaitForEvents)
+/*NAN_METHOD(CommandQueue::enqueueWaitForEvents)
 {
-  HandleScope scope;
+  NanScope();
   CommandQueue *cq = UnwrapThis<CommandQueue>(args);
 
   MakeEventWaitList(args[0]);
@@ -1319,15 +1319,15 @@ JS_METHOD(CommandQueue::enqueueMarker)
     REQ_ERROR_THROW(CL_INVALID_EVENT);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }
 
-  return Undefined();
+  NanReturnUndefined();
 }*/
 
-JS_METHOD(CommandQueue::enqueueBarrier)
+NAN_METHOD(CommandQueue::enqueueBarrier)
 {
-  HandleScope scope;
+  NanScope();
   CommandQueue *cq = UnwrapThis<CommandQueue>(args);
 
   MakeEventWaitList(args[0]);
@@ -1350,7 +1350,7 @@ JS_METHOD(CommandQueue::enqueueBarrier)
       REQ_ERROR_THROW(CL_INVALID_EVENT);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowError("UNKNOWN ERROR");
+      return NanThrowError("UNKNOWN ERROR");
     }
 
     delete[] events_wait_list;
@@ -1360,19 +1360,19 @@ JS_METHOD(CommandQueue::enqueueBarrier)
     REQ_ERROR_THROW(CL_INVALID_COMMAND_QUEUE);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }
 
   if(!no_event && event) {
     Event *e=ObjectWrap::Unwrap<Event>(args[1]->ToObject());
     e->setEvent(event);
   }
-  return Undefined();
+  NanReturnUndefined();
 }
 
-JS_METHOD(CommandQueue::finish)
+NAN_METHOD(CommandQueue::finish)
 {
-  HandleScope scope;
+  NanScope();
   CommandQueue *cq = UnwrapThis<CommandQueue>(args);
   cl_int ret = ::clFinish(cq->getCommandQueue());
 
@@ -1380,15 +1380,15 @@ JS_METHOD(CommandQueue::finish)
     REQ_ERROR_THROW(CL_INVALID_COMMAND_QUEUE);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }
 
-  return Undefined();
+  NanReturnUndefined();
 }
 
-JS_METHOD(CommandQueue::flush)
+NAN_METHOD(CommandQueue::flush)
 {
-  HandleScope scope;
+  NanScope();
   CommandQueue *cq = UnwrapThis<CommandQueue>(args);
   cl_int ret = ::clFlush(cq->getCommandQueue());
 
@@ -1396,15 +1396,15 @@ JS_METHOD(CommandQueue::flush)
     REQ_ERROR_THROW(CL_INVALID_COMMAND_QUEUE);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }
 
-  return Undefined();
+  NanReturnUndefined();
 }
 
-JS_METHOD(CommandQueue::enqueueAcquireGLObjects)
+NAN_METHOD(CommandQueue::enqueueAcquireGLObjects)
 {
-  HandleScope scope;
+  NanScope();
   CommandQueue *cq = UnwrapThis<CommandQueue>(args);
 
   cl_mem *mem_objects=NULL;
@@ -1447,19 +1447,19 @@ JS_METHOD(CommandQueue::enqueueAcquireGLObjects)
     REQ_ERROR_THROW(CL_INVALID_EVENT_WAIT_LIST);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }
 
   if(!no_event) {
     Event *e=ObjectWrap::Unwrap<Event>(args[2]->ToObject());
     e->setEvent(event);
   }
-  return Undefined();
+  NanReturnUndefined();
 }
 
-JS_METHOD(CommandQueue::enqueueReleaseGLObjects)
+NAN_METHOD(CommandQueue::enqueueReleaseGLObjects)
 {
-  HandleScope scope;
+  NanScope();
   CommandQueue *cq = UnwrapThis<CommandQueue>(args);
 
   cl_mem *mem_objects=NULL;
@@ -1502,29 +1502,29 @@ JS_METHOD(CommandQueue::enqueueReleaseGLObjects)
     REQ_ERROR_THROW(CL_INVALID_EVENT_WAIT_LIST);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }
 
   if(!no_event) {
     Event *e=ObjectWrap::Unwrap<Event>(args[2]->ToObject());
     e->setEvent(event);
   }
-  return Undefined();
+  NanReturnUndefined();
 }
 
-JS_METHOD(CommandQueue::New)
+NAN_METHOD(CommandQueue::New)
 {
-  HandleScope scope;
+  NanScope();
   CommandQueue *cq = new CommandQueue(args.This());
   cq->Wrap(args.This());
   registerCLObj(cq);
-  return scope.Close(args.This());
+  NanReturnValue(args.This());
 }
 
 CommandQueue *CommandQueue::New(cl_command_queue cw)
 {
 
-  HandleScope scope;
+  NanScope();
 
   Local<Value> arg = Integer::NewFromUnsigned(0);
   Local<Object> obj = constructor_template->GetFunction()->NewInstance(1, &arg);

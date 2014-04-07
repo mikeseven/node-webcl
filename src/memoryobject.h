@@ -40,12 +40,12 @@ public:
   static void Init(v8::Handle<v8::Object> target);
 
   static MemoryObject *New(cl_mem mw);
-  static JS_METHOD(New);
+  static NAN_METHOD(New);
 
-  static JS_METHOD(getInfo);
-  static JS_METHOD(getGLObjectInfo);
+  static NAN_METHOD(getInfo);
+  static NAN_METHOD(getGLObjectInfo);
   // Patch
-  static JS_METHOD(release);
+  static NAN_METHOD(release);
   
   cl_mem getMemory() const { return memory; };
 
@@ -63,11 +63,11 @@ public:
   static void Init(v8::Handle<v8::Object> target);
 
   static WebCLBuffer *New(cl_mem mw);
-  static JS_METHOD(New);
+  static NAN_METHOD(New);
   // Patch
-  static JS_METHOD(release);
+  static NAN_METHOD(release);
   
-  static JS_METHOD(createSubBuffer);
+  static NAN_METHOD(createSubBuffer);
 
 private:
   WebCLBuffer(v8::Handle<v8::Object> wrapper);
@@ -80,12 +80,12 @@ public:
   static void Init(v8::Handle<v8::Object> target);
 
   static WebCLImage *New(cl_mem mw);
-  static JS_METHOD(New);
+  static NAN_METHOD(New);
   // Patch
-  static JS_METHOD(release);  
+  static NAN_METHOD(release);  
 
-  static JS_METHOD(getInfo);
-  static JS_METHOD(getGLTextureInfo);
+  static NAN_METHOD(getInfo);
+  static NAN_METHOD(getGLTextureInfo);
 
 private:
   WebCLImage(v8::Handle<v8::Object> wrapper);

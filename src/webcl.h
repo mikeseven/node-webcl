@@ -33,11 +33,11 @@ using namespace v8;
 
 namespace webcl {
 
-JS_METHOD(getPlatforms);
-JS_METHOD(createContext);
-JS_METHOD(waitForEvents);
+NAN_METHOD(getPlatforms);
+NAN_METHOD(createContext);
+NAN_METHOD(waitForEvents);
 // Patch
-JS_METHOD(releaseAll);
+NAN_METHOD(releaseAll);
 
 void createContext_callback (const char *errinfo, const void *private_info, size_t cb, void *user_data);
 void createContext_After_cb(uv_async_t* handle, int status);
