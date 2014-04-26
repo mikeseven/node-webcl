@@ -39,27 +39,29 @@ void Event::Init(Handle<Object> target)
 {
   NanScope();
 
-  Local<FunctionTemplate> t = FunctionTemplate::New(Event::New);
-  constructor_template = Persistent<FunctionTemplate>::New(t);
+  // constructor
+  Local<FunctionTemplate> ctor = FunctionTemplate::New(Event::New);
+  NanAssignPersistent(FunctionTemplate, constructor_template, ctor);
+  ctor->InstanceTemplate()->SetInternalFieldCount(1);
+  ctor->SetClassName(JS_STR("WebCLEvent"));
 
-  constructor_template->InstanceTemplate()->SetInternalFieldCount(1);
-  constructor_template->SetClassName(JS_STR("WebCLEvent"));
-
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getInfo", getInfo);
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getProfilingInfo", getProfilingInfo);
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_setUserEventStatus", setUserEventStatus);
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_setCallback", setCallback);
+  // prototype
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_getInfo", getInfo);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_getProfilingInfo", getProfilingInfo);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_setUserEventStatus", setUserEventStatus);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_setCallback", setCallback);
   // Patch
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_release", release);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_release", release);
 
   // attributes
-  constructor_template->InstanceTemplate()->SetAccessor(JS_STR("status"), GetStatus, NULL);
-  constructor_template->InstanceTemplate()->SetAccessor(JS_STR("buffer"), GetBuffer, NULL);
+  Local<ObjectTemplate> proto = ctor->PrototypeTemplate();
+  proto->SetAccessor(JS_STR("status"), GetStatus, NULL);
+  proto->SetAccessor(JS_STR("buffer"), GetBuffer, NULL);
 
-  target->Set(JS_STR("WebCLEvent"), constructor_template->GetFunction());
+  target->Set(JS_STR("WebCLEvent"), ctor->GetFunction());
 }
 
-Event::Event(Handle<Object> wrapper) : event(0), buffer(NULL), status(0)
+Event::Event(Handle<Object> wrapper) : event(0), status(0)
 {
 }
 
@@ -77,7 +79,7 @@ void Event::Destructor()
 NAN_METHOD(Event::release)
 {
   NanScope();
-  Event *e = UnwrapThis<Event>(args);
+  Event *e = ObjectWrap::Unwrap<Event>(args.This());
   
   DESTROY_WEBCL_OBJECT(e);
   
@@ -87,19 +89,19 @@ NAN_METHOD(Event::release)
 NAN_METHOD(Event::getInfo)
 {
   NanScope();
-  Event *e = UnwrapThis<Event>(args);
+  Event *e = ObjectWrap::Unwrap<Event>(args.This());
   cl_event_info param_name = args[0]->Uint32Value();
 
   switch (param_name) {
   case CL_EVENT_CONTEXT:{
     cl_context param_value=NULL;
     ::clGetEventInfo(e->getEvent(), param_name, sizeof(cl_context), &param_value, NULL);
-    NanReturnValue(Context::New(param_value)->handle_);
+    NanReturnValue(Context::New(param_value)->handle());
   }
   case CL_EVENT_COMMAND_QUEUE:{
     cl_command_queue param_value=NULL;
     ::clGetEventInfo(e->getEvent(), param_name, sizeof(cl_command_queue), &param_value, NULL);
-    NanReturnValue(CommandQueue::New(param_value)->handle_);
+    NanReturnValue(CommandQueue::New(param_value)->handle());
   }
   case CL_EVENT_REFERENCE_COUNT:
   case CL_EVENT_COMMAND_TYPE:
@@ -117,7 +119,7 @@ NAN_METHOD(Event::getInfo)
 NAN_METHOD(Event::getProfilingInfo)
 {
   NanScope();
-  Event *e = UnwrapThis<Event>(args);
+  Event *e = ObjectWrap::Unwrap<Event>(args.This());
   cl_event_info param_name = args[0]->Uint32Value();
 
   switch (param_name) {
@@ -137,7 +139,7 @@ NAN_METHOD(Event::getProfilingInfo)
 NAN_METHOD(Event::setUserEventStatus)
 {
   NanScope();
-  Event *e = UnwrapThis<Event>(args);
+  Event *e = ObjectWrap::Unwrap<Event>(args.This());
 
   cl_int ret=::clSetUserEventStatus(e->getEvent(),args[0]->Int32Value());
   if (ret != CL_SUCCESS) {
@@ -163,7 +165,7 @@ void Event::callback (cl_event event, cl_int event_command_exec_status, void *us
   Baton *baton = static_cast<Baton*>(user_data);
   baton->error = event_command_exec_status;
 
-  Event *e = node::ObjectWrap::Unwrap<Event>(baton->parent);
+  Event *e = ObjectWrap::Unwrap<Event>(baton->parent);
   e->status=event_command_exec_status;
 
   uv_async_init(uv_default_loop(), &baton->async, After_cb);
@@ -200,7 +202,7 @@ Event::After_cb(uv_async_t* handle, int status) {
 NAN_METHOD(Event::setCallback)
 {
   NanScope();
-  Event *e = UnwrapThis<Event>(args);
+  Event *e = ObjectWrap::Unwrap<Event>(args.This());
   cl_int command_exec_callback_type = args[0]->Int32Value();
   Local<Function> fct=Local<Function>::Cast(args[1]);
   Local<Value> data=args[2];
@@ -226,15 +228,15 @@ NAN_METHOD(Event::setCallback)
   NanReturnValue(Undefined());
 }
 
-Handle<Value> Event::GetStatus(Local<String> property, const AccessorInfo& info) {
-  Event *event = ObjectWrap::Unwrap<Event>(info.Holder());
-  return JS_INT(event->status);
+NAN_GETTER(Event::GetStatus) {
+  Event *event = ObjectWrap::Unwrap<Event>(args.Holder());
+  NanReturnValue(JS_INT(event->status));
 }
 
 // TODO buffer can only be set by enqueueReadBuffer/ReadBufferRect/Image
 // TODO update callback to return the event object, not the status
-Handle<Value> Event::GetBuffer(Local<String> property, const AccessorInfo& info) {
-  //Event *event = ObjectWrap::Unwrap<Event>(info.Holder());
+NAN_GETTER(Event::GetBuffer) {
+  //Event *event = ObjectWrap::Unwrap<Event>(args.Holder());
   NanReturnUndefined();
 }
 
@@ -252,7 +254,8 @@ Event *Event::New(cl_event ew)
   NanScope();
 
   Local<Value> arg = Integer::NewFromUnsigned(0);
-  Local<Object> obj = constructor_template->GetFunction()->NewInstance(1, &arg);
+  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor_template);
+  Local<Object> obj = constructorHandle->GetFunction()->NewInstance(1, &arg);
 
   Event *e = ObjectWrap::Unwrap<Event>(obj);
   e->event = ew;

@@ -39,16 +39,17 @@ void Platform::Init(Handle<Object> target)
 {
   NanScope();
 
-  Local<FunctionTemplate> t = FunctionTemplate::New(Platform::New);
-  constructor_template = Persistent<FunctionTemplate>::New(t);
+  // constructor
+  Local<FunctionTemplate> ctor = FunctionTemplate::New(Platform::New);
+  NanAssignPersistent(FunctionTemplate, constructor_template, ctor);
+  ctor->InstanceTemplate()->SetInternalFieldCount(1);
+  ctor->SetClassName(NanSymbol("WebCLPlatform"));
 
-  constructor_template->InstanceTemplate()->SetInternalFieldCount(1);
-  constructor_template->SetClassName(NanSymbol("WebCLPlatform"));
+  // prototype
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_getInfo", getInfo);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_getDevices", getDevices);
 
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getInfo", getInfo);
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getDevices", getDevices);
-
-  target->Set(NanSymbol("WebCLPlatform"), constructor_template->GetFunction());
+  target->Set(NanSymbol("WebCLPlatform"), ctor->GetFunction());
 }
 
 Platform::Platform(Handle<Object> wrapper) : platform_id(0)
@@ -59,7 +60,7 @@ NAN_METHOD(Platform::getDevices)
 {
   NanScope();
 
-  Platform *platform = UnwrapThis<Platform>(args);
+  Platform *platform = ObjectWrap::Unwrap<Platform>(args.This());
   cl_device_type type = args[0]->Uint32Value();
 
   cl_uint n = 0;
@@ -94,7 +95,7 @@ NAN_METHOD(Platform::getDevices)
     #ifdef LOGGING
     cout<<"Found device: "<<ids[i]<<endl;
     #endif
-    deviceArray->Set(i, Device::New(ids[i])->handle_);
+    deviceArray->Set(i, Device::New(ids[i])->handle());
   }
 
   delete[] ids;
@@ -105,7 +106,7 @@ NAN_METHOD(Platform::getDevices)
 NAN_METHOD(Platform::getInfo)
 {
   NanScope();
-  Platform *platform = UnwrapThis<Platform>(args);
+  Platform *platform = ObjectWrap::Unwrap<Platform>(args.This());
   cl_platform_info param_name = args[0]->Uint32Value();
 
   char param_value[1024];
@@ -141,7 +142,9 @@ Platform *Platform::New(cl_platform_id pid)
   NanScope();
 
   Local<Value> arg = Integer::NewFromUnsigned(0);
-  Local<Object> obj = constructor_template->GetFunction()->NewInstance(1, &arg);
+  // Local<Object> obj = constructor_template->GetFunction()->NewInstance(1, &arg);
+  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor_template);
+  Local<Object> obj = constructorHandle->GetFunction()->NewInstance(1, &arg);
 
   Platform *platform = ObjectWrap::Unwrap<Platform>(obj);
   platform->platform_id = pid;
@@ -152,7 +155,7 @@ Platform *Platform::New(cl_platform_id pid)
 NAN_METHOD(Platform::getExtension) {
   NanScope();
 
-  Platform *platform = UnwrapThis<Platform>(args);
+  Platform *platform = ObjectWrap::Unwrap<Platform>(args.This());
   Local<String> vstr = args[0]->ToString();
   String::AsciiValue astr(vstr);
   char *str= *astr;

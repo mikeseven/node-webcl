@@ -41,10 +41,8 @@ public:
 
   static MemoryObject *New(cl_mem mw);
   static NAN_METHOD(New);
-
   static NAN_METHOD(getInfo);
   static NAN_METHOD(getGLObjectInfo);
-  // Patch
   static NAN_METHOD(release);
   
   cl_mem getMemory() const { return memory; };
@@ -64,9 +62,7 @@ public:
 
   static WebCLBuffer *New(cl_mem mw);
   static NAN_METHOD(New);
-  // Patch
   static NAN_METHOD(release);
-  
   static NAN_METHOD(createSubBuffer);
 
 private:
@@ -81,9 +77,7 @@ public:
 
   static WebCLImage *New(cl_mem mw);
   static NAN_METHOD(New);
-  // Patch
   static NAN_METHOD(release);  
-
   static NAN_METHOD(getInfo);
   static NAN_METHOD(getGLTextureInfo);
 

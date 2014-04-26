@@ -75,39 +75,29 @@ namespace {
 
 #define REQ_ARGS(N)                                                     \
   if (args.Length() < (N))                                              \
-    return ThrowException(Exception::TypeError(                         \
-                             String::New("Expected " #N " arguments")));
+    NanThrowTypeError("Expected " #N " arguments");
 
 #define REQ_STR_ARG(I, VAR)                                             \
   if (args.Length() <= (I) || !args[I]->IsString())                     \
-    return ThrowException(Exception::TypeError(                         \
-                  String::New("Argument " #I " must be a string"))); \
+    NanThrowTypeError("Argument " #I " must be a string");              \
   String::Utf8Value VAR(args[I]->ToString());
 
 #define REQ_EXT_ARG(I, VAR)                                             \
   if (args.Length() <= (I) || !args[I]->IsExternal())                   \
-    return ThrowException(Exception::TypeError(                         \
-                              String::New("Argument " #I " invalid"))); \
+    NanThrowTypeError("Argument " #I " invalid");                       \
   Local<External> VAR = Local<External>::Cast(args[I]);
 
 #define REQ_FUN_ARG(I, VAR)                                             \
   if (args.Length() <= (I) || !args[I]->IsFunction())                   \
-    return ThrowException(Exception::TypeError(                         \
-                  String::New("Argument " #I " must be a function")));  \
+    NanThrowTypeError("Argument " #I " must be a function");            \
   Local<Function> VAR = Local<Function>::Cast(args[I]);
 
-#define REQ_ERROR_THROW(error) if (ret == error) return ThrowException(Exception::Error(String::New(#error)));
+#define REQ_ERROR_THROW(error) if (ret == error) NanThrowError(String::New(#error));
 
 #define DESTROY_WEBCL_OBJECT(obj)	\
   obj->Destructor();			\
   unregisterCLObj(obj);
   
-
-template <typename T>
-static T* UnwrapThis(const v8::Arguments& args) {
-  return node::ObjectWrap::Unwrap<T>(args.This());
-}
-
 } // namespace
 
 namespace webcl {

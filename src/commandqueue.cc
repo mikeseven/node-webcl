@@ -43,7 +43,7 @@ namespace webcl {
     cl_event *events_wait_list=NULL; \
     cl_uint num_events_wait_list=0; \
     if(!arg->IsUndefined() && !arg->IsNull()) { \
-      Local<Array> arr = Array::Cast(*arg); \
+      Local<Array> arr = Local<Array>::Cast(arg); \
       num_events_wait_list=arr->Length(); \
       events_wait_list=new cl_event[num_events_wait_list]; \
       for(cl_uint i=0;i<num_events_wait_list;i++) \
@@ -56,40 +56,41 @@ void CommandQueue::Init(Handle<Object> target)
 {
   NanScope();
 
-  Local<FunctionTemplate> t = FunctionTemplate::New(CommandQueue::New);
-  constructor_template = Persistent<FunctionTemplate>::New(t);
+  // constructor
+  Local<FunctionTemplate> ctor = FunctionTemplate::New(CommandQueue::New);
+  NanAssignPersistent(FunctionTemplate, constructor_template, ctor);
+  ctor->InstanceTemplate()->SetInternalFieldCount(1);
+  ctor->SetClassName(NanSymbol("WebCLCommandQueue"));
 
-  constructor_template->InstanceTemplate()->SetInternalFieldCount(1);
-  constructor_template->SetClassName(NanSymbol("WebCLCommandQueue"));
-
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getInfo", getInfo);
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_enqueueNDRangeKernel", enqueueNDRangeKernel);
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_enqueueTask", enqueueTask);
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_enqueueWriteBuffer", enqueueWriteBuffer);
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_enqueueReadBuffer", enqueueReadBuffer);
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_enqueueCopyBuffer", enqueueCopyBuffer);
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_enqueueWriteBufferRect", enqueueWriteBufferRect);
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_enqueueReadBufferRect", enqueueReadBufferRect);
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_enqueueCopyBufferRect", enqueueCopyBufferRect);
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_enqueueWriteImage", enqueueWriteImage);
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_enqueueReadImage", enqueueReadImage);
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_enqueueCopyImage", enqueueCopyImage);
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_enqueueCopyImageToBuffer", enqueueCopyImageToBuffer);
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_enqueueCopyBufferToImage", enqueueCopyBufferToImage);
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_enqueueMapBuffer", enqueueMapBuffer);
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_enqueueMapImage", enqueueMapImage);
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_enqueueUnmapMemObject", enqueueUnmapMemObject);
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_enqueueMarker", enqueueMarker);
-  //NODE_SET_PROTOTYPE_METHOD(constructor_template, "_enqueueWaitForEvents", enqueueWaitForEvents);
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_enqueueBarrier", enqueueBarrier);
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_flush", flush);
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_finish", finish);
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_enqueueAcquireGLObjects", enqueueAcquireGLObjects);
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_enqueueReleaseGLObjects", enqueueReleaseGLObjects);
+  // prototype
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_getInfo", getInfo);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_enqueueNDRangeKernel", enqueueNDRangeKernel);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_enqueueTask", enqueueTask);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_enqueueWriteBuffer", enqueueWriteBuffer);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_enqueueReadBuffer", enqueueReadBuffer);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_enqueueCopyBuffer", enqueueCopyBuffer);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_enqueueWriteBufferRect", enqueueWriteBufferRect);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_enqueueReadBufferRect", enqueueReadBufferRect);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_enqueueCopyBufferRect", enqueueCopyBufferRect);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_enqueueWriteImage", enqueueWriteImage);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_enqueueReadImage", enqueueReadImage);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_enqueueCopyImage", enqueueCopyImage);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_enqueueCopyImageToBuffer", enqueueCopyImageToBuffer);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_enqueueCopyBufferToImage", enqueueCopyBufferToImage);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_enqueueMapBuffer", enqueueMapBuffer);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_enqueueMapImage", enqueueMapImage);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_enqueueUnmapMemObject", enqueueUnmapMemObject);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_enqueueMarker", enqueueMarker);
+  //NODE_SET_PROTOTYPE_METHOD(ctor, "_enqueueWaitForEvents", enqueueWaitForEvents);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_enqueueBarrier", enqueueBarrier);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_flush", flush);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_finish", finish);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_enqueueAcquireGLObjects", enqueueAcquireGLObjects);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_enqueueReleaseGLObjects", enqueueReleaseGLObjects);
   // Patch
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_release", release);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_release", release);
 
-  target->Set(NanSymbol("WebCLCommandQueue"), constructor_template->GetFunction());
+  target->Set(NanSymbol("WebCLCommandQueue"), ctor->GetFunction());
 }
 
 CommandQueue::CommandQueue(Handle<Object> wrapper) : command_queue(0)
@@ -117,7 +118,7 @@ void CommandQueue::Destructor() {
 NAN_METHOD(CommandQueue::release)
 {
   NanScope();
-  CommandQueue *cq = UnwrapThis<CommandQueue>(args);
+  CommandQueue *cq = ObjectWrap::Unwrap<CommandQueue>(args.This());
   
   // Flush first
   cl_int ret = ::clFlush(cq->getCommandQueue());
@@ -137,7 +138,7 @@ NAN_METHOD(CommandQueue::release)
 NAN_METHOD(CommandQueue::getInfo)
 {
   NanScope();
-  CommandQueue *cq = UnwrapThis<CommandQueue>(args);
+  CommandQueue *cq = ObjectWrap::Unwrap<CommandQueue>(args.This());
   cl_command_queue_info param_name = args[0]->Uint32Value();
 
   switch (param_name) {
@@ -151,7 +152,7 @@ NAN_METHOD(CommandQueue::getInfo)
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
-    NanReturnValue(Context::New(ctx)->handle_);
+    NanReturnValue(Context::New(ctx)->handle());
   }
   case CL_QUEUE_DEVICE: {
     cl_device_id dev=0;
@@ -163,7 +164,7 @@ NAN_METHOD(CommandQueue::getInfo)
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
-    NanReturnValue(Device::New(dev)->handle_);
+    NanReturnValue(Device::New(dev)->handle());
   }
   case CL_QUEUE_REFERENCE_COUNT:
   case CL_QUEUE_PROPERTIES: {
@@ -186,7 +187,7 @@ NAN_METHOD(CommandQueue::getInfo)
 NAN_METHOD(CommandQueue::enqueueNDRangeKernel)
 {
   NanScope();
-  CommandQueue *cq = UnwrapThis<CommandQueue>(args);
+  CommandQueue *cq = ObjectWrap::Unwrap<CommandQueue>(args.This());
 
   REQ_ARGS(4);
 
@@ -195,7 +196,7 @@ NAN_METHOD(CommandQueue::enqueueNDRangeKernel)
   size_t *offsets=NULL;
   cl_uint num_offsets=0;
   if(!args[1]->IsUndefined() && !args[1]->IsNull()) {
-    Local<Array> arr = Array::Cast(*args[1]);
+    Local<Array> arr = Local<Array>::Cast(args[1]);
     num_offsets=arr->Length();
     if (num_offsets > 0) {
       offsets = new size_t[num_offsets];
@@ -207,7 +208,7 @@ NAN_METHOD(CommandQueue::enqueueNDRangeKernel)
   size_t *globals=NULL;
   cl_uint num_globals=0;
   if(!args[2]->IsUndefined() && !args[2]->IsNull()) {
-    Local<Array> arr = Array::Cast(*args[2]);
+    Local<Array> arr = Local<Array>::Cast(args[2]);
     num_globals=arr->Length();
     if(num_globals == 0)
       NanThrowError("# globals must be at least 1");
@@ -219,7 +220,7 @@ NAN_METHOD(CommandQueue::enqueueNDRangeKernel)
   size_t *locals=NULL;
   cl_uint num_locals=0;
   if(!args[3]->IsUndefined() && !args[3]->IsNull()) {
-    Local<Array> arr = Array::Cast(*args[3]);
+    Local<Array> arr = Local<Array>::Cast(args[3]);
     num_locals=arr->Length();
     if(num_locals == 0)
       NanThrowError("# locals must be at least 1");
@@ -277,7 +278,7 @@ NAN_METHOD(CommandQueue::enqueueNDRangeKernel)
 NAN_METHOD(CommandQueue::enqueueTask)
 {
   NanScope();
-  CommandQueue *cq = UnwrapThis<CommandQueue>(args);
+  CommandQueue *cq = ObjectWrap::Unwrap<CommandQueue>(args.This());
 
   REQ_ARGS(1);
 
@@ -322,7 +323,7 @@ NAN_METHOD(CommandQueue::enqueueTask)
 NAN_METHOD(CommandQueue::enqueueWriteBuffer)
 {
   NanScope();
-  CommandQueue *cq = UnwrapThis<CommandQueue>(args);
+  CommandQueue *cq = ObjectWrap::Unwrap<CommandQueue>(args.This());
   MemoryObject *mo = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
 
   cl_bool blocking_write = args[1]->BooleanValue() ? CL_TRUE : CL_FALSE;
@@ -333,7 +334,7 @@ NAN_METHOD(CommandQueue::enqueueWriteBuffer)
   void *ptr=NULL;
   if(!args[4]->IsUndefined()) {
     if(args[4]->IsArray()) {
-      Local<Array> arr=Array::Cast(*args[4]);
+      Local<Array> arr=Local<Array>::Cast(args[4]);
       ptr = arr->GetIndexedPropertiesExternalArrayData();
     }
     else if(args[4]->IsObject())
@@ -380,7 +381,7 @@ NAN_METHOD(CommandQueue::enqueueWriteBuffer)
 NAN_METHOD(CommandQueue::enqueueWriteBufferRect)
 {
   NanScope();
-  CommandQueue *cq = UnwrapThis<CommandQueue>(args);
+  CommandQueue *cq = ObjectWrap::Unwrap<CommandQueue>(args.This());
   MemoryObject *mo = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
 
   cl_bool blocking_write = args[1]->BooleanValue() ? CL_TRUE : CL_FALSE;
@@ -389,16 +390,16 @@ NAN_METHOD(CommandQueue::enqueueWriteBufferRect)
   size_t host_origin[3] = {0,0,0};
   size_t region[3] = {1,1,1};
 
-  Local<Array> arr= Array::Cast(*args[2]);
+  Local<Array> arr= Local<Array>::Cast(args[2]);
   uint32_t i;
   for(i=0;i<arr->Length();i++)
       buffer_origin[i]=arr->Get(i)->Uint32Value();
 
-  arr=Array::Cast(*args[3]);
+  arr=Local<Array>::Cast(args[3]);
   for(i=0;i<arr->Length();i++)
       host_origin[i]=arr->Get(i)->Uint32Value();
 
-  arr=Array::Cast(*args[4]);
+  arr=Local<Array>::Cast(args[4]);
   for(i=0;i<arr->Length();i++)
       region[i]=arr->Get(i)->Uint32Value();
 
@@ -410,7 +411,7 @@ NAN_METHOD(CommandQueue::enqueueWriteBufferRect)
   void *ptr=NULL;
   if(!args[9]->IsUndefined()) {
     if(args[9]->IsArray()) {
-      Local<Array> arr=Array::Cast(*args[9]);
+      Local<Array> arr=Local<Array>::Cast(args[9]);
       ptr = arr->GetIndexedPropertiesExternalArrayData();
     }
     else if(args[9]->IsObject())
@@ -466,7 +467,7 @@ NAN_METHOD(CommandQueue::enqueueWriteBufferRect)
 NAN_METHOD(CommandQueue::enqueueReadBuffer)
 {
   NanScope();
-  CommandQueue *cq = UnwrapThis<CommandQueue>(args);
+  CommandQueue *cq = ObjectWrap::Unwrap<CommandQueue>(args.This());
   MemoryObject *mo = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
 
   cl_bool blocking_read = args[1]->BooleanValue() ? CL_TRUE : CL_FALSE;
@@ -477,7 +478,7 @@ NAN_METHOD(CommandQueue::enqueueReadBuffer)
   void *ptr=NULL;
   if(!args[4]->IsUndefined()) {
     if(args[4]->IsArray()) {
-      Local<Array> arr=Array::Cast(*args[4]);
+      Local<Array> arr=Local<Array>::Cast(args[4]);
       ptr = arr->GetIndexedPropertiesExternalArrayData();
     }
     else if(args[4]->IsObject())
@@ -524,7 +525,7 @@ NAN_METHOD(CommandQueue::enqueueReadBuffer)
 NAN_METHOD(CommandQueue::enqueueReadBufferRect)
 {
   NanScope();
-  CommandQueue *cq = UnwrapThis<CommandQueue>(args);
+  CommandQueue *cq = ObjectWrap::Unwrap<CommandQueue>(args.This());
   MemoryObject *mo = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
 
   cl_bool blocking_read = args[1]->BooleanValue() ? CL_TRUE : CL_FALSE;
@@ -533,16 +534,16 @@ NAN_METHOD(CommandQueue::enqueueReadBufferRect)
   size_t host_origin[3] = {0,0,0};
   size_t region[3] = {1,1,1};
 
-  Local<Array> arr= Array::Cast(*args[2]);
+  Local<Array> arr= Local<Array>::Cast(args[2]);
   uint32_t i;
   for(i=0;i<arr->Length();i++)
       buffer_origin[i]=arr->Get(i)->Uint32Value();
 
-  arr=Array::Cast(*args[3]);
+  arr=Local<Array>::Cast(args[3]);
   for(i=0;i<arr->Length();i++)
       host_origin[i]=arr->Get(i)->Uint32Value();
 
-  arr=Array::Cast(*args[4]);
+  arr=Local<Array>::Cast(args[4]);
   for(i=0;i<arr->Length();i++)
       region[i]=arr->Get(i)->Uint32Value();
 
@@ -554,7 +555,7 @@ NAN_METHOD(CommandQueue::enqueueReadBufferRect)
   void *ptr=NULL;
   if(!args[9]->IsUndefined()) {
     if(args[9]->IsArray()) {
-      Local<Array> arr=Array::Cast(*args[9]);
+      Local<Array> arr=Local<Array>::Cast(args[9]);
       ptr = arr->GetIndexedPropertiesExternalArrayData();
     }
     else if(args[9]->IsObject())
@@ -610,7 +611,7 @@ NAN_METHOD(CommandQueue::enqueueReadBufferRect)
 NAN_METHOD(CommandQueue::enqueueCopyBuffer)
 {
   NanScope();
-  CommandQueue *cq = UnwrapThis<CommandQueue>(args);
+  CommandQueue *cq = ObjectWrap::Unwrap<CommandQueue>(args.This());
 
   MemoryObject *mo_src = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
   MemoryObject *mo_dst = ObjectWrap::Unwrap<MemoryObject>(args[1]->ToObject());
@@ -657,7 +658,7 @@ NAN_METHOD(CommandQueue::enqueueCopyBuffer)
 NAN_METHOD(CommandQueue::enqueueCopyBufferRect)
 {
   NanScope();
-  CommandQueue *cq = UnwrapThis<CommandQueue>(args);
+  CommandQueue *cq = ObjectWrap::Unwrap<CommandQueue>(args.This());
   MemoryObject *mo_src = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
   MemoryObject *mo_dst = ObjectWrap::Unwrap<MemoryObject>(args[1]->ToObject());
 
@@ -665,16 +666,16 @@ NAN_METHOD(CommandQueue::enqueueCopyBufferRect)
   size_t dst_origin[3] = {0,0,0};
   size_t region[3] = {1,1,1};
 
-  Local<Array> arr= Array::Cast(*args[2]);
+  Local<Array> arr= Local<Array>::Cast(args[2]);
   uint32_t i;
   for(i=0;i<arr->Length();i++)
       src_origin[i]=arr->Get(i)->Uint32Value();
 
-  arr=Array::Cast(*args[3]);
+  arr=Local<Array>::Cast(args[3]);
   for(i=0;i<arr->Length();i++)
       dst_origin[i]=arr->Get(i)->Uint32Value();
 
-  arr=Array::Cast(*args[4]);
+  arr=Local<Array>::Cast(args[4]);
   for(i=0;i<arr->Length();i++)
       region[i]=arr->Get(i)->Uint32Value();
 
@@ -729,7 +730,7 @@ NAN_METHOD(CommandQueue::enqueueCopyBufferRect)
 NAN_METHOD(CommandQueue::enqueueWriteImage)
 {
   NanScope();
-  CommandQueue *cq = UnwrapThis<CommandQueue>(args);
+  CommandQueue *cq = ObjectWrap::Unwrap<CommandQueue>(args.This());
   MemoryObject *mo = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
 
   cl_bool blocking_write = args[1]->BooleanValue() ? CL_TRUE : CL_FALSE;
@@ -737,12 +738,12 @@ NAN_METHOD(CommandQueue::enqueueWriteImage)
   size_t origin[3]={0,0,0};
   size_t region[3]={1,1,1};
 
-  Local<Array> arr= Array::Cast(*args[2]);
+  Local<Array> arr= Local<Array>::Cast(args[2]);
   uint32_t i;
   for(i=0;i<arr->Length();i++)
       origin[i]=arr->Get(i)->Uint32Value();
 
-  arr= Array::Cast(*args[3]);
+  arr= Local<Array>::Cast(args[3]);
   for(i=0;i<arr->Length();i++)
       region[i]=arr->Get(i)->Uint32Value();
 
@@ -752,7 +753,7 @@ NAN_METHOD(CommandQueue::enqueueWriteImage)
   void *ptr=NULL;
   if(!args[6]->IsUndefined()) {
     if(args[6]->IsArray()) {
-      Local<Array> arr=Array::Cast(*args[6]);
+      Local<Array> arr=Local<Array>::Cast(args[6]);
       ptr = arr->GetIndexedPropertiesExternalArrayData();
     }
     else if(args[6]->IsObject())
@@ -804,7 +805,7 @@ NAN_METHOD(CommandQueue::enqueueWriteImage)
 NAN_METHOD(CommandQueue::enqueueReadImage)
 {
   NanScope();
-  CommandQueue *cq = UnwrapThis<CommandQueue>(args);
+  CommandQueue *cq = ObjectWrap::Unwrap<CommandQueue>(args.This());
   MemoryObject *mo = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
 
   cl_bool blocking_read = args[1]->BooleanValue() ? CL_TRUE : CL_FALSE;
@@ -812,12 +813,12 @@ NAN_METHOD(CommandQueue::enqueueReadImage)
   size_t origin[3] = {0,0,0};
   size_t region[3] = {1,1,1};
 
-  Local<Array> arr= Array::Cast(*args[2]);
+  Local<Array> arr= Local<Array>::Cast(args[2]);
   uint32_t i;
   for(i=0;i<arr->Length();i++)
       origin[i]=arr->Get(i)->Uint32Value();
 
-  arr=Array::Cast(*args[3]);
+  arr=Local<Array>::Cast(args[3]);
   for(i=0;i<arr->Length();i++)
       region[i]=arr->Get(i)->Uint32Value();
 
@@ -827,7 +828,7 @@ NAN_METHOD(CommandQueue::enqueueReadImage)
   void *ptr=NULL;
   if(!args[6]->IsUndefined()) {
     if(args[6]->IsArray()) {
-      Local<Array> arr=Array::Cast(*args[6]);
+      Local<Array> arr=Local<Array>::Cast(args[6]);
       ptr = arr->GetIndexedPropertiesExternalArrayData();
     }
     else if(args[6]->IsObject())
@@ -877,7 +878,7 @@ NAN_METHOD(CommandQueue::enqueueReadImage)
 NAN_METHOD(CommandQueue::enqueueCopyImage)
 {   
   NanScope();
-  CommandQueue *cq = UnwrapThis<CommandQueue>(args);
+  CommandQueue *cq = ObjectWrap::Unwrap<CommandQueue>(args.This());
   MemoryObject *mo_src = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
   MemoryObject *mo_dst = ObjectWrap::Unwrap<MemoryObject>(args[1]->ToObject());
 
@@ -885,16 +886,16 @@ NAN_METHOD(CommandQueue::enqueueCopyImage)
   size_t dst_origin[3] = {0,0,0};
   size_t region[3] = {1,1,1};
 
-  Local<Array> arr= Array::Cast(*args[2]);
+  Local<Array> arr= Local<Array>::Cast(args[2]);
   uint32_t i;
   for(i=0;i<arr->Length();i++)
       src_origin[i]=arr->Get(i)->Uint32Value();
 
-  arr=Array::Cast(*args[3]);
+  arr=Local<Array>::Cast(args[3]);
   for(i=0;i<arr->Length();i++)
       dst_origin[i]=arr->Get(i)->Uint32Value();
 
-  arr=Array::Cast(*args[4]);
+  arr=Local<Array>::Cast(args[4]);
   for(i=0;i<arr->Length();i++)
       region[i]=arr->Get(i)->Uint32Value();
 
@@ -940,19 +941,19 @@ NAN_METHOD(CommandQueue::enqueueCopyImage)
 NAN_METHOD(CommandQueue::enqueueCopyImageToBuffer)
 {
   NanScope();
-  CommandQueue *cq = UnwrapThis<CommandQueue>(args);
+  CommandQueue *cq = ObjectWrap::Unwrap<CommandQueue>(args.This());
   MemoryObject *mo_src = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
   MemoryObject *mo_dst = ObjectWrap::Unwrap<MemoryObject>(args[1]->ToObject());
 
   size_t src_origin[3] = {0,0,0};
   size_t region[3] = {1,1,1};
 
-  Local<Array> arr= Array::Cast(*args[2]);
+  Local<Array> arr= Local<Array>::Cast(args[2]);
   uint32_t i;
   for(i=0;i<arr->Length();i++)
       src_origin[i]=arr->Get(i)->Uint32Value();
 
-  arr=Array::Cast(*args[3]);
+  arr=Local<Array>::Cast(args[3]);
   for(i=0;i<arr->Length();i++)
       region[i]=arr->Get(i)->Uint32Value();
 
@@ -999,7 +1000,7 @@ NAN_METHOD(CommandQueue::enqueueCopyImageToBuffer)
 NAN_METHOD(CommandQueue::enqueueCopyBufferToImage)
 {
   NanScope();
-  CommandQueue *cq = UnwrapThis<CommandQueue>(args);
+  CommandQueue *cq = ObjectWrap::Unwrap<CommandQueue>(args.This());
   MemoryObject *mo_src = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
   MemoryObject *mo_dst = ObjectWrap::Unwrap<MemoryObject>(args[1]->ToObject());
 
@@ -1007,12 +1008,12 @@ NAN_METHOD(CommandQueue::enqueueCopyBufferToImage)
   size_t dst_origin[3]={0,0,0};
   size_t region[3]={1,1,1};
 
-  Local<Array> arr=Array::Cast(*args[3]);
+  Local<Array> arr=Local<Array>::Cast(args[3]);
   uint32_t i;
   for(i=0;i<arr->Length();i++)
       dst_origin[i]=arr->Get(i)->Uint32Value();
 
-  arr=Array::Cast(*args[4]);
+  arr=Local<Array>::Cast(args[4]);
   for(i=0;i<arr->Length();i++)
       region[i]=arr->Get(i)->Uint32Value();
 
@@ -1061,7 +1062,7 @@ void free_callback(char *data, void *hint) {
 NAN_METHOD(CommandQueue::enqueueMapBuffer)
 {
   NanScope();
-  CommandQueue *cq = UnwrapThis<CommandQueue>(args);
+  CommandQueue *cq = ObjectWrap::Unwrap<CommandQueue>(args.This());
 
   // TODO: arg checking
   MemoryObject *mo = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
@@ -1101,7 +1102,7 @@ NAN_METHOD(CommandQueue::enqueueMapBuffer)
   }
 
   printf("\nmapbuffer %p = ",mo->getMemory());
-  for (int i = 0; i < size/sizeof(int); ++i)
+  for (size_t i = 0; i < size/sizeof(int); ++i)
   {
     printf("%d ",((int*) result)[i]);
   }
@@ -1109,8 +1110,8 @@ NAN_METHOD(CommandQueue::enqueueMapBuffer)
 
   // wrap OpenCL result buffer into a node Buffer
   // WARNING: make sure result is shared not copied, otherwise unmapBuffer won't work
-  node::Buffer *buf=node::Buffer::New((char*) result,size, free_callback,
-  NULL);
+  // node::Buffer *buf=node::Buffer::New((char*) result,size, free_callback, NULL);
+  Local<Object> buf=NanNewBufferHandle((char*) result, size, free_callback, NULL);
   printf("result %p, wrapped data %p\n", result, node::Buffer::Data(buf));
   if(node::Buffer::Data(buf) != result) {
     printf("Error: data buffer has been copied\n");
@@ -1121,13 +1122,13 @@ NAN_METHOD(CommandQueue::enqueueMapBuffer)
     e->setEvent(event);
   }
 
-  NanReturnValue(buf->handle_);
+  NanReturnValue(buf);
 }
 
 NAN_METHOD(CommandQueue::enqueueMapImage)
 {
   NanScope();
-  CommandQueue *cq = UnwrapThis<CommandQueue>(args);
+  CommandQueue *cq = ObjectWrap::Unwrap<CommandQueue>(args.This());
 
   // TODO: arg checking
   MemoryObject *mo = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
@@ -1137,13 +1138,13 @@ NAN_METHOD(CommandQueue::enqueueMapImage)
   size_t origin[3];
   size_t region[3];
 
-  Local<Array> originArray = Array::Cast(*args[3]);
+  Local<Array> originArray = Local<Array>::Cast(args[3]);
   for (int i=0; i<3; i++) {
     size_t s = originArray->Get(i)->Uint32Value();
     origin[i] = s;
   }
 
-  Local<Array> regionArray = Array::Cast(*args[4]);
+  Local<Array> regionArray = Local<Array>::Cast(args[4]);
   for (int i=0; i<3; i++) {
     size_t s = regionArray->Get(i)->Uint32Value();
     region[i] = s;
@@ -1194,18 +1195,18 @@ NAN_METHOD(CommandQueue::enqueueMapImage)
   }
 
   size_t nbytes = region[0] * region[1] * region[2];
-  NanReturnValue(node::Buffer::New((char*)result, nbytes,
-  free_callback, NULL)->handle_);
+  NanReturnValue(NanNewBufferHandle((char*)result, nbytes, free_callback, NULL));
 }
 
 NAN_METHOD(CommandQueue::enqueueUnmapMemObject)
 {
   NanScope();
-  CommandQueue *cq = UnwrapThis<CommandQueue>(args);
+  CommandQueue *cq = ObjectWrap::Unwrap<CommandQueue>(args.This());
 
   // TODO: arg checking
   MemoryObject *mo = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
-  node::Buffer *buf = ObjectWrap::Unwrap<node::Buffer>(args[1]->ToObject());
+  // node::Buffer *buf = ObjectWrap::Unwrap<node::Buffer>(args[1]->ToObject());
+  Local<Object> buf(args[1]->ToObject());
 
   MakeEventWaitList(args[2]);
 
@@ -1255,7 +1256,7 @@ NAN_METHOD(CommandQueue::enqueueUnmapMemObject)
 NAN_METHOD(CommandQueue::enqueueMarker)
 {
   NanScope();
-  CommandQueue *cq = UnwrapThis<CommandQueue>(args);
+  CommandQueue *cq = ObjectWrap::Unwrap<CommandQueue>(args.This());
 
   MakeEventWaitList(args[0]);
 
@@ -1301,7 +1302,7 @@ NAN_METHOD(CommandQueue::enqueueMarker)
 /*NAN_METHOD(CommandQueue::enqueueWaitForEvents)
 {
   NanScope();
-  CommandQueue *cq = UnwrapThis<CommandQueue>(args);
+  CommandQueue *cq = ObjectWrap::Unwrap<CommandQueue>(args.This());
 
   MakeEventWaitList(args[0]);
 
@@ -1328,7 +1329,7 @@ NAN_METHOD(CommandQueue::enqueueMarker)
 NAN_METHOD(CommandQueue::enqueueBarrier)
 {
   NanScope();
-  CommandQueue *cq = UnwrapThis<CommandQueue>(args);
+  CommandQueue *cq = ObjectWrap::Unwrap<CommandQueue>(args.This());
 
   MakeEventWaitList(args[0]);
 
@@ -1373,7 +1374,7 @@ NAN_METHOD(CommandQueue::enqueueBarrier)
 NAN_METHOD(CommandQueue::finish)
 {
   NanScope();
-  CommandQueue *cq = UnwrapThis<CommandQueue>(args);
+  CommandQueue *cq = ObjectWrap::Unwrap<CommandQueue>(args.This());
   cl_int ret = ::clFinish(cq->getCommandQueue());
 
   if (ret != CL_SUCCESS) {
@@ -1389,7 +1390,7 @@ NAN_METHOD(CommandQueue::finish)
 NAN_METHOD(CommandQueue::flush)
 {
   NanScope();
-  CommandQueue *cq = UnwrapThis<CommandQueue>(args);
+  CommandQueue *cq = ObjectWrap::Unwrap<CommandQueue>(args.This());
   cl_int ret = ::clFlush(cq->getCommandQueue());
 
   if (ret != CL_SUCCESS) {
@@ -1405,12 +1406,12 @@ NAN_METHOD(CommandQueue::flush)
 NAN_METHOD(CommandQueue::enqueueAcquireGLObjects)
 {
   NanScope();
-  CommandQueue *cq = UnwrapThis<CommandQueue>(args);
+  CommandQueue *cq = ObjectWrap::Unwrap<CommandQueue>(args.This());
 
   cl_mem *mem_objects=NULL;
   int num_objects=0;
   if(args[0]->IsArray()) {
-    Local<Array> mem_objects_arr= Array::Cast(*args[0]);
+    Local<Array> mem_objects_arr= Local<Array>::Cast(args[0]);
     num_objects=mem_objects_arr->Length();
     mem_objects=new cl_mem[num_objects];
     for(int i=0;i<num_objects;i++) {
@@ -1460,12 +1461,12 @@ NAN_METHOD(CommandQueue::enqueueAcquireGLObjects)
 NAN_METHOD(CommandQueue::enqueueReleaseGLObjects)
 {
   NanScope();
-  CommandQueue *cq = UnwrapThis<CommandQueue>(args);
+  CommandQueue *cq = ObjectWrap::Unwrap<CommandQueue>(args.This());
 
   cl_mem *mem_objects=NULL;
   int num_objects=0;
   if(args[0]->IsArray()) {
-    Local<Array> mem_objects_arr= Array::Cast(*args[0]);
+    Local<Array> mem_objects_arr= Local<Array>::Cast(args[0]);
     num_objects=mem_objects_arr->Length();
     mem_objects=new cl_mem[num_objects];
     for(int i=0;i<num_objects;i++) {
@@ -1527,7 +1528,8 @@ CommandQueue *CommandQueue::New(cl_command_queue cw)
   NanScope();
 
   Local<Value> arg = Integer::NewFromUnsigned(0);
-  Local<Object> obj = constructor_template->GetFunction()->NewInstance(1, &arg);
+  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor_template);
+  Local<Object> obj = constructorHandle->GetFunction()->NewInstance(1, &arg);
 
   CommandQueue *commandqueue = ObjectWrap::Unwrap<CommandQueue>(obj);
   commandqueue->command_queue = cw;

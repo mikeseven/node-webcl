@@ -54,8 +54,8 @@ public:
   void setEvent(cl_event e);
   bool isEvent() const { return true; }
 
-  static v8::Handle<v8::Value> GetStatus(v8::Local<v8::String> property, const v8::AccessorInfo& info);
-  static v8::Handle<v8::Value> GetBuffer(v8::Local<v8::String> property, const v8::AccessorInfo& info);
+  static NAN_GETTER(GetStatus);
+  static NAN_GETTER(GetBuffer);
 
 private:
   Event(v8::Handle<v8::Object> wrapper);
@@ -66,8 +66,6 @@ private:
   static v8::Persistent<v8::FunctionTemplate> constructor_template;
 
   cl_event event;
-
-  void *buffer;
   cl_int status;
 };
 

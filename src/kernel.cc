@@ -44,19 +44,19 @@ void Kernel::Init(Handle<Object> target)
 {
   NanScope();
 
-  Local<FunctionTemplate> t = FunctionTemplate::New(Kernel::New);
-  constructor_template = Persistent<FunctionTemplate>::New(t);
+  // constructor
+  Local<FunctionTemplate> ctor = FunctionTemplate::New(Kernel::New);
+  NanAssignPersistent(FunctionTemplate, constructor_template, ctor);
+  ctor->InstanceTemplate()->SetInternalFieldCount(1);
+  ctor->SetClassName(NanSymbol("WebCLKernel"));
 
-  constructor_template->InstanceTemplate()->SetInternalFieldCount(1);
-  constructor_template->SetClassName(NanSymbol("WebCLKernel"));
+  // prototype
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_getInfo", getInfo);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_getWorkGroupInfo", getWorkGroupInfo);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_setArg", setArg);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_release", release);
 
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getInfo", getInfo);
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getWorkGroupInfo", getWorkGroupInfo);
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_setArg", setArg);
-  // Patch
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_release", release);
-
-  target->Set(NanSymbol("WebCLKernel"), constructor_template->GetFunction());
+  target->Set(NanSymbol("WebCLKernel"), ctor->GetFunction());
 }
 
 Kernel::Kernel(Handle<Object> wrapper) : kernel(0)
@@ -74,7 +74,7 @@ void Kernel::Destructor() {
 NAN_METHOD(Kernel::release)
 {
   NanScope();
-  Kernel *kernel = UnwrapThis<Kernel>(args);
+  Kernel *kernel = ObjectWrap::Unwrap<Kernel>(args.This());
   
   DESTROY_WEBCL_OBJECT(kernel);
   
@@ -84,7 +84,7 @@ NAN_METHOD(Kernel::release)
 NAN_METHOD(Kernel::getInfo)
 {
   NanScope();
-  Kernel *kernel = UnwrapThis<Kernel>(args);
+  Kernel *kernel = ObjectWrap::Unwrap<Kernel>(args.This());
   cl_kernel_info param_name = args[0]->Uint32Value();
 
   switch (param_name) {
@@ -111,7 +111,7 @@ NAN_METHOD(Kernel::getInfo)
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
-    NanReturnValue(Context::New(param_value)->handle_);
+    NanReturnValue(Context::New(param_value)->handle());
   }
   case CL_KERNEL_PROGRAM: {
     cl_program param_value=NULL;
@@ -123,7 +123,7 @@ NAN_METHOD(Kernel::getInfo)
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
-    NanReturnValue(Program::New(param_value)->handle_);
+    NanReturnValue(Program::New(param_value)->handle());
   }
   case CL_KERNEL_NUM_ARGS:
   case CL_KERNEL_REFERENCE_COUNT: {
@@ -146,7 +146,7 @@ NAN_METHOD(Kernel::getInfo)
 NAN_METHOD(Kernel::getWorkGroupInfo)
 {
   NanScope();
-  Kernel *kernel = UnwrapThis<Kernel>(args);
+  Kernel *kernel = ObjectWrap::Unwrap<Kernel>(args.This());
   Device *device = ObjectWrap::Unwrap<Device>(args[0]->ToObject());
   cl_kernel_work_group_info param_name = args[1]->Uint32Value();
 
@@ -210,7 +210,7 @@ NAN_METHOD(Kernel::setArg)
   if (!args[0]->IsUint32())
     return NanThrowError("CL_INVALID_ARG_INDEX");
 
-  Kernel *kernel = UnwrapThis<Kernel>(args);
+  Kernel *kernel = ObjectWrap::Unwrap<Kernel>(args.This());
   cl_uint arg_index = args[0]->Uint32Value();
   cl_int ret=CL_SUCCESS;
 
@@ -279,7 +279,7 @@ NAN_METHOD(Kernel::setArg)
       if (vec_type & types::VEC4) {
         float *arg = NULL;
         if (args[1]->IsArray()) {
-          Local<Array> arr = Array::Cast(*args[1]);
+          Local<Array> arr = Local<Array>::Cast(args[1]);
           if (arr->GetIndexedPropertiesExternalArrayDataLength() < 0) {
             // pure JS array, no native backend
             float _arg[4];
@@ -387,7 +387,8 @@ Kernel *Kernel::New(cl_kernel kw)
   NanScope();
 
   Local<Value> arg = Integer::NewFromUnsigned(0);
-  Local<Object> obj = constructor_template->GetFunction()->NewInstance(1, &arg);
+  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor_template);
+  Local<Object> obj = constructorHandle->GetFunction()->NewInstance(1, &arg);
 
   Kernel *kernel = ObjectWrap::Unwrap<Kernel>(obj);
   kernel->kernel = kw;

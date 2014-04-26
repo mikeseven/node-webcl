@@ -36,16 +36,17 @@ void Device::Init(Handle<Object> target)
 {
   NanScope();
 
-  Local<FunctionTemplate> t = FunctionTemplate::New(Device::New);
-  constructor_template = Persistent<FunctionTemplate>::New(t);
+  // constructor
+  Local<FunctionTemplate> ctor = FunctionTemplate::New(Device::New);
+  NanAssignPersistent(FunctionTemplate, constructor_template, ctor);
+  ctor->InstanceTemplate()->SetInternalFieldCount(1);
+  ctor->SetClassName(NanSymbol("WebCLDevice"));
 
-  constructor_template->InstanceTemplate()->SetInternalFieldCount(1);
-  constructor_template->SetClassName(NanSymbol("WebCLDevice"));
+  // prototype
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_getInfo", getInfo);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_getExtension", getExtension);
 
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getInfo", getInfo);
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getExtension", getExtension);
-
-  target->Set(NanSymbol("WebCLDevice"), constructor_template->GetFunction());
+  target->Set(NanSymbol("WebCLDevice"), ctor->GetFunction());
 }
 
 Device::Device(Handle<Object> wrapper) : device_id(0)
@@ -55,7 +56,7 @@ Device::Device(Handle<Object> wrapper) : device_id(0)
 NAN_METHOD(Device::getInfo)
 {
   NanScope();
-  Device *device = UnwrapThis<Device>(args);
+  Device *device = ObjectWrap::Unwrap<Device>(args.This());
   cl_device_info param_name = args[0]->Uint32Value();
 
   switch (param_name) {
@@ -356,7 +357,8 @@ Device *Device::New(cl_device_id dw)
   NanScope();
 
   Local<Value> arg = Integer::NewFromUnsigned(0);
-  Local<Object> obj = constructor_template->GetFunction()->NewInstance(1, &arg);
+  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor_template);
+  Local<Object> obj = constructorHandle->GetFunction()->NewInstance(1, &arg);
 
   Device *device = ObjectWrap::Unwrap<Device>(obj);
   device->device_id = dw;

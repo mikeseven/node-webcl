@@ -39,17 +39,18 @@ void Sampler::Init(Handle<Object> target)
 {
   NanScope();
 
-  Local<FunctionTemplate> t = FunctionTemplate::New(Sampler::New);
-  constructor_template = Persistent<FunctionTemplate>::New(t);
+  // constructor
+  Local<FunctionTemplate> ctor = FunctionTemplate::New(Sampler::New);
+  NanAssignPersistent(FunctionTemplate, constructor_template, ctor);
+  ctor->InstanceTemplate()->SetInternalFieldCount(1);
+  ctor->SetClassName(NanSymbol("WebCLSampler"));
 
-  constructor_template->InstanceTemplate()->SetInternalFieldCount(1);
-  constructor_template->SetClassName(NanSymbol("WebCLSampler"));
-
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getInfo", getInfo);
+  // prototype
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_getInfo", getInfo);
   // Patch
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_release", release);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_release", release);
 
-  target->Set(NanSymbol("WebCLSampler"), constructor_template->GetFunction());
+  target->Set(NanSymbol("WebCLSampler"), ctor->GetFunction());
 }
 
 Sampler::Sampler(Handle<Object> wrapper) : sampler(0)
@@ -67,7 +68,7 @@ void Sampler::Destructor() {
 NAN_METHOD(Sampler::release)
 {
   NanScope();
-  Sampler *sampler = UnwrapThis<Sampler>(args);
+  Sampler *sampler = ObjectWrap::Unwrap<Sampler>(args.This());
   
   DESTROY_WEBCL_OBJECT(sampler);
   
@@ -77,7 +78,7 @@ NAN_METHOD(Sampler::release)
 NAN_METHOD(Sampler::getInfo)
 {
   NanScope();
-  Sampler *sampler = UnwrapThis<Sampler>(args);
+  Sampler *sampler = ObjectWrap::Unwrap<Sampler>(args.This());
   cl_sampler_info param_name = args[0]->Uint32Value();
 
   switch (param_name) {
@@ -106,7 +107,7 @@ NAN_METHOD(Sampler::getInfo)
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
-    NanReturnValue(Context::New(param_value)->handle_);
+    NanReturnValue(Context::New(param_value)->handle());
   }
   default:
     return NanThrowError("UNKNOWN param_name");
@@ -132,7 +133,8 @@ Sampler *Sampler::New(cl_sampler sw)
   NanScope();
 
   Local<Value> arg = Integer::NewFromUnsigned(0);
-  Local<Object> obj = constructor_template->GetFunction()->NewInstance(1, &arg);
+  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor_template);
+  Local<Object> obj = constructorHandle->GetFunction()->NewInstance(1, &arg);
 
   Sampler *sampler = ObjectWrap::Unwrap<Sampler>(obj);
   sampler->sampler = sw;

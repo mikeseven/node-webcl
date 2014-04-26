@@ -66,7 +66,6 @@ public:
   static NAN_METHOD(finish);
   static NAN_METHOD(enqueueAcquireGLObjects);
   static NAN_METHOD(enqueueReleaseGLObjects);
-  // Patch
   static NAN_METHOD(release);
 
   cl_command_queue getCommandQueue() const { return command_queue; };

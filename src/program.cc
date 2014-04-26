@@ -43,19 +43,20 @@ void Program::Init(Handle<Object> target)
 {
   NanScope();
 
-  Local<FunctionTemplate> t = FunctionTemplate::New(Program::New);
-  constructor_template = Persistent<FunctionTemplate>::New(t);
+  // constructor
+  Local<FunctionTemplate> ctor = FunctionTemplate::New(Program::New);
+  NanAssignPersistent(FunctionTemplate, constructor_template, ctor);
+  ctor->InstanceTemplate()->SetInternalFieldCount(1);
+  ctor->SetClassName(NanSymbol("WebCLProgram"));
 
-  constructor_template->InstanceTemplate()->SetInternalFieldCount(1);
-  constructor_template->SetClassName(NanSymbol("WebCLProgram"));
+  // prototype
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_getInfo", getInfo);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_getBuildInfo", getBuildInfo);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_build", build);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_createKernel", createKernel);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_release", release);
 
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getInfo", getInfo);
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getBuildInfo", getBuildInfo);
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_build", build);
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_createKernel", createKernel);
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_release", release);
-
-  target->Set(NanSymbol("WebCLProgram"), constructor_template->GetFunction());
+  target->Set(NanSymbol("WebCLProgram"), ctor->GetFunction());
 }
 
 Program::Program(Handle<Object> wrapper) : program(0)
@@ -73,7 +74,7 @@ void Program::Destructor() {
 NAN_METHOD(Program::release)
 {
   NanScope();
-  Program *prog = UnwrapThis<Program>(args);
+  Program *prog = ObjectWrap::Unwrap<Program>(args.This());
   
   DESTROY_WEBCL_OBJECT(prog);
   
@@ -83,7 +84,7 @@ NAN_METHOD(Program::release)
 NAN_METHOD(Program::getInfo)
 {
   NanScope();
-  Program *prog = UnwrapThis<Program>(args);
+  Program *prog = ObjectWrap::Unwrap<Program>(args.This());
   cl_program_info param_name = args[1]->Uint32Value();
 
   switch (param_name) {
@@ -110,7 +111,7 @@ NAN_METHOD(Program::getInfo)
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
-    NanReturnValue(Context::New(value)->handle_);
+    NanReturnValue(Context::New(value)->handle());
   }
   case CL_PROGRAM_DEVICES: {
     cl_device_id devices[1024];
@@ -127,7 +128,7 @@ NAN_METHOD(Program::getInfo)
     Local<Array> deviceArray = Array::New(num_devices);
     for (int i=0; i<num_devices; i++) {
       cl_device_id d = devices[i];
-      deviceArray->Set(i, Device::New(d)->handle_);
+      deviceArray->Set(i, Device::New(d)->handle());
     }
     NanReturnValue(deviceArray);
   }
@@ -156,7 +157,7 @@ NAN_METHOD(Program::getInfo)
 NAN_METHOD(Program::getBuildInfo)
 {
   NanScope();
-  Program *prog = UnwrapThis<Program>(args);
+  Program *prog = ObjectWrap::Unwrap<Program>(args.This());
   Device *dev = ObjectWrap::Unwrap<Device>(args[0]->ToObject());
   cl_program_info param_name = args[1]->Uint32Value();
 
@@ -191,7 +192,7 @@ NAN_METHOD(Program::getBuildInfo)
     }
     Local<Value> obj = scope.Close(JS_STR(param_value,(int)param_value_size_ret));
     delete[] param_value;
-    return obj;
+    NanReturnValue(obj);
   }
   }
 }
@@ -250,12 +251,12 @@ Program::After_cb(uv_async_t* handle, int status) {
 NAN_METHOD(Program::build)
 {
   NanScope();
-  Program *prog = UnwrapThis<Program>(args);
+  Program *prog = ObjectWrap::Unwrap<Program>(args.This());
 
   cl_device_id *devices=NULL;
   int num=0;
   if(args[0]->IsArray()) {
-    Local<Array> deviceArray = Array::Cast(*args[0]);
+    Local<Array> deviceArray = Local<Array>::Cast(args[0]);
     //cout<<"Building program for "<<deviceArray->Length()<<" devices"<<endl;
     num=deviceArray->Length();
     devices=new cl_device_id[num];
@@ -332,7 +333,7 @@ NAN_METHOD(Program::build)
 NAN_METHOD(Program::createKernel)
 {
   NanScope();
-  Program *prog = UnwrapThis<Program>(args);
+  Program *prog = ObjectWrap::Unwrap<Program>(args.This());
 
   Local<String> str = args[0]->ToString();
   String::AsciiValue astr(str);
@@ -351,7 +352,7 @@ NAN_METHOD(Program::createKernel)
     return NanThrowError("UNKNOWN ERROR");
   }
 
-  NanReturnValue(Kernel::New(kw)->handle_);
+  NanReturnValue(Kernel::New(kw)->handle());
 }
 
 NAN_METHOD(Program::New)
@@ -390,7 +391,8 @@ Program *Program::New(cl_program pw)
   NanScope();
 
   Local<Value> arg = Integer::NewFromUnsigned(0);
-  Local<Object> obj = constructor_template->GetFunction()->NewInstance(1, &arg);
+  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor_template);
+  Local<Object> obj = constructorHandle->GetFunction()->NewInstance(1, &arg);
 
   Program *progobj = ObjectWrap::Unwrap<Program>(obj);
   progobj->program = pw;

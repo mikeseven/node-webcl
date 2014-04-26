@@ -68,11 +68,9 @@ public:
 
   static Kernel *New(cl_kernel kw);
   static NAN_METHOD(New);
-
   static NAN_METHOD(getInfo);
   static NAN_METHOD(getWorkGroupInfo);
   static NAN_METHOD(setArg);
-  //
   static NAN_METHOD(release);
 
   cl_kernel getKernel() const { return kernel; };

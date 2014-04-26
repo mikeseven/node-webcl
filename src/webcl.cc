@@ -143,7 +143,7 @@ NAN_METHOD(getPlatforms) {
 
   Local<Array> platformArray = Array::New(num_entries);
   for (uint32_t i=0; i<num_entries; i++) {
-    platformArray->Set(i, Platform::New(platforms[i])->handle_);
+    platformArray->Set(i, Platform::New(platforms[i])->handle());
   }
 
   delete[] platforms;
@@ -237,7 +237,7 @@ NAN_METHOD(createContext) {
     Platform *platform = NULL;
     vector<cl_device_id> devices;
     vector<cl_context_properties> properties;
-    Local<Array> props = Array::Cast(*args[0]);
+    Local<Array> props = Local<Array>::Cast(args[0]);
 
     if(props->Has(JS_STR("platform"))) {
       Local<Object> obj = props->Get(JS_STR("platform"))->ToObject();
@@ -289,7 +289,7 @@ NAN_METHOD(createContext) {
       Local<Object> obj = props->Get(JS_STR("devices"))->ToObject();
       if(!obj->IsNull()) {
         if(obj->IsArray()) {
-          Local<Array> deviceArray = Array::Cast(*obj);
+          Local<Array> deviceArray = Local<Array>::Cast(obj);
           for (uint32_t i=0; i<deviceArray->Length(); i++) {
             Local<Object> obj = deviceArray->Get(i)->ToObject();
             Device *d = ObjectWrap::Unwrap<Device>(obj);
@@ -312,8 +312,9 @@ NAN_METHOD(createContext) {
                              baton ? createContext_callback : NULL,
                              baton , &ret);
     }
-    else
-      NanReturnValue(NanThrowError("Invalid parameters"));
+    else {
+      NanThrowError("Invalid parameters");
+    }
   }
 
   // automatic context creation
@@ -379,7 +380,7 @@ NAN_METHOD(createContext) {
     return NanThrowError("UNKNOWN ERROR");
   }
 
-  NanReturnValue(Context::New(cw)->handle_);
+  NanReturnValue(Context::New(cw)->handle());
 }
 
 NAN_METHOD(waitForEvents) {
@@ -388,7 +389,7 @@ NAN_METHOD(waitForEvents) {
   if (!args[0]->IsArray())
     NanThrowError("CL_INVALID_VALUE");
 
-  Local<Array> eventsArray = Array::Cast(*args[0]);
+  Local<Array> eventsArray = Local<Array>::Cast(args[0]);
   std::vector<cl_event> events;
   for (uint32_t i=0; i<eventsArray->Length(); i++) {
    Event *we=ObjectWrap::Unwrap<Event>(eventsArray->Get(i)->ToObject());
