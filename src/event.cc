@@ -61,7 +61,7 @@ void Event::Init(Handle<Object> target)
   target->Set(JS_STR("WebCLEvent"), ctor->GetFunction());
 }
 
-Event::Event(Handle<Object> wrapper) : event(0), status(0)
+Event::Event(Handle<Object> wrapper) : callback(NULL), event(0), status(0)
 {
 }
 
@@ -158,7 +158,7 @@ void Event::setEvent(cl_event e) {
   Destructor();
   event=e;
 }
-
+/*
 void Event::callback (cl_event event, cl_int event_command_exec_status, void *user_data)
 {
   //cout<<"[Event::callback] event="<<event<<" exec status="<<event_command_exec_status<<endl;
@@ -226,6 +226,62 @@ NAN_METHOD(Event::setCallback)
   }
 
   NanReturnValue(Undefined());
+}*/
+
+class EventWorker : public NanAsyncWorker {
+ public:
+  EventWorker(
+    Local<Object> data,
+    Local<Object> parent,
+    NanCallback *callback)
+    : NanAsyncWorker(callback) {
+      NanScope();
+      SavePersistent("data", data);
+      SavePersistent("parent", parent);
+    }
+
+  ~EventWorker() {}
+
+  // Executed inside the worker-thread.
+  // It is not safe to access V8, or V8 data structures
+  // here, so everything we need for input and output
+  // should go on `this`.
+  void Execute () {
+    // estimate = Estimate(points);
+  }
+
+  // Executed when the async work is complete
+  // this function will be run inside the main event loop
+  // so it is safe to use V8 again
+  void HandleOKCallback () {
+    NanScope();
+
+    /*Local<Value> argv[] = {
+        NanNewLocal<Value>(Null())
+      , Number::New(estimate)
+    };
+
+    callback->Call(2, argv);*/
+  };
+
+ private:
+};
+
+NAN_METHOD(Event::setCallback)
+{
+  NanScope();
+  Event *e = ObjectWrap::Unwrap<Event>(args.This());
+  cl_int command_exec_callback_type = args[0]->Int32Value();
+  Local<Value> data=args[2];
+
+  e->callback=new NanCallback(args[1].As<Function>());
+  NanAsyncQueueWorker(new EventWorker(
+    data.As<Object>(),
+    e->handle(),
+    e->callback
+  ));
+
+  NanReturnUndefined();
 }
 
 NAN_GETTER(Event::GetStatus) {

@@ -196,7 +196,7 @@ NAN_METHOD(Program::getBuildInfo)
   }
   }
 }
-
+/*
 void Program::callback (cl_program program, void *user_data)
 {
   //cout<<"[Program::driver_callback] thread "<<pthread_self()<<endl<<flush;
@@ -247,7 +247,7 @@ Program::After_cb(uv_async_t* handle, int status) {
   baton->parent.Dispose();
   delete baton;
 }
-
+*/
 NAN_METHOD(Program::build)
 {
   NanScope();
@@ -286,7 +286,7 @@ NAN_METHOD(Program::build)
   }
 
   Baton *baton=NULL;
-  if(args.Length()==4 && !args[3]->IsUndefined() && args[3]->IsFunction()) {
+  /*if(args.Length()==4 && !args[3]->IsUndefined() && args[3]->IsFunction()) {
 
     baton=new Baton();
     //cout<<"[Program::build] Creating baton "<<hex<<baton<<dec<<" on thread "<<hex<<pthread_self()<<dec<<endl<<flush;
@@ -301,12 +301,12 @@ NAN_METHOD(Program::build)
 
 	//uv_async_init(uv_default_loop(), &baton->async, After_cb);
     baton->async.data=baton;
-  }
+  }*/
   //cout<<"[Program::build] Calling clBuildProgram with baton: "<<hex<<baton<<dec<<endl<<flush;
 
   cl_int ret = ::clBuildProgram(prog->getProgram(), num, devices,
       options,
-      baton ? Program::callback : NULL,
+      /*baton ? Program::callback :*/ NULL,
       baton);
   //cout<<"[Program::build] cleaning up options and devices lists"<<endl<<flush;
   if(options) free(options);

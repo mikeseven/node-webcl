@@ -151,6 +151,7 @@ NAN_METHOD(getPlatforms) {
   NanReturnValue(platformArray);
 }
 
+/*
 // TODO: no idea what to do with private_info and cb
 // Note: this is called only if there is an error in this context during the life of the app
 void createContext_callback (const char *errinfo, const void *private_info, size_t cb, void *user_data)
@@ -198,6 +199,7 @@ createContext_After_cb(uv_async_t* handle, int status) {
   if(baton->error_msg) free(baton->error_msg);
   delete baton;
 }
+*/
 
 NAN_METHOD(releaseAll) {
 	NanScope();
@@ -215,22 +217,22 @@ NAN_METHOD(createContext) {
 
   // callback handling
   Baton *baton=NULL;
-  if(args.Length()==3 && !args[2]->IsUndefined() && args[2]->IsFunction()) {
-    baton=new Baton();
-    Local<Function> fct=Local<Function>::Cast(args[2]);
-    baton->callback=Persistent<Function>::New(fct);
-    //cout<<"[createContext] creating baton with callback: "<<*String::AsciiValue(fct->GetName())<<"()";
-    //cout<<" at line "<<fct->GetScriptLineNumber()<<endl<<flush;
+  // if(args.Length()==3 && !args[2]->IsUndefined() && args[2]->IsFunction()) {
+  //   baton=new Baton();
+  //   Local<Function> fct=Local<Function>::Cast(args[2]);
+  //   baton->callback=Persistent<Function>::New(fct);
+  //   //cout<<"[createContext] creating baton with callback: "<<*String::AsciiValue(fct->GetName())<<"()";
+  //   //cout<<" at line "<<fct->GetScriptLineNumber()<<endl<<flush;
 
-    if(!args[1]->IsUndefined()) {
-      baton->data=Persistent<Value>::New(args[1]);
-      //String::AsciiValue str(args[1]);
-      //cout<<"  adding user_data '"<<*str<<"' to baton"<<endl<<flush;
-    }
+  //   if(!args[1]->IsUndefined()) {
+  //     baton->data=Persistent<Value>::New(args[1]);
+  //     //String::AsciiValue str(args[1]);
+  //     //cout<<"  adding user_data '"<<*str<<"' to baton"<<endl<<flush;
+  //   }
 
-    //uv_async_init(uv_default_loop(), &baton->async, createContext_After_cb);
-    baton->async.data=baton;
-  }
+  //   //uv_async_init(uv_default_loop(), &baton->async, createContext_After_cb);
+  //   baton->async.data=baton;
+  // }
 
   // property handling
   if(!args[0]->IsUndefined() && args[0]->IsObject()) {
@@ -282,7 +284,7 @@ NAN_METHOD(createContext) {
       cl_uint device_type=props->Get(JS_STR("deviceType"))->Uint32Value();
       cw = ::clCreateContextFromType(properties.size() ? &properties.front() : NULL,
                                      device_type,
-                                     baton ? createContext_callback : NULL,
+                                     /*baton ? createContext_callback :*/ NULL,
                                      baton , &ret);
     }
     else if(props->Has(JS_STR("devices"))) {
@@ -309,7 +311,7 @@ NAN_METHOD(createContext) {
       //cout<<"[createContext] creating context with devices"<<endl<<flush;
       cw = ::clCreateContext(properties.size() ? &properties.front() : NULL,
                              (int) devices.size(), &devices.front(),
-                             baton ? createContext_callback : NULL,
+                             /*baton ? createContext_callback :*/ NULL,
                              baton , &ret);
     }
     else {
@@ -334,7 +336,7 @@ NAN_METHOD(createContext) {
     cout<<"[createContext] creating context"<<endl<<flush;
     #endif
     cw = clCreateContext(props, 0, 0,
-        baton ? createContext_callback : clLogMessagesToStdoutAPPLE,
+        /*baton ? createContext_callback :*/ clLogMessagesToStdoutAPPLE,
         baton /*0*/, &ret);
 
     if (!cw)

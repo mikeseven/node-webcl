@@ -53,8 +53,8 @@ public:
 private:
   Program(v8::Handle<v8::Object> wrapper);
 
-  static void After_cb(uv_async_t* handle, int status);
-  static void callback (cl_program program, void *user_data);
+  // static void After_cb(uv_async_t* handle, int status);
+  // static void callback (cl_program program, void *user_data);
 
   // using uv_work_queue
   //static void AsyncWork(uv_work_t* req);
