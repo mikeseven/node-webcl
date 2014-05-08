@@ -24,6 +24,8 @@ See LICENSES in this distribution for all licenses used in samples from other co
 
 Dependencies
 ------------
+- [NAN][NAN] must be installed first to support all versions of v8
+
 - [node-webgl][NODE_WEBGL]. This module is used for samples using WebGL interoperability with WebCL.
 In turns, [node-webgl][NODE_WEBGL] relies on [node-glfw][NODE_GLFW] that relies on [GLFW][GLFW], [GLEW][GLEW], [AntTweakBar][ANTTWEAKBAR]. See node-webgl and node-glfw for instructions on how to install these modules.
 
@@ -123,3 +125,4 @@ OpenCL SDKs (use latest!)
 [GLFW]: http://www.glfw.org/ "GLFW"
 [ANTTWEAKBAR]: "http://www.antisphere.com/Wiki/tools:anttweakbar" "AntTweakBar"
 [GLEW]: http://glew.sourceforge.net/ "GLEW: The OpenGL Extension Wrangler Library"
+[NAN]: https://github.com/rvagg/nan "Native Abstractions for Node.js"
