@@ -47,7 +47,6 @@ public:
   static NAN_METHOD(getProfilingInfo);
   static NAN_METHOD(setUserEventStatus);
   static NAN_METHOD(setCallback);
-  //
   static NAN_METHOD(release);
 
   cl_event getEvent() const { return event; };
@@ -60,9 +59,10 @@ public:
 private:
   Event(v8::Handle<v8::Object> wrapper);
 
-  // static void callback (cl_event event, cl_int event_command_exec_status, void *user_data);
+  // called by clSetEventCallback
+  static void callback (cl_event event, cl_int event_command_exec_status, void *user_data);
   // static void After_cb(uv_async_t* handle, int status);
-  NanCallback *callback;
+  // NanCallback *callback;
 
   static v8::Persistent<v8::FunctionTemplate> constructor_template;
 

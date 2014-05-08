@@ -37,6 +37,6 @@
   },
   "dependencies": {
     "node-webgl": ">=0.2.0",
-    "nan": ""
+    "nan": "^0.8.0"
   }
 }

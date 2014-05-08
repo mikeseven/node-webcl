@@ -53,7 +53,6 @@ public:
   static NAN_METHOD(createFromGLBuffer);
   static NAN_METHOD(createFromGLTexture);
   static NAN_METHOD(createFromGLRenderbuffer);
-  // Patch
   static NAN_METHOD(release);
 
   cl_context getContext() const { return context; };

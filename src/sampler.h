@@ -42,7 +42,6 @@ public:
   static Sampler *New(cl_sampler sw);
   static NAN_METHOD(New);
   static NAN_METHOD(getInfo);
-  // Patch
   static NAN_METHOD(release);
 
   cl_sampler getSampler() const { return sampler; };

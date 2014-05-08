@@ -104,7 +104,8 @@ namespace webcl {
 
 // generic baton for async callbacks
 struct Baton {
-    v8::Persistent<v8::Function> callback;
+    // v8::Persistent<v8::Function> callback;
+    NanCallback *callback;
     int error;
     uv_async_t async;
     char *error_msg;
@@ -115,7 +116,10 @@ struct Baton {
     // parent of this callback (WebCLEvent object)
     v8::Persistent<v8::Object> parent;
 
-    Baton() : error(CL_SUCCESS),error_msg(NULL)  {}
+    Baton() : callback(NULL), error(CL_SUCCESS), error_msg(NULL)  {}
+    // ~Baton() {
+    //   if(callback) delete callback;
+    // }
 };
 
 class WebCLObject;

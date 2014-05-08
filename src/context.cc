@@ -65,7 +65,6 @@ void Context::Init(Handle<Object> target)
   NODE_SET_PROTOTYPE_METHOD(ctor, "_createFromGLTexture", createFromGLTexture);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_createFromGLRenderbuffer", createFromGLRenderbuffer);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getSupportedImageFormats", getSupportedImageFormats);
-  // Patch
   NODE_SET_PROTOTYPE_METHOD(ctor, "_release", release);
 
   target->Set(NanSymbol("WebCLContext"), ctor->GetFunction());

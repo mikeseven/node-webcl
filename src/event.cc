@@ -50,7 +50,6 @@ void Event::Init(Handle<Object> target)
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getProfilingInfo", getProfilingInfo);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_setUserEventStatus", setUserEventStatus);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_setCallback", setCallback);
-  // Patch
   NODE_SET_PROTOTYPE_METHOD(ctor, "_release", release);
 
   // attributes
@@ -61,7 +60,7 @@ void Event::Init(Handle<Object> target)
   target->Set(JS_STR("WebCLEvent"), ctor->GetFunction());
 }
 
-Event::Event(Handle<Object> wrapper) : callback(NULL), event(0), status(0)
+Event::Event(Handle<Object> wrapper) : /*callback(NULL),*/ event(0), status(0)
 {
 }
 
@@ -158,45 +157,61 @@ void Event::setEvent(cl_event e) {
   Destructor();
   event=e;
 }
-/*
+
+class EventWorker : public NanAsyncWorker {
+ public:
+  EventWorker(Baton *baton)
+    : NanAsyncWorker(baton->callback), baton_(baton) {
+    }
+
+  ~EventWorker() {
+    if(baton_) {
+      if (!baton_->data.IsEmpty()) NanDisposePersistent(baton_->data);
+      if (!baton_->parent.IsEmpty()) NanDisposePersistent(baton_->parent);
+      // if (baton_->callback) delete baton_->callback;
+      delete baton_;
+    }
+  }
+
+  // Executed inside the worker-thread.
+  // It is not safe to access V8, or V8 data structures
+  // here, so everything we need for input and output
+  // should go on `this`.
+  void Execute () {
+    // SetErrorMessage("Error");
+    // printf("[async event] execute\n");
+  }
+
+  // Executed when the async work is complete
+  // this function will be run inside the main event loop
+  // so it is safe to use V8 again
+  void HandleOKCallback () {
+    NanScope();
+
+    // // must return passed data
+    Local<Value> argv[] = {
+      NanPersistentToLocal(baton_->parent),  // event
+      NanPersistentToLocal(baton_->data)     // user's message
+    };
+
+    // printf("[async event] callback JS\n");
+    callback->Call(2, argv);
+  }
+
+  private:
+    Baton *baton_;
+};
+
 void Event::callback (cl_event event, cl_int event_command_exec_status, void *user_data)
 {
-  //cout<<"[Event::callback] event="<<event<<" exec status="<<event_command_exec_status<<endl;
+  // printf("[Event::callback] event=%p, exec status=%d\n",event,event_command_exec_status);
   Baton *baton = static_cast<Baton*>(user_data);
   baton->error = event_command_exec_status;
 
-  Event *e = ObjectWrap::Unwrap<Event>(baton->parent);
+  Local<Object> p = NanPersistentToLocal(baton->parent);
+  Event *e = ObjectWrap::Unwrap<Event>(p);
   e->status=event_command_exec_status;
-
-  uv_async_init(uv_default_loop(), &baton->async, After_cb);
-  uv_async_send(&baton->async);
-}
-
-void
-Event::After_cb(uv_async_t* handle, int status) {
-  //cout<<"In Event::After_cb"<<endl;
-
-  NanScope();
-
-  Baton *baton = static_cast<Baton*>(handle->data);
-  uv_close((uv_handle_t*) &baton->async,NULL);
-
-  Handle<Value> argv[]={
-      baton->parent,
-      baton->data
-  };
-
-  TryCatch try_catch;
-
-  baton->callback->Call(v8::Context::GetCurrent()->Global(), 2, argv);
-
-  if (try_catch.HasCaught())
-      FatalException(try_catch);
-
-  baton->callback.Dispose();
-  baton->parent.Dispose();
-  baton->data.Dispose();
-  delete baton;
+  NanAsyncQueueWorker(new EventWorker(baton));
 }
 
 NAN_METHOD(Event::setCallback)
@@ -204,17 +219,14 @@ NAN_METHOD(Event::setCallback)
   NanScope();
   Event *e = ObjectWrap::Unwrap<Event>(args.This());
   cl_int command_exec_callback_type = args[0]->Int32Value();
-  Local<Function> fct=Local<Function>::Cast(args[1]);
   Local<Value> data=args[2];
 
   Baton *baton=new Baton();
-  //baton->type=command_exec_callback_type;
-  baton->callback=Persistent<Function>::New(fct);
-  baton->data=Persistent<Value>::New(data);
-  baton->parent=Persistent<Object>::New(e->handle_);
+  NanAssignPersistent(v8::Object, baton->data, data);
+  NanAssignPersistent(v8::Object, baton->parent, e->handle());
+  baton->callback=new NanCallback(args[1].As<Function>());
 
-  baton->async.data=baton;
-
+  // printf("SetEventCallback event=%p\n",e->getEvent());
   cl_int ret=::clSetEventCallback(e->getEvent(), command_exec_callback_type, callback, baton);
 
   if (ret != CL_SUCCESS) {
@@ -225,67 +237,11 @@ NAN_METHOD(Event::setCallback)
     return NanThrowError("UNKNOWN ERROR");
   }
 
-  NanReturnValue(Undefined());
-}*/
-
-class EventWorker : public NanAsyncWorker {
- public:
-  EventWorker(
-    Local<Object> data,
-    Local<Object> parent,
-    NanCallback *callback)
-    : NanAsyncWorker(callback) {
-      NanScope();
-      SavePersistent("data", data);
-      SavePersistent("parent", parent);
-    }
-
-  ~EventWorker() {}
-
-  // Executed inside the worker-thread.
-  // It is not safe to access V8, or V8 data structures
-  // here, so everything we need for input and output
-  // should go on `this`.
-  void Execute () {
-    // estimate = Estimate(points);
-  }
-
-  // Executed when the async work is complete
-  // this function will be run inside the main event loop
-  // so it is safe to use V8 again
-  void HandleOKCallback () {
-    NanScope();
-
-    /*Local<Value> argv[] = {
-        NanNewLocal<Value>(Null())
-      , Number::New(estimate)
-    };
-
-    callback->Call(2, argv);*/
-  };
-
- private:
-};
-
-NAN_METHOD(Event::setCallback)
-{
-  NanScope();
-  Event *e = ObjectWrap::Unwrap<Event>(args.This());
-  cl_int command_exec_callback_type = args[0]->Int32Value();
-  Local<Value> data=args[2];
-
-  e->callback=new NanCallback(args[1].As<Function>());
-  NanAsyncQueueWorker(new EventWorker(
-    data.As<Object>(),
-    e->handle(),
-    e->callback
-  ));
-
   NanReturnUndefined();
 }
 
 NAN_GETTER(Event::GetStatus) {
-  Event *event = ObjectWrap::Unwrap<Event>(args.Holder());
+  Event *event = ObjectWrap::Unwrap<Event>(args.This() /*Holder()*/);
   NanReturnValue(JS_INT(event->status));
 }
 

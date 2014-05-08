@@ -47,7 +47,6 @@ void Sampler::Init(Handle<Object> target)
 
   // prototype
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getInfo", getInfo);
-  // Patch
   NODE_SET_PROTOTYPE_METHOD(ctor, "_release", release);
 
   target->Set(NanSymbol("WebCLSampler"), ctor->GetFunction());

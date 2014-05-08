@@ -87,7 +87,6 @@ void CommandQueue::Init(Handle<Object> target)
   NODE_SET_PROTOTYPE_METHOD(ctor, "_finish", finish);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_enqueueAcquireGLObjects", enqueueAcquireGLObjects);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_enqueueReleaseGLObjects", enqueueReleaseGLObjects);
-  // Patch
   NODE_SET_PROTOTYPE_METHOD(ctor, "_release", release);
 
   target->Set(NanSymbol("WebCLCommandQueue"), ctor->GetFunction());
