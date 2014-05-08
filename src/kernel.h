@@ -67,13 +67,11 @@ public:
   static void Init(v8::Handle<v8::Object> target);
 
   static Kernel *New(cl_kernel kw);
-  static JS_METHOD(New);
-
-  static JS_METHOD(getInfo);
-  static JS_METHOD(getWorkGroupInfo);
-  static JS_METHOD(setArg);
-  //
-  static JS_METHOD(release);
+  static NAN_METHOD(New);
+  static NAN_METHOD(getInfo);
+  static NAN_METHOD(getWorkGroupInfo);
+  static NAN_METHOD(setArg);
+  static NAN_METHOD(release);
 
   cl_kernel getKernel() const { return kernel; };
   

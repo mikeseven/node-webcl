@@ -40,11 +40,9 @@ public:
   static void Init(v8::Handle<v8::Object> target);
 
   static Sampler *New(cl_sampler sw);
-  static JS_METHOD(New);
-
-  static JS_METHOD(getInfo);
-  // Patch
-  static JS_METHOD(release);
+  static NAN_METHOD(New);
+  static NAN_METHOD(getInfo);
+  static NAN_METHOD(release);
 
   cl_sampler getSampler() const { return sampler; };
 

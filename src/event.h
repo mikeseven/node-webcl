@@ -41,33 +41,32 @@ public:
 
   static Event *New(cl_event ew);
 
-  static JS_METHOD(New);
+  static NAN_METHOD(New);
 
-  static JS_METHOD(getInfo);
-  static JS_METHOD(getProfilingInfo);
-  static JS_METHOD(setUserEventStatus);
-  static JS_METHOD(setCallback);
-  //
-  static JS_METHOD(release);
+  static NAN_METHOD(getInfo);
+  static NAN_METHOD(getProfilingInfo);
+  static NAN_METHOD(setUserEventStatus);
+  static NAN_METHOD(setCallback);
+  static NAN_METHOD(release);
 
   cl_event getEvent() const { return event; };
   void setEvent(cl_event e);
   bool isEvent() const { return true; }
 
-  static v8::Handle<v8::Value> GetStatus(v8::Local<v8::String> property, const v8::AccessorInfo& info);
-  static v8::Handle<v8::Value> GetBuffer(v8::Local<v8::String> property, const v8::AccessorInfo& info);
+  static NAN_GETTER(GetStatus);
+  static NAN_GETTER(GetBuffer);
 
 private:
   Event(v8::Handle<v8::Object> wrapper);
 
+  // called by clSetEventCallback
   static void callback (cl_event event, cl_int event_command_exec_status, void *user_data);
-  static void After_cb(uv_async_t* handle, int status);
+  // static void After_cb(uv_async_t* handle, int status);
+  // NanCallback *callback;
 
   static v8::Persistent<v8::FunctionTemplate> constructor_template;
 
   cl_event event;
-
-  void *buffer;
   cl_int status;
 };
 

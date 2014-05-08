@@ -38,10 +38,10 @@ public:
   static void Init(v8::Handle<v8::Object> target);
 
   static Device *New(cl_device_id did);
-  static JS_METHOD(New);
+  static NAN_METHOD(New);
 
-  static JS_METHOD(getInfo);
-  static JS_METHOD(getExtension);
+  static NAN_METHOD(getInfo);
+  static NAN_METHOD(getExtension);
 
   cl_device_id getDevice() const { return device_id; };
 

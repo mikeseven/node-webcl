@@ -121,15 +121,15 @@ void AtExit() {
   clobjs.clear();
 }
 
-JS_METHOD(getPlatforms) {
-  HandleScope scope;
+NAN_METHOD(getPlatforms) {
+  NanScope();
 
   cl_uint num_entries = 0;
   cl_int ret = ::clGetPlatformIDs(0, NULL, &num_entries);
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(CL_INVALID_VALUE);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }
 
   cl_platform_id* platforms=new cl_platform_id[num_entries];
@@ -137,27 +137,77 @@ JS_METHOD(getPlatforms) {
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(CL_INVALID_VALUE);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }
 
 
   Local<Array> platformArray = Array::New(num_entries);
   for (uint32_t i=0; i<num_entries; i++) {
-    platformArray->Set(i, Platform::New(platforms[i])->handle_);
+    platformArray->Set(i, Platform::New(platforms[i])->handle());
   }
 
   delete[] platforms;
 
-  return scope.Close(platformArray);
+  NanReturnValue(platformArray);
 }
 
-// TODO: no idea what to do with private_info and cb
-// Note: this is called only if there is an error in this context during the life of the app
+NAN_METHOD(releaseAll) {
+  NanScope();
+  
+  AtExit();
+  atExit=true;
+
+  NanReturnUndefined();
+}
+
+class ContextWorker : public NanAsyncWorker {
+ public:
+  ContextWorker(Baton *baton)
+    : NanAsyncWorker(baton->callback), baton_(baton) {
+    }
+
+  ~ContextWorker() {
+    if(baton_) {
+      NanScope();
+      if (!baton_->data.IsEmpty()) NanDisposePersistent(baton_->data);
+      delete baton_;
+    }
+  }
+
+  // Executed inside the worker-thread.
+  // It is not safe to access V8, or V8 data structures
+  // here, so everything we need for input and output
+  // should go on `this`.
+  void Execute () {
+    // SetErrorMessage("Error");
+    // printf("[async event] execute\n");
+  }
+
+  // Executed when the async work is complete
+  // this function will be run inside the main event loop
+  // so it is safe to use V8 again
+  void HandleOKCallback () {
+    NanScope();
+
+    Local<Value> argv[2];
+    if(baton_->error_msg)
+      argv[0]=JS_STR(baton_->error_msg);
+    else
+      argv[0]=JS_INT(CL_SUCCESS);
+    argv[1] = NanPersistentToLocal(baton_->data);
+
+    // printf("[async event] callback JS\n");
+    callback->Call(2, argv);
+  }
+
+  private:
+    Baton *baton_;
+};
+
 void createContext_callback (const char *errinfo, const void *private_info, size_t cb, void *user_data)
 {
   //cout<<"[createContext_callback] thread "<<pthread_self()<<" errinfo ="<<(errinfo ? errinfo : "none")<<endl;
   Baton *baton = static_cast<Baton*>(user_data);
-  //cout<<"  baton"<<hex<<baton<<dec<<endl;
   baton->error=0;
 
   if(errinfo) {
@@ -165,51 +215,16 @@ void createContext_callback (const char *errinfo, const void *private_info, size
     baton->error=1;
   }
 
-  //cout<<"  async init"<<endl<<flush;
-  uv_async_init(uv_default_loop(), &baton->async, createContext_After_cb);
-  uv_async_send(&baton->async);
+  if(private_info && cb) {
+    baton->priv_info=new uint8_t[cb];
+    memcpy(baton->priv_info, private_info, cb);
+  }
+
+  NanAsyncQueueWorker(new ContextWorker(baton));
 }
 
-void
-createContext_After_cb(uv_async_t* handle, int status) {
-  HandleScope scope;
-
-  Baton *baton = static_cast<Baton*>(handle->data);
-  uv_close((uv_handle_t*) &baton->async,NULL);
-  //cout<<"[createContext::After_cb]  baton: "<<hex<<baton<<dec<<endl;
-
-  Handle<Value> argv[2];
-  if(baton->error_msg)
-    argv[0]=JS_STR(baton->error_msg);
-  else
-    argv[0]=JS_INT(CL_SUCCESS);
-  argv[1] = baton->data;
-
-  TryCatch try_catch;
-
-  baton->callback->Call(v8::Context::GetCurrent()->Global(), 2, argv);
-
-  if (try_catch.HasCaught())
-      node::FatalException(try_catch);
-
-  baton->callback.Dispose();
-  baton->data.Dispose();
-  baton->parent.Dispose();
-  if(baton->error_msg) free(baton->error_msg);
-  delete baton;
-}
-
-JS_METHOD(releaseAll) {
-	HandleScope scope;
-	
-	AtExit();
-	atExit=true;
-
-	return Undefined();
-}
-
-JS_METHOD(createContext) {
-  HandleScope scope;
+NAN_METHOD(createContext) {
+  NanScope();
   cl_int ret=CL_SUCCESS;
   cl_context cw=NULL;
 
@@ -217,19 +232,11 @@ JS_METHOD(createContext) {
   Baton *baton=NULL;
   if(args.Length()==3 && !args[2]->IsUndefined() && args[2]->IsFunction()) {
     baton=new Baton();
-    Local<Function> fct=Local<Function>::Cast(args[2]);
-    baton->callback=Persistent<Function>::New(fct);
-    //cout<<"[createContext] creating baton with callback: "<<*String::AsciiValue(fct->GetName())<<"()";
-    //cout<<" at line "<<fct->GetScriptLineNumber()<<endl<<flush;
-
+    baton->callback=new NanCallback(args[2].As<Function>());
     if(!args[1]->IsUndefined()) {
-      baton->data=Persistent<Value>::New(args[1]);
-      //String::AsciiValue str(args[1]);
-      //cout<<"  adding user_data '"<<*str<<"' to baton"<<endl<<flush;
+      Local<Value> data=args[1];
+      NanAssignPersistent(v8::Object, baton->data, data);
     }
-
-    //uv_async_init(uv_default_loop(), &baton->async, createContext_After_cb);
-    baton->async.data=baton;
   }
 
   // property handling
@@ -237,7 +244,7 @@ JS_METHOD(createContext) {
     Platform *platform = NULL;
     vector<cl_device_id> devices;
     vector<cl_context_properties> properties;
-    Local<Array> props = Array::Cast(*args[0]);
+    Local<Array> props = Local<Array>::Cast(args[0]);
 
     if(props->Has(JS_STR("platform"))) {
       Local<Object> obj = props->Get(JS_STR("platform"))->ToObject();
@@ -282,14 +289,14 @@ JS_METHOD(createContext) {
       cl_uint device_type=props->Get(JS_STR("deviceType"))->Uint32Value();
       cw = ::clCreateContextFromType(properties.size() ? &properties.front() : NULL,
                                      device_type,
-                                     baton ? createContext_callback : NULL,
+                                     /*baton ? createContext_callback :*/ NULL,
                                      baton , &ret);
     }
     else if(props->Has(JS_STR("devices"))) {
       Local<Object> obj = props->Get(JS_STR("devices"))->ToObject();
       if(!obj->IsNull()) {
         if(obj->IsArray()) {
-          Local<Array> deviceArray = Array::Cast(*obj);
+          Local<Array> deviceArray = Local<Array>::Cast(obj);
           for (uint32_t i=0; i<deviceArray->Length(); i++) {
             Local<Object> obj = deviceArray->Get(i)->ToObject();
             Device *d = ObjectWrap::Unwrap<Device>(obj);
@@ -309,11 +316,12 @@ JS_METHOD(createContext) {
       //cout<<"[createContext] creating context with devices"<<endl<<flush;
       cw = ::clCreateContext(properties.size() ? &properties.front() : NULL,
                              (int) devices.size(), &devices.front(),
-                             baton ? createContext_callback : NULL,
+                             /*baton ? createContext_callback :*/ NULL,
                              baton , &ret);
     }
-    else
-      return scope.Close(ThrowError("Invalid parameters"));
+    else {
+      NanThrowError("Invalid parameters");
+    }
   }
 
   // automatic context creation
@@ -333,13 +341,13 @@ JS_METHOD(createContext) {
     cout<<"[createContext] creating context"<<endl<<flush;
     #endif
     cw = clCreateContext(props, 0, 0,
-        baton ? createContext_callback : clLogMessagesToStdoutAPPLE,
+        /*baton ? createContext_callback :*/ clLogMessagesToStdoutAPPLE,
         baton /*0*/, &ret);
 
     if (!cw)
     {
-        ThrowError("Error: Failed to create a compute context!");
-        return scope.Close(Undefined());
+        NanThrowError("Error: Failed to create a compute context!");
+        NanReturnValue(Undefined());
     }
     #ifdef LOGGING
     cout<<"Apple OpenCL SharedGroup context created"<<endl;
@@ -358,11 +366,11 @@ JS_METHOD(createContext) {
 
     if (!cw)
     {
-        return scope.Close(ThrowError("Error: Failed to create a compute context!"));
+        NanReturnValue(NanThrowError("Error: Failed to create a compute context!"));
     }
     #else
     // TODO add automatic context creation for Unix and Win32
-    return scope.Close(ThrowError("Unsupported createContext() without parameters"));
+    NanReturnValue(NanThrowError("Unsupported createContext() without parameters"));
     #endif
 #endif
   }
@@ -376,19 +384,19 @@ JS_METHOD(createContext) {
     REQ_ERROR_THROW(CL_DEVICE_NOT_FOUND);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }
 
-  return scope.Close(Context::New(cw)->handle_);
+  NanReturnValue(Context::New(cw)->handle());
 }
 
-JS_METHOD(waitForEvents) {
-  HandleScope scope;
+NAN_METHOD(waitForEvents) {
+  NanScope();
 
   if (!args[0]->IsArray())
-    ThrowError("CL_INVALID_VALUE");
+    NanThrowError("CL_INVALID_VALUE");
 
-  Local<Array> eventsArray = Array::Cast(*args[0]);
+  Local<Array> eventsArray = Local<Array>::Cast(args[0]);
   std::vector<cl_event> events;
   for (uint32_t i=0; i<eventsArray->Length(); i++) {
    Event *we=ObjectWrap::Unwrap<Event>(eventsArray->Get(i)->ToObject());
@@ -403,10 +411,10 @@ JS_METHOD(waitForEvents) {
     REQ_ERROR_THROW(CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }
 
-  return Undefined();
+  NanReturnUndefined();
 }
 
 

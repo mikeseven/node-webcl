@@ -41,21 +41,22 @@ Persistent<FunctionTemplate> Program::constructor_template;
 
 void Program::Init(Handle<Object> target)
 {
-  HandleScope scope;
+  NanScope();
 
-  Local<FunctionTemplate> t = FunctionTemplate::New(Program::New);
-  constructor_template = Persistent<FunctionTemplate>::New(t);
+  // constructor
+  Local<FunctionTemplate> ctor = FunctionTemplate::New(Program::New);
+  NanAssignPersistent(FunctionTemplate, constructor_template, ctor);
+  ctor->InstanceTemplate()->SetInternalFieldCount(1);
+  ctor->SetClassName(NanSymbol("WebCLProgram"));
 
-  constructor_template->InstanceTemplate()->SetInternalFieldCount(1);
-  constructor_template->SetClassName(String::NewSymbol("WebCLProgram"));
+  // prototype
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_getInfo", getInfo);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_getBuildInfo", getBuildInfo);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_build", build);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_createKernel", createKernel);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_release", release);
 
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getInfo", getInfo);
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getBuildInfo", getBuildInfo);
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_build", build);
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_createKernel", createKernel);
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_release", release);
-
-  target->Set(String::NewSymbol("WebCLProgram"), constructor_template->GetFunction());
+  target->Set(NanSymbol("WebCLProgram"), ctor->GetFunction());
 }
 
 Program::Program(Handle<Object> wrapper) : program(0)
@@ -70,20 +71,20 @@ void Program::Destructor() {
   program=0;
 }
 
-JS_METHOD(Program::release)
+NAN_METHOD(Program::release)
 {
-  HandleScope scope;
-  Program *prog = UnwrapThis<Program>(args);
+  NanScope();
+  Program *prog = ObjectWrap::Unwrap<Program>(args.This());
   
   DESTROY_WEBCL_OBJECT(prog);
   
-  return Undefined();
+  NanReturnUndefined();
 }
 
-JS_METHOD(Program::getInfo)
+NAN_METHOD(Program::getInfo)
 {
-  HandleScope scope;
-  Program *prog = UnwrapThis<Program>(args);
+  NanScope();
+  Program *prog = ObjectWrap::Unwrap<Program>(args.This());
   cl_program_info param_name = args[1]->Uint32Value();
 
   switch (param_name) {
@@ -96,9 +97,9 @@ JS_METHOD(Program::getInfo)
       REQ_ERROR_THROW(CL_INVALID_PROGRAM);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowError("UNKNOWN ERROR");
+      return NanThrowError("UNKNOWN ERROR");
     }
-    return scope.Close(Integer::NewFromUnsigned(value));
+    NanReturnValue(Integer::NewFromUnsigned(value));
   }
   case CL_PROGRAM_CONTEXT: {
     cl_context value=NULL;
@@ -108,9 +109,9 @@ JS_METHOD(Program::getInfo)
       REQ_ERROR_THROW(CL_INVALID_PROGRAM);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowError("UNKNOWN ERROR");
+      return NanThrowError("UNKNOWN ERROR");
     }
-    return scope.Close(Context::New(value)->handle_);
+    NanReturnValue(Context::New(value)->handle());
   }
   case CL_PROGRAM_DEVICES: {
     cl_device_id devices[1024];
@@ -121,15 +122,15 @@ JS_METHOD(Program::getInfo)
       REQ_ERROR_THROW(CL_INVALID_PROGRAM);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowError("UNKNOWN ERROR");
+      return NanThrowError("UNKNOWN ERROR");
     }
     int num_devices=(int)param_value_size_ret;
     Local<Array> deviceArray = Array::New(num_devices);
     for (int i=0; i<num_devices; i++) {
       cl_device_id d = devices[i];
-      deviceArray->Set(i, Device::New(d)->handle_);
+      deviceArray->Set(i, Device::New(d)->handle());
     }
-    return scope.Close(deviceArray);
+    NanReturnValue(deviceArray);
   }
   case CL_PROGRAM_SOURCE: {
     char source[1024];
@@ -140,23 +141,23 @@ JS_METHOD(Program::getInfo)
       REQ_ERROR_THROW(CL_INVALID_PROGRAM);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowError("UNKNOWN ERROR");
+      return NanThrowError("UNKNOWN ERROR");
     }
-    return scope.Close(JS_STR(source,(int)param_value_size_ret));
+    NanReturnValue(JS_STR(source,(int)param_value_size_ret));
   }
   case CL_PROGRAM_BINARY_SIZES:
-    return ThrowError("CL_PROGRAM_BINARY_SIZES unimplemented");
+    return NanThrowError("CL_PROGRAM_BINARY_SIZES unimplemented");
   case CL_PROGRAM_BINARIES:
-    return ThrowError("CL_PROGRAM_BINARIES unimplemented");
+    return NanThrowError("CL_PROGRAM_BINARIES unimplemented");
   default:
-    return ThrowError("UNKNOWN param_name");
+    return NanThrowError("UNKNOWN param_name");
   }
 }
 
-JS_METHOD(Program::getBuildInfo)
+NAN_METHOD(Program::getBuildInfo)
 {
-  HandleScope scope;
-  Program *prog = UnwrapThis<Program>(args);
+  NanScope();
+  Program *prog = ObjectWrap::Unwrap<Program>(args.This());
   Device *dev = ObjectWrap::Unwrap<Device>(args[0]->ToObject());
   cl_program_info param_name = args[1]->Uint32Value();
 
@@ -170,9 +171,9 @@ JS_METHOD(Program::getBuildInfo)
       REQ_ERROR_THROW(CL_INVALID_PROGRAM);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowError("UNKNOWN ERROR");
+      return NanThrowError("UNKNOWN ERROR");
     }
-    return scope.Close(Integer::NewFromUnsigned(param_value));
+    NanReturnValue(Integer::NewFromUnsigned(param_value));
   }
   default: {
     size_t param_value_size_ret=0;
@@ -187,14 +188,57 @@ JS_METHOD(Program::getBuildInfo)
       REQ_ERROR_THROW(CL_INVALID_PROGRAM);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowError("UNKNOWN ERROR");
+      return NanThrowError("UNKNOWN ERROR");
     }
     Local<Value> obj = scope.Close(JS_STR(param_value,(int)param_value_size_ret));
     delete[] param_value;
-    return obj;
+    NanReturnValue(obj);
   }
   }
 }
+
+class ProgramWorker : public NanAsyncWorker {
+ public:
+  ProgramWorker(Baton *baton)
+    : NanAsyncWorker(baton->callback), baton_(baton) {
+    }
+
+  ~ProgramWorker() {
+    if(baton_) {
+      NanScope();
+
+      if (!baton_->data.IsEmpty()) NanDisposePersistent(baton_->data);
+      delete baton_;
+    }
+  }
+
+  // Executed inside the worker-thread.
+  // It is not safe to access V8, or V8 data structures
+  // here, so everything we need for input and output
+  // should go on `this`.
+  void Execute () {
+    // SetErrorMessage("Error");
+    // printf("[async event] execute\n");
+  }
+
+  // Executed when the async work is complete
+  // this function will be run inside the main event loop
+  // so it is safe to use V8 again
+  void HandleOKCallback () {
+    NanScope();
+
+    Local<Value> argv[]={
+        JS_INT(baton_->error),
+        NanPersistentToLocal(baton_->data)
+    };
+
+    // printf("[async event] callback JS\n");
+    callback->Call(2, argv);
+  }
+
+  private:
+    Baton *baton_;
+};
 
 void Program::callback (cl_program program, void *user_data)
 {
@@ -216,46 +260,18 @@ void Program::callback (cl_program program, void *user_data)
     delete[] devices;
   }
 
-  //cout<<"  async init"<<endl<<flush;
-  uv_async_init(uv_default_loop(), &baton->async, After_cb);
-  uv_async_send(&baton->async);
+  NanAsyncQueueWorker(new ProgramWorker(baton));
 }
 
-void
-Program::After_cb(uv_async_t* handle, int status) {
-  HandleScope scope;
-
-  Baton *baton = static_cast<Baton*>(handle->data);
-  //cout<<"[Program::After_cb] baton= "<<hex<<baton<<dec<<endl<<flush;
-  uv_close((uv_handle_t*) &baton->async,NULL);
-
-  Handle<Value> argv[]={
-      JS_INT(baton->error),
-      baton->data
-  };
-
-  TryCatch try_catch;
-
-  baton->callback->Call(v8::Context::GetCurrent()->Global(), 2, argv);
-
-  if (try_catch.HasCaught())
-      node::FatalException(try_catch);
-
-  baton->callback.Dispose();
-  baton->data.Dispose();
-  baton->parent.Dispose();
-  delete baton;
-}
-
-JS_METHOD(Program::build)
+NAN_METHOD(Program::build)
 {
-  HandleScope scope;
-  Program *prog = UnwrapThis<Program>(args);
+  NanScope();
+  Program *prog = ObjectWrap::Unwrap<Program>(args.This());
 
   cl_device_id *devices=NULL;
   int num=0;
   if(args[0]->IsArray()) {
-    Local<Array> deviceArray = Array::Cast(*args[0]);
+    Local<Array> deviceArray = Local<Array>::Cast(args[0]);
     //cout<<"Building program for "<<deviceArray->Length()<<" devices"<<endl;
     num=deviceArray->Length();
     devices=new cl_device_id[num];
@@ -288,26 +304,18 @@ JS_METHOD(Program::build)
   if(args.Length()==4 && !args[3]->IsUndefined() && args[3]->IsFunction()) {
 
     baton=new Baton();
-    //cout<<"[Program::build] Creating baton "<<hex<<baton<<dec<<" on thread "<<hex<<pthread_self()<<dec<<endl<<flush;
-
-    Local<Function> fct=Local<Function>::Cast(args[3]);
-    baton->callback=Persistent<Function>::New(fct);
-
+    baton->callback=new NanCallback(args[3].As<Function>());
     if(!args[2].IsEmpty() && !args[2]->IsUndefined() && !args[2]->IsNull()) {
       Local<Value> data=args[2];
-      baton->data=Persistent<Value>::New(data);
+      NanAssignPersistent(v8::Object, baton->data, data);
     }
-
-	//uv_async_init(uv_default_loop(), &baton->async, After_cb);
-    baton->async.data=baton;
   }
-  //cout<<"[Program::build] Calling clBuildProgram with baton: "<<hex<<baton<<dec<<endl<<flush;
 
   cl_int ret = ::clBuildProgram(prog->getProgram(), num, devices,
       options,
       baton ? Program::callback : NULL,
       baton);
-  //cout<<"[Program::build] cleaning up options and devices lists"<<endl<<flush;
+
   if(options) free(options);
   if(devices) delete[] devices;
 
@@ -322,17 +330,16 @@ JS_METHOD(Program::build)
     REQ_ERROR_THROW(CL_BUILD_PROGRAM_FAILURE);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }
 
-  //cout<<"[Program::build] end"<<endl<<flush;
-  return Undefined();
+  NanReturnUndefined();
 }
 
-JS_METHOD(Program::createKernel)
+NAN_METHOD(Program::createKernel)
 {
-  HandleScope scope;
-  Program *prog = UnwrapThis<Program>(args);
+  NanScope();
+  Program *prog = ObjectWrap::Unwrap<Program>(args.This());
 
   Local<String> str = args[0]->ToString();
   String::AsciiValue astr(str);
@@ -348,18 +355,18 @@ JS_METHOD(Program::createKernel)
     REQ_ERROR_THROW(CL_INVALID_VALUE);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }
 
-  return scope.Close(Kernel::New(kw)->handle_);
+  NanReturnValue(Kernel::New(kw)->handle());
 }
 
-JS_METHOD(Program::New)
+NAN_METHOD(Program::New)
 {
   if (!args.IsConstructCall())
-    return ThrowTypeError("Constructor cannot be called as a function.");
+    return NanThrowTypeError("Constructor cannot be called as a function.");
 
-  HandleScope scope;
+  NanScope();
   /*Context *context = ObjectWrap::Unwrap<Context>(args[0]->ToObject());
 
   Local<String> str = args[1]->ToString();
@@ -375,22 +382,23 @@ JS_METHOD(Program::New)
     REQ_ERROR_THROW(CL_INVALID_VALUE);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return ThrowError("UNKNOWN ERROR");
+    return NanThrowError("UNKNOWN ERROR");
   }*/
 
   Program *p = new Program(args.This());
   //p->program=pw;
   p->Wrap(args.This());
   registerCLObj(p);
-  return scope.Close(args.This());
+  NanReturnValue(args.This());
 }
 
 Program *Program::New(cl_program pw)
 {
-  HandleScope scope;
+  NanScope();
 
   Local<Value> arg = Integer::NewFromUnsigned(0);
-  Local<Object> obj = constructor_template->GetFunction()->NewInstance(1, &arg);
+  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor_template);
+  Local<Object> obj = constructorHandle->GetFunction()->NewInstance(1, &arg);
 
   Program *progobj = ObjectWrap::Unwrap<Program>(obj);
   progobj->program = pw;

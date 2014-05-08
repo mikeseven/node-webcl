@@ -36,7 +36,7 @@ var completed_kernel=false, completed_read=false;
 // kernel callback
 function kernel_complete(event, data) {
   var status=event.status;
-  log('in JS kernel_complete, status: '+status);
+  log('[JS CB] kernel_complete, status: '+status);
   if(status<0) 
     log('Error: '+status);
   log(data);
@@ -46,7 +46,7 @@ function kernel_complete(event, data) {
 // read buffer callback
 function read_complete(event, data) {
   var status=event.status;
-  log('in JS read_complete, status: '+status);
+  log('[JS CB] read_complete, status: '+status);
   if(status<0) 
     log('Error: '+status);
 
@@ -103,12 +103,13 @@ function read_complete(event, data) {
   /* Build the program and create a kernel */
   var source = [
                 "__kernel void callback(__global float *buffer) {",
-                "  for(int i=0; i<4096; i++) ",
-                "     buffer[i]=5;",
+                "  for(int i=0;i<4096;i++)",
+                "   buffer[i]=5;",
                 "}"
                 ].join("\n");
 
   // Create and program from source
+  log('create program');
   try {
     program=context.createProgram(source);
   } catch(ex) {
@@ -117,15 +118,18 @@ function read_complete(event, data) {
   }
 
   /* Build program */
+  log('build program');
   try {
-    program.build(devices);
+    program.build(device);
   } catch(ex) {
     /* Find size of log and print to std output */
-    var info=program.getBuildInfo(devices[0], WebCL.PROGRAM_BUILD_LOG);
+    log('build program error');
+    var info=program.getBuildInfo(device, WebCL.PROGRAM_BUILD_LOG);
     log(info);
     exit(1);
   }
 
+  log('create kernel');
   try {
     kernel = program.createKernel("callback");
   } catch(ex) {
@@ -134,6 +138,7 @@ function read_complete(event, data) {
   }
 
   /* Create a write-only buffer to hold the output data */
+  log('create output buffer');
   try {
     data_buffer = context.createBuffer(WebCL.MEM_WRITE_ONLY, 4096*4);
   } catch(ex) {
@@ -142,6 +147,7 @@ function read_complete(event, data) {
   }
 
   /* Create kernel argument */
+  log('kernel set arg');
   try {
     kernel.setArg(0, data_buffer);
   } catch(ex) {
@@ -150,6 +156,7 @@ function read_complete(event, data) {
   };
 
   /* Create a command queue */
+  log('create q');
   try {
     queue = context.createCommandQueue(device,0);
   } catch(ex) {
@@ -158,6 +165,7 @@ function read_complete(event, data) {
   };
 
   /* Enqueue kernel */
+  log('enqueue task');
   try {
     kernel_event=new WebCL.WebCLEvent();
     queue.enqueueTask(kernel , null, kernel_event);
@@ -177,6 +185,7 @@ function read_complete(event, data) {
   }
 
   /* Set event handling routines */
+  log('set kernel callback');
   try {
     kernel_event.setCallback(WebCL.COMPLETE, kernel_complete, "The kernel finished successfully.");
   } catch(ex) {
@@ -185,6 +194,7 @@ function read_complete(event, data) {
   }
   read_event.setCallback(WebCL.COMPLETE, read_complete, data);
   
+  log('q finish');
   queue.finish(); // wait for everything to finish
 
   log("main app thread END"); 

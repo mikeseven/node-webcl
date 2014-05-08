@@ -38,11 +38,11 @@ public:
   static void Init(v8::Handle<v8::Object> target);
 
   static Platform *New(cl_platform_id pid);
-  static JS_METHOD(New);
+  static NAN_METHOD(New);
 
-  static JS_METHOD(getInfo);
-  static JS_METHOD(getDevices);
-  static JS_METHOD(getExtension);
+  static NAN_METHOD(getInfo);
+  static NAN_METHOD(getDevices);
+  static NAN_METHOD(getExtension);
 
   cl_platform_id getPlatformId() const { return platform_id; };
 

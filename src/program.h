@@ -40,26 +40,20 @@ public:
   static void Init(v8::Handle<v8::Object> target);
 
   static Program *New(cl_program pw);
-  static JS_METHOD(New);
+  static NAN_METHOD(New);
 
-  static JS_METHOD(getInfo);
-  static JS_METHOD(getBuildInfo);
-  static JS_METHOD(build);
-  static JS_METHOD(createKernel);
-  // Patch
-  static JS_METHOD(release);
+  static NAN_METHOD(getInfo);
+  static NAN_METHOD(getBuildInfo);
+  static NAN_METHOD(build);
+  static NAN_METHOD(createKernel);
+  static NAN_METHOD(release);
 
   cl_program getProgram() const { return program; };
 
 private:
   Program(v8::Handle<v8::Object> wrapper);
 
-  static void After_cb(uv_async_t* handle, int status);
   static void callback (cl_program program, void *user_data);
-
-  // using uv_work_queue
-  //static void AsyncWork(uv_work_t* req);
-  //static void AsyncAfter(uv_work_t* req);
 
   static v8::Persistent<v8::FunctionTemplate> constructor_template;
 

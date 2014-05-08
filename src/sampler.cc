@@ -37,19 +37,19 @@ Persistent<FunctionTemplate> Sampler::constructor_template;
 
 void Sampler::Init(Handle<Object> target)
 {
-  HandleScope scope;
+  NanScope();
 
-  Local<FunctionTemplate> t = FunctionTemplate::New(Sampler::New);
-  constructor_template = Persistent<FunctionTemplate>::New(t);
+  // constructor
+  Local<FunctionTemplate> ctor = FunctionTemplate::New(Sampler::New);
+  NanAssignPersistent(FunctionTemplate, constructor_template, ctor);
+  ctor->InstanceTemplate()->SetInternalFieldCount(1);
+  ctor->SetClassName(NanSymbol("WebCLSampler"));
 
-  constructor_template->InstanceTemplate()->SetInternalFieldCount(1);
-  constructor_template->SetClassName(String::NewSymbol("WebCLSampler"));
+  // prototype
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_getInfo", getInfo);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_release", release);
 
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getInfo", getInfo);
-  // Patch
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_release", release);
-
-  target->Set(String::NewSymbol("WebCLSampler"), constructor_template->GetFunction());
+  target->Set(NanSymbol("WebCLSampler"), ctor->GetFunction());
 }
 
 Sampler::Sampler(Handle<Object> wrapper) : sampler(0)
@@ -64,20 +64,20 @@ void Sampler::Destructor() {
   sampler=0;
 }
 
-JS_METHOD(Sampler::release)
+NAN_METHOD(Sampler::release)
 {
-  HandleScope scope;
-  Sampler *sampler = UnwrapThis<Sampler>(args);
+  NanScope();
+  Sampler *sampler = ObjectWrap::Unwrap<Sampler>(args.This());
   
   DESTROY_WEBCL_OBJECT(sampler);
   
-  return Undefined();
+  NanReturnUndefined();
 }
 
-JS_METHOD(Sampler::getInfo)
+NAN_METHOD(Sampler::getInfo)
 {
-  HandleScope scope;
-  Sampler *sampler = UnwrapThis<Sampler>(args);
+  NanScope();
+  Sampler *sampler = ObjectWrap::Unwrap<Sampler>(args.This());
   cl_sampler_info param_name = args[0]->Uint32Value();
 
   switch (param_name) {
@@ -92,9 +92,9 @@ JS_METHOD(Sampler::getInfo)
       REQ_ERROR_THROW(CL_INVALID_SAMPLER);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowError("UNKNOWN ERROR");
+      return NanThrowError("UNKNOWN ERROR");
     }
-    return scope.Close(Integer::NewFromUnsigned(param_value));
+    NanReturnValue(Integer::NewFromUnsigned(param_value));
   }
   case CL_SAMPLER_CONTEXT:{
     cl_context param_value=0;
@@ -104,35 +104,36 @@ JS_METHOD(Sampler::getInfo)
       REQ_ERROR_THROW(CL_INVALID_SAMPLER);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowError("UNKNOWN ERROR");
+      return NanThrowError("UNKNOWN ERROR");
     }
-    return scope.Close(Context::New(param_value)->handle_);
+    NanReturnValue(Context::New(param_value)->handle());
   }
   default:
-    return ThrowError("UNKNOWN param_name");
+    return NanThrowError("UNKNOWN param_name");
   }
 
 }
 
-JS_METHOD(Sampler::New)
+NAN_METHOD(Sampler::New)
 {
   if (!args.IsConstructCall())
-    return ThrowTypeError("Constructor cannot be called as a function.");
+    return NanThrowTypeError("Constructor cannot be called as a function.");
 
-  HandleScope scope;
+  NanScope();
   Sampler *s = new Sampler(args.This());
   s->Wrap(args.This());
   registerCLObj(s);
-  return scope.Close(args.This());
+  NanReturnValue(args.This());
 }
 
 Sampler *Sampler::New(cl_sampler sw)
 {
 
-  HandleScope scope;
+  NanScope();
 
   Local<Value> arg = Integer::NewFromUnsigned(0);
-  Local<Object> obj = constructor_template->GetFunction()->NewInstance(1, &arg);
+  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor_template);
+  Local<Object> obj = constructorHandle->GetFunction()->NewInstance(1, &arg);
 
   Sampler *sampler = ObjectWrap::Unwrap<Sampler>(obj);
   sampler->sampler = sw;
