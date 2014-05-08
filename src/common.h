@@ -107,8 +107,8 @@ struct Baton {
     // v8::Persistent<v8::Function> callback;
     NanCallback *callback;
     int error;
-    uv_async_t async;
     char *error_msg;
+    uint8_t *priv_info;
 
     // Custom user data
     v8::Persistent<v8::Value> data;
@@ -116,10 +116,11 @@ struct Baton {
     // parent of this callback (WebCLEvent object)
     v8::Persistent<v8::Object> parent;
 
-    Baton() : callback(NULL), error(CL_SUCCESS), error_msg(NULL)  {}
-    // ~Baton() {
-    //   if(callback) delete callback;
-    // }
+    Baton() : callback(NULL), error(CL_SUCCESS), error_msg(NULL), priv_info(NULL)  {}
+    ~Baton() {
+      if(error_msg) delete error_msg;
+      if(priv_info) delete priv_info;
+    }
 };
 
 class WebCLObject;

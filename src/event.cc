@@ -166,6 +166,7 @@ class EventWorker : public NanAsyncWorker {
 
   ~EventWorker() {
     if(baton_) {
+      NanScope();
       if (!baton_->data.IsEmpty()) NanDisposePersistent(baton_->data);
       if (!baton_->parent.IsEmpty()) NanDisposePersistent(baton_->parent);
       // if (baton_->callback) delete baton_->callback;

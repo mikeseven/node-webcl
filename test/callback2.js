@@ -149,8 +149,23 @@ function main() {
   
   //Query the set of devices on this platform
   var devices = platform.getDevices(WebCL.DEVICE_TYPE_GPU);
-  device=devices[0];
-  log('using device: '+device.getInfo(WebCL.DEVICE_NAME));
+
+  // make sure we use a discrete GPU (Intel embedded GPU don't support event correctly)
+  device=null;
+  for(var i=0;i<devices.length;i++) {
+    var vendor=devices[i].getInfo(WebCL.DEVICE_VENDOR).trim().toUpperCase();
+    if(vendor==='NVIDIA' || vendor==='AMD') {
+      device=devices[i];
+      break;
+    }
+  }
+  if(!device || i==devices.length) {
+    error("No suitable device found");
+    exit(-1);
+  }
+
+  log('using device: '+device.getInfo(WebCL.DEVICE_VENDOR).trim()+
+    ' '+device.getInfo(WebCL.DEVICE_NAME));
 
   // create GPU context for this platform
   context=WebCL.createContext({
@@ -178,15 +193,17 @@ function main() {
 
   /* Build program */
   try {
-    program.build(devices, null, 'compil done', program_built);
+    program.build(device, null, 'compil done', program_built);
   } catch(ex) {
     /* Find size of log and print to std output */
-    var info=program.getBuildInfo(devices[0], WebCL.PROGRAM_BUILD_LOG);
+    var info=program.getBuildInfo(device, WebCL.PROGRAM_BUILD_LOG);
     log(info);
     exit(1);
   }
 
   log("main app thread END");
+
+  // sleeping the main thread to let events propagate
   function sleep() {
     if(!done) {
       log('sleeping 0.5s');

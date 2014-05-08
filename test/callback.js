@@ -36,7 +36,7 @@ var completed_kernel=false, completed_read=false;
 // kernel callback
 function kernel_complete(event, data) {
   var status=event.status;
-  log('in JS kernel_complete, status: '+status);
+  log('[JS CB] kernel_complete, status: '+status);
   if(status<0) 
     log('Error: '+status);
   log(data);
@@ -46,7 +46,7 @@ function kernel_complete(event, data) {
 // read buffer callback
 function read_complete(event, data) {
   var status=event.status;
-  log('in JS read_complete, status: '+status);
+  log('[JS CB] read_complete, status: '+status);
   if(status<0) 
     log('Error: '+status);
 
@@ -88,7 +88,7 @@ function read_complete(event, data) {
   
   //Query the set of devices on this platform
   var devices = platform.getDevices(WebCL.DEVICE_TYPE_GPU);
-  device=devices[1];
+  device=devices[0];
   log('using device: '+device.getInfo(WebCL.DEVICE_NAME));
 
   // create GPU context for this platform

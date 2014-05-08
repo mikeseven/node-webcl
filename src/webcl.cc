@@ -151,14 +151,63 @@ NAN_METHOD(getPlatforms) {
   NanReturnValue(platformArray);
 }
 
-/*
-// TODO: no idea what to do with private_info and cb
-// Note: this is called only if there is an error in this context during the life of the app
+NAN_METHOD(releaseAll) {
+  NanScope();
+  
+  AtExit();
+  atExit=true;
+
+  NanReturnUndefined();
+}
+
+class ContextWorker : public NanAsyncWorker {
+ public:
+  ContextWorker(Baton *baton)
+    : NanAsyncWorker(baton->callback), baton_(baton) {
+    }
+
+  ~ContextWorker() {
+    if(baton_) {
+      NanScope();
+      if (!baton_->data.IsEmpty()) NanDisposePersistent(baton_->data);
+      delete baton_;
+    }
+  }
+
+  // Executed inside the worker-thread.
+  // It is not safe to access V8, or V8 data structures
+  // here, so everything we need for input and output
+  // should go on `this`.
+  void Execute () {
+    // SetErrorMessage("Error");
+    // printf("[async event] execute\n");
+  }
+
+  // Executed when the async work is complete
+  // this function will be run inside the main event loop
+  // so it is safe to use V8 again
+  void HandleOKCallback () {
+    NanScope();
+
+    Local<Value> argv[2];
+    if(baton_->error_msg)
+      argv[0]=JS_STR(baton_->error_msg);
+    else
+      argv[0]=JS_INT(CL_SUCCESS);
+    argv[1] = NanPersistentToLocal(baton_->data);
+
+    // printf("[async event] callback JS\n");
+    callback->Call(2, argv);
+  }
+
+  private:
+    Baton *baton_;
+};
+
 void createContext_callback (const char *errinfo, const void *private_info, size_t cb, void *user_data)
 {
   //cout<<"[createContext_callback] thread "<<pthread_self()<<" errinfo ="<<(errinfo ? errinfo : "none")<<endl;
   Baton *baton = static_cast<Baton*>(user_data);
-  //cout<<"  baton"<<hex<<baton<<dec<<endl;
   baton->error=0;
 
   if(errinfo) {
@@ -166,48 +215,12 @@ void createContext_callback (const char *errinfo, const void *private_info, size
     baton->error=1;
   }
 
-  //cout<<"  async init"<<endl<<flush;
-  uv_async_init(uv_default_loop(), &baton->async, createContext_After_cb);
-  uv_async_send(&baton->async);
-}
+  if(private_info && cb) {
+    baton->priv_info=new uint8_t[cb];
+    memcpy(baton->priv_info, private_info, cb);
+  }
 
-void
-createContext_After_cb(uv_async_t* handle, int status) {
-  NanScope();
-
-  Baton *baton = static_cast<Baton*>(handle->data);
-  uv_close((uv_handle_t*) &baton->async,NULL);
-  //cout<<"[createContext::After_cb]  baton: "<<hex<<baton<<dec<<endl;
-
-  Handle<Value> argv[2];
-  if(baton->error_msg)
-    argv[0]=JS_STR(baton->error_msg);
-  else
-    argv[0]=JS_INT(CL_SUCCESS);
-  argv[1] = baton->data;
-
-  TryCatch try_catch;
-
-  baton->callback->Call(v8::Context::GetCurrent()->Global(), 2, argv);
-
-  if (try_catch.HasCaught())
-      node::FatalException(try_catch);
-
-  baton->callback.Dispose();
-  baton->data.Dispose();
-  baton->parent.Dispose();
-  if(baton->error_msg) free(baton->error_msg);
-  delete baton;
-}
-*/
-
-NAN_METHOD(releaseAll) {
-	NanScope();
-	
-	AtExit();
-	atExit=true;
-
-	NanReturnUndefined();
+  NanAsyncQueueWorker(new ContextWorker(baton));
 }
 
 NAN_METHOD(createContext) {
@@ -217,22 +230,14 @@ NAN_METHOD(createContext) {
 
   // callback handling
   Baton *baton=NULL;
-  // if(args.Length()==3 && !args[2]->IsUndefined() && args[2]->IsFunction()) {
-  //   baton=new Baton();
-  //   Local<Function> fct=Local<Function>::Cast(args[2]);
-  //   baton->callback=Persistent<Function>::New(fct);
-  //   //cout<<"[createContext] creating baton with callback: "<<*String::AsciiValue(fct->GetName())<<"()";
-  //   //cout<<" at line "<<fct->GetScriptLineNumber()<<endl<<flush;
-
-  //   if(!args[1]->IsUndefined()) {
-  //     baton->data=Persistent<Value>::New(args[1]);
-  //     //String::AsciiValue str(args[1]);
-  //     //cout<<"  adding user_data '"<<*str<<"' to baton"<<endl<<flush;
-  //   }
-
-  //   //uv_async_init(uv_default_loop(), &baton->async, createContext_After_cb);
-  //   baton->async.data=baton;
-  // }
+  if(args.Length()==3 && !args[2]->IsUndefined() && args[2]->IsFunction()) {
+    baton=new Baton();
+    baton->callback=new NanCallback(args[2].As<Function>());
+    if(!args[1]->IsUndefined()) {
+      Local<Value> data=args[1];
+      NanAssignPersistent(v8::Object, baton->data, data);
+    }
+  }
 
   // property handling
   if(!args[0]->IsUndefined() && args[0]->IsObject()) {

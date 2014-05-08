@@ -196,7 +196,50 @@ NAN_METHOD(Program::getBuildInfo)
   }
   }
 }
-/*
+
+class ProgramWorker : public NanAsyncWorker {
+ public:
+  ProgramWorker(Baton *baton)
+    : NanAsyncWorker(baton->callback), baton_(baton) {
+    }
+
+  ~ProgramWorker() {
+    if(baton_) {
+      NanScope();
+
+      if (!baton_->data.IsEmpty()) NanDisposePersistent(baton_->data);
+      delete baton_;
+    }
+  }
+
+  // Executed inside the worker-thread.
+  // It is not safe to access V8, or V8 data structures
+  // here, so everything we need for input and output
+  // should go on `this`.
+  void Execute () {
+    // SetErrorMessage("Error");
+    // printf("[async event] execute\n");
+  }
+
+  // Executed when the async work is complete
+  // this function will be run inside the main event loop
+  // so it is safe to use V8 again
+  void HandleOKCallback () {
+    NanScope();
+
+    Local<Value> argv[]={
+        JS_INT(baton_->error),
+        NanPersistentToLocal(baton_->data)
+    };
+
+    // printf("[async event] callback JS\n");
+    callback->Call(2, argv);
+  }
+
+  private:
+    Baton *baton_;
+};
+
 void Program::callback (cl_program program, void *user_data)
 {
   //cout<<"[Program::driver_callback] thread "<<pthread_self()<<endl<<flush;
@@ -217,37 +260,9 @@ void Program::callback (cl_program program, void *user_data)
     delete[] devices;
   }
 
-  //cout<<"  async init"<<endl<<flush;
-  uv_async_init(uv_default_loop(), &baton->async, After_cb);
-  uv_async_send(&baton->async);
+  NanAsyncQueueWorker(new ProgramWorker(baton));
 }
 
-void
-Program::After_cb(uv_async_t* handle, int status) {
-  NanScope();
-
-  Baton *baton = static_cast<Baton*>(handle->data);
-  //cout<<"[Program::After_cb] baton= "<<hex<<baton<<dec<<endl<<flush;
-  uv_close((uv_handle_t*) &baton->async,NULL);
-
-  Handle<Value> argv[]={
-      JS_INT(baton->error),
-      baton->data
-  };
-
-  TryCatch try_catch;
-
-  baton->callback->Call(v8::Context::GetCurrent()->Global(), 2, argv);
-
-  if (try_catch.HasCaught())
-      node::FatalException(try_catch);
-
-  baton->callback.Dispose();
-  baton->data.Dispose();
-  baton->parent.Dispose();
-  delete baton;
-}
-*/
 NAN_METHOD(Program::build)
 {
   NanScope();
@@ -286,29 +301,21 @@ NAN_METHOD(Program::build)
   }
 
   Baton *baton=NULL;
-  /*if(args.Length()==4 && !args[3]->IsUndefined() && args[3]->IsFunction()) {
+  if(args.Length()==4 && !args[3]->IsUndefined() && args[3]->IsFunction()) {
 
     baton=new Baton();
-    //cout<<"[Program::build] Creating baton "<<hex<<baton<<dec<<" on thread "<<hex<<pthread_self()<<dec<<endl<<flush;
-
-    Local<Function> fct=Local<Function>::Cast(args[3]);
-    baton->callback=Persistent<Function>::New(fct);
-
+    baton->callback=new NanCallback(args[3].As<Function>());
     if(!args[2].IsEmpty() && !args[2]->IsUndefined() && !args[2]->IsNull()) {
       Local<Value> data=args[2];
-      baton->data=Persistent<Value>::New(data);
+      NanAssignPersistent(v8::Object, baton->data, data);
     }
-
-	//uv_async_init(uv_default_loop(), &baton->async, After_cb);
-    baton->async.data=baton;
-  }*/
-  //cout<<"[Program::build] Calling clBuildProgram with baton: "<<hex<<baton<<dec<<endl<<flush;
+  }
 
   cl_int ret = ::clBuildProgram(prog->getProgram(), num, devices,
       options,
-      /*baton ? Program::callback :*/ NULL,
+      baton ? Program::callback : NULL,
       baton);
-  //cout<<"[Program::build] cleaning up options and devices lists"<<endl<<flush;
+
   if(options) free(options);
   if(devices) delete[] devices;
 
@@ -326,7 +333,6 @@ NAN_METHOD(Program::build)
     return NanThrowError("UNKNOWN ERROR");
   }
 
-  //cout<<"[Program::build] end"<<endl<<flush;
   NanReturnUndefined();
 }
 

@@ -279,7 +279,7 @@ NAN_METHOD(Context::createBuffer)
 
   cl_int ret=CL_SUCCESS;
   cl_mem mw = ::clCreateBuffer(context->getContext(), flags, size, host_ptr, &ret);
-  printf("cl_mem %p\n",mw);
+  // printf("cl_mem %p\n",mw);
 
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(CL_INVALID_VALUE);
