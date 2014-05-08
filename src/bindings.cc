@@ -43,7 +43,7 @@ using namespace v8;
 #define JS_CL_CONSTANT(name) target->Set(JS_STR( #name ), JS_INT(CL_ ## name))
 
 #define NODE_DEFINE_CONSTANT_VALUE(target, name, value)                   \
-  (target)->Set(v8::String::NewSymbol(name),                         \
+  (target)->Set(NanSymbol(name),                         \
                 v8::Integer::New(value),                               \
                 static_cast<v8::PropertyAttribute>(v8::ReadOnly|v8::DontDelete))
 

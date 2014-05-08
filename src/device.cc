@@ -34,28 +34,29 @@ Persistent<FunctionTemplate> Device::constructor_template;
 
 void Device::Init(Handle<Object> target)
 {
-  HandleScope scope;
+  NanScope();
 
-  Local<FunctionTemplate> t = FunctionTemplate::New(Device::New);
-  constructor_template = Persistent<FunctionTemplate>::New(t);
+  // constructor
+  Local<FunctionTemplate> ctor = FunctionTemplate::New(Device::New);
+  NanAssignPersistent(FunctionTemplate, constructor_template, ctor);
+  ctor->InstanceTemplate()->SetInternalFieldCount(1);
+  ctor->SetClassName(NanSymbol("WebCLDevice"));
 
-  constructor_template->InstanceTemplate()->SetInternalFieldCount(1);
-  constructor_template->SetClassName(String::NewSymbol("WebCLDevice"));
+  // prototype
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_getInfo", getInfo);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_getExtension", getExtension);
 
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getInfo", getInfo);
-  NODE_SET_PROTOTYPE_METHOD(constructor_template, "_getExtension", getExtension);
-
-  target->Set(String::NewSymbol("WebCLDevice"), constructor_template->GetFunction());
+  target->Set(NanSymbol("WebCLDevice"), ctor->GetFunction());
 }
 
 Device::Device(Handle<Object> wrapper) : device_id(0)
 {
 }
 
-JS_METHOD(Device::getInfo)
+NAN_METHOD(Device::getInfo)
 {
-  HandleScope scope;
-  Device *device = UnwrapThis<Device>(args);
+  NanScope();
+  Device *device = ObjectWrap::Unwrap<Device>(args.This());
   cl_device_info param_name = args[0]->Uint32Value();
 
   switch (param_name) {
@@ -74,10 +75,10 @@ JS_METHOD(Device::getInfo)
       REQ_ERROR_THROW(CL_INVALID_VALUE);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowError("UNKNOWN ERROR");
+      return NanThrowError("UNKNOWN ERROR");
     }
     // NOTE: Adjust length because API returns NULL terminated string
-    return scope.Close(JS_STR(param_value,(int)param_value_size_ret - 1));
+    NanReturnValue(JS_STR(param_value,(int)param_value_size_ret - 1));
   }
   break;
   case CL_DEVICE_PLATFORM: {
@@ -89,9 +90,9 @@ JS_METHOD(Device::getInfo)
       REQ_ERROR_THROW(CL_INVALID_VALUE);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowError("UNKNOWN ERROR");
+      return NanThrowError("UNKNOWN ERROR");
     }
-    return scope.Close(Integer::NewFromUnsigned((unsigned long)param_value));
+    NanReturnValue(Integer::NewFromUnsigned((unsigned long)param_value));
   }
   break;
   case CL_DEVICE_TYPE: {
@@ -105,9 +106,9 @@ JS_METHOD(Device::getInfo)
       REQ_ERROR_THROW(CL_INVALID_VALUE);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowError("UNKNOWN ERROR");
+      return NanThrowError("UNKNOWN ERROR");
     }
-    return scope.Close(Integer::NewFromUnsigned((unsigned long)param_value));
+    NanReturnValue(Integer::NewFromUnsigned((unsigned long)param_value));
   }
   break;
   case CL_DEVICE_LOCAL_MEM_TYPE: {
@@ -118,9 +119,9 @@ JS_METHOD(Device::getInfo)
       REQ_ERROR_THROW(CL_INVALID_VALUE);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowError("UNKNOWN ERROR");
+      return NanThrowError("UNKNOWN ERROR");
     }
-    return scope.Close(Integer::New(param_value));
+    NanReturnValue(Integer::New(param_value));
   }
   break;
   case CL_DEVICE_GLOBAL_MEM_CACHE_TYPE: {
@@ -131,9 +132,9 @@ JS_METHOD(Device::getInfo)
       REQ_ERROR_THROW(CL_INVALID_VALUE);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowError("UNKNOWN ERROR");
+      return NanThrowError("UNKNOWN ERROR");
     }
-    return scope.Close(Integer::New(param_value));
+    NanReturnValue(Integer::New(param_value));
   }
   break;
   case CL_DEVICE_EXECUTION_CAPABILITIES: {
@@ -144,9 +145,9 @@ JS_METHOD(Device::getInfo)
       REQ_ERROR_THROW(CL_INVALID_VALUE);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowError("UNKNOWN ERROR");
+      return NanThrowError("UNKNOWN ERROR");
     }
-    return scope.Close(Integer::NewFromUnsigned(param_value));
+    NanReturnValue(Integer::NewFromUnsigned(param_value));
   }
   break;
   case CL_DEVICE_QUEUE_PROPERTIES: {
@@ -157,9 +158,9 @@ JS_METHOD(Device::getInfo)
       REQ_ERROR_THROW(CL_INVALID_VALUE);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowError("UNKNOWN ERROR");
+      return NanThrowError("UNKNOWN ERROR");
     }
-    return scope.Close(Integer::NewFromUnsigned(param_value));
+    NanReturnValue(Integer::NewFromUnsigned(param_value));
   }
   break;
   case CL_DEVICE_HALF_FP_CONFIG:
@@ -172,9 +173,9 @@ JS_METHOD(Device::getInfo)
       REQ_ERROR_THROW(CL_INVALID_VALUE);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowError("UNKNOWN ERROR");
+      return NanThrowError("UNKNOWN ERROR");
     }
-    return scope.Close(Integer::NewFromUnsigned(param_value));
+    NanReturnValue(Integer::NewFromUnsigned(param_value));
   }
   break;
   case CL_DEVICE_MAX_WORK_ITEM_SIZES: {
@@ -188,7 +189,7 @@ JS_METHOD(Device::getInfo)
       REQ_ERROR_THROW(CL_INVALID_VALUE);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowError("UNKNOWN ERROR");
+      return NanThrowError("UNKNOWN ERROR");
     }
 
     // get CL_DEVICE_MAX_WORK_ITEM_SIZES array param
@@ -199,14 +200,14 @@ JS_METHOD(Device::getInfo)
       REQ_ERROR_THROW(CL_INVALID_VALUE);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowError("UNKNOWN ERROR");
+      return NanThrowError("UNKNOWN ERROR");
     }
 
     Local<Array> arr = Array::New(max_work_item_dimensions);
     for(cl_uint i=0;i<max_work_item_dimensions;i++)
       arr->Set(i,JS_INT(param_value[i]));
 
-    return scope.Close(arr);
+    NanReturnValue(arr);
   }
   break;
   // cl_bool params
@@ -224,10 +225,10 @@ JS_METHOD(Device::getInfo)
       REQ_ERROR_THROW(CL_INVALID_VALUE);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowError("UNKNOWN ERROR");
+      return NanThrowError("UNKNOWN ERROR");
     }
     // keeping as Integer vs Boolean so comparisons with cl.TRUE/cl.FALSE work
-    return scope.Close(Integer::New(param_value));
+    NanReturnValue(Integer::New(param_value));
   }
   break;
   // cl_uint params
@@ -269,9 +270,9 @@ JS_METHOD(Device::getInfo)
       REQ_ERROR_THROW(CL_INVALID_VALUE);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowError("UNKNOWN ERROR");
+      return NanThrowError("UNKNOWN ERROR");
     }
-    return scope.Close(Integer::NewFromUnsigned(param_value));
+    NanReturnValue(Integer::NewFromUnsigned(param_value));
   }
   break;
   // cl_ulong params
@@ -287,12 +288,12 @@ JS_METHOD(Device::getInfo)
       REQ_ERROR_THROW(CL_INVALID_VALUE);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowError("UNKNOWN ERROR");
+      return NanThrowError("UNKNOWN ERROR");
     }
     // FIXME: handle uint64 somehow
     // JS only supports doubles, v8 has ints, CL params can be uint64
     // the memory params can certainly overflow uint32 size
-    return scope.Close(Integer::NewFromUnsigned((unsigned int)param_value));
+    NanReturnValue(Integer::NewFromUnsigned((unsigned int)param_value));
   }
   break;
   // size_t params
@@ -316,47 +317,48 @@ JS_METHOD(Device::getInfo)
       REQ_ERROR_THROW(CL_INVALID_VALUE);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return ThrowError("UNKNOWN ERROR");
+      return NanThrowError("UNKNOWN ERROR");
     }
     // FIXME: handle 64 bit size_t somehow
     // assume for these params it will fit in an int
-    return scope.Close(Integer::New(param_value));
+    NanReturnValue(Integer::New(param_value));
   }
   break;
   default: {
-    return ThrowError("UNKNOWN PARAM NAME");
+    return NanThrowError("UNKNOWN PARAM NAME");
   }
   }
-  return Undefined();
+  NanReturnUndefined();
 }
 
-JS_METHOD(Device::getExtension)
+NAN_METHOD(Device::getExtension)
 {
-  HandleScope scope;
+  NanScope();
   //cl_device_info param_name = args[0]->Uint32Value();
 
-  return Undefined();
+  NanReturnUndefined();
 }
 
-JS_METHOD(Device::New)
+NAN_METHOD(Device::New)
 {
   if (!args.IsConstructCall())
-    return ThrowTypeError("Constructor cannot be called as a function.");
+    return NanThrowTypeError("Constructor cannot be called as a function.");
 
-  HandleScope scope;
+  NanScope();
   Device *cl = new Device(args.This());
   cl->Wrap(args.This());
-  return scope.Close(args.This());
+  NanReturnValue(args.This());
 }
 
 /* static  */
 Device *Device::New(cl_device_id dw)
 {
 
-  HandleScope scope;
+  NanScope();
 
   Local<Value> arg = Integer::NewFromUnsigned(0);
-  Local<Object> obj = constructor_template->GetFunction()->NewInstance(1, &arg);
+  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor_template);
+  Local<Object> obj = constructorHandle->GetFunction()->NewInstance(1, &arg);
 
   Device *device = ObjectWrap::Unwrap<Device>(obj);
   device->device_id = dw;
