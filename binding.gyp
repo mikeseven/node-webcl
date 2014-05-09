@@ -3,7 +3,7 @@
     {
       'target_name': 'webcl',
       'defines': [
-        'VERSION=0.8.0'
+        'VERSION=0.8.1'
       ],
       'sources': [
         'src/bindings.cc',

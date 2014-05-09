@@ -111,7 +111,7 @@ NAN_METHOD(Program::getInfo)
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
-    NanReturnValue(Context::New(value)->handle());
+    NanReturnValue(NanObjectWrapHandle(Context::New(value)));
   }
   case CL_PROGRAM_DEVICES: {
     cl_device_id devices[1024];
@@ -128,7 +128,7 @@ NAN_METHOD(Program::getInfo)
     Local<Array> deviceArray = Array::New(num_devices);
     for (int i=0; i<num_devices; i++) {
       cl_device_id d = devices[i];
-      deviceArray->Set(i, Device::New(d)->handle());
+      deviceArray->Set(i, NanObjectWrapHandle(Device::New(d)));
     }
     NanReturnValue(deviceArray);
   }
@@ -307,7 +307,7 @@ NAN_METHOD(Program::build)
     baton->callback=new NanCallback(args[3].As<Function>());
     if(!args[2].IsEmpty() && !args[2]->IsUndefined() && !args[2]->IsNull()) {
       Local<Value> data=args[2];
-      NanAssignPersistent(v8::Object, baton->data, data);
+      NanAssignPersistent(v8::Value, baton->data, data);
     }
   }
 
@@ -358,7 +358,7 @@ NAN_METHOD(Program::createKernel)
     return NanThrowError("UNKNOWN ERROR");
   }
 
-  NanReturnValue(Kernel::New(kw)->handle());
+  NanReturnValue(NanObjectWrapHandle(Kernel::New(kw)));
 }
 
 NAN_METHOD(Program::New)

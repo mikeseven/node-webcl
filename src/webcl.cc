@@ -143,7 +143,7 @@ NAN_METHOD(getPlatforms) {
 
   Local<Array> platformArray = Array::New(num_entries);
   for (uint32_t i=0; i<num_entries; i++) {
-    platformArray->Set(i, Platform::New(platforms[i])->handle());
+    platformArray->Set(i, NanObjectWrapHandle(Platform::New(platforms[i])));
   }
 
   delete[] platforms;
@@ -235,7 +235,7 @@ NAN_METHOD(createContext) {
     baton->callback=new NanCallback(args[2].As<Function>());
     if(!args[1]->IsUndefined()) {
       Local<Value> data=args[1];
-      NanAssignPersistent(v8::Object, baton->data, data);
+      NanAssignPersistent(v8::Value, baton->data, data);
     }
   }
 
@@ -387,7 +387,7 @@ NAN_METHOD(createContext) {
     return NanThrowError("UNKNOWN ERROR");
   }
 
-  NanReturnValue(Context::New(cw)->handle());
+  NanReturnValue(NanObjectWrapHandle(Context::New(cw)));
 }
 
 NAN_METHOD(waitForEvents) {

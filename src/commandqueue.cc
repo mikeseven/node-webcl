@@ -151,7 +151,7 @@ NAN_METHOD(CommandQueue::getInfo)
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
-    NanReturnValue(Context::New(ctx)->handle());
+    NanReturnValue(NanObjectWrapHandle(Context::New(ctx)));
   }
   case CL_QUEUE_DEVICE: {
     cl_device_id dev=0;
@@ -163,7 +163,7 @@ NAN_METHOD(CommandQueue::getInfo)
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
-    NanReturnValue(Device::New(dev)->handle());
+    NanReturnValue(NanObjectWrapHandle(Device::New(dev)));
   }
   case CL_QUEUE_REFERENCE_COUNT:
   case CL_QUEUE_PROPERTIES: {
@@ -1100,20 +1100,25 @@ NAN_METHOD(CommandQueue::enqueueMapBuffer)
     return NanThrowError("UNKNOWN ERROR");
   }
 
-  printf("\nmapbuffer %p = ",mo->getMemory());
-  for (size_t i = 0; i < size/sizeof(int); ++i)
-  {
-    printf("%d ",((int*) result)[i]);
-  }
-  printf("\n");
+  // cl_mem mem=mo->getMemory();
+  // void *host_ptr=NULL;
+  // ::clGetMemObjectInfo(mem,CL_MEM_HOST_PTR,sizeof(void*),host_ptr,NULL);
+  // printf("\n[map] memobject %p, host_ptr %p",mem, host_ptr);
+
+  // printf("\n[map] result = ");
+  // for (size_t i = 0; i < size; ++i)
+  // {
+  //   printf("%d ",((uint8_t*)result)[i]);
+  // }
+  // printf("\n");
 
   // wrap OpenCL result buffer into a node Buffer
   // WARNING: make sure result is shared not copied, otherwise unmapBuffer won't work
   // node::Buffer *buf=node::Buffer::New((char*) result,size, free_callback, NULL);
   Local<Object> buf=NanNewBufferHandle((char*) result, size, free_callback, NULL);
-  printf("result %p, wrapped data %p\n", result, node::Buffer::Data(buf));
+  // printf("[map] result %p, wrapped data %p\n", result, node::Buffer::Data(buf));
   if(node::Buffer::Data(buf) != result) {
-    printf("Error: data buffer has been copied\n");
+    printf("WARNING: data buffer has been copied\n");
   }
 
   if(!no_event) {
@@ -1204,7 +1209,6 @@ NAN_METHOD(CommandQueue::enqueueUnmapMemObject)
 
   // TODO: arg checking
   MemoryObject *mo = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
-  // node::Buffer *buf = ObjectWrap::Unwrap<node::Buffer>(args[1]->ToObject());
   Local<Object> buf(args[1]->ToObject());
 
   MakeEventWaitList(args[2]);
@@ -1212,25 +1216,26 @@ NAN_METHOD(CommandQueue::enqueueUnmapMemObject)
   cl_event event;
   bool no_event = (args[3]->IsUndefined() || args[3]->IsNull());
 
-  printf("wrapped data %p, memobject %p\n", node::Buffer::Data(buf),mo->getMemory());
-  printf("Before Unmap: ");
-  for(int i=0;i<10;i++) {
-    printf("%d ",((int*)node::Buffer::Data(buf))[i]);
-  }
-  printf("\n");
+  // printf("[unmap] wrapped data %p, memobject %p\n", node::Buffer::Data(buf),mo->getMemory());
+  // printf("[unmap] Before Unmap: ");
+  char *data= (char*)node::Buffer::Data(buf);
+  // for(int i=0;i<20;i++) {
+  //   printf("%d ", data[i]);
+  // }
+  // printf("\n");
 
   cl_int ret=::clEnqueueUnmapMemObject(
       cq->getCommandQueue(), mo->getMemory(),
-      node::Buffer::Data(buf),
+      data,
       num_events_wait_list,
       events_wait_list,
       no_event ? NULL : &event);
 
-  printf("After Unmap: ");
-  for(int i=0;i<10;i++) {
-    printf("%d ",((int*)node::Buffer::Data(buf))[i]);
-  }
-  printf("\n");
+  // printf("[unmap] After Unmap: ");
+  // for(int i=0;i<20;i++) {
+  //   printf("%d ",data[i]);
+  // }
+  // printf("\n");
 
   if(events_wait_list) delete[] events_wait_list;
 

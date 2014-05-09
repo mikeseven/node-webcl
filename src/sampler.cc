@@ -106,7 +106,7 @@ NAN_METHOD(Sampler::getInfo)
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
-    NanReturnValue(Context::New(param_value)->handle());
+    NanReturnValue(NanObjectWrapHandle(Context::New(param_value)));
   }
   default:
     return NanThrowError("UNKNOWN param_name");

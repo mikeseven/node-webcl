@@ -95,7 +95,7 @@ NAN_METHOD(Platform::getDevices)
     #ifdef LOGGING
     cout<<"Found device: "<<ids[i]<<endl;
     #endif
-    deviceArray->Set(i, Device::New(ids[i])->handle());
+    deviceArray->Set(i, NanObjectWrapHandle(Device::New(ids[i])));
   }
 
   delete[] ids;
