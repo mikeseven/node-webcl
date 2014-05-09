@@ -49,7 +49,7 @@ function VectorAdd() {
   for (var i = 0; i < BUFFER_SIZE; i++) {
     A[i] = i;
     B[i] = i * 2;
-    C[i] = 0;
+    C[i] = 10;
   }
 
   // //Pick platform
@@ -69,13 +69,22 @@ function VectorAdd() {
   }
 
   var devices=context.getInfo(WebCL.CONTEXT_DEVICES);
-  log("Found "+devices.length+" devices");
-  var device = devices[0];
-  log("  Using Device 0: " + device.getInfo(WebCL.DEVICE_NAME)+" from "+device.getInfo(WebCL.DEVICE_VENDOR));
-  if(device.getInfo(WebCL.DEVICE_VENDOR).indexOf("Intel")>=0) {
-    device = devices[1];
-    log("  Using Device 1: " + device.getInfo(WebCL.DEVICE_NAME)+" from "+device.getInfo(WebCL.DEVICE_VENDOR));
+    // make sure we use a discrete GPU (Intel embedded GPU don't support event correctly)
+  device=null;
+  for(var i=0;i<devices.length;i++) {
+    var vendor=devices[i].getInfo(WebCL.DEVICE_VENDOR).trim().toUpperCase();
+    if(vendor==='NVIDIA' || vendor==='AMD') {
+      device=devices[i];
+      break;
+    }
   }
+  if(!device || i==devices.length) {
+    error("No suitable device found");
+    exit(-1);
+  }
+
+  log('using device: '+device.getInfo(WebCL.DEVICE_VENDOR).trim()+
+    ' '+device.getInfo(WebCL.DEVICE_NAME));
 
   kernelSourceCode = [
 "__kernel void vadd(__global int *a, __global int *b, __global int *c, uint iNumElements) ",
@@ -145,23 +154,36 @@ function VectorAdd() {
       0,
       size);
 
+  var output;
+  output="after map C= ";
+  for (var i = 0; i < BUFFER_SIZE; i++) {
+    output += C[i] + ", ";
+  }
+  log(output);
+
   // we are now reading values as bytes, we need to cast it to the output type we want
-  var output = "\nmap = ";
+  output = "output = ";
   for (var i = 0; i < size; i++) {
     output += map[i] + ", ";
   }
   log(output);
 
   // let's cast from void* to int*
-  var b=new ArrayBuffer(map.length);
-  var v=new DataView(b);
-  for (var i = 0; i < size; i++) {
-    v.setInt8(i,map[i]);
-  }
-  C=new Int32Array(b);
+  // var b=new ArrayBuffer(map.length);
+  // var v=new DataView(b);
+  // for (var i = 0; i < size; i++) {
+  //   v.setInt8(i,map[i]);
+  // }
+  // C=new Int32Array(b);
 
   queue.enqueueUnmapMemObject(cBuffer, map);
   
+  output="after unmap C= ";
+  for (var i = 0; i < BUFFER_SIZE; i++) {
+    output += C[i] + ", ";
+  }
+  log(output);
+
   queue.finish(); //Finish all the operations
 
   printResults(A,B,C);

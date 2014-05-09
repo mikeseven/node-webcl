@@ -123,7 +123,7 @@ NAN_METHOD(MemoryObject::getInfo)
       return NanThrowError("UNKNOWN ERROR");
     }
 
-    NanReturnValue(MemoryObject::New(param_value)->handle());
+    NanReturnValue(NanObjectWrapHandle(MemoryObject::New(param_value)));
   }
   case CL_MEM_HOST_PTR: {
     char *param_value=NULL;
@@ -136,7 +136,6 @@ NAN_METHOD(MemoryObject::getInfo)
       return NanThrowError("UNKNOWN ERROR");
     }
     size_t nbytes = *(size_t*)param_value;
-    //NanReturnValue(node::Buffer::New(param_value, nbytes)->handle());
     NanReturnValue(NanNewBufferHandle(param_value, nbytes));
   }
   default:
@@ -263,7 +262,7 @@ NAN_METHOD(WebCLBuffer::createSubBuffer)
     return NanThrowError("UNKNOWN ERROR");
   }
 
-  NanReturnValue(WebCLBuffer::New(sub_buffer)->handle());
+  NanReturnValue(NanObjectWrapHandle(WebCLBuffer::New(sub_buffer)));
 }
 
 NAN_METHOD(WebCLBuffer::New)

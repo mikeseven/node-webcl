@@ -95,12 +95,12 @@ NAN_METHOD(Event::getInfo)
   case CL_EVENT_CONTEXT:{
     cl_context param_value=NULL;
     ::clGetEventInfo(e->getEvent(), param_name, sizeof(cl_context), &param_value, NULL);
-    NanReturnValue(Context::New(param_value)->handle());
+    NanReturnValue(NanObjectWrapHandle(Context::New(param_value)));
   }
   case CL_EVENT_COMMAND_QUEUE:{
     cl_command_queue param_value=NULL;
     ::clGetEventInfo(e->getEvent(), param_name, sizeof(cl_command_queue), &param_value, NULL);
-    NanReturnValue(CommandQueue::New(param_value)->handle());
+    NanReturnValue(NanObjectWrapHandle(CommandQueue::New(param_value)));
   }
   case CL_EVENT_REFERENCE_COUNT:
   case CL_EVENT_COMMAND_TYPE:
@@ -223,8 +223,8 @@ NAN_METHOD(Event::setCallback)
   Local<Value> data=args[2];
 
   Baton *baton=new Baton();
-  NanAssignPersistent(v8::Object, baton->data, data);
-  NanAssignPersistent(v8::Object, baton->parent, e->handle());
+  NanAssignPersistent(v8::Value, baton->data, data);
+  NanAssignPersistent(v8::Object, baton->parent, NanObjectWrapHandle(e));
   baton->callback=new NanCallback(args[1].As<Function>());
 
   // printf("SetEventCallback event=%p\n",e->getEvent());
@@ -242,6 +242,7 @@ NAN_METHOD(Event::setCallback)
 }
 
 NAN_GETTER(Event::GetStatus) {
+  NanScope();
   Event *event = ObjectWrap::Unwrap<Event>(args.This() /*Holder()*/);
   NanReturnValue(JS_INT(event->status));
 }
@@ -249,6 +250,7 @@ NAN_GETTER(Event::GetStatus) {
 // TODO buffer can only be set by enqueueReadBuffer/ReadBufferRect/Image
 // TODO update callback to return the event object, not the status
 NAN_GETTER(Event::GetBuffer) {
+  NanScope();
   //Event *event = ObjectWrap::Unwrap<Event>(args.Holder());
   NanReturnUndefined();
 }

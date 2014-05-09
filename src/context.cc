@@ -132,7 +132,7 @@ NAN_METHOD(Context::getInfo)
     Local<Array> arr = Array::New((int)n);
     for(uint32_t i=0;i<n;i++) {
       if(ctx[i]) {
-        arr->Set(i,Device::New(ctx[i])->handle());
+        arr->Set(i,NanObjectWrapHandle(Device::New(ctx[i])));
       }
     }
     delete[] ctx;
@@ -187,7 +187,7 @@ NAN_METHOD(Context::createProgram)
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
-    NanReturnValue(Program::New(pw)->handle());
+    NanReturnValue(NanObjectWrapHandle(Program::New(pw)));
   }
   else if(args[0]->IsArray()){
     Local<Array> devArray = Local<Array>::Cast(args[0]);
@@ -226,7 +226,7 @@ NAN_METHOD(Context::createProgram)
     }
 
     // TODO should we return binaryStatus?
-    NanReturnValue(Program::New(pw)->handle());
+    NanReturnValue(NanObjectWrapHandle(Program::New(pw)));
   }
 
   NanReturnUndefined();
@@ -254,7 +254,7 @@ NAN_METHOD(Context::createCommandQueue)
     return NanThrowError("UNKNOWN ERROR");
   }
 
-  NanReturnValue(CommandQueue::New(cw)->handle());
+  NanReturnValue(NanObjectWrapHandle(CommandQueue::New(cw)));
 }
 
 NAN_METHOD(Context::createBuffer)
@@ -270,7 +270,9 @@ NAN_METHOD(Context::createBuffer)
       host_ptr=arr->GetIndexedPropertiesExternalArrayData();
     }
     else if(args[2]->IsObject()) {
-      host_ptr=args[2]->ToObject()->GetIndexedPropertiesExternalArrayData();
+      Handle<Object> obj=args[2]->ToObject();
+      assert(obj->HasIndexedPropertiesInExternalArrayData());
+      host_ptr=obj->GetIndexedPropertiesExternalArrayData();
       printf("CreateBuffer host_ptr %p\n",host_ptr);
     }
     else
@@ -279,7 +281,7 @@ NAN_METHOD(Context::createBuffer)
 
   cl_int ret=CL_SUCCESS;
   cl_mem mw = ::clCreateBuffer(context->getContext(), flags, size, host_ptr, &ret);
-  // printf("cl_mem %p\n",mw);
+  printf("cl_mem %p\n",mw);
 
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(CL_INVALID_VALUE);
@@ -291,7 +293,7 @@ NAN_METHOD(Context::createBuffer)
     return NanThrowError("UNKNOWN ERROR");
   }
 
-  NanReturnValue(WebCLBuffer::New(mw)->handle());
+  NanReturnValue(NanObjectWrapHandle(WebCLBuffer::New(mw)));
 }
 
 NAN_METHOD(Context::createImage)
@@ -347,7 +349,7 @@ NAN_METHOD(Context::createImage)
     return NanThrowError("UNKNOWN ERROR");
   }
 
-  NanReturnValue(WebCLImage::New(mw)->handle());
+  NanReturnValue(NanObjectWrapHandle(WebCLImage::New(mw)));
 }
 
 NAN_METHOD(Context::createSampler)
@@ -374,7 +376,7 @@ NAN_METHOD(Context::createSampler)
     return NanThrowError("UNKNOWN ERROR");
   }
 
-  NanReturnValue(Sampler::New(sw)->handle());
+  NanReturnValue(NanObjectWrapHandle(Sampler::New(sw)));
 }
 
 NAN_METHOD(Context::getSupportedImageFormats)
@@ -442,7 +444,7 @@ NAN_METHOD(Context::createUserEvent)
     return NanThrowError("UNKNOWN ERROR");
   }
 
-  NanReturnValue(Event::New(ew)->handle());
+  NanReturnValue(NanObjectWrapHandle(Event::New(ew)));
 }
 
 NAN_METHOD(Context::createFromGLBuffer)
@@ -469,7 +471,7 @@ NAN_METHOD(Context::createFromGLBuffer)
     return NanThrowError("UNKNOWN ERROR");
   }
 
-  NanReturnValue(WebCLBuffer::New(clmem)->handle());
+  NanReturnValue(NanObjectWrapHandle(WebCLBuffer::New(clmem)));
 }
 
 NAN_METHOD(Context::createFromGLTexture)
@@ -492,7 +494,7 @@ NAN_METHOD(Context::createFromGLTexture)
     return NanThrowError("UNKNOWN ERROR");
   }
 
-  NanReturnValue(WebCLImage::New(clmem)->handle());
+  NanReturnValue(NanObjectWrapHandle(WebCLImage::New(clmem)));
 }
 
 NAN_METHOD(Context::createFromGLRenderbuffer)
@@ -513,7 +515,7 @@ NAN_METHOD(Context::createFromGLRenderbuffer)
     return NanThrowError("UNKNOWN ERROR");
   }
 
-  NanReturnValue(WebCLBuffer::New(clmem)->handle());
+  NanReturnValue(NanObjectWrapHandle(WebCLBuffer::New(clmem)));
 }
 
 NAN_METHOD(Context::New)
