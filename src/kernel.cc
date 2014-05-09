@@ -111,7 +111,7 @@ NAN_METHOD(Kernel::getInfo)
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
-    NanReturnValue(Context::New(param_value)->handle());
+    NanReturnValue(NanObjectWrapHandle(Context::New(param_value)));
   }
   case CL_KERNEL_PROGRAM: {
     cl_program param_value=NULL;
@@ -123,7 +123,7 @@ NAN_METHOD(Kernel::getInfo)
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
-    NanReturnValue(Program::New(param_value)->handle());
+    NanReturnValue(NanObjectWrapHandle(Program::New(param_value)));
   }
   case CL_KERNEL_NUM_ARGS:
   case CL_KERNEL_REFERENCE_COUNT: {
