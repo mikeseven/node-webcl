@@ -1,9 +1,9 @@
 {
   "name": "node-webcl",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "A WebCL implementation for desktops with NodeJS",
   "main": "webcl.js",
-  "author": "Mikael Bourges-Sevenier <msevenier@motorola.com>",
+  "author": "Mikael Bourges-Sevenier <mikeseven@gmail.com>",
   "keywords": [
     "webcl",
     "opencl"
@@ -11,8 +11,7 @@
   "maintainers": [
     {
       "name": "Mikael Bourges-Sevenier",
-      "email": "msevenier@motorola.com",
-      "web": "http://www.motorola.com"
+      "email": "mikeseven@gmail.com",
     }
   ],
   "licenses": [
