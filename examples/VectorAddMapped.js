@@ -69,19 +69,7 @@ function VectorAdd() {
   }
 
   var devices=context.getInfo(WebCL.CONTEXT_DEVICES);
-    // make sure we use a discrete GPU (Intel embedded GPU don't support event correctly)
-  device=null;
-  for(var i=0;i<devices.length;i++) {
-    var vendor=devices[i].getInfo(WebCL.DEVICE_VENDOR).trim().toUpperCase();
-    if(vendor==='NVIDIA' || vendor==='AMD') {
-      device=devices[i];
-      break;
-    }
-  }
-  if(!device || i==devices.length) {
-    error("No suitable device found");
-    exit(-1);
-  }
+  device=devices[0];
 
   log('using device: '+device.getInfo(WebCL.DEVICE_VENDOR).trim()+
     ' '+device.getInfo(WebCL.DEVICE_NAME));
@@ -115,13 +103,13 @@ function VectorAdd() {
   queue=context.createCommandQueue(device, 0);
 
   //Create buffer for A and copy host contents
-  aBuffer = context.createBuffer(WebCL.MEM_READ_ONLY | WebCL.MEM_COPY_HOST_PTR, size, A);
+  aBuffer = context.createBuffer(WebCL.MEM_READ_ONLY | WebCL.MEM_USE_HOST_PTR, size, A);
 
   //Create buffer for B and copy host contents
-  bBuffer = context.createBuffer(WebCL.MEM_READ_ONLY | WebCL.MEM_COPY_HOST_PTR, size, B);
+  bBuffer = context.createBuffer(WebCL.MEM_READ_ONLY | WebCL.MEM_USE_HOST_PTR, size, B);
 
   //Create buffer for that uses the host ptr C
-  cBuffer = context.createBuffer(WebCL.MEM_WRITE_ONLY | WebCL.MEM_COPY_HOST_PTR, size, C);
+  cBuffer = context.createBuffer(WebCL.MEM_WRITE_ONLY | WebCL.MEM_USE_HOST_PTR, size, C);
 
   //Set kernel args
   kernel.setArg(0, aBuffer);
@@ -167,14 +155,6 @@ function VectorAdd() {
     output += map[i] + ", ";
   }
   log(output);
-
-  // let's cast from void* to int*
-  // var b=new ArrayBuffer(map.length);
-  // var v=new DataView(b);
-  // for (var i = 0; i < size; i++) {
-  //   v.setInt8(i,map[i]);
-  // }
-  // C=new Int32Array(b);
 
   queue.enqueueUnmapMemObject(cBuffer, map);
   

@@ -1100,19 +1100,23 @@ NAN_METHOD(CommandQueue::enqueueMapBuffer)
     return NanThrowError("UNKNOWN ERROR");
   }
 
-  printf("\n[map] memobject %p = ",mo->getMemory());
-  printf("\n[map] result = ");
-  for (size_t i = 0; i < size; ++i)
-  {
-    printf("%d ",((uint8_t*)result)[i]);
-  }
-  printf("\n");
+  // cl_mem mem=mo->getMemory();
+  // void *host_ptr=NULL;
+  // ::clGetMemObjectInfo(mem,CL_MEM_HOST_PTR,sizeof(void*),host_ptr,NULL);
+  // printf("\n[map] memobject %p, host_ptr %p",mem, host_ptr);
+
+  // printf("\n[map] result = ");
+  // for (size_t i = 0; i < size; ++i)
+  // {
+  //   printf("%d ",((uint8_t*)result)[i]);
+  // }
+  // printf("\n");
 
   // wrap OpenCL result buffer into a node Buffer
   // WARNING: make sure result is shared not copied, otherwise unmapBuffer won't work
   // node::Buffer *buf=node::Buffer::New((char*) result,size, free_callback, NULL);
   Local<Object> buf=NanNewBufferHandle((char*) result, size, free_callback, NULL);
-  printf("[map] result %p, wrapped data %p\n", result, node::Buffer::Data(buf));
+  // printf("[map] result %p, wrapped data %p\n", result, node::Buffer::Data(buf));
   if(node::Buffer::Data(buf) != result) {
     printf("WARNING: data buffer has been copied\n");
   }
@@ -1205,7 +1209,6 @@ NAN_METHOD(CommandQueue::enqueueUnmapMemObject)
 
   // TODO: arg checking
   MemoryObject *mo = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
-  // node::Buffer *buf = ObjectWrap::Unwrap<node::Buffer>(args[1]->ToObject());
   Local<Object> buf(args[1]->ToObject());
 
   MakeEventWaitList(args[2]);
@@ -1213,13 +1216,13 @@ NAN_METHOD(CommandQueue::enqueueUnmapMemObject)
   cl_event event;
   bool no_event = (args[3]->IsUndefined() || args[3]->IsNull());
 
-  printf("[unmap] wrapped data %p, memobject %p\n", node::Buffer::Data(buf),mo->getMemory());
-  printf("[unmap] Before Unmap: ");
+  // printf("[unmap] wrapped data %p, memobject %p\n", node::Buffer::Data(buf),mo->getMemory());
+  // printf("[unmap] Before Unmap: ");
   char *data= (char*)node::Buffer::Data(buf);
-  for(int i=0;i<20;i++) {
-    printf("%d ", data[i]);
-  }
-  printf("\n");
+  // for(int i=0;i<20;i++) {
+  //   printf("%d ", data[i]);
+  // }
+  // printf("\n");
 
   cl_int ret=::clEnqueueUnmapMemObject(
       cq->getCommandQueue(), mo->getMemory(),
@@ -1228,11 +1231,11 @@ NAN_METHOD(CommandQueue::enqueueUnmapMemObject)
       events_wait_list,
       no_event ? NULL : &event);
 
-  printf("[unmap] After Unmap: ");
-  for(int i=0;i<20;i++) {
-    printf("%d ",data[i]);
-  }
-  printf("\n");
+  // printf("[unmap] After Unmap: ");
+  // for(int i=0;i<20;i++) {
+  //   printf("%d ",data[i]);
+  // }
+  // printf("\n");
 
   if(events_wait_list) delete[] events_wait_list;
 

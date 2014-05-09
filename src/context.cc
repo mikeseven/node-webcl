@@ -273,7 +273,7 @@ NAN_METHOD(Context::createBuffer)
       Handle<Object> obj=args[2]->ToObject();
       assert(obj->HasIndexedPropertiesInExternalArrayData());
       host_ptr=obj->GetIndexedPropertiesExternalArrayData();
-      printf("CreateBuffer host_ptr %p\n",host_ptr);
+      // printf("CreateBuffer host_ptr %p\n",host_ptr);
     }
     else
       NanThrowError("Invalid memory object");
@@ -281,7 +281,7 @@ NAN_METHOD(Context::createBuffer)
 
   cl_int ret=CL_SUCCESS;
   cl_mem mw = ::clCreateBuffer(context->getContext(), flags, size, host_ptr, &ret);
-  printf("cl_mem %p\n",mw);
+  // printf("cl_mem %p\n",mw);
 
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(CL_INVALID_VALUE);
