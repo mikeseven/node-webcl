@@ -96,7 +96,6 @@ document.on("mouseup", function(evt) {
 document.on("mousemove", motion);
 document.on("resize",function(evt){
   console.log('resize to: ('+evt.width+", "+evt.height+")");
-  document.createWindow(evt.width,evt.height);
   gl.viewportWidth=evt.width;
   gl.viewportHeight=evt.height;
   gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);

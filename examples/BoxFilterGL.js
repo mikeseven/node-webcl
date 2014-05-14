@@ -299,7 +299,7 @@ function init_gl(canvas) {
 
 function renderTexture() {
   // we just draw a screen-aligned texture
-  gl.viewport(0, 0, canvas.width, canvas.height);
+  gl.viewport(0, 0, Width, Height);
 
   gl.enable(gl.TEXTURE_2D);
   gl.bindTexture(gl.TEXTURE_2D, TextureId);
@@ -550,10 +550,7 @@ function display(timestamp) {
     Reshaped = false;
     Width = newWidth;
     Height = newHeight;
-    cleanup();
-    if (initialize(ComputeDeviceType == WebCL.DEVICE_TYPE_GPU) != WebCL.SUCCESS)
-      shutdown();
-    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.viewport(0, 0, Width, Height);
     gl.clear(gl.COLOR_BUFFER_BIT);
   }
 

@@ -46,8 +46,8 @@ main();
 function CLGL() {
   var COMPUTE_KERNEL_FILENAME         = "qjulia_kernel.cl";
   var COMPUTE_KERNEL_METHOD_NAME      = "QJuliaKernel";
-  var WIDTH                           = 800;
-  var HEIGHT                          = 800;
+  var WIDTH                           = 512;
+  var HEIGHT                          = 512;
     
   var /* cl_context */                       ComputeContext;
   var /* cl_command_queue */                 ComputeCommands;
@@ -535,18 +535,13 @@ function CLGL() {
    
       if(Reshaped) {
         Reshaped=false;
-        if(newWidth > 1.25 * Width || newHeight > 1.25 * Height ||
-            newWidth < Width/1.25 || newHeight < Height/1.25) {
-          this.cleanup();
-          Width=newWidth;
-          Height=newHeight;
-          ATB.Terminate();
-          this.initAntTweakBar(canvas);
-          if(this.initialize(ComputeDeviceType == WebCL.DEVICE_TYPE_GPU) != WebCL.SUCCESS)
-            this.shutdown();
-        }
-        gl.viewport(0, 0, canvas.width, canvas.height);
+        Width=newWidth;
+        Height=newHeight;
+        gl.viewport(0, 0, Width, Height);
         gl.clear(gl.COLOR_BUFFER_BIT);
+      
+        // make sure AntTweakBar is repositioned correctly and events correct
+        ATB.WindowSize(Width,Height);
       }
       
       if(Animated)
@@ -664,7 +659,6 @@ function CLGL() {
 
         }
         Update = true;
-        //glutPostRedisplay();
     },
     interpolate: function( m, t, a, b )
     {
@@ -764,6 +758,7 @@ function CLGL() {
         var region = [ TextureWidth, TextureHeight, 1];
         
         try {
+          // TODO this should be shared between CL and GL not copied as in Apple code
           ComputeCommands.enqueueCopyBufferToImage(ComputeResult, ComputeImage, 
                                          0, origin, region);
         }

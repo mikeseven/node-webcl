@@ -119,8 +119,6 @@ function keydown(evt) {
    
     // reinit shared data if document is resized
     if (Reshaped) {
-      Width=canvas.width;
-      Height=canvas.height;
       log('reshaping texture to '+Width+'x'+Height);
       try {
         var glTexture=gfx.configure_shared_data(Width,Height);
