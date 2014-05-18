@@ -27,7 +27,7 @@ Dependencies
 - [NAN][NAN] must be installed first to support all versions of v8
 
 - [node-webgl][NODE_WEBGL]. This module is used for samples using WebGL interoperability with WebCL.
-In turns, [node-webgl][NODE_WEBGL] relies on [node-glfw][NODE_GLFW] that relies on [GLFW][GLFW], [GLEW][GLEW], [AntTweakBar][ANTTWEAKBAR]. See node-webgl and node-glfw for instructions on how to install these modules.
+In turns, [node-webgl][NODE_WEBGL] relies on [node-glfw][NODE_GLFW] that relies on [GLFW][GLFW], [GLEW][GLEW], [AntTweakBar][ANTTWEAKBAR], and FreeImage. See node-webgl and node-glfw for instructions on how to install these modules.
 
 - OpenCL 1.1 must be installed on your machine. Typically, this means your machine has a not too old graphic card (maybe not more than 3 years old) and its latest graphic drivers installed.
 
