@@ -26,14 +26,19 @@
 
 var util=require('util');
 var log=console.log;
-var typed_arrays = process.binding('typed_array');
-var ArrayBuffer=typed_arrays.ArrayBuffer;
-var Int8Array=typed_arrays.Int8Array;
-var Int16Array=typed_arrays.Int16Array;
-var Int32Array=typed_arrays.Int32Array;
-var Int64Array=typed_arrays.Int64Array;
-var Float32Array=typed_arrays.Float32Array;
-var Float64Array=typed_arrays.Float64Array;
+try {
+  ArrayBuffer;
+  Int8Array;
+} catch (e) {
+  var typed_arrays = process.binding('typed_array');
+  ArrayBuffer=typed_arrays.ArrayBuffer;
+  Int8Array=typed_arrays.Int8Array;
+  Int16Array=typed_arrays.Int16Array;
+  Int32Array=typed_arrays.Int32Array;
+  Int64Array=typed_arrays.Int64Array;
+  Float32Array=typed_arrays.Float32Array;
+  Float64Array=typed_arrays.Float64Array;
+}
 
 // note: ctype field is useless
 var ctypes= {
@@ -104,7 +109,7 @@ var ctypes= {
     }
   },
   Array : function(type, num) {
-    return { 
+    return {
       ctype : 'Array',
       type : type,
       num : num * type.num,
@@ -125,33 +130,37 @@ var ctypes= {
     for(var i=0;i<fields;++i) {
       var field = cstruct[i];
       var arr=[],k=0;
-      for(var j=0,l=field.length;j<l;++j) {
-        arr[k++]=field[j];
+      for(var j in field) {
+        for (var i = 0; i < field[j].length; i++) {
+          arr[k++]=field[j][i];
+        }
       }
       //log(util.inspect(arr[0]))
       //log(arr[0][0].num)
-      sz += arr[0][0].num;
+      sz += arr[0].num;
     }
-  
+
     return sz;
   },
 
   compute : function(cstruct) {
     var sz=this.size(cstruct);
-  
+
     var buffer = new ArrayBuffer(sz);
     var offset = 0;
-    
+
     for(var i=0,li=cstruct.length;i<li;++i) {
       var field = cstruct[i];
       //log('field: '+field);
       var arr=[],k=0;
-      for(var j=0,lj=field.length;j<lj;++j) {
-        arr[k++]=field[j];
+      for(var j in field) {
+        for (var i = 0; i < field[j].length; i++) {
+          arr[k++]=field[j][i];
+        }
       }
-      offset = arr[0][0].fill(buffer, offset, arr[0][1]);
+      offset = arr[0].fill(buffer, offset, arr[0][1]);
     }
-  
+
     return buffer;
   },
 };
