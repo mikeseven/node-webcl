@@ -35,7 +35,8 @@
     "install": "node-gyp rebuild"
   },
   "dependencies": {
-    "node-webgl": ">=0.2.0",
-    "nan": "^0.8.0"
+    "nan": "^0.8.0",
+    "node-image": "^0.5.1",
+    "node-webgl": ">=0.2.0"
   }
 }
