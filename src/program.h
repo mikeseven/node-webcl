@@ -46,6 +46,7 @@ public:
   static NAN_METHOD(getBuildInfo);
   static NAN_METHOD(build);
   static NAN_METHOD(createKernel);
+  static NAN_METHOD(createKernelsInProgram);
   static NAN_METHOD(release);
 
   cl_program getProgram() const { return program; };

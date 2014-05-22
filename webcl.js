@@ -899,6 +899,10 @@ cl.WebCLProgram.prototype.createKernel=function (name) {
   return this._createKernel(name);
 }
 
+cl.WebCLProgram.prototype.createKernelsInProgram=function () {
+  return this._createKernelsInProgram();
+}
+
 //////////////////////////////
 //WebCLSampler object
 //////////////////////////////

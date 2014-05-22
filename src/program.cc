@@ -54,6 +54,7 @@ void Program::Init(Handle<Object> target)
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getBuildInfo", getBuildInfo);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_build", build);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_createKernel", createKernel);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_createKernelsInProgram", createKernelsInProgram);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_release", release);
 
   target->Set(NanSymbol("WebCLProgram"), ctor->GetFunction());
@@ -359,6 +360,45 @@ NAN_METHOD(Program::createKernel)
   }
 
   NanReturnValue(NanObjectWrapHandle(Kernel::New(kw)));
+}
+
+NAN_METHOD(Program::createKernelsInProgram)
+{
+  NanScope();
+  Program *prog = ObjectWrap::Unwrap<Program>(args.This());
+
+  Local<String> str = args[0]->ToString();
+  String::AsciiValue astr(str);
+
+  cl_uint num_kernels=0;
+  cl_kernel *kernels=NULL;
+  cl_int ret = ::clCreateKernelsInProgram(prog->getProgram(), 0, NULL, &num_kernels);
+
+  if(ret == CL_SUCCESS && num_kernels>0) {
+    kernels=new cl_kernel[num_kernels];
+    ret = ::clCreateKernelsInProgram(prog->getProgram(), num_kernels, kernels, NULL);
+
+  }
+
+  if (ret != CL_SUCCESS) {
+    delete[] kernels;
+    REQ_ERROR_THROW(CL_INVALID_PROGRAM);
+    REQ_ERROR_THROW(CL_INVALID_PROGRAM_EXECUTABLE);
+    REQ_ERROR_THROW(CL_INVALID_VALUE);
+    REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+    return NanThrowError("UNKNOWN ERROR");
+  }
+
+  // build list of WebCLKernels
+  Local<Array> jsKernels=Array::New(num_kernels);
+
+  for(cl_uint i=0;i<num_kernels;i++) {
+    jsKernels->Set(i, NanObjectWrapHandle( Kernel::New( kernels[i] ) ) );
+  }
+
+  delete[] kernels;
+  NanReturnValue(jsKernels);
 }
 
 NAN_METHOD(Program::New)
