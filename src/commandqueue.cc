@@ -1375,10 +1375,72 @@ NAN_METHOD(CommandQueue::enqueueBarrier)
   NanReturnUndefined();
 }
 
+class FinishWorker : public NanAsyncWorker {
+ public:
+  FinishWorker(Baton *baton)
+    : NanAsyncWorker(baton->callback), baton_(baton) {
+    }
+
+  ~FinishWorker() {
+    if(baton_) {
+      NanScope();
+      if (!baton_->parent.IsEmpty()) NanDisposePersistent(baton_->parent);
+      // if (baton_->callback) delete baton_->callback;
+      delete baton_;
+    }
+  }
+
+  // Executed inside the worker-thread.
+  // It is not safe to access V8, or V8 data structures
+  // here, so everything we need for input and output
+  // should go on `this`.
+  void Execute () {
+    // SetErrorMessage("Error");
+    // printf("[async event] execute\n");
+    CommandQueue *cq = ObjectWrap::Unwrap<CommandQueue>(NanPersistentToLocal(baton_->parent));
+
+    cl_int ret = ::clFinish(cq->getCommandQueue());
+    if (ret != CL_SUCCESS) {
+      REQ_ERROR_THROW(CL_INVALID_COMMAND_QUEUE);
+      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      return NanThrowError("UNKNOWN ERROR");
+    }
+  }
+
+  // Executed when the async work is complete
+  // this function will be run inside the main event loop
+  // so it is safe to use V8 again
+  void HandleOKCallback () {
+    NanScope();
+
+    // // must return passed data
+    Local<Value> argv[] = {
+      NanPersistentToLocal(baton_->parent),  // event
+    };
+
+    // printf("[async event] callback JS\n");
+    callback->Call(2, argv);
+  }
+
+  private:
+    Baton *baton_;
+};
+
+
 NAN_METHOD(CommandQueue::finish)
 {
   NanScope();
   CommandQueue *cq = ObjectWrap::Unwrap<CommandQueue>(args.This());
+
+  if(args[1]->IsFunction()) {
+      Baton *baton=new Baton();
+      NanAssignPersistent(v8::Object, baton->parent, NanObjectWrapHandle(cq));
+      baton->callback=new NanCallback(args[1].As<Function>());
+      NanAsyncQueueWorker(new FinishWorker(baton));
+      NanReturnUndefined();
+  }
+
   cl_int ret = ::clFinish(cq->getCommandQueue());
 
   if (ret != CL_SUCCESS) {

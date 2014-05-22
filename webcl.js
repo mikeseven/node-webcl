@@ -450,11 +450,11 @@ cl.WebCLCommandQueue.prototype.flush=function () {
   return this._flush();
 }
 
-cl.WebCLCommandQueue.prototype.finish=function () {
+cl.WebCLCommandQueue.prototype.finish=function (callback) {
   if (!(arguments.length === 0)) {
     throw new TypeError('Expected WebCLCommandQueue.finish()');
   }
-  return this._finish();
+  return this._finish(callback);
 }
 
 cl.WebCLCommandQueue.prototype.enqueueAcquireGLObjects=function (mem_objects, event_list, event) {
