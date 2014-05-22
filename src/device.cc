@@ -26,7 +26,10 @@
 
 #include "device.h"
 
+#include <cstring>
+
 using namespace v8;
+using namespace std;
 using namespace webcl;
 
 namespace webcl {
@@ -44,7 +47,7 @@ void Device::Init(Handle<Object> target)
 
   // prototype
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getInfo", getInfo);
-  NODE_SET_PROTOTYPE_METHOD(ctor, "_getExtension", getExtension);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_getSupportedExtensions", getSupportedExtensions);
 
   target->Set(NanSymbol("WebCLDevice"), ctor->GetFunction());
 }
@@ -331,12 +334,22 @@ NAN_METHOD(Device::getInfo)
   NanReturnUndefined();
 }
 
-NAN_METHOD(Device::getExtension)
+NAN_METHOD(Device::getSupportedExtensions)
 {
   NanScope();
-  //cl_device_info param_name = args[0]->Uint32Value();
+  Device *device = ObjectWrap::Unwrap<Device>(args.This());
+  char param_value[1024];
+  size_t param_value_size_ret=0;
 
-  NanReturnUndefined();
+  cl_int ret=clGetDeviceInfo(device->device_id, CL_DEVICE_EXTENSIONS, 1024, param_value, &param_value_size_ret);
+  if (ret != CL_SUCCESS) {
+    REQ_ERROR_THROW(CL_INVALID_PLATFORM);
+    REQ_ERROR_THROW(CL_INVALID_VALUE);
+    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+    return NanThrowError("UNKNOWN ERROR");
+  }
+
+  NanReturnValue(JS_STR(param_value));
 }
 
 NAN_METHOD(Device::New)

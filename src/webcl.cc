@@ -38,6 +38,7 @@
 
 using namespace v8;
 using namespace node;
+using namespace std;
 
 namespace webcl {
 

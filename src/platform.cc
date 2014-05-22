@@ -30,6 +30,7 @@
 #include <cstring>
 
 using namespace v8;
+using namespace std;
 
 namespace webcl {
 
@@ -48,6 +49,7 @@ void Platform::Init(Handle<Object> target)
   // prototype
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getInfo", getInfo);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getDevices", getDevices);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_getSupportedExtensions", getSupportedExtensions);
 
   target->Set(NanSymbol("WebCLPlatform"), ctor->GetFunction());
 }
@@ -125,6 +127,36 @@ NAN_METHOD(Platform::getInfo)
   NanReturnValue(JS_STR(param_value,(int)param_value_size_ret - 1));
 }
 
+NAN_METHOD(Platform::getSupportedExtensions)
+{
+  NanScope();
+  Platform *platform = ObjectWrap::Unwrap<Platform>(args.This());
+  char param_value[1024];
+  size_t param_value_size_ret=0;
+
+  cl_int ret=clGetPlatformInfo(platform->platform_id, CL_PLATFORM_EXTENSIONS, 1024, param_value, &param_value_size_ret);
+  if (ret != CL_SUCCESS) {
+    REQ_ERROR_THROW(CL_INVALID_PLATFORM);
+    REQ_ERROR_THROW(CL_INVALID_VALUE);
+    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+    return NanThrowError("UNKNOWN ERROR");
+  }
+
+ NanReturnValue(JS_STR(param_value));
+}
+
+// NAN_METHOD(Platform::enableExtension)
+// {
+//   NanScope();
+//   Platform *platform = ObjectWrap::Unwrap<Platform>(args.This());
+//   if(args[0]->IsString()) {
+//     Local<String> str = args[0]->ToString();
+//     String::AsciiValue astr(str);
+//     size_t length=astr.length();
+//   }
+//   NanReturnValue(JS_BOOL(true));
+// }
+
 NAN_METHOD(Platform::New)
 {
   if (!args.IsConstructCall())
@@ -152,7 +184,7 @@ Platform *Platform::New(cl_platform_id pid)
   return platform;
 }
 
-NAN_METHOD(Platform::getExtension) {
+/*NAN_METHOD(Platform::getExtension) {
   NanScope();
 
   Platform *platform = ObjectWrap::Unwrap<Platform>(args.This());
@@ -178,7 +210,7 @@ NAN_METHOD(Platform::getExtension) {
     return NanThrowError("UNKNOWN EXTENSION");
 
   NanReturnUndefined();
-}
+}*/
 
 } // namespace webcl
 

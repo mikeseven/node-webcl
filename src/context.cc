@@ -66,6 +66,7 @@ void Context::Init(Handle<Object> target)
   NODE_SET_PROTOTYPE_METHOD(ctor, "_createFromGLRenderbuffer", createFromGLRenderbuffer);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getSupportedImageFormats", getSupportedImageFormats);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_release", release);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_releaseAll", releaseAll);
 
   target->Set(NanSymbol("WebCLContext"), ctor->GetFunction());
 }
@@ -84,6 +85,16 @@ void Context::Destructor()
 }
 
 NAN_METHOD(Context::release)
+{
+  NanScope();
+  Context *context = ObjectWrap::Unwrap<Context>(args.This());
+  
+  DESTROY_WEBCL_OBJECT(context);
+  
+  NanReturnUndefined();
+}
+
+NAN_METHOD(Context::releaseAll)
 {
   NanScope();
   Context *context = ObjectWrap::Unwrap<Context>(args.This());
