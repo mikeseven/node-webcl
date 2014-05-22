@@ -101,11 +101,11 @@ return _createContext(properties, data, callback);
 }
 
 var _waitForEvents = cl.waitForEvents;
-cl.waitForEvents = function (events) {
+cl.waitForEvents = function (events, callback) {
   if (!(arguments.length === 1 && typeof events === 'object' )) {
     throw new TypeError('Expected waitForEvents(WebCLEvent[] events)');
   }
-  return _waitForEvents(events);
+  return _waitForEvents(events, callback);
 }
 
 var _releaseAll = cl.releaseAll;
