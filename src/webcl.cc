@@ -391,11 +391,80 @@ NAN_METHOD(createContext) {
   NanReturnValue(NanObjectWrapHandle(Context::New(cw)));
 }
 
+class WaitForEventsWorker : public NanAsyncWorker {
+ public:
+  WaitForEventsWorker(Baton *baton)
+    : NanAsyncWorker(baton->callback), baton_(baton) {
+    }
+
+  ~WaitForEventsWorker() {
+    if(baton_) {
+      NanScope();
+      if (!baton_->parent.IsEmpty()) NanDisposePersistent(baton_->parent);
+      if (!baton_->data.IsEmpty()) NanDisposePersistent(baton_->data);
+      // if (baton_->callback) delete baton_->callback;
+      delete baton_;
+    }
+  }
+
+  // Executed inside the worker-thread.
+  // It is not safe to access V8, or V8 data structures
+  // here, so everything we need for input and output
+  // should go on `this`.
+  void Execute () {
+    // SetErrorMessage("Error");
+    // printf("[async event] execute\n");
+    Local<Array> eventsArray = Local<Array>::Cast(NanPersistentToLocal(baton_->data));
+    std::vector<cl_event> events;
+    for (uint32_t i=0; i<eventsArray->Length(); i++) {
+     Event *we=ObjectWrap::Unwrap<Event>(eventsArray->Get(i)->ToObject());
+      cl_event e = we->getEvent();
+      events.push_back(e);
+    }
+    cl_int ret = baton_->error = ::clWaitForEvents( (int) events.size(), &events.front());
+    if (ret != CL_SUCCESS) {
+      REQ_ERROR_THROW(CL_INVALID_VALUE);
+      REQ_ERROR_THROW(CL_INVALID_CONTEXT);
+      REQ_ERROR_THROW(CL_INVALID_EVENT);
+      REQ_ERROR_THROW(CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST);
+      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      return NanThrowError("UNKNOWN ERROR");
+    }
+  }
+
+  // Executed when the async work is complete
+  // this function will be run inside the main event loop
+  // so it is safe to use V8 again
+  void HandleOKCallback () {
+    NanScope();
+
+    // must return passed data
+    Local<Value> argv[] = {
+      JS_INT(baton_->error)
+    };
+
+    // printf("[async event] callback JS\n");
+    callback->Call(1, argv);
+  }
+
+  private:
+    Baton *baton_;
+};
+
 NAN_METHOD(waitForEvents) {
   NanScope();
 
   if (!args[0]->IsArray())
     NanThrowError("CL_INVALID_VALUE");
+
+  if(args[1]->IsFunction()) {
+      Baton *baton=new Baton();
+      NanAssignPersistent(v8::Object, baton->data, args[0]);
+      baton->callback=new NanCallback(args[1].As<Function>());
+      NanAsyncQueueWorker(new WaitForEventsWorker(baton));
+      NanReturnUndefined();
+  }
 
   Local<Array> eventsArray = Local<Array>::Cast(args[0]);
   std::vector<cl_event> events;

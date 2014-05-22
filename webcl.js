@@ -425,13 +425,13 @@ cl.WebCLCommandQueue.prototype.enqueueMarker=function (event_list, event) {
   return this._enqueueMarker(event_list, event);
 }
 
-/*cl.WebCLCommandQueue.prototype.enqueueWaitForEvents=function (event_wait_list) {
+cl.WebCLCommandQueue.prototype.enqueueWaitForEvents=function (event_wait_list) {
   if (!(arguments.length >=0 &&       
       (typeof event_list === 'undefined' || typeof event_list === 'object') )) {
     throw new TypeError('Expected WebCLCommandQueue.enqueueWaitForEvents(WebCLEvent[] event_wait_list)');
   }
   return this._enqueueWaitForEvents(event_wait_list);
-}*/
+}
 
 cl.WebCLCommandQueue.prototype.enqueueBarrier=function (event_list, event) {
   if (!(arguments.length >= 0 &&

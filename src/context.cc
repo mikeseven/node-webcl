@@ -99,6 +99,8 @@ NAN_METHOD(Context::releaseAll)
   NanScope();
   Context *context = ObjectWrap::Unwrap<Context>(args.This());
   
+  // TODO delete all objects in context and release context
+
   DESTROY_WEBCL_OBJECT(context);
   
   NanReturnUndefined();
