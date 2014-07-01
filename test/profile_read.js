@@ -77,7 +77,7 @@ function main() {
   var context=null;
   try {
     context=WebCL.createContext({
-      deviceType: WebCL.DEVICE_TYPE_CPU, 
+      deviceType: WebCL.DEVICE_TYPE_GPU, 
       // platform: platform
     });
   }

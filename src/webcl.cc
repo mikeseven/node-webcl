@@ -45,8 +45,6 @@ namespace webcl {
 static set<WebCLObject*> clobjs;
 static bool atExit=false;
 
-static HINSTANCE clLib=0;
-
 void registerCLObj(WebCLObject* obj) {
   if(obj) {
     // printf("Adding CLObject %p\n", obj);
