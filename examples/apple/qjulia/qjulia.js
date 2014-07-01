@@ -349,14 +349,15 @@ function CLGL() {
       log('setup compute devices');
       
       //Pick platform
-      var platformList=WebCL.getPlatforms();
-      var platform=platformList[0];
+      // var platformList=WebCL.getPlatforms();
+      // var platform=platformList[0];
 
       ComputeDeviceType = device_type ? WebCL.DEVICE_TYPE_GPU : WebCL.DEVICE_TYPE_CPU;
       ComputeContext = WebCL.createContext({
         deviceType: ComputeDeviceType,
-        platform: platform,
-        shareGroup: gl});
+        // platform: platform,
+        shareGroup: gl
+      });
 
       var device_ids = ComputeContext.getInfo(WebCL.CONTEXT_DEVICES);
       if(!device_ids)
@@ -383,6 +384,12 @@ function CLGL() {
           return -1;
       }
           
+      // get CL-GL extension
+      if(!ComputeDeviceId.enableExtension("KHR_gl_sharing")) {
+        log("CL-GL not available!");
+        process.exit(1);
+      }
+
       // Create a command queue
       //
       ComputeCommands = ComputeContext.createCommandQueue(ComputeDeviceId, 0);

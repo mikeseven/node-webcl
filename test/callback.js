@@ -31,8 +31,6 @@ if(nodejs) {
   exit = process.exit;
 }
 
-var completed_kernel=false, completed_read=false;
-
 // kernel callback
 function kernel_complete(event, data) {
   var status=event.status;
@@ -40,7 +38,6 @@ function kernel_complete(event, data) {
   if(status<0) 
     log('Error: '+status);
   log(data);
-  completed_kernel=true;
 }
 
 // read buffer callback
@@ -64,7 +61,6 @@ function read_complete(event, data) {
     log("The data has been initialized successfully.");
   else
     log("The data has not been initialized successfully.");
-  completed_read=true;
 }
 
 (function main() {
@@ -85,7 +81,7 @@ function read_complete(event, data) {
   var platformList=WebCL.getPlatforms();
   platform=platformList[0];
   log('using platform: '+platform.getInfo(WebCL.PLATFORM_NAME));
-  
+
   //Query the set of devices on this platform
   var devices = platform.getDevices(WebCL.DEVICE_TYPE_GPU);
   device=devices[0];
@@ -185,18 +181,30 @@ function read_complete(event, data) {
   }
 
   /* Set event handling routines */
-  log('set kernel callback');
-  try {
-    kernel_event.setCallback(WebCL.COMPLETE, kernel_complete, "The kernel finished successfully.");
-  } catch(ex) {
-    log("Couldn't set callback for event. "+ex);
-    exit(1);   
-  }
+  log('set event callbacks');
+  kernel_event.setCallback(WebCL.COMPLETE, kernel_complete, "The kernel finished successfully.");
   read_event.setCallback(WebCL.COMPLETE, read_complete, data);
+
+  // test 1: queue should finish with event completed
+  // log('q finish');
+  // queue.finish(); // wait for everything to finish
+
+  // test 2: wait for all events to complete
+  log('Wait for events to complete');
+  var event_list=[kernel_event, read_event];
+  WebCL.waitForEvents(event_list);
   
-  log('q finish');
-  queue.finish(); // wait for everything to finish
+  // test 3: spin on all event completions
+  // log('  spinning on event completion');
+  // var event_list=[kernel_event, read_event];
+  // for(var i=0;i<event_list.length;i++) {
+  //   var ev = event_list[i];
+  //   while(1) {
+  //     var ret=ev.getInfo(WebCL.EVENT_COMMAND_EXECUTION_STATUS);
+  //     if(ret == WebCL.COMPLETE)
+  //       break;
+  //   }
+  // }
 
   log("main app thread END"); 
 })();
-

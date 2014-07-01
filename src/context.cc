@@ -537,9 +537,9 @@ NAN_METHOD(Context::New)
     return NanThrowTypeError("Constructor cannot be called as a function.");
 
   NanScope();
-  Context *cl = new Context(args.This());
-  cl->Wrap(args.This());
-  registerCLObj(cl);
+  Context *ctx = new Context(args.This());
+  ctx->Wrap(args.This());
+  registerCLObj(ctx);
   NanReturnValue(args.This());
 }
 

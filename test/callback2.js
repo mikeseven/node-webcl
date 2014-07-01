@@ -45,7 +45,7 @@ var done=false;
 // kernel callback
 function kernel_complete(event, data) {
   var status=event.status;
-  log('in JS kernel_complete, status: '+status);
+  log('[JS CB] kernel_complete, status: '+status);
   if(status<0) 
     log('Error: '+status);
   log(data);
@@ -54,7 +54,7 @@ function kernel_complete(event, data) {
 // read buffer callback
 function read_complete(event, data) {
   var status=event.status;
-  log('in JS read_complete, status: '+status);
+  log('[JS CB] read_complete, status: '+status);
   if(status<0) 
     log('Error: '+status);
 
@@ -75,6 +75,7 @@ function read_complete(event, data) {
 }
 
 function program_built(err, data) {
+  log('[JS CB] program built');
   try {
     kernel = program.createKernel("callback");
   } catch(ex) {
@@ -154,18 +155,18 @@ function main() {
   device=null;
   for(var i=0;i<devices.length;i++) {
     var vendor=devices[i].getInfo(WebCL.DEVICE_VENDOR).trim().toUpperCase();
-    if(vendor==='NVIDIA' || vendor==='AMD') {
+    if(vendor==='NVIDIA' || vendor==='AMD' || vendor.indexOf('ADVANCED MICRO DEVICES')>=0) {
       device=devices[i];
       break;
     }
   }
   if(!device || i==devices.length) {
-    error("No suitable device found");
+    log("[ERROR] No suitable device found");
     exit(-1);
   }
 
   log('using device: '+device.getInfo(WebCL.DEVICE_VENDOR).trim()+
-    ' '+device.getInfo(WebCL.DEVICE_NAME));
+    ' '+device.getInfo(WebCL.DEVICE_NAME).trim());
 
   // create GPU context for this platform
   context=WebCL.createContext({

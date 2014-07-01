@@ -1404,7 +1404,7 @@ class FinishWorker : public NanAsyncWorker {
       REQ_ERROR_THROW(CL_INVALID_COMMAND_QUEUE);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return NanThrowError("UNKNOWN ERROR");
+	  return;// NanThrowError("UNKNOWN ERROR");
     }
   }
 

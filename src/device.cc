@@ -196,9 +196,10 @@ NAN_METHOD(Device::getInfo)
     }
 
     // get CL_DEVICE_MAX_WORK_ITEM_SIZES array param
-    size_t param_value[max_work_item_dimensions];
+    size_t *param_value=new size_t[max_work_item_dimensions];
     ret=::clGetDeviceInfo(device->device_id, param_name, max_work_item_dimensions*sizeof(size_t), param_value, NULL);
     if (ret != CL_SUCCESS) {
+		delete[] param_value;
       REQ_ERROR_THROW(CL_INVALID_PLATFORM);
       REQ_ERROR_THROW(CL_INVALID_VALUE);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
@@ -210,7 +211,8 @@ NAN_METHOD(Device::getInfo)
     for(cl_uint i=0;i<max_work_item_dimensions;i++)
       arr->Set(i,JS_INT(param_value[i]));
 
-    NanReturnValue(arr);
+	delete[] param_value;
+	NanReturnValue(arr);
   }
   break;
   // cl_bool params

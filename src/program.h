@@ -50,6 +50,7 @@ public:
   static NAN_METHOD(release);
 
   cl_program getProgram() const { return program; };
+  virtual bool isProgram() const { return true; }
 
 private:
   Program(v8::Handle<v8::Object> wrapper);

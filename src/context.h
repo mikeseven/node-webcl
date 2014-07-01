@@ -57,6 +57,7 @@ public:
   static NAN_METHOD(releaseAll);
 
   cl_context getContext() const { return context; };
+  virtual bool isContext() const { return true; }
 
 private:
   Context(v8::Handle<v8::Object> wrapper);

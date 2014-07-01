@@ -174,7 +174,7 @@ NAN_METHOD(Program::getBuildInfo)
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
-    NanReturnValue(Integer::NewFromUnsigned(param_value));
+    NanReturnValue(JS_INT(param_value));
   }
   default: {
     size_t param_value_size_ret=0;
@@ -191,7 +191,7 @@ NAN_METHOD(Program::getBuildInfo)
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
-    Local<Value> obj = scope.Close(JS_STR(param_value,(int)param_value_size_ret));
+    Local<Value> obj = JS_STR(param_value,(int)param_value_size_ret);
     delete[] param_value;
     NanReturnValue(obj);
   }

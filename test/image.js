@@ -272,14 +272,15 @@ function init_cl() {
   log('init CL');
 
   // Pick platform
-  var platformList = WebCL.getPlatforms();
-  var platform = platformList[0];
+  // var platformList = WebCL.getPlatforms();
+  // var platform = platformList[0];
 
   // create the OpenCL context
   ComputeContext = WebCL.createContext({
     deviceType: ComputeDeviceType, 
     shareGroup: gl, 
-    platform: platform });
+    // platform: platform 
+  });
 
   var device_ids = ComputeContext.getInfo(WebCL.CONTEXT_DEVICES);
   if (!device_ids) {

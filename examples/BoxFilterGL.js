@@ -331,14 +331,15 @@ function init_cl(device_type) {
   ComputeDeviceType = device_type ? WebCL.DEVICE_TYPE_GPU : WebCL.DEVICE_TYPE_DEFAULT;
 
   // Pick platform
-  var platformList = WebCL.getPlatforms();
-  var platform = platformList[0];
+  // var platformList = WebCL.getPlatforms();
+  // var platform = platformList[0];
 
   // create the OpenCL context
   ComputeContext = WebCL.createContext({
     deviceType: ComputeDeviceType, 
     shareGroup: gl, 
-    platform: platform });
+    // platform: platform 
+  });
 
   var device_ids = ComputeContext.getInfo(WebCL.CONTEXT_DEVICES);
   if (!device_ids) {
@@ -360,6 +361,10 @@ function init_cl(device_type) {
     alert("Error: Failed to locate compute device!");
     return -1;
   }
+
+  var exts=ComputeDeviceId.getSupportedExtensions();
+  log("Device extensions: "+exts);
+  ComputeDeviceId.enableExtension("KHR_gl_sharing");
 
   // Create a command queue
   //
