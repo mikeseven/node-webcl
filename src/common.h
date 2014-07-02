@@ -104,7 +104,6 @@ namespace webcl {
 
 // generic baton for async callbacks
 struct Baton {
-    // v8::Persistent<v8::Function> callback;
     NanCallback *callback;
     int error;
     char *error_msg;
@@ -126,11 +125,12 @@ struct Baton {
 class WebCLObject;
 void registerCLObj(WebCLObject* obj);
 void unregisterCLObj(WebCLObject* obj);
-void AtExit();
+void AtExit(void* arg);
 
 class WebCLObject : public node::ObjectWrap {
 protected:
   virtual ~WebCLObject() {
+    // printf("Destructor WebCLObject\n");
     Destructor();
     unregisterCLObj(this);
   }
@@ -139,7 +139,11 @@ public:
   virtual void Destructor() {}
   virtual bool isKernel() const { return false; }
   virtual bool isCommandQueue() const { return false; }
+  virtual bool isMemoryObject() const { return false; }
+  virtual bool isProgram() const { return false; }
+  virtual bool isSampler() const { return false; }
   virtual bool isEvent() const { return false; }
+  virtual bool isContext() const { return false; }
 };
 
 } // namespace webcl

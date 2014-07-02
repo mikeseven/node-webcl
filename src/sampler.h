@@ -45,6 +45,7 @@ public:
   static NAN_METHOD(release);
 
   cl_sampler getSampler() const { return sampler; };
+  virtual bool isSampler() const { return true; }
 
 private:
   Sampler(v8::Handle<v8::Object> wrapper);

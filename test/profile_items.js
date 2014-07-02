@@ -85,10 +85,11 @@ function main() {
   try {
     context=WebCL.createContext({
       deviceType: WebCL.DEVICE_TYPE_ALL, 
+      // platform: platform
     });
   }
   catch(ex) {
-    throw new Exception("Can't create CL context");
+    throw new Error("Can't create CL context");
   }
 
   var devices=context.getInfo(WebCL.CONTEXT_DEVICES);
@@ -158,9 +159,9 @@ function main() {
   };
 
   var total_time = 0, time_start, time_end;
-  prof_event=new WebCL.WebCLEvent();
   
   for(var i=0;i<NUM_ITERATIONS;i++) {
+    var prof_event=new WebCL.WebCLEvent();
     /* Enqueue kernel */
     try {
       queue.enqueueNDRangeKernel(kernel, null, [num_items], null, null, prof_event);
@@ -176,6 +177,7 @@ function main() {
     time_end = prof_event.getProfilingInfo(WebCL.PROFILING_COMMAND_END);
     //log("time: start="+time_start+" end="+time_end);
     total_time += time_end - time_start;
+    prof_event.release();
   }
 
   var avg_ns=Math.round(total_time/NUM_ITERATIONS);

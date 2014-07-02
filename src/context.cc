@@ -66,6 +66,7 @@ void Context::Init(Handle<Object> target)
   NODE_SET_PROTOTYPE_METHOD(ctor, "_createFromGLRenderbuffer", createFromGLRenderbuffer);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getSupportedImageFormats", getSupportedImageFormats);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_release", release);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_releaseAll", releaseAll);
 
   target->Set(NanSymbol("WebCLContext"), ctor->GetFunction());
 }
@@ -88,6 +89,18 @@ NAN_METHOD(Context::release)
   NanScope();
   Context *context = ObjectWrap::Unwrap<Context>(args.This());
   
+  DESTROY_WEBCL_OBJECT(context);
+  
+  NanReturnUndefined();
+}
+
+NAN_METHOD(Context::releaseAll)
+{
+  NanScope();
+  Context *context = ObjectWrap::Unwrap<Context>(args.This());
+  
+  // TODO delete all objects in context and release context
+
   DESTROY_WEBCL_OBJECT(context);
   
   NanReturnUndefined();
@@ -524,9 +537,9 @@ NAN_METHOD(Context::New)
     return NanThrowTypeError("Constructor cannot be called as a function.");
 
   NanScope();
-  Context *cl = new Context(args.This());
-  cl->Wrap(args.This());
-  registerCLObj(cl);
+  Context *ctx = new Context(args.This());
+  ctx->Wrap(args.This());
+  registerCLObj(ctx);
   NanReturnValue(args.This());
 }
 

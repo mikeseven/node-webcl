@@ -31,8 +31,8 @@ if(nodejs) {
   exit = process.exit;
 }
 
-function read_complete(status, data) {
-  log('in read_complete, status: '+status);
+function read_complete(event, data) {
+  log('in read_complete, status: '+event.status);
   log("New data: "+data[0]+', '+data[1]+', '+data[2]+', '+data[3]);
 }
 
@@ -50,7 +50,7 @@ function main() {
   /* Initialize data */
   var data=new Float32Array(4);
   for(i=0; i<4; i++)
-     data[i] = i * 1.0;
+     data[i] = i * 2.0;
 
   /* Create a device and context */
   log('creating context');
@@ -59,6 +59,7 @@ function main() {
   // var platformList=WebCL.getPlatforms();
   // platform=platformList[0];
   // log('using platform: '+platform.getInfo(WebCL.PLATFORM_NAME));
+ 
   
   // //Query the set of devices on this platform
   // var devices = platform.getDevices(WebCL.DEVICE_TYPE_GPU);
@@ -75,6 +76,7 @@ function main() {
   try {
     context=WebCL.createContext({
       deviceType: WebCL.DEVICE_TYPE_ALL, 
+      // platform: platform
     });
   }
   catch(ex) {

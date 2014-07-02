@@ -273,14 +273,15 @@ function init_cl() {
   log('init CL');
 
   // Pick platform
-  var platformList = WebCL.getPlatforms();
-  var platform = platformList[0];
+  // var platformList = WebCL.getPlatforms();
+  // var platform = platformList[0];
 
   // create the OpenCL context
   ComputeContext = WebCL.createContext({
     deviceType: ComputeDeviceType, 
     shareGroup: gl, 
-    platform: platform });
+    // platform: platform 
+  });
 
   var device_ids = ComputeContext.getInfo(WebCL.CONTEXT_DEVICES);
   if (!device_ids) {
@@ -440,7 +441,7 @@ function display(timestamp) {
   //var uiStartTime = new Date().getTime();
 
   if (Reshaped) {
-    log('reshaping texture');
+    log('reshaping texture to '+newWidth+" x "+newHeight);
     Reshaped = false;
     Width = newWidth;
     Height = newHeight;
@@ -455,7 +456,7 @@ function display(timestamp) {
   }
 
   // we just draw a screen-aligned texture
-  gl.viewport(0, 0, canvas.width, canvas.height);
+  gl.viewport(0, 0, Width, Height);
 
   gl.enable(gl.TEXTURE_2D);
   gl.bindTexture(gl.TEXTURE_2D, TextureId);
@@ -495,21 +496,6 @@ function reshape(evt) {
 
 function keydown(evt) {
   log('process key: ' + evt.which);
-  var oldr = iRadius;
-
-  switch (evt.which) {
-  case '='.charCodeAt(0): // + or = increases filter radius
-    if ((MaxWorkGroupSize - (((iRadius + 1 + 15) / 16) * 16) - iRadius - 1) > 0)
-      iRadius++;
-    break;
-  case '-'.charCodeAt(0): // - or _ decreases filter radius
-    if (iRadius > 1)
-      iRadius--;
-    break;
-  }
-  if (oldr != iRadius) {
-    Update = true;
-  }
 }
 
 function execute_kernel() {

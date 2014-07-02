@@ -39,10 +39,9 @@ public:
 
   static Platform *New(cl_platform_id pid);
   static NAN_METHOD(New);
-
   static NAN_METHOD(getInfo);
   static NAN_METHOD(getDevices);
-  static NAN_METHOD(getExtension);
+  static NAN_METHOD(getSupportedExtensions);
 
   cl_platform_id getPlatformId() const { return platform_id; };
 

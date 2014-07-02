@@ -96,7 +96,6 @@ document.on("mouseup", function(evt) {
 document.on("mousemove", motion);
 document.on("resize",function(evt){
   console.log('resize to: ('+evt.width+", "+evt.height+")");
-  document.createWindow(evt.width,evt.height);
   gl.viewportWidth=evt.width;
   gl.viewportHeight=evt.height;
   gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
@@ -108,12 +107,13 @@ function main() {
   log('Init GL');
   initGL();
 
+  if(0) {
   // Pick platform
   var platformList = WebCL.getPlatforms();
   cpPlatform = platformList[0];
 
   // Query the set of GPU devices on this platform
-  cdDevices = cpPlatform.getDevices(WebCL.DEVICE_TYPE_DEFAULT);
+  cdDevices = cpPlatform.getDevices(WebCL.DEVICE_TYPE_GPU);
   log("  # of Devices Available = " + cdDevices.length);
   var device = cdDevices[0];
   log("  Using Device 0: " + device.getInfo(WebCL.DEVICE_NAME)+" from "+device.getInfo(WebCL.DEVICE_VENDOR));
@@ -123,6 +123,11 @@ function main() {
   }
 
   // get CL-GL extension
+  if(!device.enableExtension("KHR_gl_sharing")) {
+    log("CL-GL not available!");
+    process.exit(1);
+  }
+
   var extensions = device.getInfo(WebCL.DEVICE_EXTENSIONS);
   var hasGLSupport = extensions.search(/gl.sharing/i) >= 0;
   log(hasGLSupport ? "GL-CL extension available ;-)" : "No GL support");
@@ -133,7 +138,23 @@ function main() {
   cxGPUContext = WebCL.createContext({
     devices: device, 
     shareGroup: gl, 
-    platform: cpPlatform });
+    platform: cpPlatform 
+  });
+  }
+  else {
+    /*
+     * This uses default platform with CL-GL interop
+     */
+    cxGPUContext = WebCL.createContext({
+      deviceType: WebCL.DEVICE_TYPE_GPU, 
+      shareGroup: gl, 
+    });
+
+    var devices=cxGPUContext.getInfo(WebCL.CONTEXT_DEVICES);
+    device=devices[0];
+
+    log('using device: '+device.getInfo(WebCL.DEVICE_VENDOR).trim()+' '+device.getInfo(WebCL.DEVICE_NAME));
+  }
 
   // create a command-queue
   cqCommandQueue = cxGPUContext.createCommandQueue(device, 0);
@@ -148,10 +169,8 @@ function main() {
   } catch (err) {
     log('Error building program: ' + err);
   }
-  log("Build Status: "
-      + cpProgram.getBuildInfo(device, WebCL.PROGRAM_BUILD_STATUS));
-  log("Build Options: "
-      + cpProgram.getBuildInfo(device, WebCL.PROGRAM_BUILD_OPTIONS));
+  log("Build Status: " + cpProgram.getBuildInfo(device, WebCL.PROGRAM_BUILD_STATUS));
+  log("Build Options: " + cpProgram.getBuildInfo(device, WebCL.PROGRAM_BUILD_OPTIONS));
   log("Build Log: " + cpProgram.getBuildInfo(device, WebCL.PROGRAM_BUILD_LOG));
 
   // create the kernel

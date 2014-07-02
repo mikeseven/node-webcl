@@ -34,15 +34,16 @@ function Compute() {
     COMPUTE_KERNEL_NAME = kernel_name;
     
     // Pick platform
-    var platformList = WebCL.getPlatforms();
-    var platform = platformList[0];
+    // var platformList = WebCL.getPlatforms();
+    // var platform = platformList[0];
 
     // create the OpenCL context
     try {
       clContext = WebCL.createContext({
         deviceType: clDeviceType, 
         shareGroup: gl, 
-        platform: platform });
+        // platform: platform 
+      });
     }
     catch(err) {
       throw "Error: Failed to create context! "+err;
@@ -69,6 +70,12 @@ function Compute() {
 
     if (!clDevice.getInfo(WebCL.DEVICE_IMAGE_SUPPORT)) 
       throw "Application requires images: Images not supported on this device.";
+
+    // get CL-GL extension
+    if(!clDevice.enableExtension("KHR_gl_sharing")) {
+      log("CL-GL not available!");
+      process.exit(1);
+    }
 
     // Create a command queue
     try {

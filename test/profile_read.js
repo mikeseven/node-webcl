@@ -48,8 +48,8 @@ function main() {
   var /* WebCLBuffer */       data_buffer;
   var /* ArrayBuffer */       mapped_memory;
   
-  var NUM_BYTES = 131072; // 128 kB
-  var NUM_ITERATIONS = 5000;
+  var NUM_BYTES = 128*1024; // 128 KB
+  var NUM_ITERATIONS = 2000;
   var PROFILE_READ = false; // profile read vs. map buffer
   
   /* Initialize data */
@@ -77,7 +77,8 @@ function main() {
   var context=null;
   try {
     context=WebCL.createContext({
-      deviceType: WebCL.DEVICE_TYPE_ALL, 
+      deviceType: WebCL.DEVICE_TYPE_GPU, 
+      // platform: platform
     });
   }
   catch(ex) {
@@ -150,10 +151,10 @@ function main() {
   }
 
   var total_time = 0, time_start, time_end;
-  var prof_event=new WebCL.WebCLEvent();
   var loop_time=0, loop_start, loop_end;
 
   for(var i=0;i<NUM_ITERATIONS;i++) {
+    var prof_event=new WebCL.WebCLEvent();
     loop_start=new Date().getTime();
 
     /* Enqueue kernel */
@@ -204,6 +205,7 @@ function main() {
 
     loop_end=new Date().getTime();
     loop_time += loop_end - loop_start;
+    prof_event.release();
   }
 
   log("Total "+(PROFILE_READ ? "read" : "map")+" time: "+total_time+" ns = " +(total_time/1000000.0)+" ms");

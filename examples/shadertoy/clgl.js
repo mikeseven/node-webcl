@@ -45,8 +45,8 @@ log = console.log;
 requestAnimationFrame = document.requestAnimationFrame;
 
 var COMPUTE_KERNEL_ID = "704.cl";
-//var COMPUTE_KERNEL_ID = argv.kernel || "mandelbulb_AoS.cl";
-//var COMPUTE_KERNEL_ID = "qjulia.cl";
+// var COMPUTE_KERNEL_ID = argv.kernel || "mandelbulb_AoS.cl";
+// var COMPUTE_KERNEL_ID = "qjulia.cl";
 var COMPUTE_KERNEL_NAME = "compute";
 var WIDTH = argv.width || 512;
 var HEIGHT = argv.height || 512;
@@ -119,8 +119,6 @@ function keydown(evt) {
    
     // reinit shared data if document is resized
     if (Reshaped) {
-      Width=canvas.width;
-      Height=canvas.height;
       log('reshaping texture to '+Width+'x'+Height);
       try {
         var glTexture=gfx.configure_shared_data(Width,Height);
