@@ -26,7 +26,10 @@
 
 #include "device.h"
 
+#include <cstring>
+
 using namespace v8;
+using namespace std;
 using namespace webcl;
 
 namespace webcl {
@@ -44,7 +47,7 @@ void Device::Init(Handle<Object> target)
 
   // prototype
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getInfo", getInfo);
-  NODE_SET_PROTOTYPE_METHOD(ctor, "_getExtension", getExtension);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_getSupportedExtensions", getSupportedExtensions);
 
   target->Set(NanSymbol("WebCLDevice"), ctor->GetFunction());
 }
@@ -193,9 +196,10 @@ NAN_METHOD(Device::getInfo)
     }
 
     // get CL_DEVICE_MAX_WORK_ITEM_SIZES array param
-    size_t param_value[max_work_item_dimensions];
+    size_t *param_value=new size_t[max_work_item_dimensions];
     ret=::clGetDeviceInfo(device->device_id, param_name, max_work_item_dimensions*sizeof(size_t), param_value, NULL);
     if (ret != CL_SUCCESS) {
+		delete[] param_value;
       REQ_ERROR_THROW(CL_INVALID_PLATFORM);
       REQ_ERROR_THROW(CL_INVALID_VALUE);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
@@ -207,7 +211,8 @@ NAN_METHOD(Device::getInfo)
     for(cl_uint i=0;i<max_work_item_dimensions;i++)
       arr->Set(i,JS_INT(param_value[i]));
 
-    NanReturnValue(arr);
+	delete[] param_value;
+	NanReturnValue(arr);
   }
   break;
   // cl_bool params
@@ -331,12 +336,22 @@ NAN_METHOD(Device::getInfo)
   NanReturnUndefined();
 }
 
-NAN_METHOD(Device::getExtension)
+NAN_METHOD(Device::getSupportedExtensions)
 {
   NanScope();
-  //cl_device_info param_name = args[0]->Uint32Value();
+  Device *device = ObjectWrap::Unwrap<Device>(args.This());
+  char param_value[1024];
+  size_t param_value_size_ret=0;
 
-  NanReturnUndefined();
+  cl_int ret=clGetDeviceInfo(device->device_id, CL_DEVICE_EXTENSIONS, 1024, param_value, &param_value_size_ret);
+  if (ret != CL_SUCCESS) {
+    REQ_ERROR_THROW(CL_INVALID_PLATFORM);
+    REQ_ERROR_THROW(CL_INVALID_VALUE);
+    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+    return NanThrowError("UNKNOWN ERROR");
+  }
+
+  NanReturnValue(JS_STR(param_value));
 }
 
 NAN_METHOD(Device::New)

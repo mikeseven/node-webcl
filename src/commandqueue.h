@@ -60,7 +60,7 @@ public:
   static NAN_METHOD(enqueueMapImage);
   static NAN_METHOD(enqueueUnmapMemObject);
   static NAN_METHOD(enqueueMarker);
-  //static NAN_METHOD(enqueueWaitForEvents);
+  static NAN_METHOD(enqueueWaitForEvents);
   static NAN_METHOD(enqueueBarrier);
   static NAN_METHOD(flush);
   static NAN_METHOD(finish);

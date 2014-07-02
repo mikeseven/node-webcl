@@ -130,6 +130,21 @@ function VectorAdd() {
 
   // print results
   printResults(A,B,C);
+
+  // cleanup
+  // test release each CL object
+  // queue.release();
+  // kernel.release();
+  // program.release();
+  // aBuffer.release();
+  // bBuffer.release();
+  // cBuffer.release();
+  // context.release();
+
+  // test release all CL objects
+  // WebCL.releaseAll();
+
+  // if no manual cleanup specified, WebCL.releaseAll() is called at exit of program
 }
 
 function printResults(A,B,C) {

@@ -35,12 +35,10 @@ namespace webcl {
 
 NAN_METHOD(getPlatforms);
 NAN_METHOD(createContext);
+// NAN_METHOD(getSupportedExtensions);
+// NAN_METHOD(enableExtension);
 NAN_METHOD(waitForEvents);
-// Patch
 NAN_METHOD(releaseAll);
-
-// void createContext_callback (const char *errinfo, const void *private_info, size_t cb, void *user_data);
-// void createContext_After_cb(uv_async_t* handle, int status);
 
 }
 

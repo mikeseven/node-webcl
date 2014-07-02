@@ -53,15 +53,15 @@ function VectorAdd() {
   }
 
   // //Pick platform
-  var platformList=WebCL.getPlatforms();
-  platform=platformList[0];
+  // var platformList=WebCL.getPlatforms();
+  // platform=platformList[0];
 
   // create GPU context for this platform
   var context=null;
   try {
     context=WebCL.createContext({
       deviceType: WebCL.DEVICE_TYPE_GPU, 
-      platform: platform
+      // platform: platform
     });
   }
   catch(ex) {
@@ -167,6 +167,16 @@ function VectorAdd() {
   queue.finish(); //Finish all the operations
 
   printResults(A,B,C);
+
+  // cleanup
+  // queue.release();
+  // kernel.release();
+  // program.release();
+  // aBuffer.release();
+  // bBuffer.release();
+  // cBuffer.release();
+  // context.release();
+  //WebCL.releaseAll();
 }
 
 function printResults(A,B,C) {

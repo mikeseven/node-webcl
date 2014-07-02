@@ -38,6 +38,7 @@
 
 using namespace v8;
 using namespace node;
+using namespace std;
 
 namespace webcl {
 
@@ -46,6 +47,7 @@ static bool atExit=false;
 
 void registerCLObj(WebCLObject* obj) {
   if(obj) {
+    // printf("Adding CLObject %p\n", obj);
     clobjs.insert(obj);
   }
 }
@@ -53,10 +55,11 @@ void registerCLObj(WebCLObject* obj) {
 void unregisterCLObj(WebCLObject* obj) {
   if(atExit || !obj) return;
 
+  // printf("Removing CLObject %p\n", obj);
   clobjs.erase(obj);
 }
 
-void AtExit() {
+void AtExit(void* /*arg*/) {
   atExit=true;
   #ifdef LOGGING
   cout<<"WebCL AtExit() called"<<endl;
@@ -74,8 +77,9 @@ void AtExit() {
 #endif
       CommandQueue *queue=static_cast<CommandQueue*>(clo);
       // PATCH: Destroyed by release from JS
-      if ( queue->getCommandQueue() != NULL ) {
-	clFlush(queue->getCommandQueue());
+      cl_command_queue q=queue->getCommandQueue();
+      if ( q ) {
+        clFlush(q);
       }
     }
   }
@@ -114,6 +118,26 @@ void AtExit() {
   it = clobjs.begin();
   while(it != clobjs.end()) {
     WebCLObject *clo = *it;
+#ifdef LOGGING
+      cout<<"  [AtExit] Destroying ";
+      if(clo->isCommandQueue())
+        cout<<"CommandQueue";
+      else if(clo->isKernel())
+        cout<<"Kernel";
+      else if(clo->isEvent())
+        cout<<"Event";
+      else if(clo->isProgram())
+        cout<<"Program";
+      else if(clo->isMemoryObject())
+        cout<<"MemoryObject";
+      else if(clo->isSampler())
+        cout<<"Sampler";
+      else if(clo->isContext())
+        cout<<"Context";
+      else
+        cout<<"UNKNOWN";
+      cout<<endl;
+#endif
     ++it;
     clo->Destructor();
   }
@@ -154,7 +178,7 @@ NAN_METHOD(getPlatforms) {
 NAN_METHOD(releaseAll) {
   NanScope();
   
-  AtExit();
+  AtExit(NULL);
   atExit=true;
 
   NanReturnUndefined();
@@ -254,6 +278,27 @@ NAN_METHOD(createContext) {
         properties.push_back((cl_context_properties) platform->getPlatformId());
         //cout<<"adding platform "<<hex<<platform->getPlatformId()<<dec<<endl;
       }
+    }
+    else {
+      // we must use the default platform
+      cl_uint numPlatforms=0; //the NO. of platforms
+      cl_int  status = ::clGetPlatformIDs(0, NULL, &numPlatforms);
+      if (status != CL_SUCCESS)
+      {
+        NanThrowError("Can NOT get an OpenCL platform!");
+      }
+
+      /*For clarity, choose the first available platform. */
+      if (numPlatforms > 0)
+      {
+        cl_platform_id* platforms = new cl_platform_id[numPlatforms];
+        status = clGetPlatformIDs(numPlatforms, platforms, NULL);
+        properties.push_back(CL_CONTEXT_PLATFORM);
+        properties.push_back((cl_context_properties) platforms[0]);
+
+        delete[] platforms;
+      }
+
     }
 
     if(props->Has(JS_STR("shareGroup"))) {
@@ -390,19 +435,92 @@ NAN_METHOD(createContext) {
   NanReturnValue(NanObjectWrapHandle(Context::New(cw)));
 }
 
+class WaitForEventsWorker : public NanAsyncWorker {
+ public:
+  WaitForEventsWorker(Baton *baton)
+    : NanAsyncWorker(baton->callback), baton_(baton) {
+    }
+
+  ~WaitForEventsWorker() {
+    if(baton_) {
+      NanScope();
+      if (!baton_->parent.IsEmpty()) NanDisposePersistent(baton_->parent);
+      if (!baton_->data.IsEmpty()) NanDisposePersistent(baton_->data);
+      // if (baton_->callback) delete baton_->callback;
+      delete baton_;
+    }
+  }
+
+  // Executed inside the worker-thread.
+  // It is not safe to access V8, or V8 data structures
+  // here, so everything we need for input and output
+  // should go on `this`.
+  void Execute () {
+    // SetErrorMessage("Error");
+    // printf("[async event] execute\n");
+    Local<Array> eventsArray = Local<Array>::Cast(NanPersistentToLocal(baton_->data));
+    std::vector<cl_event> events;
+    for (uint32_t i=0; i<eventsArray->Length(); i++) {
+     Event *we=ObjectWrap::Unwrap<Event>(eventsArray->Get(i)->ToObject());
+      cl_event e = we->getEvent();
+      events.push_back(e);
+    }
+    cl_int ret = baton_->error = ::clWaitForEvents( (int) events.size(), &events.front());
+    if (ret != CL_SUCCESS) {
+      REQ_ERROR_THROW(CL_INVALID_VALUE);
+      REQ_ERROR_THROW(CL_INVALID_CONTEXT);
+      REQ_ERROR_THROW(CL_INVALID_EVENT);
+      REQ_ERROR_THROW(CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST);
+      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      return;// NanThrowError("UNKNOWN ERROR");
+    }
+  }
+
+  // Executed when the async work is complete
+  // this function will be run inside the main event loop
+  // so it is safe to use V8 again
+  void HandleOKCallback () {
+    NanScope();
+
+    // must return passed data
+    Local<Value> argv[] = {
+      JS_INT(baton_->error)
+    };
+
+    // printf("[async event] callback JS\n");
+    callback->Call(1, argv);
+  }
+
+  private:
+    Baton *baton_;
+};
+
 NAN_METHOD(waitForEvents) {
   NanScope();
 
   if (!args[0]->IsArray())
     NanThrowError("CL_INVALID_VALUE");
 
+  if(args[1]->IsFunction()) {
+      Baton *baton=new Baton();
+      NanAssignPersistent(v8::Value, baton->data, args[0]);
+      baton->callback=new NanCallback(args[1].As<Function>());
+      NanAsyncQueueWorker(new WaitForEventsWorker(baton));
+      NanReturnUndefined();
+  }
+
   Local<Array> eventsArray = Local<Array>::Cast(args[0]);
   std::vector<cl_event> events;
   for (uint32_t i=0; i<eventsArray->Length(); i++) {
-   Event *we=ObjectWrap::Unwrap<Event>(eventsArray->Get(i)->ToObject());
+    Event *we=ObjectWrap::Unwrap<Event>(eventsArray->Get(i)->ToObject());
     cl_event e = we->getEvent();
     events.push_back(e);
   }
+
+  // printf("Waiting for %d events\n",events.size());
+  // for(int i=0;i<events.size();i++)
+    // printf("   %p\n",events[i]);
   cl_int ret=::clWaitForEvents( (int) events.size(), &events.front());
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(CL_INVALID_VALUE);

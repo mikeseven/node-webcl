@@ -57,10 +57,11 @@ var ctx=null;
 try {
   ctx=WebCL.createContext({
     deviceType: WebCL.DEVICE_TYPE_ALL, 
+    platform: WebCL.getPlatforms()[0]
   });
 }
 catch(ex) {
-  throw new Exception("Can't create CL context");
+  throw new Error("Can't create CL context");
 }
 
 var devices=ctx.getInfo(WebCL.CONTEXT_DEVICES);

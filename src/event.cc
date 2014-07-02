@@ -188,6 +188,12 @@ class EventWorker : public NanAsyncWorker {
   // so it is safe to use V8 again
   void HandleOKCallback () {
     NanScope();
+    // printf("[async event] in HandleOKCallback\n");
+
+    // sets event status
+    Local<Object> p = NanPersistentToLocal(baton_->parent);
+    Event *e = ObjectWrap::Unwrap<Event>(p);
+    e->setStatus(baton_->error);
 
     // // must return passed data
     Local<Value> argv[] = {
@@ -203,15 +209,12 @@ class EventWorker : public NanAsyncWorker {
     Baton *baton_;
 };
 
-void Event::callback (cl_event event, cl_int event_command_exec_status, void *user_data)
+void CL_CALLBACK Event::callback (cl_event event, cl_int event_command_exec_status, void *user_data)
 {
   // printf("[Event::callback] event=%p, exec status=%d\n",event,event_command_exec_status);
   Baton *baton = static_cast<Baton*>(user_data);
   baton->error = event_command_exec_status;
 
-  Local<Object> p = NanPersistentToLocal(baton->parent);
-  Event *e = ObjectWrap::Unwrap<Event>(p);
-  e->status=event_command_exec_status;
   NanAsyncQueueWorker(new EventWorker(baton));
 }
 
@@ -227,7 +230,7 @@ NAN_METHOD(Event::setCallback)
   NanAssignPersistent(v8::Object, baton->parent, NanObjectWrapHandle(e));
   baton->callback=new NanCallback(args[1].As<Function>());
 
-  // printf("SetEventCallback event=%p\n",e->getEvent());
+  // printf("SetEventCallback event=%p for callback %p\n",e->getEvent(), baton->callback);
   cl_int ret=::clSetEventCallback(e->getEvent(), command_exec_callback_type, callback, baton);
 
   if (ret != CL_SUCCESS) {

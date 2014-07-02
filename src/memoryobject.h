@@ -46,6 +46,7 @@ public:
   static NAN_METHOD(release);
   
   cl_mem getMemory() const { return memory; };
+  bool isMemoryObject() const { return true; }
 
 private:
   static v8::Persistent<v8::FunctionTemplate> constructor_template;

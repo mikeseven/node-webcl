@@ -52,9 +52,9 @@ if(nodejs) {
   log('creating context');
   
   // //Pick platform
-  // var platformList=WebCL.getPlatforms();
-  // platform=platformList[0];
-  // log('using platform: '+platform.getInfo(WebCL.PLATFORM_NAME));
+  var platformList=WebCL.getPlatforms();
+  platform=platformList[0];
+  log('using platform: '+platform.getInfo(WebCL.PLATFORM_NAME));
   
   // //Query the set of devices on this platform
   // var devices = platform.getDevices(WebCL.DEVICE_TYPE_DEFAULT);
@@ -71,6 +71,7 @@ if(nodejs) {
   try {
     context=WebCL.createContext({
       deviceType: WebCL.DEVICE_TYPE_GPU, 
+      platform: platform
     });
   }
   catch(ex) {
@@ -151,7 +152,7 @@ if(nodejs) {
                 'Ray','RayAligned'
                 ];
   
-  var itemGoldValue=[1,
+  var itemGoldValue=[4,
                 1,4,4,4,
                 2,4,8,8,
                 4,8,16,16,

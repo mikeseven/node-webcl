@@ -56,11 +56,13 @@ public:
   static NAN_GETTER(GetStatus);
   static NAN_GETTER(GetBuffer);
 
+  void setStatus(int s) { status = s; }
+  
 private:
   Event(v8::Handle<v8::Object> wrapper);
 
   // called by clSetEventCallback
-  static void callback (cl_event event, cl_int event_command_exec_status, void *user_data);
+  static void CL_CALLBACK callback (cl_event event, cl_int event_command_exec_status, void *user_data);
   // static void After_cb(uv_async_t* handle, int status);
   // NanCallback *callback;
 

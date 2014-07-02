@@ -147,11 +147,9 @@ NAN_METHOD(MemoryObject::getGLObjectInfo)
 {
   NanScope();
   MemoryObject *memobj = ObjectWrap::Unwrap<MemoryObject>(args.This());
-  cl_gl_object_type gl_object_type = args[0]->IsNull() ? 0 : args[0]->Uint32Value();
-  cl_GLuint gl_object_name = args[1]->IsNull() ? 0 : args[1]->Uint32Value();
-  int ret = ::clGetGLObjectInfo(memobj->getMemory(),
-                                gl_object_type==0 ? NULL : &gl_object_type,
-                                gl_object_name==0 ? NULL : &gl_object_name);
+  cl_gl_object_type gl_object_type = 0;
+  cl_GLuint gl_object_name = 0;
+  int ret = ::clGetGLObjectInfo(memobj->getMemory(), &gl_object_type, &gl_object_name);
 
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(CL_INVALID_MEM_OBJECT);
@@ -162,8 +160,15 @@ NAN_METHOD(MemoryObject::getGLObjectInfo)
   }
 
   Local<Array> arr=Array::New();
-  arr->Set(JS_STR("gl_object_type"), JS_INT(gl_object_type));
-  arr->Set(JS_STR("gl_object_name"), JS_INT(gl_object_name));
+  arr->Set(JS_STR("glObject"), JS_INT(gl_object_name));
+  arr->Set(JS_STR("type"), JS_INT(gl_object_type));
+  if(gl_object_type==CL_GL_OBJECT_TEXTURE2D || gl_object_type==CL_GL_OBJECT_TEXTURE3D) {
+    int textureTarget=0, mipmapLevel=0;
+    ::clGetGLTextureInfo(memobj->getMemory(),CL_GL_TEXTURE_TARGET,sizeof(GLenum),&textureTarget,NULL);
+    ::clGetGLTextureInfo(memobj->getMemory(),CL_GL_MIPMAP_LEVEL,sizeof(GLint),&mipmapLevel,NULL);
+    arr->Set(JS_STR("textureTarget"), JS_INT(textureTarget));
+    arr->Set(JS_STR("mipmapLevel"), JS_INT(mipmapLevel));
+  }
 
   NanReturnValue(arr);
 }

@@ -46,9 +46,11 @@ public:
   static NAN_METHOD(getBuildInfo);
   static NAN_METHOD(build);
   static NAN_METHOD(createKernel);
+  static NAN_METHOD(createKernelsInProgram);
   static NAN_METHOD(release);
 
   cl_program getProgram() const { return program; };
+  virtual bool isProgram() const { return true; }
 
 private:
   Program(v8::Handle<v8::Object> wrapper);

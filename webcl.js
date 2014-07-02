@@ -62,6 +62,12 @@ cl.type.VEC16     = 1 << 20;
 
 cl.type.LOCAL_MEMORY_SIZE = 0xFF;
 
+// make sure all OpenCL resources are released at node exit
+process.on('exit',function() {
+  WebCL.releaseAll();
+});
+  
+
 //////////////////////////////
 // WebCL object
 //////////////////////////////
@@ -82,22 +88,37 @@ cl.getPlatforms = function () {
   return _getPlatforms();
 }
 
+cl.getSupportedExtensions = function () {
+  return cl.getPlatforms()[0].getSupportedExtensions();
+}
+
+cl.enableExtension = function (name) {
+  return cl.getPlatforms()[0].enableExtension(name);
+}
+
 var _createContext = cl.createContext;
 cl.createContext = function (properties, data, callback) {
-if (!((properties===null || typeof properties === 'undefined' || typeof properties === 'object') &&
-    (callback===null || typeof callback === 'undefined' || typeof callback === 'function')
-  )) {
-  throw new TypeError('Expected createContext(optional WebCLContextProperties properties, optional any data, optional function callback)');
-}
-return _createContext(properties, data, callback);
+  if (!((properties===null || typeof properties === 'undefined' || typeof properties === 'object') &&
+      (callback===null || typeof callback === 'undefined' || typeof callback === 'function')
+    )) {
+    throw new TypeError('Expected createContext(optional WebCLContextProperties properties, optional any data, optional function callback)');
+  }
+  var ctx = _createContext(properties, data, callback);
+
+  // automatically enables CLGL extension for default device
+  if(ctx && properties.shareGroup && !properties.device) {
+    var devices=ctx.getInfo(WebCL.CONTEXT_DEVICES);
+    devices[0].enableExtension('KHR_gl_sharing');
+  }
+  return ctx;
 }
 
 var _waitForEvents = cl.waitForEvents;
-cl.waitForEvents = function (events) {
+cl.waitForEvents = function (events, callback) {
   if (!(arguments.length === 1 && typeof events === 'object' )) {
     throw new TypeError('Expected waitForEvents(WebCLEvent[] events)');
   }
-  return _waitForEvents(events);
+  return _waitForEvents(events, callback);
 }
 
 var _releaseAll = cl.releaseAll;
@@ -417,13 +438,13 @@ cl.WebCLCommandQueue.prototype.enqueueMarker=function (event_list, event) {
   return this._enqueueMarker(event_list, event);
 }
 
-/*cl.WebCLCommandQueue.prototype.enqueueWaitForEvents=function (event_wait_list) {
+cl.WebCLCommandQueue.prototype.enqueueWaitForEvents=function (event_wait_list) {
   if (!(arguments.length >=0 &&       
       (typeof event_list === 'undefined' || typeof event_list === 'object') )) {
     throw new TypeError('Expected WebCLCommandQueue.enqueueWaitForEvents(WebCLEvent[] event_wait_list)');
   }
   return this._enqueueWaitForEvents(event_wait_list);
-}*/
+}
 
 cl.WebCLCommandQueue.prototype.enqueueBarrier=function (event_list, event) {
   if (!(arguments.length >= 0 &&
@@ -442,14 +463,17 @@ cl.WebCLCommandQueue.prototype.flush=function () {
   return this._flush();
 }
 
-cl.WebCLCommandQueue.prototype.finish=function () {
+cl.WebCLCommandQueue.prototype.finish=function (callback) {
   if (!(arguments.length === 0)) {
     throw new TypeError('Expected WebCLCommandQueue.finish()');
   }
-  return this._finish();
+  return this._finish(callback);
 }
 
 cl.WebCLCommandQueue.prototype.enqueueAcquireGLObjects=function (mem_objects, event_list, event) {
+  if(!cl.WebCLDevice.prototype.enable_extensions.KHR_gl_sharing.enabled) {
+    throw new Error('WEBCL_EXTENSION_NOT_ENABLED');
+  }
   if (!(arguments.length >= 1 && 
       typeof mem_objects === 'object' && 
       (typeof event_list==='undefined' || typeof event_list === 'object') &&
@@ -461,6 +485,9 @@ cl.WebCLCommandQueue.prototype.enqueueAcquireGLObjects=function (mem_objects, ev
 }
 
 cl.WebCLCommandQueue.prototype.enqueueReleaseGLObjects=function (mem_objects, event_list, event) {
+  if(!cl.WebCLDevice.prototype.enable_extensions.KHR_gl_sharing.enabled) {
+    throw new Error('WEBCL_EXTENSION_NOT_ENABLED');
+  }
   if (!(arguments.length >= 1 && 
       typeof mem_objects === 'object' && 
       (typeof event_list==='undefined' || typeof event_list === 'object') &&
@@ -469,6 +496,72 @@ cl.WebCLCommandQueue.prototype.enqueueReleaseGLObjects=function (mem_objects, ev
     throw new TypeError('Expected WebCLEvent WebCLGL.enqueueReleaseGLObjects(WebCLMemoryObject[] mem_objects, WebCLEvent[] event_list, WebCLEvent event)');
   }
   return this._enqueueReleaseGLObjects(mem_objects, event_list, event);
+}
+
+//////////////////////////////
+//WebCLDevice object
+//////////////////////////////
+cl.WebCLDevice.prototype.getInfo=function (param_name) {
+  if (!(arguments.length === 1 && typeof param_name === 'number')) {
+    throw new TypeError('Expected WebCLDevice.getInfo(CLenum param_name)');
+  }
+  return this._getInfo(param_name);
+}
+
+cl.WebCLDevice.prototype.release=function () {
+  return this._release();
+}
+
+cl.WebCLDevice.prototype.extensions=[];
+cl.WebCLDevice.prototype.enable_extensions={
+  KHR_gl_sharing: {
+    enabled: false,
+    cl_name: null,
+  },
+  KHR_fp16: {
+    enabled: false,
+    cl_name: null,
+  },
+  KDR_fp64: {
+    enabled: false,
+    cl_name: null,
+  },
+  system_info: {
+    enabled: false,
+  },
+  validation_info: {
+    enabled: false,
+  },
+};
+
+cl.WebCLDevice.prototype.getSupportedExtensions=function () {
+  this.extensions=[];
+  var exts = this._getSupportedExtensions().trim().split(" ");
+  // log('OpenCL extensions: '+exts);
+
+  for(var i=0;i<exts.length;i++) {
+    var ext=exts[i].toLowerCase();
+    if(ext.lastIndexOf('_gl_sharing') > -1)
+      this.extensions.push('KHR_gl_sharing');
+    else if(ext.lastIndexOf('_fp64') > -1)
+      this.extensions.push('KHR_fp64');
+    else if(ext.lastIndexOf('_fp16') > -1)
+      this.extensions.push('KHR_fp16');
+    else if(this.enable_extensions.system_info.enabled) {
+      this.extensions.push(ext);
+    }
+  }
+
+  return this.extensions.sort();
+}
+
+cl.WebCLDevice.prototype.enableExtension=function (name) {
+  // log(this.enable_extensions);
+
+  if(this.enable_extensions[name]) {
+    this.enable_extensions[name].enabled=true;
+  }
+  return this.enable_extensions[name].enabled;
 }
 
 //////////////////////////////
@@ -551,6 +644,9 @@ cl.WebCLContext.prototype.getSupportedImageFormats=function (flags, image_type) 
 }
 
 cl.WebCLContext.prototype.createFromGLBuffer=function (flags, buffer) {
+  if(!cl.WebCLDevice.prototype.enable_extensions.KHR_gl_sharing.enabled) {
+    throw new Error('WEBCL_EXTENSION_NOT_ENABLED');
+  }
   if (!(arguments.length === 2 && typeof flags === 'number' && typeof buffer ==='object')) {
     throw new TypeError('Expected WebCLContext.createFromGLBuffer(CLenum flags, WebGLBuffer buffer)');
   }
@@ -558,6 +654,9 @@ cl.WebCLContext.prototype.createFromGLBuffer=function (flags, buffer) {
 }
 
 cl.WebCLContext.prototype.createFromGLRenderbuffer=function (flags, buffer) {
+  if(!cl.WebCLDevice.prototype.enable_extensions.KHR_gl_sharing.enabled) {
+    throw new Error('WEBCL_EXTENSION_NOT_ENABLED');
+  }
   if (!(arguments.length === 2 && typeof flags === 'number' && typeof buffer ==='object')) {
     throw new TypeError('Expected WebCLContext.createFromGLRenderbuffer(CLenum flags, WebGLRenderbuffer buffer)');
   }
@@ -565,6 +664,9 @@ cl.WebCLContext.prototype.createFromGLRenderbuffer=function (flags, buffer) {
 }
 
 cl.WebCLContext.prototype.createFromGLTexture=function (flags, texture_target, miplevel, texture) {
+  if(!cl.WebCLDevice.prototype.enable_extensions.KHR_gl_sharing.enabled) {
+    throw new Error('WEBCL_EXTENSION_NOT_ENABLED');
+  }
   if (!(arguments.length === 4 && typeof flags === 'number' && 
       typeof texture_target ==='number' &&
       typeof miplevel ==='number' &&
@@ -573,27 +675,6 @@ cl.WebCLContext.prototype.createFromGLTexture=function (flags, texture_target, m
     throw new TypeError('Expected WebCLContext.createFromGLTexture(CLenum flags, GLenum texture_target, GLint miplevel, WebGLTexture2D texture)');
   }
   return this._createFromGLTexture(flags, texture_target, miplevel, texture ? texture._ : 0);
-}
-
-//////////////////////////////
-//WebCLDevice object
-//////////////////////////////
-cl.WebCLDevice.prototype.release=function () {
-  return this._release();
-}
-
-cl.WebCLDevice.prototype.getInfo=function (param_name) {
-  if (!(arguments.length === 1 && typeof param_name === 'number')) {
-    throw new TypeError('Expected WebCLDevice.getInfo(CLenum param_name)');
-  }
-  return this._getInfo(param_name);
-}
-
-cl.WebCLDevice.prototype.getExtension=function (param_name) {
-  if (!(arguments.length === 1 && typeof param_name === 'number')) {
-    throw new TypeError('Expected WebCLDevice.getExtension(CLenum param_name)');
-  }
-  return this._getExtension(param_name);
 }
 
 //////////////////////////////
@@ -682,11 +763,11 @@ cl.WebCLMemoryObject.prototype.getInfo=function (param_name) {
   return this._getInfo(param_name);
 }
 
-cl.WebCLMemoryObject.prototype.getGLObjectInfo=function (object_type, param_name) {
-  if (!(arguments.length === 1 && typeof object_type === 'number' && typeof param_name === 'number')) {
-    throw new TypeError('Expected WebCLMemoryObject.getGLObjectInfo(CLenum object_type, GLenum param_name)');
+cl.WebCLMemoryObject.prototype.getGLObjectInfo=function () {
+  if(!cl.WebCLDevice.prototype.enable_extensions.KHR_gl_sharing.enabled) {
+    throw new Error('WEBCL_EXTENSION_NOT_ENABLED');
   }
-  return this._getGLObjectInfo(object_type, param_name);
+  return this._getGLObjectInfo(); // returns a WebGLObjectInfo dictionary
 }
 
 //////////////////////////////
@@ -729,12 +810,61 @@ cl.WebCLImage.prototype.getGLTextureInfo=function (param_name) {
 //////////////////////////////
 //WebCLPlatform object
 //////////////////////////////
-
 cl.WebCLPlatform.prototype.getInfo=function (param_name) {
-if (!(arguments.length === 1 && typeof param_name === 'number')) {
-  throw new TypeError('Expected WebCLPlatform.getInfo(CLenum param_name)');
+  if (!(arguments.length === 1 && typeof param_name === 'number')) {
+    throw new TypeError('Expected WebCLPlatform.getInfo(CLenum param_name)');
+  }
+  return this._getInfo(param_name);
 }
-return this._getInfo(param_name);
+
+cl.WebCLPlatform.prototype.extensions=[];
+cl.WebCLPlatform.prototype.enable_extensions={
+  KHR_gl_sharing: {
+    enabled: false,
+    cl_name: null,
+  },
+  KHR_fp16: {
+    enabled: false,
+    cl_name: null,
+  },
+  KHR_fp64: {
+    enabled: false,
+    cl_name: null,
+  },
+  system_info: {
+    enabled: false,
+  },
+  validation_info: {
+    enabled: false,
+  },
+};
+
+cl.WebCLPlatform.prototype.getSupportedExtensions=function () {
+  this.extensions=[];
+  var exts = this._getSupportedExtensions().trim().split(" ");
+
+  for(var i=0;i<exts.length;i++) {
+    var ext=exts[i].toLowerCase();
+    if(ext.lastIndexOf('_gl_sharing') > -1)
+      this.extensions.push('KHR_gl_sharing');
+    else if(ext.lastIndexOf('khr_fp64') > -1)
+      this.extensions.push('KHR_fp64');
+    else if(ext.lastIndexOf('khr_fp16') > -1)
+      this.extensions.push('KHR_fp16');
+    else if(this.enable_extensions.system_info.enabled) {
+      this.extensions.push(ext);
+    }
+  }
+
+  return this.extensions.sort();
+}
+
+cl.WebCLPlatform.prototype.enableExtension=function (name) {
+  var lname=name.trim().toLowerCase();
+  if(this.enable_extensions[name]) {
+    this.enable_extensions[name].enabled=true;
+  }
+  return this.enable_extensions[name].enabled;
 }
 
 cl.WebCLPlatform.prototype.getDevices=function (device_type) {
@@ -782,6 +912,10 @@ cl.WebCLProgram.prototype.createKernel=function (name) {
     throw new TypeError('Expected WebCLProgram.createKernel(String name)');
   }
   return this._createKernel(name);
+}
+
+cl.WebCLProgram.prototype.createKernelsInProgram=function () {
+  return this._createKernelsInProgram();
 }
 
 //////////////////////////////
