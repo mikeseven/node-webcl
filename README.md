@@ -46,19 +46,27 @@ if you need these binaries.
 
 Installation
 ------------
-Since OpenCL is a compute specification, rendering is not the main purpose but if you want to use graphic acceleration, you should first install node-glfw and then node-webgl and make sure some of node-webgl samples are working. See node-webgl for instructions.
+Make sure GLEW, GLFW, AntTweakBar, and FreeImage libraries are in your path.
 
-Note that installing the usual way: 
+- on Windows, put DLLs in Windows\System32. Put headers in <Visual Studio>\include and static librairies in <Visual Studio>\lib for 32-bit libraries (if you use node.js in 32-bit) or <Visual Studio>\lib\x64 (if you use 64-bit node.js).
+- on Mac, use homebrew
+
+	brew install freeimage anttweakbar glfw3 glew
+
+- on Linux use you package manager to install these libraries
+
+
+Now install the usual way: 
 
 	npm install node-webcl
 
-will also install node-webgl and node-glfw.
+this will also install [https://github.com/mikeseven/node-webgl](node-webgl), [https://github.com/mikeseven/node-glfw](node-glfw), [https://github.com/mikeseven/node-image](node-image), and [https://github.com/rvagg/nan](nan).
 
-If you want to use the latest code, simply do
+If you want to use the latest code, retrieve each repo (node-webcl, node-webgl, node-glfw, and node-image) from github and simply do
 
 	node-gyp rebuild
+	npm link
 	
-in node-webcl, node-webgl, and node-glfw.
 
 A crash course on WebCL
 =======================
