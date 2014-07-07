@@ -62,39 +62,42 @@ function main() {
   var num_ints = NUM_INTS;
   var num_items = NUM_ITEMS;
 
-  /* Create a device and context */
-  log('creating context');
-  
+  /* Create a device and context */ 
   // //Pick platform
-  // var platformList=WebCL.getPlatforms();
-  // platform=platformList[0];
-  // log('using platform: '+platform.getInfo(WebCL.PLATFORM_NAME));
+  var platformList=WebCL.getPlatforms();
+  platform=platformList[0];
+  log('using platform: '+platform.getInfo(WebCL.PLATFORM_NAME));
   
   // //Query the set of devices on this platform
-  // var devices = platform.getDevices(WebCL.DEVICE_TYPE_DEFAULT);
-  // device=devices[0];
-  // log('using device: '+device.getInfo(WebCL.DEVICE_NAME));
+  var devices = platform.getDevices(WebCL.DEVICE_TYPE_ALL);
+  device=devices[0];
+  log('using device: '+device.getInfo(WebCL.DEVICE_NAME));
 
   // // create GPU context for this platform
-  // var context=WebCL.createContext({
-  //   devices: device, 
-  //   platform: platform
-  // });
+  log('creating context');
+   var context=WebCL.createContext({
+    devices: devices, 
+    platform: platform
+  });
 
-  var context=null;
-  try {
-    context=WebCL.createContext({
-      deviceType: WebCL.DEVICE_TYPE_ALL, 
-      // platform: platform
-    });
-  }
-  catch(ex) {
-    throw new Error("Can't create CL context");
-  }
+  // simpler way
+  // log('creating context');
+  // var context=null;
+  // try {
+  //   context=WebCL.createContext({
+  //     deviceType: WebCL.DEVICE_TYPE_ALL, 
+  //     // platform: platform
+  //   });
+  // }
+  // catch(ex) {
+  //   throw new Error("Can't create CL context");
+  // }
 
-  var devices=context.getInfo(WebCL.CONTEXT_DEVICES);
-  log("Found "+devices.length+" devices");
-  var device=devices[0];
+  // var devices=context.getInfo(WebCL.CONTEXT_DEVICES);
+  // log("Found "+devices.length+" devices");
+  // var device=devices[0];
+  // log('using device: '+device.getInfo(WebCL.DEVICE_NAME));
+  // end - simpler way
 
   /* Build the program and create a kernel */
   var source = [
