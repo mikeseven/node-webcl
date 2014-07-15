@@ -96,8 +96,8 @@ platforms.forEach(function(p) {
     for(var j = 0; j < uiNumSupportedFormats; j++) 
     {  
       log(clu.sprintf("  %-6u%-16s%-22s", (j + 1),
-          oclImageFormatString(ImageFormats[j].order), 
-          oclImageFormatString(ImageFormats[j].data_type)));
+          oclImageFormatString(ImageFormats[j].channelOrder), 
+          oclImageFormatString(ImageFormats[j].channelType)));
     }
     log("");
     
@@ -112,8 +112,8 @@ platforms.forEach(function(p) {
     for(var j = 0; j < uiNumSupportedFormats; j++) 
     {  
       log(clu.sprintf("  %-6u%-16s%-22s", (j + 1),
-          oclImageFormatString(ImageFormats[j].order), 
-          oclImageFormatString(ImageFormats[j].data_type)));
+          oclImageFormatString(ImageFormats[j].channelOrder), 
+          oclImageFormatString(ImageFormats[j].channelType)));
     }
     log(""); 
   });

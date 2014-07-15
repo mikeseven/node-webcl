@@ -637,7 +637,7 @@ cl.WebCLContext.prototype.createUserEvent=function () {
 }
 
 cl.WebCLContext.prototype.getSupportedImageFormats=function (flags, image_type) {
-  if (!(arguments.length === 2 && typeof flags === 'number' && typeof image_type === 'number')) {
+  if (!((arguments.length === 2 && typeof flags === 'number' && typeof image_type === 'number') || arguments.length===0 || (arguments.length==1 && typeof flags === 'number'))) {
     throw new TypeError('Expected WebCLContext.getSupportedImageFormats(CLenum flags, CLenum image_type)');
   }
   return this._getSupportedImageFormats(flags, image_type);

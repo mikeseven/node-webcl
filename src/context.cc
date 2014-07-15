@@ -396,8 +396,8 @@ NAN_METHOD(Context::getSupportedImageFormats)
 {
   NanScope();
   Context *context = ObjectWrap::Unwrap<Context>(args.This());
-  cl_mem_flags flags = args[0]->Uint32Value();
-  cl_mem_object_type image_type = args[1]->Uint32Value();
+  cl_mem_flags flags = args[0]->IsUndefined() ? CL_MEM_READ_WRITE : args[0]->Uint32Value();
+  cl_mem_object_type image_type = (args[0]->IsUndefined() || args[1]->IsUndefined()) ? CL_MEM_OBJECT_IMAGE2D : args[1]->Uint32Value();
   cl_uint numEntries=0;
 
   cl_int ret = ::clGetSupportedImageFormats(
@@ -433,10 +433,12 @@ NAN_METHOD(Context::getSupportedImageFormats)
   Local<Array> imageFormats = Array::New();
   for (uint32_t i=0; i<numEntries; i++) {
     Local<Object> format = Object::New();
-    format->Set(JS_STR("order"), JS_INT(image_formats[i].image_channel_order));
-    format->Set(JS_STR("data_type"), JS_INT(image_formats[i].image_channel_data_type));
-    format->Set(JS_STR("row_pitch"), JS_INT(0));
-    format->Set(JS_STR("slice_pitch"), JS_INT(0));
+    format->Set(JS_STR("channelOrder"), JS_INT(image_formats[i].image_channel_order));
+    format->Set(JS_STR("channelType"), JS_INT(image_formats[i].image_channel_data_type));
+    format->Set(JS_STR("rowPitch"), JS_INT(0));
+    format->Set(JS_STR("slicePitch"), JS_INT(0));
+    format->Set(JS_STR("width"), JS_INT(0));
+    format->Set(JS_STR("height"), JS_INT(0));
     imageFormats->Set(i, format);
   }
   delete[] image_formats;
