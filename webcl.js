@@ -64,7 +64,7 @@ cl.type.LOCAL_MEMORY_SIZE = 0xFF;
 
 // make sure all OpenCL resources are released at node exit
 process.on('exit',function() {
-  WebCL.releaseAll();
+  cl.releaseAll();
 });
   
 
