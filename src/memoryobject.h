@@ -63,6 +63,8 @@ public:
 
   static WebCLBuffer *New(cl_mem mw);
   static NAN_METHOD(New);
+  static NAN_METHOD(getInfo);
+  static NAN_METHOD(getGLObjectInfo);
   static NAN_METHOD(release);
   static NAN_METHOD(createSubBuffer);
 
@@ -80,6 +82,7 @@ public:
   static NAN_METHOD(New);
   static NAN_METHOD(release);  
   static NAN_METHOD(getInfo);
+  static NAN_METHOD(getGLObjectInfo);
   static NAN_METHOD(getGLTextureInfo);
 
 private:

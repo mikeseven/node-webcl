@@ -778,11 +778,25 @@ cl.WebCLBuffer.prototype.release=function () {
   return this._release();
 }
 
-cl.WebCLBuffer.prototype.createSubBuffer=function (flags, type, region) {
-  if (!(arguments.length === 3 && typeof flags === 'number' && typeof type === 'number' && typeof region === 'object')) {
-    throw new TypeError('Expected WebCLMemoryObject.createSubBuffer(CLenum flags, CLenum type, WebCLRegion region)');
+cl.WebCLBuffer.prototype.getInfo=function (param_name) {
+  if (!(arguments.length === 1 && typeof param_name === 'number')) {
+    throw new TypeError('Expected WebCLBuffer.getInfo(CLenum param_name)');
   }
-  return this._createSubBuffer(flags, type, region);
+  return this._getInfo(param_name);
+}
+
+cl.WebCLBuffer.prototype.getGLObjectInfo=function () {
+  if(!cl.WebCLDevice.prototype.enable_extensions.KHR_gl_sharing.enabled) {
+    throw new Error('WEBCL_EXTENSION_NOT_ENABLED');
+  }
+  return this._getGLObjectInfo(); // returns a WebGLObjectInfo dictionary
+}
+
+cl.WebCLBuffer.prototype.createSubBuffer=function (flags, origin, sizeInBytes) {
+  if (!(arguments.length === 3 && typeof flags === 'number' && typeof type === 'number' && typeof sizeInBytes === 'number')) {
+    throw new TypeError('Expected WebCLMemoryObject.createSubBuffer(CLenum flags, CLuint origin, CLuint sizeInBytes)');
+  }
+  return this._createSubBuffer(flags, origin, sizeInBytes);
 }
 
 //////////////////////////////
@@ -798,6 +812,13 @@ cl.WebCLImage.prototype.getInfo=function (param_name) {
     throw new TypeError('Expected WebCLImage.getInfo(CLenum param_name)');
   }
   return this._getImageInfo(param_name);
+}
+
+cl.WebCLImage.prototype.getGLObjectInfo=function () {
+  if(!cl.WebCLDevice.prototype.enable_extensions.KHR_gl_sharing.enabled) {
+    throw new Error('WEBCL_EXTENSION_NOT_ENABLED');
+  }
+  return this._getGLObjectInfo(); // returns a WebGLObjectInfo dictionary
 }
 
 cl.WebCLImage.prototype.getGLTextureInfo=function (param_name) {

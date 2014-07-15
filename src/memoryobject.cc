@@ -224,6 +224,16 @@ WebCLBuffer::WebCLBuffer(Handle<Object> wrapper) : MemoryObject(wrapper)
 {
 }
 
+NAN_METHOD(WebCLBuffer::getInfo)
+{
+  return MemoryObject::getInfo(args);
+}
+
+NAN_METHOD(WebCLBuffer::getGLObjectInfo)
+{
+  return MemoryObject::getGLObjectInfo(args);
+}
+
 NAN_METHOD(WebCLBuffer::release)
 {
   NanScope();
@@ -240,21 +250,16 @@ NAN_METHOD(WebCLBuffer::createSubBuffer)
   NanScope();
   WebCLBuffer *mo = ObjectWrap::Unwrap<WebCLBuffer>(args.This());
   cl_mem_flags flags = args[0]->Uint32Value();
-  cl_buffer_create_type buffer_create_type = args[1]->Uint32Value();
-
-  if (buffer_create_type != CL_BUFFER_CREATE_TYPE_REGION)
-    return NanThrowError("CL_INVALID_VALUE");
 
   cl_buffer_region region;
-  Local<Object> obj = args[2]->ToObject();
-  region.origin = obj->Get(JS_STR("origin"))->Uint32Value();
-  region.size = obj->Get(JS_STR("size"))->Uint32Value();
+  region.origin = args[1]->Uint32Value();
+  region.size = args[2]->Uint32Value();
 
   cl_int ret=CL_SUCCESS;
   cl_mem sub_buffer = ::clCreateSubBuffer(
       mo->getMemory(),
       flags,
-      buffer_create_type,
+      CL_BUFFER_CREATE_TYPE_REGION,
       &region,
       &ret);
   if (ret != CL_SUCCESS) {
@@ -375,6 +380,11 @@ NAN_METHOD(WebCLImage::getInfo)
   default:
     return NanThrowError("UNKNOWN param_name");
   }
+}
+
+NAN_METHOD(WebCLImage::getGLObjectInfo)
+{
+  return MemoryObject::getGLObjectInfo(args);
 }
 
 NAN_METHOD(WebCLImage::getGLTextureInfo)
