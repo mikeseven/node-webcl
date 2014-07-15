@@ -96,23 +96,6 @@ cl.enableExtension = function (name) {
   return cl.getPlatforms()[0].enableExtension(name);
 }
 
-// var _createContext = cl.createContext;
-// cl.createContext = function (properties, data, callback) {
-//   if (!((properties===null || typeof properties === 'undefined' || typeof properties === 'object') &&
-//       (callback===null || typeof callback === 'undefined' || typeof callback === 'function')
-//     )) {
-//     throw new TypeError('Expected createContext(optional WebCLContextProperties properties, optional any data, optional function callback)');
-//   }
-//   var ctx = _createContext(properties, data, callback);
-
-//   // automatically enables CLGL extension for default device
-//   if(ctx && properties.shareGroup && !properties.device) {
-//     var devices=ctx.getInfo(WebCL.CONTEXT_DEVICES);
-//     devices[0].enableExtension('KHR_gl_sharing');
-//   }
-//   return ctx;
-// }
-
 var _createContext = cl.createContext;
 cl.createContext = function (arg1, arg2) {
   if (!(typeof arg1 === 'number' || checkObjectType(arg1, 'WebCLPlatform') || checkObjectType(arg1, 'WebCLDevice') || 
@@ -126,11 +109,6 @@ cl.createContext = function (arg1, arg2) {
 
   var ctx = _createContext(arg1, arg2);
 
-  // automatically enables CLGL extension for default device
-  // if(ctx && properties.shareGroup && !properties.device) {
-  //   var devices=ctx.getInfo(WebCL.CONTEXT_DEVICES);
-  //   devices[0].enableExtension('KHR_gl_sharing');
-  // }
   return ctx;
 }
 
