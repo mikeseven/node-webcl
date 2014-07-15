@@ -107,54 +107,25 @@ function main() {
   log('Init GL');
   initGL();
 
-  if(0) {
   // Pick platform
   var platformList = WebCL.getPlatforms();
-  cpPlatform = platformList[0];
+  var platform = platformList[0];
+  var devices = platform.getDevices(WebCL.DEVICE_TYPE_GPU);
+  device=devices[0];
 
-  // Query the set of GPU devices on this platform
-  cdDevices = cpPlatform.getDevices(WebCL.DEVICE_TYPE_GPU);
-  log("  # of Devices Available = " + cdDevices.length);
-  var device = cdDevices[0];
-  log("  Using Device 0: " + device.getInfo(WebCL.DEVICE_NAME)+" from "+device.getInfo(WebCL.DEVICE_VENDOR));
-  if(device.getInfo(WebCL.DEVICE_VENDOR).indexOf("Intel")>=0) {
-    device = cdDevices[1];
-    log("  Using Device 1: " + device.getInfo(WebCL.DEVICE_NAME)+" from "+device.getInfo(WebCL.DEVICE_VENDOR));
+  // make sure we use a discrete GPU
+  for(var i=0;i<devices.length;i++) {
+    var vendor=devices[i].getInfo(WebCL.DEVICE_VENDOR);
+    // log('found vendor '+vendor+', is Intel? '+(vendor.indexOf('Intel')>=0))
+    if(vendor.indexOf('Intel')==-1)
+      device=devices[i];
   }
+  log('using device: '+device.getInfo(WebCL.DEVICE_VENDOR).trim()+' '+device.getInfo(WebCL.DEVICE_NAME));
 
-  // get CL-GL extension
-  if(!device.enableExtension("KHR_gl_sharing")) {
-    log("CL-GL not available!");
-    process.exit(1);
-  }
+  if(!device.enableExtension('KHR_gl_sharing'))
+    throw new Error("Can NOT use GL sharing");
 
-  var extensions = device.getInfo(WebCL.DEVICE_EXTENSIONS);
-  var hasGLSupport = extensions.search(/gl.sharing/i) >= 0;
-  log(hasGLSupport ? "GL-CL extension available ;-)" : "No GL support");
-  if (!hasGLSupport)
-    return;
-
-  // create the OpenCL context
-  cxGPUContext = WebCL.createContext({
-    devices: device, 
-    shareGroup: gl, 
-    platform: cpPlatform 
-  });
-  }
-  else {
-    /*
-     * This uses default platform with CL-GL interop
-     */
-    cxGPUContext = WebCL.createContext({
-      deviceType: WebCL.DEVICE_TYPE_GPU, 
-      shareGroup: gl, 
-    });
-
-    var devices=cxGPUContext.getInfo(WebCL.CONTEXT_DEVICES);
-    device=devices[0];
-
-    log('using device: '+device.getInfo(WebCL.DEVICE_VENDOR).trim()+' '+device.getInfo(WebCL.DEVICE_NAME));
-  }
+  cxGPUContext = WebCL.createContext(gl, device);
 
   // create a command-queue
   cqCommandQueue = cxGPUContext.createCommandQueue(device, 0);

@@ -70,9 +70,7 @@ platforms.forEach(function(p) {
     //Create a context for the devices
     var context;
     try {
-      context = WebCL.createContext({ 
-        devices: device,
-        platform: p} );
+      context = WebCL.createContext(device);
     }
     catch(ex) {
       log("createContext() exception: "+ex);

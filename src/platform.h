@@ -45,12 +45,27 @@ public:
 
   cl_platform_id getPlatformId() const { return platform_id; };
 
+  static NAN_METHOD(enableExtension);
+  bool hasGLSharingEnabled() const { return (enableExtensions & GL_SHARING); }
+  bool hasFP16Enabled() const { return (enableExtensions & FP16); }
+  bool hasFP64Enabled() const { return (enableExtensions & FP64); }
+
 private:
   Platform(v8::Handle<v8::Object> wrapper);
 
   static v8::Persistent<v8::FunctionTemplate> constructor_template;
 
   cl_platform_id platform_id;
+
+  cl_uint enableExtensions;
+  cl_uint availableExtensions;
+
+  enum WEBCL_EXTENSIONS {
+    NONE         = 0x00,
+    GL_SHARING   = 0x01,
+    FP16         = 0x02,
+    FP64         = 0x04
+  };
 };
 
 }

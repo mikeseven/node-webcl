@@ -69,10 +69,7 @@ if(nodejs) {
 
   var context=null;
   try {
-    context=WebCL.createContext({
-      deviceType: WebCL.DEVICE_TYPE_GPU, 
-      platform: platform
-    });
+    context=WebCL.createContext(WebCL.DEVICE_TYPE_GPU);
   }
   catch(ex) {
     throw new Exception("Can't create CL context");

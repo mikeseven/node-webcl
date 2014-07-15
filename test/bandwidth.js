@@ -55,10 +55,7 @@ if (WebCL == undefined) {
 // Create the OpenCL context
 var ctx=null;
 try {
-  ctx=WebCL.createContext({
-    deviceType: WebCL.DEVICE_TYPE_ALL, 
-    platform: WebCL.getPlatforms()[0]
-  });
+  ctx=WebCL.createContext(WebCL.DEVICE_TYPE_ALL);
 }
 catch(ex) {
   throw new Error("Can't create CL context");

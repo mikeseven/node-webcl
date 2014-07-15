@@ -88,10 +88,7 @@ function read_complete(event, data) {
   log('using device: '+device.getInfo(WebCL.DEVICE_NAME));
 
   // create GPU context for this platform
-  var context=WebCL.createContext({
-    devices: device, 
-    platform: platform
-  } ,'Error occured in context', function(err,data){
+  var context=WebCL.createContext(device ,'Error occured in context', function(err,data){
     log(data+" : "+err);
     exit(1);
   });

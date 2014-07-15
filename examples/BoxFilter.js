@@ -93,10 +93,7 @@ var numComputeUnits=device.getInfo(WebCL.DEVICE_MAX_COMPUTE_UNITS);
 log('  # of Compute Units = '+numComputeUnits);
 
 log('  createContext...');
-context=WebCL.createContext({
-  devices: device, 
-  platform: platform
-});
+context=WebCL.createContext(device);
 
 // Create a command-queue 
 queue=context.createCommandQueue(device, 0);

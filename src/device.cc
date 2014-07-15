@@ -48,11 +48,12 @@ void Device::Init(Handle<Object> target)
   // prototype
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getInfo", getInfo);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getSupportedExtensions", getSupportedExtensions);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_enableExtension", enableExtension);
 
   target->Set(NanSymbol("WebCLDevice"), ctor->GetFunction());
 }
 
-Device::Device(Handle<Object> wrapper) : device_id(0)
+Device::Device(Handle<Object> wrapper) : device_id(0), enableExtensions(NONE), availableExtensions(NONE)
 {
 }
 
@@ -336,6 +337,40 @@ NAN_METHOD(Device::getInfo)
   NanReturnUndefined();
 }
 
+NAN_METHOD(Device::enableExtension)
+{
+  NanScope();
+  Device *device = ObjectWrap::Unwrap<Device>(args.This());
+  if(!args[0]->IsString())
+    return NanThrowTypeError("invalid extension name");
+
+  if(device->availableExtensions==NONE) {
+    char param_value[1024];
+    size_t param_value_size_ret=0;
+
+    cl_int ret=clGetDeviceInfo(device->device_id, CL_DEVICE_EXTENSIONS, 1024, param_value, &param_value_size_ret);
+    if (ret != CL_SUCCESS) {
+      REQ_ERROR_THROW(CL_INVALID_PLATFORM);
+      REQ_ERROR_THROW(CL_INVALID_VALUE);
+      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      return NanThrowError("UNKNOWN ERROR");
+    }
+
+    if(strstr(param_value,"gl_sharing"))  { device->availableExtensions |= GL_SHARING; printf("has GL_SHARING\n"); }
+    if(strstr(param_value,"fp16"))  { device->availableExtensions |= FP16; printf("has fp16\n"); }
+    if(strstr(param_value,"fp64"))  { device->availableExtensions |= FP64; printf("has fp64\n"); }
+  }
+
+  Local<String> name=args[0]->ToString();
+  String::AsciiValue astr(name);
+  bool ret=false;
+  if(strstr(*astr,"gl_sharing") && (device->availableExtensions & GL_SHARING)) { device->enableExtensions |= GL_SHARING; ret=true; }
+  else if(strstr(*astr,"fp16") && (device->availableExtensions & FP16))        { device->enableExtensions |= FP16;; ret=true; }
+  else if(strstr(*astr,"fp64") && (device->availableExtensions & FP64))        { device->enableExtensions |= FP64;; ret=true; }
+
+  NanReturnValue(JS_BOOL(ret));
+}
+
 NAN_METHOD(Device::getSupportedExtensions)
 {
   NanScope();
@@ -350,6 +385,10 @@ NAN_METHOD(Device::getSupportedExtensions)
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
     return NanThrowError("UNKNOWN ERROR");
   }
+
+  if(strstr(param_value,"gl_sharing")) device->availableExtensions |= GL_SHARING;
+  if(strstr(param_value,"fp16"))       device->availableExtensions |= FP16;
+  if(strstr(param_value,"fp64"))       device->availableExtensions |= FP64;
 
   NanReturnValue(JS_STR(param_value));
 }

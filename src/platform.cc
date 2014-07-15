@@ -50,11 +50,12 @@ void Platform::Init(Handle<Object> target)
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getInfo", getInfo);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getDevices", getDevices);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getSupportedExtensions", getSupportedExtensions);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_enableExtension", enableExtension);
 
   target->Set(NanSymbol("WebCLPlatform"), ctor->GetFunction());
 }
 
-Platform::Platform(Handle<Object> wrapper) : platform_id(0)
+Platform::Platform(Handle<Object> wrapper) : platform_id(0), enableExtensions(NONE), availableExtensions(NONE)
 {
 }
 
@@ -145,17 +146,39 @@ NAN_METHOD(Platform::getSupportedExtensions)
  NanReturnValue(JS_STR(param_value));
 }
 
-// NAN_METHOD(Platform::enableExtension)
-// {
-//   NanScope();
-//   Platform *platform = ObjectWrap::Unwrap<Platform>(args.This());
-//   if(args[0]->IsString()) {
-//     Local<String> str = args[0]->ToString();
-//     String::AsciiValue astr(str);
-//     size_t length=astr.length();
-//   }
-//   NanReturnValue(JS_BOOL(true));
-// }
+NAN_METHOD(Platform::enableExtension)
+{
+  NanScope();
+  Platform *platform = ObjectWrap::Unwrap<Platform>(args.This());
+  if(!args[0]->IsString())
+    return NanThrowTypeError("invalid extension name");
+
+  if(platform->availableExtensions==0x00) {
+    char param_value[1024];
+    size_t param_value_size_ret=0;
+
+    cl_int ret=clGetPlatformInfo(platform->platform_id, CL_PLATFORM_EXTENSIONS, 1024, param_value, &param_value_size_ret);
+    if (ret != CL_SUCCESS) {
+      REQ_ERROR_THROW(CL_INVALID_PLATFORM);
+      REQ_ERROR_THROW(CL_INVALID_VALUE);
+      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      return NanThrowError("UNKNOWN ERROR");
+    }
+
+    if(!strcasecmp(param_value,"gl_sharing")) platform->availableExtensions |= GL_SHARING;
+    if(!strcasecmp(param_value,"fp16"))       platform->availableExtensions |= FP16;
+    if(!strcasecmp(param_value,"fp64"))       platform->availableExtensions |= FP64;
+  }
+
+  Local<String> name=args[0]->ToString();
+  String::AsciiValue astr(name);
+  bool ret=false;
+  if(!strcasecmp(*astr,"gl_sharing") && (platform->availableExtensions & GL_SHARING)) { platform->enableExtensions |= GL_SHARING; ret = true; }
+  else if(!strcasecmp(*astr,"fp16") && (platform->availableExtensions & FP16))        { platform->enableExtensions |= FP16; ret = true; }
+  else if(!strcasecmp(*astr,"fp64") && (platform->availableExtensions & FP64))        { platform->enableExtensions |= FP64; ret = true; }
+
+  NanReturnValue(JS_BOOL(ret));
+}
 
 NAN_METHOD(Platform::New)
 {

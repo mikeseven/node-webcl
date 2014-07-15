@@ -52,17 +52,10 @@ function VectorAdd() {
     C[i] = 10;
   }
 
-  // //Pick platform
-  // var platformList=WebCL.getPlatforms();
-  // platform=platformList[0];
-
   // create GPU context for this platform
   var context=null;
   try {
-    context=WebCL.createContext({
-      deviceType: WebCL.DEVICE_TYPE_GPU, 
-      // platform: platform
-    });
+    context=WebCL.createContext(WebCL.DEVICE_TYPE_GPU);
   }
   catch(ex) {
     throw new Exception("Can't create CL context");

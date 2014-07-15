@@ -63,41 +63,46 @@ function main() {
   var num_items = NUM_ITEMS;
 
   /* Create a device and context */ 
-  // //Pick platform
+  // Pick platform
   var platformList=WebCL.getPlatforms();
   platform=platformList[0];
-  log('using platform: '+platform.getInfo(WebCL.PLATFORM_NAME));
+  log('found '+platformList.length+' platforms, using platform: '+platform.getInfo(WebCL.PLATFORM_NAME));
   
-  // //Query the set of devices on this platform
+  //Query the set of devices on this platform
   var devices = platform.getDevices(WebCL.DEVICE_TYPE_ALL);
-  device=devices[0];
-  log('using device: '+device.getInfo(WebCL.DEVICE_NAME));
 
-  // // create GPU context for this platform
-  log('creating context');
-   var context=WebCL.createContext({
-    devices: devices, 
-    platform: platform
-  });
-
-  // simpler way
-  // log('creating context');
-  // var context=null;
-  // try {
-  //   context=WebCL.createContext({
-  //     deviceType: WebCL.DEVICE_TYPE_ALL, 
-  //     // platform: platform
-  //   });
+  // make sure we use a discrete GPU
+  // device=devices[0];
+  // for(var i=0;i<devices.length;i++) {
+  //   var vendor=devices[i].getInfo(WebCL.DEVICE_VENDOR);
+  //   if(vendor.indexOf('Intel')==-1)
+  //     device=devices[i];
   // }
-  // catch(ex) {
-  //   throw new Error("Can't create CL context");
-  // }
+  // log('found '+devices.length+' devices, using device: '+device.getInfo(WebCL.DEVICE_NAME));
 
-  // var devices=context.getInfo(WebCL.CONTEXT_DEVICES);
-  // log("Found "+devices.length+" devices");
-  // var device=devices[0];
-  // log('using device: '+device.getInfo(WebCL.DEVICE_NAME));
-  // end - simpler way
+  // create GPU context for this platform
+  var context=null;
+  try {
+    //context=WebCL.createContext(device);
+
+    // context=WebCL.createContext(devices);
+    // device=devices[0];
+
+    context=WebCL.createContext(platform, WebCL.DEVICE_TYPE_GPU);
+    devices=context.getInfo(WebCL.CONTEXT_DEVICES);
+    device=devices[0];
+    for(var i=0;i<devices.length;i++) {
+      var vendor=devices[i].getInfo(WebCL.DEVICE_VENDOR);
+      // log('found vendor '+vendor+', is Intel? '+vendor.indexOf('Intel'))
+      if(vendor.indexOf('Intel')==-1)
+        device=devices[i];
+    }
+    log('using device: '+device.getInfo(WebCL.DEVICE_NAME));
+  }
+  catch(ex) {
+    throw new Error("Can't create CL context "+ex);
+    exit(-1);
+  }
 
   /* Build the program and create a kernel */
   var source = [
@@ -122,10 +127,11 @@ function main() {
 
   /* Build program */
   try {
-    program.build(devices);
+    program.build(device);
   } catch(ex) {
     /* Find size of log and print to std output */
-    var info=program.getBuildInfo(devices[0], WebCL.PROGRAM_BUILD_LOG);
+    log("Error building program");
+    var info=program.getBuildInfo(devices, WebCL.PROGRAM_BUILD_LOG);
     log(info);
     exit(1);
   }

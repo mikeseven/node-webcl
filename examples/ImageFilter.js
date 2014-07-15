@@ -60,15 +60,8 @@ image.unload();
 function ImageFilter(image) {
   var out=new Uint8Array(image.size);
 
-  //Pick platform
-  // var platformList=WebCL.getPlatforms();
-  // var platform=platformList[0];
-
   // create GPU context for this platform
-  var context=WebCL.createContext({
-    deviceType: WebCL.DEVICE_TYPE_GPU,
-    // platform: platform
-  });
+  var context=WebCL.createContext(WebCL.DEVICE_TYPE_GPU);
 
   // find the device for this context
   var devices = context.getInfo(WebCL.CONTEXT_DEVICES);

@@ -255,7 +255,7 @@ NAN_METHOD(Context::createCommandQueue)
   cl_int ret=CL_SUCCESS;
   //printf("context = %p device=%p properties %llu\n",context->getContext(),device,properties);
   cl_command_queue cw = ::clCreateCommandQueue(context->getContext(), device, properties, &ret);
-  //printf("clCreateCommandQueue ret=0x%x\n",ret);
+  // printf("clCreateCommandQueue ret=%d\n",ret);
 
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(CL_INVALID_CONTEXT);

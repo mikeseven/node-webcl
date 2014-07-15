@@ -96,20 +96,41 @@ cl.enableExtension = function (name) {
   return cl.getPlatforms()[0].enableExtension(name);
 }
 
+// var _createContext = cl.createContext;
+// cl.createContext = function (properties, data, callback) {
+//   if (!((properties===null || typeof properties === 'undefined' || typeof properties === 'object') &&
+//       (callback===null || typeof callback === 'undefined' || typeof callback === 'function')
+//     )) {
+//     throw new TypeError('Expected createContext(optional WebCLContextProperties properties, optional any data, optional function callback)');
+//   }
+//   var ctx = _createContext(properties, data, callback);
+
+//   // automatically enables CLGL extension for default device
+//   if(ctx && properties.shareGroup && !properties.device) {
+//     var devices=ctx.getInfo(WebCL.CONTEXT_DEVICES);
+//     devices[0].enableExtension('KHR_gl_sharing');
+//   }
+//   return ctx;
+// }
+
 var _createContext = cl.createContext;
-cl.createContext = function (properties, data, callback) {
-  if (!((properties===null || typeof properties === 'undefined' || typeof properties === 'object') &&
-      (callback===null || typeof callback === 'undefined' || typeof callback === 'function')
-    )) {
-    throw new TypeError('Expected createContext(optional WebCLContextProperties properties, optional any data, optional function callback)');
+cl.createContext = function (arg1, arg2) {
+  if (!(typeof arg1 === 'number' || checkObjectType(arg1, 'WebCLPlatform') || checkObjectType(arg1, 'WebCLDevice') || 
+          typeof arg1 === 'object' || arguments.length==0) 
+    ) {
+    throw new TypeError('Expected createContext(optional CLenum deviceType = WebCL.DEVICE_TYPE_DEFAULT)\n'
+      +'or createContext(WebCLPlatform platform, optional CLenum deviceType = WebCL.DEVICE_TYPE_DEFAULT)\n'
+      +'or createContext(WebCLDevice device)\n'
+      +'or createContext(WebCLDevice[] devices)');
   }
-  var ctx = _createContext(properties, data, callback);
+
+  var ctx = _createContext(arg1, arg2);
 
   // automatically enables CLGL extension for default device
-  if(ctx && properties.shareGroup && !properties.device) {
-    var devices=ctx.getInfo(WebCL.CONTEXT_DEVICES);
-    devices[0].enableExtension('KHR_gl_sharing');
-  }
+  // if(ctx && properties.shareGroup && !properties.device) {
+  //   var devices=ctx.getInfo(WebCL.CONTEXT_DEVICES);
+  //   devices[0].enableExtension('KHR_gl_sharing');
+  // }
   return ctx;
 }
 
@@ -555,13 +576,14 @@ cl.WebCLDevice.prototype.getSupportedExtensions=function () {
   return this.extensions.sort();
 }
 
-cl.WebCLDevice.prototype.enableExtension=function (name) {
-  // log(this.enable_extensions);
-
-  if(this.enable_extensions[name]) {
-    this.enable_extensions[name].enabled=true;
+cl.WebCLDevice.prototype.enableExtension=function (param_name) {
+  if (!(arguments.length === 1 && typeof param_name === 'string')) {
+    throw new TypeError('Expected WebCLDevice.enableExtension(String extension_name)');
   }
-  return this.enable_extensions[name].enabled;
+  var ret = this._enableExtension(param_name);
+  if(ret)
+    cl.WebCLDevice.prototype.enable_extensions[param_name].enabled = true;
+  return ret;
 }
 
 //////////////////////////////
@@ -860,11 +882,14 @@ cl.WebCLPlatform.prototype.getSupportedExtensions=function () {
 }
 
 cl.WebCLPlatform.prototype.enableExtension=function (name) {
-  var lname=name.trim().toLowerCase();
-  if(this.enable_extensions[name]) {
-    this.enable_extensions[name].enabled=true;
+  if (!(arguments.length === 1 && typeof param_name === 'string')) {
+    throw new TypeError('Expected WebCLPlatform.enableExtension(String extension_name)');
   }
-  return this.enable_extensions[name].enabled;
+
+  /* TODO
+   * enable all devices in this platform
+   */
+  return this._enableExtension(param_name);
 }
 
 cl.WebCLPlatform.prototype.getDevices=function (device_type) {

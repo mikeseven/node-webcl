@@ -60,10 +60,7 @@ function VectorAdd() {
   log('using device: '+devices[0].getInfo(WebCL.DEVICE_NAME));
 
   // create GPU context for this platform
-  context=WebCL.createContext({
-	  deviceType: WebCL.DEVICE_TYPE_DEFAULT, 
-	  platform: platform
-  });
+  context=WebCL.createContext(WebCL.DEVICE_TYPE_DEFAULT);
 
   kernelSourceCode = [
 "__kernel void vadd(__global int *a, __global int *b, __global int *c, uint iNumElements) ",

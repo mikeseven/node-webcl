@@ -328,43 +328,29 @@ function renderTexture() {
 
 function init_cl(device_type) {
   log('init CL');
-  ComputeDeviceType = device_type ? WebCL.DEVICE_TYPE_GPU : WebCL.DEVICE_TYPE_DEFAULT;
 
   // Pick platform
-  // var platformList = WebCL.getPlatforms();
-  // var platform = platformList[0];
+  var platformList = WebCL.getPlatforms();
+  var platform = platformList[0];
+  var devices = platform.getDevices(device_type ? WebCL.DEVICE_TYPE_GPU : WebCL.DEVICE_TYPE_DEFAULT);
+  ComputeDeviceId=devices[0];
+
+  // make sure we use a discrete GPU
+  for(var i=0;i<devices.length;i++) {
+    var vendor=devices[i].getInfo(WebCL.DEVICE_VENDOR);
+    // log('found vendor '+vendor+', is Intel? '+(vendor.indexOf('Intel')>=0))
+    if(vendor.indexOf('Intel')==-1)
+      ComputeDeviceId=devices[i];
+  }
+  log('found '+devices.length+' devices, using device: '+ComputeDeviceId.getInfo(WebCL.DEVICE_NAME));
+
+  if(!ComputeDeviceId.enableExtension('KHR_gl_sharing'))
+    throw new Error("Can NOT use GL sharing");
 
   // create the OpenCL context
-  ComputeContext = WebCL.createContext({
-    deviceType: ComputeDeviceType, 
-    shareGroup: gl, 
-    // platform: platform 
-  });
-
-  var device_ids = ComputeContext.getInfo(WebCL.CONTEXT_DEVICES);
-  if (!device_ids) {
-    alert("Error: Failed to retrieve compute devices for context!");
-    return -1;
-  }
-
-  var device_found = false;
-  for(var i=0,l=device_ids.length;i<l;++i ) {
-    device_type = device_ids[i].getInfo(WebCL.DEVICE_TYPE);
-    if (device_type == ComputeDeviceType) {
-      ComputeDeviceId = device_ids[i];
-      device_found = true;
-      break;
-    }
-  }
-
-  if (!device_found) {
-    alert("Error: Failed to locate compute device!");
-    return -1;
-  }
-
-  var exts=ComputeDeviceId.getSupportedExtensions();
-  log("Device extensions: "+exts);
-  ComputeDeviceId.enableExtension("KHR_gl_sharing");
+  ComputeContext = WebCL.createContext(gl, ComputeDeviceId);
+  if(!ComputeContext)
+    throw new Error("Can NOT create context");
 
   // Create a command queue
   //

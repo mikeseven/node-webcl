@@ -74,10 +74,7 @@ function main() {
 
   var context=null;
   try {
-    context=WebCL.createContext({
-      deviceType: WebCL.DEVICE_TYPE_ALL, 
-      // platform: platform
-    });
+    context=WebCL.createContext(WebCL.DEVICE_TYPE_ALL);
   }
   catch(ex) {
     throw new Exception("Can't create CL context");

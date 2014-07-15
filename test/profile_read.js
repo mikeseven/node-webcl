@@ -76,13 +76,10 @@ function main() {
 
   var context=null;
   try {
-    context=WebCL.createContext({
-      deviceType: WebCL.DEVICE_TYPE_GPU, 
-      // platform: platform
-    });
+    context=WebCL.createContext(/*platform,*/ WebCL.DEVICE_TYPE_ALL);
   }
   catch(ex) {
-    throw new Exception("Can't create CL context");
+    throw new Error("Can't create CL context. "+ex);
   }
 
   var devices=context.getInfo(WebCL.CONTEXT_DEVICES);

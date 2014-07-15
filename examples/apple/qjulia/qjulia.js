@@ -348,46 +348,30 @@ function CLGL() {
     setupComputeDevices:function(device_type) {
       log('setup compute devices');
       
-      //Pick platform
-      // var platformList=WebCL.getPlatforms();
-      // var platform=platformList[0];
+      // Pick platform
+      var platformList = WebCL.getPlatforms();
+      var platform = platformList[0];
+      var devices = platform.getDevices(ComputeDeviceType ? WebCL.DEVICE_TYPE_GPU : WebCL.DEVICE_TYPE_DEFAULT);
+      ComputeDeviceId=devices[0];
 
-      ComputeDeviceType = device_type ? WebCL.DEVICE_TYPE_GPU : WebCL.DEVICE_TYPE_CPU;
-      ComputeContext = WebCL.createContext({
-        deviceType: ComputeDeviceType,
-        // platform: platform,
-        shareGroup: gl
-      });
+      // make sure we use a discrete GPU
+      for(var i=0;i<devices.length;i++) {
+        var vendor=devices[i].getInfo(WebCL.DEVICE_VENDOR);
+        // log('found vendor '+vendor+', is Intel? '+(vendor.indexOf('Intel')>=0))
+        if(vendor.indexOf('Intel')==-1)
+          ComputeDeviceId=devices[i];
+      }
+      log('found '+devices.length+' devices, using device: '+ComputeDeviceId.getInfo(WebCL.DEVICE_NAME));
 
-      var device_ids = ComputeContext.getInfo(WebCL.CONTEXT_DEVICES);
-      if(!device_ids)
-      {
-          alert("Error: Failed to retrieve compute devices for context!");
-          return -1;
+      if(!ComputeDeviceId.enableExtension('KHR_gl_sharing'))
+        throw new Error("Can NOT use GL sharing");
+
+      // create the OpenCL context
+      try {
+        ComputeContext = WebCL.createContext(gl, ComputeDeviceId);
       }
-      
-      var device_found=false;
-      for(var i=0,l=device_ids.length;i<l;++i ) 
-      {
-        device_type=device_ids[i].getInfo(WebCL.DEVICE_TYPE);
-        if(device_type == ComputeDeviceType) 
-        {
-            ComputeDeviceId = device_ids[i];
-            device_found = true;
-            break;
-        } 
-      }
-      
-      if(!device_found)
-      {
-          alert("Error: Failed to locate compute device!");
-          return -1;
-      }
-          
-      // get CL-GL extension
-      if(!ComputeDeviceId.enableExtension("KHR_gl_sharing")) {
-        log("CL-GL not available!");
-        process.exit(1);
+      catch(err) {
+        throw "Error: Failed to create context! "+err;
       }
 
       // Create a command queue
