@@ -70,6 +70,7 @@ public:
   static NAN_METHOD(New);
   static NAN_METHOD(getInfo);
   static NAN_METHOD(getWorkGroupInfo);
+  static NAN_METHOD(getArgInfo);
   static NAN_METHOD(setArg);
   static NAN_METHOD(release);
 

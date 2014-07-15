@@ -52,6 +52,7 @@ void Kernel::Init(Handle<Object> target)
 
   // prototype
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getInfo", getInfo);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_getArgInfo", getArgInfo);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getWorkGroupInfo", getWorkGroupInfo);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_setArg", setArg);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_release", release);
@@ -141,6 +142,42 @@ NAN_METHOD(Kernel::getInfo)
   default:
     return NanThrowError("UNKNOWN param_name");
   }
+}
+
+NAN_METHOD(Kernel::getArgInfo)
+{
+  NanScope();
+  Kernel *kernel = ObjectWrap::Unwrap<Kernel>(args.This());
+  int index = args[0]->Uint32Value();
+  char name[256], typeName[256];
+  int addressQualifier, accessQualifier, typeQualifier;
+
+  cl_int ret = ::clGetKernelArgInfo(kernel->getKernel(), index, 
+                                    CL_KERNEL_ARG_ADDRESS_QUALIFIER, 
+                                    sizeof(cl_kernel_arg_address_qualifier), &addressQualifier, NULL);
+
+  ret |= ::clGetKernelArgInfo(kernel->getKernel(), index, 
+                              CL_KERNEL_ARG_ACCESS_QUALIFIER, 
+                              sizeof(cl_kernel_arg_access_qualifier), &accessQualifier, NULL);
+  ret |= ::clGetKernelArgInfo(kernel->getKernel(), index, 
+                              CL_KERNEL_ARG_TYPE_QUALIFIER, 
+                              sizeof(cl_kernel_arg_type_qualifier), &typeQualifier, NULL);
+  ret |= ::clGetKernelArgInfo(kernel->getKernel(), index, 
+                              CL_KERNEL_ARG_TYPE_NAME, 
+                              sizeof(typeName), typeName, NULL);
+  ret |= ::clGetKernelArgInfo(kernel->getKernel(), index, 
+                              CL_KERNEL_ARG_NAME, 
+                              sizeof(name), name, NULL);
+
+  // TODO create WebCLKernelArgInfo dictionary
+  Local<Object> kArgInfo = Object::New();
+  kArgInfo->Set(JS_STR("name"), JS_STR(name));
+  kArgInfo->Set(JS_STR("typeName"), JS_STR(typeName));
+  kArgInfo->Set(JS_STR("addressQualifier"), JS_INT(addressQualifier));
+  kArgInfo->Set(JS_STR("accessQualifier"), JS_INT(accessQualifier));
+  kArgInfo->Set(JS_STR("typeQualifier"), JS_INT(typeQualifier));
+
+  NanReturnValue(kArgInfo);
 }
 
 NAN_METHOD(Kernel::getWorkGroupInfo)

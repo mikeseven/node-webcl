@@ -727,6 +727,13 @@ cl.WebCLKernel.prototype.getInfo=function (param_name) {
   return this._getInfo(param_name);
 }
 
+cl.WebCLKernel.prototype.getArgInfo=function (index) {
+  if (!(arguments.length === 1 && typeof index === 'number')) {
+    throw new TypeError('Expected WebCLKernel.getInfo(CLuint number)');
+  }
+  return this._getArgInfo(index);
+}
+
 cl.WebCLKernel.prototype.getWorkGroupInfo=function (device, param_name) {
   if (!(arguments.length === 2 && checkObjectType(device, 'WebCLDevice') && typeof param_name === 'number')) {
     throw new TypeError('Expected WebCLKernel.getWorkGroupInfo(WebCLDevice device, CLenum param_name)');

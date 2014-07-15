@@ -671,8 +671,7 @@ NAN_METHOD(createContext) {
         Local<Object> obj = deviceArray->Get(i)->ToObject();
         Device *d = ObjectWrap::Unwrap<Device>(obj);
         #ifdef LOGGING
-        cout<<"adding device "<<hex<<d->getDevice()
-        <<dec<<endl;
+        cout<<"adding device "<<hex<<d->getDevice()<<dec<<endl;
         #endif
         cl_device_id device=d->getDevice();
         devices.push_back(device);
