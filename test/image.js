@@ -58,6 +58,7 @@ var Width = WIDTH;
 var Height = HEIGHT;
 var Reshaped = false;
 var Update = false;
+var iRadius = 1; //???
 var newWidth, newHeight; // only when reshape
 
 // gl stuff
