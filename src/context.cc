@@ -317,21 +317,19 @@ NAN_METHOD(Context::createImage)
 
   cl_image_format image_format;
   Local<Object> obj = args[1]->ToObject();
-  image_format.image_channel_order = obj->Get(JS_STR("order"))->Uint32Value();
-  image_format.image_channel_data_type = obj->Get(JS_STR("data_type"))->Uint32Value();
+  image_format.image_channel_order = obj->Get(JS_STR("channelOrder"))->Uint32Value();
+  image_format.image_channel_data_type = obj->Get(JS_STR("channelType"))->Uint32Value();
 
-  Local<Array> size=Local<Array>::Cast(obj->Get(JS_STR("size")));
-  bool is2D = (size->Length()<3);
-  size_t width = size->Get(0)->Uint32Value();
-  size_t height = size->Get(1)->Uint32Value();
-  size_t row_pitch = 0;
-  if(!obj->Get(JS_STR("rowPitch"))->IsUndefined())
-    row_pitch=obj->Get(JS_STR("rowPitch"))->Uint32Value();
+  size_t width = obj->Get(JS_STR("width"))->Uint32Value();;
+  size_t height = obj->Get(JS_STR("height"))->Uint32Value();
+  size_t row_pitch =  obj->Get(JS_STR("rowPitch"))->Uint32Value();
 
   void *host_ptr=args[2]->IsUndefined() ? NULL : args[2]->ToObject()->GetIndexedPropertiesExternalArrayData();
-
   cl_int ret=CL_SUCCESS;
   cl_mem mw;
+
+#ifndef CL_VERSION_1_2
+  bool is2D = !obj->Get(JS_STR("depth"))->IsUndefined();
   if(is2D) {
     mw = ::clCreateImage2D(
                 context->getContext(), flags, &image_format,
@@ -340,13 +338,26 @@ NAN_METHOD(Context::createImage)
 
   }
   else {
-    size_t depth = size->Get(2)->Uint32Value();
-    size_t slice_pitch = obj->Get(JS_STR("slicePitch"))->Uint32Value();
+    size_t depth = obj->Get(JS_STR("depth"))->Uint32Value();
+    size_t slice_pitch =obj->Get(JS_STR("slicePitch"))->Uint32Value();
     mw = ::clCreateImage3D(
                 context->getContext(), flags, &image_format,
                 width, height, depth, row_pitch,
                 slice_pitch, host_ptr, &ret);
   }
+#else
+  cl_image_desc desc;
+  desc.image_width = width;
+  desc.image_height = height;
+  desc.image_depth = obj->Get(JS_STR("depth"))->Uint32Value();
+  desc.image_row_pitch = row_pitch;
+  desc.image_slice_pitch =obj->Get(JS_STR("slicePitch"))->Uint32Value();
+
+  mw = ::clCreateImage(
+              context->getContext(), flags, 
+              &image_format, &desc,
+              host_ptr, &ret);
+#endif
 
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(CL_INVALID_CONTEXT);
@@ -354,11 +365,15 @@ NAN_METHOD(Context::createImage)
     REQ_ERROR_THROW(CL_INVALID_IMAGE_FORMAT_DESCRIPTOR);
     REQ_ERROR_THROW(CL_INVALID_IMAGE_SIZE);
     REQ_ERROR_THROW(CL_INVALID_HOST_PTR);
+    REQ_ERROR_THROW(CL_INVALID_VALUE);
     REQ_ERROR_THROW(CL_IMAGE_FORMAT_NOT_SUPPORTED);
     REQ_ERROR_THROW(CL_MEM_OBJECT_ALLOCATION_FAILURE);
     REQ_ERROR_THROW(CL_INVALID_OPERATION);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+#ifdef CL_VERSION_1_2
+    REQ_ERROR_THROW(CL_INVALID_IMAGE_DESCRIPTOR);
+#endif
     return NanThrowError("UNKNOWN ERROR");
   }
 
