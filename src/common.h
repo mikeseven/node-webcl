@@ -92,7 +92,8 @@ namespace {
     NanThrowTypeError("Argument " #I " must be a function");            \
   Local<Function> VAR = Local<Function>::Cast(args[I]);
 
-#define REQ_ERROR_THROW(error) if (ret == error) NanThrowError(String::New(#error));
+#define REQ_ERROR_THROW_NONE(error) if (ret == error) { NanThrowError(String::New(#error)); return; }
+#define REQ_ERROR_THROW(error) if (ret == error) { NanThrowError(String::New(#error)); NanReturnUndefined(); }
 
 #define DESTROY_WEBCL_OBJECT(obj)	\
   obj->Destructor();			\

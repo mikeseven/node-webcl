@@ -272,13 +272,28 @@ NAN_METHOD(Kernel::setArg)
       // ArrayBufferView
       Handle<Object> obj=args[1]->ToObject();
       char *host_ptr= (char*) (obj->GetIndexedPropertiesExternalArrayData());
-      // int len=obj->GetIndexedPropertiesExternalArrayDataLength(); // number of elements
+      int len=obj->GetIndexedPropertiesExternalArrayDataLength(); // number of elements
       int bytes=obj->Get(JS_STR("byteLength"))->Uint32Value();
       // int byteOffset=obj->Get(JS_STR("byteOffset"))->Uint32Value();
 
-      ret = ::clSetKernelArg(kernel->getKernel(), arg_index, bytes, host_ptr);
+      if(len == 1) {
+        // handle __local params
+        // printf("[setArg] index %d has 1 value\n",arg_index);
+        cl_kernel_arg_address_qualifier addr=0;
+        ret = ::clGetKernelArgInfo(kernel->getKernel(), arg_index, CL_KERNEL_ARG_ADDRESS_QUALIFIER, 
+                              sizeof(cl_kernel_arg_address_qualifier), &addr, NULL);
+        if(addr == CL_KERNEL_ARG_ADDRESS_LOCAL) {
+          // printf("  index %d size: %d\n",arg_index,*((cl_int*) host_ptr));          
+          ret = ::clSetKernelArg(kernel->getKernel(), arg_index, *((cl_int*) host_ptr), NULL);
+          // printf("[setArg __local] ret = %d\n",ret);
+        }
+        else
+          ret = ::clSetKernelArg(kernel->getKernel(), arg_index, bytes, host_ptr);
+      }
+      else
+        ret = ::clSetKernelArg(kernel->getKernel(), arg_index, bytes, host_ptr);
 
-      String::AsciiValue astr(obj->GetConstructorName());
+      // String::AsciiValue astr(obj->GetConstructorName());
       // printf("[SetArg] host_ptr %p, index %d, class %s, len %d, byteLen %d, byteOff %d\n", host_ptr, arg_index, *astr, len,bytes,byteOffset);
       // for(int i=0;i<bytes;i++)
       //   printf("%d ", (host_ptr)[i]);
@@ -424,6 +439,7 @@ NAN_METHOD(Kernel::setArg)
   // }
 
   if (ret != CL_SUCCESS) {
+    printf("[setArg] ret = %d\n",ret);
     REQ_ERROR_THROW(CL_INVALID_KERNEL);
     REQ_ERROR_THROW(CL_INVALID_ARG_INDEX);
     REQ_ERROR_THROW(CL_INVALID_ARG_VALUE);

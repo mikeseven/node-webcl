@@ -249,6 +249,7 @@ NAN_METHOD(CommandQueue::enqueueNDRangeKernel)
   if(events_wait_list) delete[] events_wait_list;
 
   if (ret != CL_SUCCESS) {
+    printf("[setArg] ret = %d\n",ret);
     REQ_ERROR_THROW(CL_INVALID_PROGRAM_EXECUTABLE);
     REQ_ERROR_THROW(CL_INVALID_COMMAND_QUEUE);
     REQ_ERROR_THROW(CL_INVALID_KERNEL);
@@ -1402,10 +1403,10 @@ class FinishWorker : public NanAsyncWorker {
 
     cl_int ret = ::clFinish(cq->getCommandQueue());
     if (ret != CL_SUCCESS) {
-      REQ_ERROR_THROW(CL_INVALID_COMMAND_QUEUE);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-	  return;// NanThrowError("UNKNOWN ERROR");
+      REQ_ERROR_THROW_NONE(CL_INVALID_COMMAND_QUEUE);
+      REQ_ERROR_THROW_NONE(CL_OUT_OF_RESOURCES);
+      REQ_ERROR_THROW_NONE(CL_OUT_OF_HOST_MEMORY);
+	    return;
     }
   }
 
