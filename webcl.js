@@ -886,7 +886,7 @@ cl.WebCLPlatform.prototype.getSupportedExtensions=function () {
   return this.extensions.sort();
 }
 
-cl.WebCLPlatform.prototype.enableExtension=function (name) {
+cl.WebCLPlatform.prototype.enableExtension=function (param_name) {
   if (!(arguments.length === 1 && typeof param_name === 'string')) {
     throw new TypeError('Expected WebCLPlatform.enableExtension(String extension_name)');
   }
