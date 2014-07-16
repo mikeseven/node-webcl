@@ -173,7 +173,7 @@ function main() {
     var prof_event=new WebCL.WebCLEvent();
     /* Enqueue kernel */
     try {
-      queue.enqueueNDRangeKernel(kernel, null, [num_items], null, null, prof_event);
+      queue.enqueueNDRangeKernel(kernel, 1, null, [num_items], null, null, prof_event);
     } catch(ex) {
       log("Couldn't enqueue the kernel. "+ex);
       exit(1);   

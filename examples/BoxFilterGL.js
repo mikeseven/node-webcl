@@ -642,7 +642,7 @@ function BoxFilterGPU(image, cmOutputBuffer, r, scale) {
   var global = [ clu.DivUp(image.height, local[0]) * local[0], 1 ];
 
   try {
-    ComputeCommands.enqueueNDRangeKernel(ckBoxRowsTex, null, global, local);
+    ComputeCommands.enqueueNDRangeKernel(ckBoxRowsTex, 2, null, global, local);
   } catch (err) {
     alert("Failed to enqueue row kernel! " + err);
     return err;
@@ -653,7 +653,7 @@ function BoxFilterGPU(image, cmOutputBuffer, r, scale) {
   global = [ clu.DivUp(image.width, local[0]) * local[0], 1 ];
 
   try {
-    ComputeCommands.enqueueNDRangeKernel(ckBoxColumns, null, global, local);
+    ComputeCommands.enqueueNDRangeKernel(ckBoxColumns, 2, null, global, local);
   } catch (err) {
     alert("Failed to enqueue column kernel! " + err);
     return err;

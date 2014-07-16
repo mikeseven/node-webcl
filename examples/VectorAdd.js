@@ -116,7 +116,7 @@ function VectorAdd() {
 
   // Execute (enqueue) kernel
   log("using enqueueNDRangeKernel");
-  queue.enqueueNDRangeKernel(kernel,
+  queue.enqueueNDRangeKernel(kernel, 1, 
       null,
       globalWS,
       localWS);

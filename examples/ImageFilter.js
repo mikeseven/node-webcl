@@ -123,7 +123,7 @@ function ImageFilter(image) {
   queue.enqueueWriteBuffer(cmPinnedBufIn, false, 0, image.size, image.buffer);
 
   // Execute (enqueue) kernel
-  queue.enqueueNDRangeKernel(kernel,
+  queue.enqueueNDRangeKernel(kernel, 1,
       null,
       globalWS,
       localWS);

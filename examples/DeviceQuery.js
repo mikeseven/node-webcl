@@ -119,13 +119,15 @@ platforms.forEach(function(p) {
   });
   
   // Size of basic types
-  log("  size of char: \t"+WebCL.size.CHAR);
-  log("  size of short: \t"+WebCL.size.SHORT);
-  log("  size of int: \t"+WebCL.size.INT);
-  log("  size of long: \t"+WebCL.size.LONG);
-  log("  size of float: \t"+WebCL.size.FLOAT);
-  log("  size of double: \t"+WebCL.size.DOUBLE);
-  log("  size of half: \t"+WebCL.size.HALF);
+  log("  size of char: \t"+Int8Array.BYTES_PER_ELEMENT);
+  log("  size of short: \t"+Int16Array.BYTES_PER_ELEMENT);
+  log("  size of int: \t"+Int32Array.BYTES_PER_ELEMENT);
+  log("  size of long: \t"+Int32Array.BYTES_PER_ELEMENT);
+  log("  size of float: \t"+Float32Array.BYTES_PER_ELEMENT);
+  if(typeof Float64Array !== 'undefined') 
+    log("  size of double: \t"+Float64Array.BYTES_PER_ELEMENT);
+  if(typeof Float16Array !== 'undefined') 
+    log("  size of half: \t"+Float16Array.BYTES_PER_ELEMENT);
 });
 
 function printDeviceInfo(device)

@@ -120,7 +120,7 @@ function VectorAdd() {
   log("Local work item size: " + localWS);
 
   // Execute (enqueue) kernel
-  queue.enqueueNDRangeKernel(kernel,
+  queue.enqueueNDRangeKernel(kernel, 1,
       null,
       globalWS,
       localWS);

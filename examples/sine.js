@@ -288,7 +288,7 @@ function runKernel(time) {
 
   // Set arg 3 and execute the kernel
   ckKernel.setArg(3, new Float32Array([time]));
-  cqCommandQueue.enqueueNDRangeKernel(ckKernel, null, szGlobalWorkSize, null);
+  cqCommandQueue.enqueueNDRangeKernel(ckKernel, 2, null, szGlobalWorkSize, null);
 
   // unmap buffer object
   cqCommandQueue.enqueueReleaseGLObjects(vbo_cl);

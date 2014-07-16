@@ -201,7 +201,7 @@ function BoxFilterGPU(image, cmOutputBuffer, r, fScale)
   queue.finish();
 
   //Launch row kernel
-  queue.enqueueNDRangeKernel(ckBoxRowsTex, null, szGlobalWorkSize, szLocalWorkSize);
+  queue.enqueueNDRangeKernel(ckBoxRowsTex, 2, null, szGlobalWorkSize, szLocalWorkSize);
 
   //Set global and local work sizes for column kernel
   szLocalWorkSize[0] = 64;
@@ -211,7 +211,7 @@ function BoxFilterGPU(image, cmOutputBuffer, r, fScale)
   log("column kernel work sizes: global="+szGlobalWorkSize+" local="+szLocalWorkSize);
 
   //Launch column kernel
-  queue.enqueueNDRangeKernel(ckBoxColumns, null, szGlobalWorkSize, szLocalWorkSize);
+  queue.enqueueNDRangeKernel(ckBoxColumns, 2, null, szGlobalWorkSize, szLocalWorkSize);
 
   //sync host
   queue.finish();

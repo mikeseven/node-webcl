@@ -139,15 +139,15 @@ cl.WebCLCommandQueue.prototype.getInfo=function (param_name) {
   return this._getInfo(param_name);
 }
 
-cl.WebCLCommandQueue.prototype.enqueueNDRangeKernel=function (kernel, offsets, globals, locals, event_list, event) {
-  if (!(arguments.length>= 4 && checkObjectType(kernel, 'WebCLKernel') &&
+cl.WebCLCommandQueue.prototype.enqueueNDRangeKernel=function (kernel, workDim, offsets, globals, locals, event_list, event) {
+  if (!(arguments.length>= 4 && checkObjectType(kernel, 'WebCLKernel') && (typeof workDim === 'number') &&
       typeof offsets === 'object' && typeof globals === 'object' && typeof locals === 'object' &&
       (typeof event_list === 'undefined' || typeof event_list === 'object') &&
       (typeof event === 'undefined' || checkObjectType(event, 'WebCLEvent'))
       )) {
-    throw new TypeError('Expected WebCLCommandQueue.enqueueNDRangeKernel(WebCLKernel kernel, int[3] offsets, int[3] globals, int[3] locals, WebCLEvent[] event_list, WebCLEvent event)');
+    throw new TypeError('Expected WebCLCommandQueue.enqueueNDRangeKernel(WebCLKernel kernel, int workDim, int[3] offsets, int[3] globals, int[3] locals, WebCLEvent[] event_list, WebCLEvent event)');
   }
-  return this._enqueueNDRangeKernel(kernel, offsets, globals, locals, event_list, event);
+  return this._enqueueNDRangeKernel(kernel, workDim, offsets, globals, locals, event_list, event);
 }
 
 cl.WebCLCommandQueue.prototype.enqueueTask=function (kernel, event_list, event) {

@@ -221,7 +221,7 @@ function Compute() {
     var global = [ TextureWidth, TextureHeight ];
 
     try {
-      clQueue.enqueueNDRangeKernel(clKernel, null, global, local);
+      clQueue.enqueueNDRangeKernel(clKernel, 2, null, global, local);
     } catch (err) {
       throw "Failed to enqueue kernel! " + err;
     }

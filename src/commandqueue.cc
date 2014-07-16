@@ -188,14 +188,15 @@ NAN_METHOD(CommandQueue::enqueueNDRangeKernel)
   NanScope();
   CommandQueue *cq = ObjectWrap::Unwrap<CommandQueue>(args.This());
 
-  REQ_ARGS(4);
+  REQ_ARGS(5);
 
   Kernel *kernel = ObjectWrap::Unwrap<Kernel>(args[0]->ToObject());
+  int workDim = args[1]->Uint32Value();
 
   size_t *offsets=NULL;
   cl_uint num_offsets=0;
-  if(!args[1]->IsUndefined() && !args[1]->IsNull()) {
-    Local<Array> arr = Local<Array>::Cast(args[1]);
+  if(!args[2]->IsUndefined() && !args[2]->IsNull()) {
+    Local<Array> arr = Local<Array>::Cast(args[2]);
     num_offsets=arr->Length();
     if (num_offsets > 0) {
       offsets = new size_t[num_offsets];
@@ -206,8 +207,8 @@ NAN_METHOD(CommandQueue::enqueueNDRangeKernel)
 
   size_t *globals=NULL;
   cl_uint num_globals=0;
-  if(!args[2]->IsUndefined() && !args[2]->IsNull()) {
-    Local<Array> arr = Local<Array>::Cast(args[2]);
+  if(!args[3]->IsUndefined() && !args[3]->IsNull()) {
+    Local<Array> arr = Local<Array>::Cast(args[3]);
     num_globals=arr->Length();
     if(num_globals == 0)
       NanThrowError("# globals must be at least 1");
@@ -218,8 +219,8 @@ NAN_METHOD(CommandQueue::enqueueNDRangeKernel)
 
   size_t *locals=NULL;
   cl_uint num_locals=0;
-  if(!args[3]->IsUndefined() && !args[3]->IsNull()) {
-    Local<Array> arr = Local<Array>::Cast(args[3]);
+  if(!args[4]->IsUndefined() && !args[4]->IsNull()) {
+    Local<Array> arr = Local<Array>::Cast(args[4]);
     num_locals=arr->Length();
     if(num_locals == 0)
       NanThrowError("# locals must be at least 1");
@@ -228,14 +229,14 @@ NAN_METHOD(CommandQueue::enqueueNDRangeKernel)
       locals[i]=arr->Get(i)->Uint32Value();
   }
 
-  MakeEventWaitList(args[4]);
+  MakeEventWaitList(args[5]);
 
   cl_event event;
-  bool no_event=(args[5]->IsUndefined()  || args[5]->IsNull());
+  bool no_event=(args[6]->IsUndefined()  || args[6]->IsNull());
 
   cl_int ret=::clEnqueueNDRangeKernel(
       cq->getCommandQueue(), kernel->getKernel(),
-      num_globals, // work dimension
+      workDim, // work dimension
       offsets,
       globals,
       locals,
@@ -270,7 +271,7 @@ NAN_METHOD(CommandQueue::enqueueNDRangeKernel)
   }
 
   if(!no_event) {
-    Event *e=ObjectWrap::Unwrap<Event>(args[5]->ToObject());
+    Event *e=ObjectWrap::Unwrap<Event>(args[6]->ToObject());
     e->setEvent(event);
   }
   NanReturnUndefined();

@@ -509,7 +509,7 @@ function execute_kernel() {
   var global = [ TextureWidth, TextureHeight ];
 
   try {
-    ComputeCommands.enqueueNDRangeKernel(ckCompute, null, global, local);
+    ComputeCommands.enqueueNDRangeKernel(ckCompute, 2, null, global, local);
   } catch (err) {
     alert("Failed to enqueue row kernel! " + err);
     return err;

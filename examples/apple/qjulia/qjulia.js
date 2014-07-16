@@ -727,7 +727,7 @@ function CLGL() {
                        clu.DivUp(TextureHeight, local[1]) * local[1] ];
         
         try {
-          ComputeCommands.enqueueNDRangeKernel(ComputeKernel, null, global, local);
+          ComputeCommands.enqueueNDRangeKernel(ComputeKernel, 2, null, global, local);
         }
         catch(err)
         {
