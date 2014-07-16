@@ -156,9 +156,12 @@ function main() {
   createVBO();
 
   // set the args values
+  var aints=new Int32Array(3);
+  aints[0]=mesh_width;
+  aints[1]=mesh_height;
   ckKernel.setArg(0, vbo_cl);
-  ckKernel.setArg(1, mesh_width, WebCL.type.UINT);
-  ckKernel.setArg(2, mesh_height, WebCL.type.UINT);
+  ckKernel.setArg(1, aints);
+  ckKernel.setArg(2, aints.subarray(1,1));
 
   // run OpenCL kernel once to generate vertex positions
   runKernel(0);
@@ -279,7 +282,9 @@ function runKernel(time) {
   cqCommandQueue.enqueueAcquireGLObjects(vbo_cl);
 
   // Set arg 3 and execute the kernel
-  ckKernel.setArg(3, time, WebCL.type.FLOAT);
+  var af=new Float32Array(1);
+  af[0]=time;
+  ckKernel.setArg(3, af);
   cqCommandQueue.enqueueNDRangeKernel(ckKernel, null, szGlobalWorkSize, null);
 
   // unmap buffer object

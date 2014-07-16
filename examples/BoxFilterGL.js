@@ -438,15 +438,21 @@ function resetKernelArgs(image_width, image_height, r, scale) {
       + r + " scale=" + scale);
 
   // set the kernel args
+  var aints=new Int32Array(3);
+  aints[0]=image_width;
+  aints[1]=image_height;
+  aints[2]=r;
+  var afloats=new Float32Array(1);
+  afloats[0]=scale;
   try {
     // Set the Argument values for the row kernel
     ckBoxRowsTex.setArg(0, ComputeTexture);
     ckBoxRowsTex.setArg(1, ComputeBufTemp);
-    ckBoxRowsTex.setArg(2, RowSampler, WebCL.type.SAMPLER);
-    ckBoxRowsTex.setArg(3, image_width, WebCL.type.INT);
-    ckBoxRowsTex.setArg(4, image_height, WebCL.type.INT);
-    ckBoxRowsTex.setArg(5, r, WebCL.type.INT);
-    ckBoxRowsTex.setArg(6, scale, WebCL.type.FLOAT);
+    ckBoxRowsTex.setArg(2, RowSampler);
+    ckBoxRowsTex.setArg(3, aints);
+    ckBoxRowsTex.setArg(4, aints.subarray(1,1));
+    ckBoxRowsTex.setArg(5, aints.subarray(2,2));
+    ckBoxRowsTex.setArg(6, afloats);
   } catch (err) {
     alert("Failed to set row kernel args! " + err);
     return -10;
@@ -456,10 +462,10 @@ function resetKernelArgs(image_width, image_height, r, scale) {
     // Set the Argument values for the column kernel
     ckBoxColumns.setArg(0, ComputeBufTemp);
     ckBoxColumns.setArg(1, ComputePBO);
-    ckBoxColumns.setArg(2, image_width, WebCL.type.INT);
-    ckBoxColumns.setArg(3, image_height, WebCL.type.INT);
-    ckBoxColumns.setArg(4, r, WebCL.type.INT);
-    ckBoxColumns.setArg(5, scale, WebCL.type.FLOAT);
+    ckBoxColumns.setArg(2, aints);
+    ckBoxColumns.setArg(3, aints.subarray(1,1));
+    ckBoxColumns.setArg(4, aints.subarray(2,2));
+    ckBoxColumns.setArg(5, afloats);
   } catch (err) {
     alert("Failed to set column kernel args! " + err);
     return -10;
@@ -478,11 +484,12 @@ function init_cl_buffers() {
   log('  create CL buffers');
 
   // 2D Image (Texture) on device
-  var InputFormat = {
-    order : WebCL.RGBA,
-    data_type : WebCL.UNSIGNED_INT8,
-    size: [ image.width, image.height ],
-    rowPitch: image.pitch
+  var InputFormat= {
+    channelOrder : WebCL.RGBA,
+    channelType : WebCL.UNSIGNED_INT8,
+    width : image.width, 
+    height : image.height,
+    rowPitch : image.pitch
   };
   ComputeTexture = ComputeContext.createImage(WebCL.MEM_READ_ONLY | WebCL.MEM_USE_HOST_PTR, InputFormat, image);
   if (!ComputeTexture) {
@@ -622,7 +629,7 @@ function execute_kernel() {
 
 function BoxFilterGPU(image, cmOutputBuffer, r, scale) {
   // Setup Kernel Args
-  ckBoxColumns.setArg(1, cmOutputBuffer, WebCL.type.MEM);
+  ckBoxColumns.setArg(1, cmOutputBuffer);
 
   // 2D Image (Texture)
   var TexOrigin = [ 0, 0, 0 ]; // Offset of input texture origin relative to host image

@@ -30,37 +30,37 @@ var cl = require('./build/Release/webcl.node');
 
 module.exports = cl;
 
-cl.size = {};
-cl.size.CHAR = cl.size_CHAR;
-cl.size.SHORT = cl.size_SHORT;
-cl.size.INT = cl.size_INT;
-cl.size.LONG = cl.size_LONG;
-cl.size.FLOAT = cl.size_FLOAT;
-cl.size.DOUBLE = cl.size_DOUBLE;
-cl.size.HALF = cl.size_HALF;
+// cl.size = {};
+// cl.size.CHAR = cl.size_CHAR;
+// cl.size.SHORT = cl.size_SHORT;
+// cl.size.INT = cl.size_INT;
+// cl.size.LONG = cl.size_LONG;
+// cl.size.FLOAT = cl.size_FLOAT;
+// cl.size.DOUBLE = cl.size_DOUBLE;
+// cl.size.HALF = cl.size_HALF;
 
-cl.type = {};
-cl.type.CHAR      = 0;
-cl.type.UCHAR     = 1;
-cl.type.SHORT     = 2;
-cl.type.USHORT    = 3;
-cl.type.INT       = 4;
-cl.type.UINT      = 5;
-cl.type.LONG      = 6;
-cl.type.ULONG     = 7;
-cl.type.FLOAT     = 8;
-cl.type.HALF      = 9;
-cl.type.DOUBLE    = 10;
-cl.type.QUAD      = 11;
-cl.type.LONG_LONG = 12;
+// cl.type = {};
+// cl.type.CHAR      = 0;
+// cl.type.UCHAR     = 1;
+// cl.type.SHORT     = 2;
+// cl.type.USHORT    = 3;
+// cl.type.INT       = 4;
+// cl.type.UINT      = 5;
+// cl.type.LONG      = 6;
+// cl.type.ULONG     = 7;
+// cl.type.FLOAT     = 8;
+// cl.type.HALF      = 9;
+// cl.type.DOUBLE    = 10;
+// cl.type.QUAD      = 11;
+// cl.type.LONG_LONG = 12;
 
-cl.type.VEC2      = 1 << 16;
-cl.type.VEC3      = 1 << 17;
-cl.type.VEC4      = 1 << 18;
-cl.type.VEC8      = 1 << 19;
-cl.type.VEC16     = 1 << 20;
+// cl.type.VEC2      = 1 << 16;
+// cl.type.VEC3      = 1 << 17;
+// cl.type.VEC4      = 1 << 18;
+// cl.type.VEC8      = 1 << 19;
+// cl.type.VEC16     = 1 << 20;
 
-cl.type.LOCAL_MEMORY_SIZE = 0xFF;
+// cl.type.LOCAL_MEMORY_SIZE = 0xFF;
 
 // make sure all OpenCL resources are released at node exit
 process.on('exit',function() {
@@ -521,7 +521,7 @@ cl.WebCLDevice.prototype.enable_extensions={
     enabled: false,
     cl_name: null,
   },
-  KDR_fp64: {
+  KHR_fp64: {
     enabled: false,
     cl_name: null,
   },
@@ -613,7 +613,7 @@ cl.WebCLContext.prototype.createImage=function (flags, descriptor, host_ptr) {
   if (!(arguments.length === 3 && typeof flags === 'number' &&
     typeof descriptor === 'object' &&
     typeof host_ptr === 'object')) {
-    throw new TypeError('Expected WebCLContext.createImage3D(CLenum flags, cl.WebCLImageDescriptor descriptor, ' +
+    throw new TypeError('Expected WebCLContext.createImage3D(CLenum flags, WebCL.WebCLImageDescriptor descriptor, ' +
       'ArrayBuffer host_ptr)');
   }
   return this._createImage(flags, descriptor, host_ptr);
@@ -741,13 +741,12 @@ cl.WebCLKernel.prototype.getWorkGroupInfo=function (device, param_name) {
   return this._getWorkGroupInfo(device, param_name);
 }
 
-cl.WebCLKernel.prototype.setArg=function (index, value, type) {
-  if (!(arguments.length >= 2 && typeof index === 'number' && 
-      (typeof value === 'number' || typeof value === 'object') &&
-      (typeof type == 'undefined' || typeof type === 'number') )) {
-    throw new TypeError('Expected WebCLKernel.setArg(int index, any value, optional WebCL.types type)');
+cl.WebCLKernel.prototype.setArg=function (index, value) {
+  if (!(arguments.length == 2 && typeof index === 'number' && 
+      (typeof value === 'object') )) {
+    throw new TypeError('Expected WebCLKernel.setArg(int index, WebCLBuffer | WebCLImage | WebCLSampler | ArrayBufferView value)');
   }
-  return this._setArg(index, value, type);
+  return this._setArg(index, value);
 }
 
 //////////////////////////////

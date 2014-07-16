@@ -279,10 +279,12 @@ NAN_METHOD(Context::createBuffer)
   void *host_ptr = NULL;
   if(!args[2]->IsNull() && !args[2]->IsUndefined()) {
     if(args[2]->IsArray()) {
+      // JS Array
       Local<Array> arr=Local<Array>::Cast(args[2]);
       host_ptr=arr->GetIndexedPropertiesExternalArrayData();
     }
     else if(args[2]->IsObject()) {
+      // TypedArray
       Handle<Object> obj=args[2]->ToObject();
       assert(obj->HasIndexedPropertiesInExternalArrayData());
       host_ptr=obj->GetIndexedPropertiesExternalArrayData();
@@ -315,8 +317,8 @@ NAN_METHOD(Context::createImage)
   Context *context = ObjectWrap::Unwrap<Context>(args.This());
   cl_mem_flags flags = args[0]->Uint32Value();
 
-  cl_image_format image_format;
   Local<Object> obj = args[1]->ToObject();
+  cl_image_format image_format;
   image_format.image_channel_order = obj->Get(JS_STR("channelOrder"))->Uint32Value();
   image_format.image_channel_data_type = obj->Get(JS_STR("channelType"))->Uint32Value();
 
@@ -329,7 +331,7 @@ NAN_METHOD(Context::createImage)
   cl_mem mw;
 
 #ifndef CL_VERSION_1_2
-  bool is2D = !obj->Get(JS_STR("depth"))->IsUndefined();
+  bool is2D = obj->Get(JS_STR("depth"))->IsUndefined();
   if(is2D) {
     mw = ::clCreateImage2D(
                 context->getContext(), flags, &image_format,
@@ -347,11 +349,15 @@ NAN_METHOD(Context::createImage)
   }
 #else
   cl_image_desc desc;
+  memset(&desc,0,sizeof(cl_image_desc));
+
+  desc.image_type = obj->Get(JS_STR("depth"))->IsUndefined() ? CL_MEM_OBJECT_IMAGE2D : CL_MEM_OBJECT_IMAGE3D;
   desc.image_width = width;
   desc.image_height = height;
-  desc.image_depth = obj->Get(JS_STR("depth"))->Uint32Value();
+  desc.image_depth = obj->Get(JS_STR("depth"))->IsUndefined() ? 0 : obj->Get(JS_STR("depth"))->Uint32Value();
+  desc.image_array_size = 1;
   desc.image_row_pitch = row_pitch;
-  desc.image_slice_pitch =obj->Get(JS_STR("slicePitch"))->Uint32Value();
+  desc.image_slice_pitch =obj->Get(JS_STR("slicePitch"))->IsUndefined() ? 0 :obj->Get(JS_STR("slicePitch"))->Uint32Value();
 
   mw = ::clCreateImage(
               context->getContext(), flags, 

@@ -202,7 +202,9 @@ if(nodejs) {
   /* Create kernel argument */
   try {
     kernel.setArg(0, data_buffer);
-    kernel.setArg(1, NUM_ELEMS, WebCL.type.UINT); /* Tell kernel number of elements */
+    var aNumElems=new Int32Array(1);
+    aNumElems[0]=NUM_ELEMS;
+    kernel.setArg(1, aNumElems); /* Tell kernel number of elements */
     kernel.setArg(2, ret_buffer); /* Pass pointer to returned number of values */
 
   } catch(ex) {

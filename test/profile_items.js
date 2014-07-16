@@ -153,8 +153,10 @@ function main() {
 
   /* Create kernel argument */
   try {
+    var aNum_ints=new Int32Array(1);
+    aNum_ints[0]=num_ints;
     kernel.setArg(0, data_buffer);
-    kernel.setArg(1, num_ints, WebCL.type.INT);
+    kernel.setArg(1, aNum_ints);
   } catch(ex) {
     log("Couldn't set a kernel argument. "+ex);
     exit(1);   

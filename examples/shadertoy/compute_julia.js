@@ -81,11 +81,15 @@ function Compute() {
     
     // set the kernel args
     var clKernel = orig.getKernel();
+    var amu=new Float32Array(4); amu.set(mu);
+    var adiffuse=new Float32Array(4); adiffuse.set(diffuse);
+    var aeps=new Float32Array(1); aeps.set(Epsilon);
+
     try {
       // Set the Argument values for the row kernel
-      clKernel.setArg(2, mu, WebCL.type.FLOAT | WebCL.type.VEC4);
-      clKernel.setArg(3, diffuse, WebCL.type.FLOAT | WebCL.type.VEC4);
-      clKernel.setArg(4, Epsilon, WebCL.type.FLOAT);
+      clKernel.setArg(2, amu);
+      clKernel.setArg(3, adiffuse);
+      clKernel.setArg(4, aeps);
     } catch (err) {
       throw "Failed to set Julia kernel args! " + err;
     }

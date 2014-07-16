@@ -95,10 +95,13 @@ function VectorAdd() {
   }
   
   // Set kernel args
+  var aints=new Uint32Array(1);
+  aints[0]=BUFFER_SIZE;
+
   kernel.setArg(0, aBuffer);
   kernel.setArg(1, bBuffer);
   kernel.setArg(2, cBuffer);
-  kernel.setArg(3, BUFFER_SIZE, WebCL.type.UINT);
+  kernel.setArg(3, aints);
 
   // Create command queue
   queue=context.createCommandQueue(devices[0], 0);

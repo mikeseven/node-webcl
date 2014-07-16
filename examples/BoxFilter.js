@@ -100,9 +100,10 @@ queue=context.createCommandQueue(device, 0);
 
 // Allocate OpenCL object for the source data
 var InputFormat= {
-  order : WebCL.RGBA,
-  data_type : WebCL.UNSIGNED_INT8,
-  size : [ image.width, image.height ],
+  channelOrder : WebCL.RGBA,
+  channelType : WebCL.UNSIGNED_INT8,
+  width : image.width, 
+  height : image.height,
   rowPitch : image.pitch
 };
 
@@ -151,21 +152,28 @@ log(util.inspect(process.memoryUsage()));
 function ResetKernelArgs(width, height, r, fScale)
 {
   // (Image/texture version)
+  var aints=new Int32Array(3);
+  aints[0]=width;
+  aints[1]=height;
+  aints[2]=r;
+  var afloats=new Float32Array(1);
+  afloats[0]=fScale;
+
   ckBoxRowsTex.setArg(0, cmDevBufIn);
   ckBoxRowsTex.setArg(1, cmDevBufTemp);
   ckBoxRowsTex.setArg(2, RowSampler); 
-  ckBoxRowsTex.setArg(3, width, WebCL.type.UINT);
-  ckBoxRowsTex.setArg(4, height, WebCL.type.UINT);
-  ckBoxRowsTex.setArg(5, r, WebCL.type.INT);
-  ckBoxRowsTex.setArg(6, fScale, WebCL.type.FLOAT);
+  ckBoxRowsTex.setArg(3, aints);
+  ckBoxRowsTex.setArg(4, aints.subarray(1,1));
+  ckBoxRowsTex.setArg(5, aints.subarray(2,2));
+  ckBoxRowsTex.setArg(6, afloats);
 
   // Set the Argument values for the column kernel
   ckBoxColumns.setArg(0, cmDevBufTemp);
   ckBoxColumns.setArg(1, cmDevBufOut);
-  ckBoxColumns.setArg(2, width, WebCL.type.UINT);
-  ckBoxColumns.setArg(3, height, WebCL.type.UINT);
-  ckBoxColumns.setArg(4, r, WebCL.type.INT);
-  ckBoxColumns.setArg(5, fScale, WebCL.type.FLOAT);
+  ckBoxColumns.setArg(2, aints);
+  ckBoxColumns.setArg(3, aints.subarray(1,1));
+  ckBoxColumns.setArg(4, aints.subarray(2,2));
+  ckBoxColumns.setArg(5, afloats);
 }
 
 //OpenCL computation function for GPU:  

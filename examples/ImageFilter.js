@@ -123,10 +123,13 @@ function ImageFilter(image) {
   }
 
   // Set the arguments to our compute kernel
+  var aints=new Int32Array(2);
+  aints[0]=image.width;
+  aints[1]=image.height;
   kernel.setArg(0, cmPinnedBufIn);
   kernel.setArg(1, cmPinnedBufOut);
-  kernel.setArg(2, image.width, WebCL.type.UINT);
-  kernel.setArg(3, image.height, WebCL.type.UINT);
+  kernel.setArg(2, aints);
+  kernel.setArg(3, aints.subarray(1,1));
 
   //Create command queue
   queue=context.createCommandQueue(device, 0);

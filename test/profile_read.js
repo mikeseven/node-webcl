@@ -50,7 +50,7 @@ function main() {
   
   var NUM_BYTES = 128*1024; // 128 KB
   var NUM_ITERATIONS = 2000;
-  var PROFILE_READ = false; // profile read vs. map buffer
+  var PROFILE_READ = true; // profile read vs. map buffer
   
   /* Initialize data */
   var data=new Uint8Array(NUM_BYTES);
@@ -58,25 +58,9 @@ function main() {
   /* Create a device and context */
   log('creating context');
   
-  // //Pick platform
-  // var platformList=WebCL.getPlatforms();
-  // platform=platformList[0];
-  // log('using platform: '+platform.getInfo(WebCL.PLATFORM_NAME));
-  
-  // //Query the set of devices on this platform
-  // var devices = platform.getDevices(WebCL.DEVICE_TYPE_DEFAULT);
-  // device=devices[0];
-  // log('using device: '+device.getInfo(WebCL.DEVICE_NAME));
-
-  // // create GPU context for this platform
-  // var context=WebCL.createContext({
-  //   devices: device, 
-  //   platform: platform
-  // });
-
   var context=null;
   try {
-    context=WebCL.createContext(/*platform,*/ WebCL.DEVICE_TYPE_ALL);
+    context=WebCL.createContext(WebCL.DEVICE_TYPE_GPU);
   }
   catch(ex) {
     throw new Error("Can't create CL context. "+ex);
@@ -138,7 +122,10 @@ function main() {
 
   /* Tell kernel number of char16 vectors */
   var num_vectors = NUM_BYTES/16;
-  kernel.setArg(1, num_vectors, WebCL.type.INT);
+  var aNum_vectors=new Int32Array(1);
+  aNum_vectors[0]=num_vectors;
+
+  kernel.setArg(1, aNum_vectors);
 
   /* Create a command queue */
   try {
