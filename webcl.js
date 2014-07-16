@@ -714,6 +714,32 @@ cl.WebCLEvent.prototype.setCallback=function (execution_status, fct, args) {
 }
 
 //////////////////////////////
+//WebCLUserEvent object
+//////////////////////////////
+cl.WebCLUserEvent.prototype.release=function () {
+  return this._release();
+}
+
+cl.WebCLUserEvent.prototype.getInfo=function (param_name) {
+  return cl.WebCLEvent.prototype.getInfo(param_name);
+}
+
+cl.WebCLUserEvent.prototype.getProfilingInfo=function (param_name) {
+  return cl.WebCLEvent.prototype.getProfilingInfo(param_name);
+}
+
+cl.WebCLUserEvent.prototype.setStatus=function (execution_status) {
+  if (!(arguments.length === 1 && typeof execution_status === 'number')) {
+    throw new TypeError('Expected WebCLUserEvent.setStatus(CLenum execution_status)');
+  }
+  return this._setStatus(execution_status);
+}
+
+cl.WebCLUserEvent.prototype.setCallback=function (execution_status, fct, args) {
+  return cl.WebCLEvent.prototype.setCallback(execution_status, fct, args);
+}
+
+//////////////////////////////
 //WebCLKernel object
 //////////////////////////////
 cl.WebCLKernel.prototype.release=function () {

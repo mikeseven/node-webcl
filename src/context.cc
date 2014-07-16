@@ -480,7 +480,7 @@ NAN_METHOD(Context::createUserEvent)
     return NanThrowError("UNKNOWN ERROR");
   }
 
-  NanReturnValue(NanObjectWrapHandle(Event::New(ew)));
+  NanReturnValue(NanObjectWrapHandle(UserEvent::New(ew)));
 }
 
 NAN_METHOD(Context::createFromGLBuffer)

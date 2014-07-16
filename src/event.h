@@ -45,7 +45,6 @@ public:
 
   static NAN_METHOD(getInfo);
   static NAN_METHOD(getProfilingInfo);
-  static NAN_METHOD(setUserEventStatus);
   static NAN_METHOD(setCallback);
   static NAN_METHOD(release);
 
@@ -54,11 +53,9 @@ public:
   bool isEvent() const { return true; }
 
   static NAN_GETTER(GetStatus);
-  static NAN_GETTER(GetBuffer);
-
   void setStatus(int s) { status = s; }
   
-private:
+protected:
   Event(v8::Handle<v8::Object> wrapper);
 
   // called by clSetEventCallback
@@ -70,6 +67,32 @@ private:
 
   cl_event event;
   cl_int status;
+};
+
+class UserEvent : public Event
+{
+
+public:
+  void Destructor();
+
+  static void Init(v8::Handle<v8::Object> target);
+
+  static UserEvent *New(cl_event ew);
+
+  static NAN_METHOD(New);
+
+  static NAN_METHOD(getInfo);
+  static NAN_METHOD(getProfilingInfo);
+  static NAN_METHOD(setStatus);
+  static NAN_METHOD(setCallback);
+  static NAN_METHOD(release);
+
+  static NAN_GETTER(GetStatus);
+
+private:
+  UserEvent(v8::Handle<v8::Object> wrapper);
+
+  static v8::Persistent<v8::FunctionTemplate> constructor_template;
 };
 
 } // namespace

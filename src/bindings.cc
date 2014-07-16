@@ -73,6 +73,7 @@ void init(Handle<Object> target)
   webcl::Context::Init(target);
   webcl::Device::Init(target);
   webcl::Event::Init(target);
+  webcl::UserEvent::Init(target);
   webcl::Kernel::Init(target);
   webcl::MemoryObject::Init(target);
   webcl::WebCLBuffer::Init(target);

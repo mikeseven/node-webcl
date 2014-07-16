@@ -48,15 +48,12 @@ void Event::Init(Handle<Object> target)
   // prototype
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getInfo", getInfo);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getProfilingInfo", getProfilingInfo);
-  NODE_SET_PROTOTYPE_METHOD(ctor, "_setUserEventStatus", setUserEventStatus);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_setCallback", setCallback);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_release", release);
 
-  // attributes
   Local<ObjectTemplate> proto = ctor->PrototypeTemplate();
   proto->SetAccessor(JS_STR("status"), GetStatus, NULL);
-  proto->SetAccessor(JS_STR("buffer"), GetBuffer, NULL);
-
+  
   target->Set(JS_STR("WebCLEvent"), ctor->GetFunction());
 }
 
@@ -133,24 +130,6 @@ NAN_METHOD(Event::getProfilingInfo)
   default:
     return NanThrowError("UNKNOWN param_name");
   }
-}
-
-NAN_METHOD(Event::setUserEventStatus)
-{
-  NanScope();
-  Event *e = ObjectWrap::Unwrap<Event>(args.This());
-
-  cl_int ret=::clSetUserEventStatus(e->getEvent(),args[0]->Int32Value());
-  if (ret != CL_SUCCESS) {
-    REQ_ERROR_THROW(CL_INVALID_EVENT);
-    REQ_ERROR_THROW(CL_INVALID_VALUE);
-    REQ_ERROR_THROW(CL_INVALID_OPERATION);
-    REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return NanThrowError("UNKNOWN ERROR");
-  }
-
-  NanReturnUndefined();
 }
 
 void Event::setEvent(cl_event e) {
@@ -246,16 +225,8 @@ NAN_METHOD(Event::setCallback)
 
 NAN_GETTER(Event::GetStatus) {
   NanScope();
-  Event *event = ObjectWrap::Unwrap<Event>(args.This() /*Holder()*/);
+  Event *event = ObjectWrap::Unwrap<Event>(args.This());
   NanReturnValue(JS_INT(event->status));
-}
-
-// TODO buffer can only be set by enqueueReadBuffer/ReadBufferRect/Image
-// TODO update callback to return the event object, not the status
-NAN_GETTER(Event::GetBuffer) {
-  NanScope();
-  //Event *event = ObjectWrap::Unwrap<Event>(args.Holder());
-  NanReturnUndefined();
 }
 
 NAN_METHOD(Event::New)
@@ -280,5 +251,118 @@ Event *Event::New(cl_event ew)
 
   return e;
 }
+
+/********************************************
+ *
+ * UserEvent
+ *
+ ********************************************/
+ Persistent<FunctionTemplate> UserEvent::constructor_template;
+
+void UserEvent::Init(Handle<Object> target)
+{
+  NanScope();
+
+  // constructor
+  Local<FunctionTemplate> ctor = FunctionTemplate::New(UserEvent::New);
+  NanAssignPersistent(FunctionTemplate, constructor_template, ctor);
+  ctor->InstanceTemplate()->SetInternalFieldCount(1);
+  ctor->SetClassName(JS_STR("WebCLUserEvent"));
+
+  // prototype
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_getInfo", getInfo);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_getProfilingInfo", getProfilingInfo);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_setCallback", setCallback);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_setStatus", setStatus);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_release", release);
+
+  Local<ObjectTemplate> proto = ctor->PrototypeTemplate();
+  proto->SetAccessor(JS_STR("status"), GetStatus, NULL);
+
+  target->Set(JS_STR("WebCLUserEvent"), ctor->GetFunction());
+}
+
+UserEvent::UserEvent(Handle<Object> wrapper) : Event(wrapper)
+{
+}
+
+void UserEvent::Destructor()
+{
+  Event::Destructor();
+}
+
+NAN_METHOD(UserEvent::release)
+{
+  NanScope();
+  UserEvent *e = ObjectWrap::Unwrap<UserEvent>(args.This());
+  
+  DESTROY_WEBCL_OBJECT(e);
+  
+  NanReturnUndefined();
+}
+
+NAN_METHOD(UserEvent::getInfo)
+{
+  return Event::getInfo(args);
+}
+
+NAN_METHOD(UserEvent::getProfilingInfo)
+{
+  return Event::getProfilingInfo(args);
+}
+
+NAN_METHOD(UserEvent::setStatus)
+{
+  NanScope();
+  UserEvent *e = ObjectWrap::Unwrap<UserEvent>(args.This());
+  int status = args[0]->Int32Value();
+
+  cl_int ret=::clSetUserEventStatus(e->getEvent(),status);
+  if (ret != CL_SUCCESS) {
+    REQ_ERROR_THROW(CL_INVALID_EVENT);
+    REQ_ERROR_THROW(CL_INVALID_VALUE);
+    REQ_ERROR_THROW(CL_INVALID_OPERATION);
+    REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+    return NanThrowError("UNKNOWN ERROR");
+  }
+
+  e->status=status;
+
+  NanReturnUndefined();
+}
+
+NAN_METHOD(UserEvent::setCallback)
+{
+  return Event::setCallback(args); 
+}
+
+NAN_GETTER(UserEvent::GetStatus) {
+  return Event::GetStatus(property,args);
+}
+
+NAN_METHOD(UserEvent::New)
+{
+  NanScope();
+  UserEvent *e = new UserEvent(args.This());
+  e->Wrap(args.This());
+  registerCLObj(e);
+  NanReturnValue(args.This());
+}
+
+UserEvent *UserEvent::New(cl_event ew)
+{
+  NanScope();
+
+  Local<Value> arg = Integer::NewFromUnsigned(0);
+  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor_template);
+  Local<Object> obj = constructorHandle->GetFunction()->NewInstance(1, &arg);
+
+  UserEvent *e = ObjectWrap::Unwrap<UserEvent>(obj);
+  e->event = ew;
+
+  return e;
+}
+
 
 } // namespace
