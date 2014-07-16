@@ -202,9 +202,7 @@ if(nodejs) {
   /* Create kernel argument */
   try {
     kernel.setArg(0, data_buffer);
-    var aNumElems=new Int32Array(1);
-    aNumElems[0]=NUM_ELEMS;
-    kernel.setArg(1, aNumElems); /* Tell kernel number of elements */
+    kernel.setArg(1, new Int32Array([NUM_ELEMS])); /* Tell kernel number of elements */
     kernel.setArg(2, ret_buffer); /* Pass pointer to returned number of values */
 
   } catch(ex) {

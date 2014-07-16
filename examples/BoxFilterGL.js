@@ -450,8 +450,8 @@ function resetKernelArgs(image_width, image_height, r, scale) {
     ckBoxRowsTex.setArg(1, ComputeBufTemp);
     ckBoxRowsTex.setArg(2, RowSampler);
     ckBoxRowsTex.setArg(3, aints);
-    ckBoxRowsTex.setArg(4, aints.subarray(1,1));
-    ckBoxRowsTex.setArg(5, aints.subarray(2,2));
+    ckBoxRowsTex.setArg(4, aints.subarray(1));
+    ckBoxRowsTex.setArg(5, aints.subarray(2));
     ckBoxRowsTex.setArg(6, afloats);
   } catch (err) {
     alert("Failed to set row kernel args! " + err);
@@ -463,8 +463,8 @@ function resetKernelArgs(image_width, image_height, r, scale) {
     ckBoxColumns.setArg(0, ComputeBufTemp);
     ckBoxColumns.setArg(1, ComputePBO);
     ckBoxColumns.setArg(2, aints);
-    ckBoxColumns.setArg(3, aints.subarray(1,1));
-    ckBoxColumns.setArg(4, aints.subarray(2,2));
+    ckBoxColumns.setArg(3, aints.subarray(1));
+    ckBoxColumns.setArg(4, aints.subarray(2));
     ckBoxColumns.setArg(5, afloats);
   } catch (err) {
     alert("Failed to set column kernel args! " + err);

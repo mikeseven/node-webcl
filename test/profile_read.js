@@ -122,10 +122,8 @@ function main() {
 
   /* Tell kernel number of char16 vectors */
   var num_vectors = NUM_BYTES/16;
-  var aNum_vectors=new Int32Array(1);
-  aNum_vectors[0]=num_vectors;
 
-  kernel.setArg(1, aNum_vectors);
+  kernel.setArg(1, new Int32Array([num_vectors]));
 
   /* Create a command queue */
   try {

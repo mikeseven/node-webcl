@@ -710,14 +710,12 @@ function CLGL() {
         if(Animated || Update)
         {
             Update = false;
-            var amu=new Float32Array(MuC);
-            var acolor=new Float32Array(ColorC);
-            var aeps=new Float32Array(1); aeps[0]=Epsilon;
+
             try {
               ComputeKernel.setArg(0, ComputeResult);
-              ComputeKernel.setArg(1, amu);
-              ComputeKernel.setArg(2, acolor);
-              ComputeKernel.setArg(3, aeps);
+              ComputeKernel.setArg(1, new Float32Array(MuC));
+              ComputeKernel.setArg(2, new Float32Array(ColorC));
+              ComputeKernel.setArg(3, new Float32Array([Epsilon]));
             } catch (err) {
               alert("Failed to set kernel args! " + err);
               return -10;

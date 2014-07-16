@@ -163,16 +163,16 @@ function ResetKernelArgs(width, height, r, fScale)
   ckBoxRowsTex.setArg(1, cmDevBufTemp);
   ckBoxRowsTex.setArg(2, RowSampler); 
   ckBoxRowsTex.setArg(3, aints);
-  ckBoxRowsTex.setArg(4, aints.subarray(1,1));
-  ckBoxRowsTex.setArg(5, aints.subarray(2,2));
+  ckBoxRowsTex.setArg(4, aints.subarray(1));
+  ckBoxRowsTex.setArg(5, aints.subarray(2));
   ckBoxRowsTex.setArg(6, afloats);
 
   // Set the Argument values for the column kernel
   ckBoxColumns.setArg(0, cmDevBufTemp);
   ckBoxColumns.setArg(1, cmDevBufOut);
   ckBoxColumns.setArg(2, aints);
-  ckBoxColumns.setArg(3, aints.subarray(1,1));
-  ckBoxColumns.setArg(4, aints.subarray(2,2));
+  ckBoxColumns.setArg(3, aints.subarray(1));
+  ckBoxColumns.setArg(4, aints.subarray(2));
   ckBoxColumns.setArg(5, afloats);
 }
 

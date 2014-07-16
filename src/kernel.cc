@@ -271,44 +271,33 @@ NAN_METHOD(Kernel::setArg)
     else if(!args[1]->IsArray()) {
       // ArrayBufferView
       Handle<Object> obj=args[1]->ToObject();
-      char *host_ptr=static_cast<char*>(obj->GetIndexedPropertiesExternalArrayData());
+      char *host_ptr= (char*) (obj->GetIndexedPropertiesExternalArrayData());
       // int len=obj->GetIndexedPropertiesExternalArrayDataLength(); // number of elements
-      int byteLength=obj->Get(JS_STR("byteLength"))->Uint32Value();
-      int byteOffset=obj->Get(JS_STR("byteOffset"))->Uint32Value();
-      int bytes = byteLength - byteOffset;
+      int bytes=obj->Get(JS_STR("byteLength"))->Uint32Value();
+      // int byteOffset=obj->Get(JS_STR("byteOffset"))->Uint32Value();
+
+      ret = ::clSetKernelArg(kernel->getKernel(), arg_index, bytes, host_ptr);
 
       String::AsciiValue astr(obj->GetConstructorName());
-      // printf("[SetArg] index %d, class %s, len %d, byteLen %d, byteOff %d\n", arg_index, *astr, len,byteLength,byteOffset);
-      if(!strcmp(*astr, "Int32Array") || !strcmp(*astr, "Uint32Array")) {
-        cl_int arg = reinterpret_cast<cl_int*>(host_ptr+byteOffset)[0];
-        // printf("  arg = %d\n",arg);
-        ret = ::clSetKernelArg(kernel->getKernel(), arg_index, bytes, &arg);
-        // printf("  > Ret = %d\n",ret);
-      }
-      else if(!strcmp(*astr, "Int16Array") || !strcmp(*astr, "Uint16Array")) {
-        cl_short arg = reinterpret_cast<cl_short*>(host_ptr+byteOffset)[0];
-        // printf("  arg = %d\n",arg);
-        ret = ::clSetKernelArg(kernel->getKernel(), arg_index, bytes, &arg);
-        // printf("  > Ret = %d\n",ret);
-      }
-      else if(!strcmp(*astr, "Int8Array") || !strcmp(*astr, "Uint8Array") || !strcmp(*astr, "Uint8ClampedArray")) {
-        cl_char arg = reinterpret_cast<cl_char*>(host_ptr+byteOffset)[0];
-        // printf("  arg = %d\n",arg);
-        ret = ::clSetKernelArg(kernel->getKernel(), arg_index, bytes, &arg);
-        // printf("  > Ret = %d\n",ret);
-      }
-      else if(!strcmp(*astr, "Float32Array")) {
-        cl_float arg = reinterpret_cast<cl_float*>(host_ptr+byteOffset)[0];
-        // printf("  arg = %d\n",arg);
-        ret = ::clSetKernelArg(kernel->getKernel(), arg_index, bytes, &arg);
-        // printf("  > Ret = %d\n",ret);
-      }
-      else if(!strcmp(*astr, "Float64Array")) {
-        cl_double arg = reinterpret_cast<cl_double*>(host_ptr+byteOffset)[0];
-        // printf("  arg = %d\n",arg);
-        ret = ::clSetKernelArg(kernel->getKernel(), arg_index, bytes, &arg);
-        // printf("  > Ret = %d\n",ret);
-      }
+      // printf("[SetArg] host_ptr %p, index %d, class %s, len %d, byteLen %d, byteOff %d\n", host_ptr, arg_index, *astr, len,bytes,byteOffset);
+      // for(int i=0;i<bytes;i++)
+      //   printf("%d ", (host_ptr)[i]);
+      // printf("\n");
+      // if(!strcmp(*astr, "Int32Array") || !strcmp(*astr, "Uint32Array")) {
+      //   ret = ::clSetKernelArg(kernel->getKernel(), arg_index, bytes, host_ptr+byteOffset);
+      // }
+      // else if(!strcmp(*astr, "Int16Array") || !strcmp(*astr, "Uint16Array")) {
+      //   ret = ::clSetKernelArg(kernel->getKernel(), arg_index, bytes, host_ptr+byteOffset);
+      // }
+      // else if(!strcmp(*astr, "Int8Array") || !strcmp(*astr, "Uint8Array") || !strcmp(*astr, "Uint8ClampedArray")) {
+      //   ret = ::clSetKernelArg(kernel->getKernel(), arg_index, bytes, host_ptr+byteOffset);
+      // }
+      // else if(!strcmp(*astr, "Float32Array")) {
+      //   ret = ::clSetKernelArg(kernel->getKernel(), arg_index, bytes, host_ptr+byteOffset);
+      // }
+      // else if(!strcmp(*astr, "Float64Array")) {
+      //   ret = ::clSetKernelArg(kernel->getKernel(), arg_index, bytes, host_ptr+byteOffset);
+      // }
     }
     else 
       return NanThrowTypeError("Invalid object for arg 1");

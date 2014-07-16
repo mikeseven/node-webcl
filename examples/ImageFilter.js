@@ -65,29 +65,7 @@ function ImageFilter(image) {
 
   // find the device for this context
   var devices = context.getInfo(WebCL.CONTEXT_DEVICES);
-  if(!devices) {
-      alert("Error: Failed to retrieve compute devices for context!");
-      return -1;
-  }
-  
-  var device_found=false;
-  var device;
-  for(var i=0,l=devices.length;i<l;++i ) 
-  {
-    var device_type=devices[i].getInfo(WebCL.DEVICE_TYPE);
-    if(device_type == WebCL.DEVICE_TYPE_GPU) 
-    {
-        device = devices[i];
-        device_found = true;
-        break;
-    } 
-  }
-  
-  if(!device_found)
-  {
-      alert("Error: Failed to locate compute device!");
-      return -1;
-  }
+  device=devices[0];
 
   // Report the device vendor and device name
   // 
@@ -124,12 +102,11 @@ function ImageFilter(image) {
 
   // Set the arguments to our compute kernel
   var aints=new Int32Array(2);
-  aints[0]=image.width;
-  aints[1]=image.height;
+  aints.set([image.width, image.height]);
   kernel.setArg(0, cmPinnedBufIn);
   kernel.setArg(1, cmPinnedBufOut);
   kernel.setArg(2, aints);
-  kernel.setArg(3, aints.subarray(1,1));
+  kernel.setArg(3, aints.subarray(1));
 
   //Create command queue
   queue=context.createCommandQueue(device, 0);
@@ -151,9 +128,9 @@ function ImageFilter(image) {
       globalWS,
       localWS);
 
-   queue.enqueueReadBuffer(cmPinnedBufOut, false, 0, out.length, out);
+  queue.enqueueReadBuffer(cmPinnedBufOut, false, 0, out.length, out);
 
-   queue.finish(); //Finish all the operations
+  queue.finish(); //Finish all the operations
 
   return out;
 }

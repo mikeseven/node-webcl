@@ -105,13 +105,10 @@ function VectorAdd() {
   cBuffer = context.createBuffer(WebCL.MEM_WRITE_ONLY | WebCL.MEM_USE_HOST_PTR, size, C);
 
   //Set kernel args
-  var aints=new Uint32Array(3);
-  aints[0]=BUFFER_SIZE;
-
   kernel.setArg(0, aBuffer);
   kernel.setArg(1, bBuffer);
   kernel.setArg(2, cBuffer);
-  kernel.setArg(3, aints);
+  kernel.setArg(3, new Uint32Array([BUFFER_SIZE]));
 
   // Execute the OpenCL kernel on the list
   // var localWS = [5]; // process one list at a time

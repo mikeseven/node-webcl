@@ -161,12 +161,9 @@ function Compute() {
     TextureHeight = image_height;
     
     // set the kernel args
-    var af=new Float32Array(1);
-    af[0]=time;
-
     try {
       clKernel.setArg(0, clTexture);
-      clKernel.setArg(1, af);
+      clKernel.setArg(1, new Float32Array([time]));
     } catch (err) {
       throw "Failed to set kernel args! " + err;
     }
