@@ -141,7 +141,7 @@ cl.WebCLCommandQueue.prototype.getInfo=function (param_name) {
 
 cl.WebCLCommandQueue.prototype.enqueueNDRangeKernel=function (kernel, workDim, offsets, globals, locals, event_list, event) {
   if (!(arguments.length>= 4 && checkObjectType(kernel, 'WebCLKernel') && (typeof workDim === 'number') &&
-      typeof offsets === 'object' && typeof globals === 'object' && typeof locals === 'object' &&
+      typeof offsets === 'object' && typeof globals === 'object' && (typeof locals === 'object' || typeof locals === 'undefined') &&
       (typeof event_list === 'undefined' || typeof event_list === 'object') &&
       (typeof event === 'undefined' || checkObjectType(event, 'WebCLEvent'))
       )) {
