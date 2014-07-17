@@ -39,7 +39,7 @@
     "node-image": ">=0.7.1",
     "nan": "^0.8.0"
   },
-  devDependencies: {
+  "devDependencies": {
     "chai": "*",
     "mocha": "*"
   }
