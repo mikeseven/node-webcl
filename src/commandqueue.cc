@@ -1279,7 +1279,7 @@ NAN_METHOD(CommandQueue::enqueueMarker)
   }
 
   if(!no_event) {
-    Event *e=ObjectWrap::Unwrap<Event>(args[1]->ToObject());
+    Event *e=ObjectWrap::Unwrap<Event>(args[0]->ToObject());
     e->setEvent(event);
   }
   NanReturnUndefined();
