@@ -583,12 +583,20 @@ NAN_METHOD(Context::createFromGLTexture)
   cl_GLint miplevel = args[2]->Uint32Value();
   cl_GLuint texture = args[3]->Uint32Value();
   int ret;
-  cl_mem clmem = ::clCreateFromGLTexture2D(context->getContext(),flags,target,miplevel,texture,&ret);
+  cl_mem clmem;
+#ifdef CL_VERSION_1_2
+  clmem = ::clCreateFromGLTexture(context->getContext(),flags,target,miplevel,texture,&ret);
+#elif defined(CL_VERSION_1_1)
+  clmem = ::clCreateFromGLTexture2D(context->getContext(),flags,target,miplevel,texture,&ret);
+#endif
 
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(CL_INVALID_CONTEXT);
     REQ_ERROR_THROW(CL_INVALID_VALUE);
+    REQ_ERROR_THROW(CL_INVALID_MIP_LEVEL);
     REQ_ERROR_THROW(CL_INVALID_GL_OBJECT);
+    REQ_ERROR_THROW(CL_INVALID_IMAGE_FORMAT_DESCRIPTOR);
+    REQ_ERROR_THROW(CL_INVALID_OPERATION);
     REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
     REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
     return NanThrowError("UNKNOWN ERROR");
@@ -616,6 +624,66 @@ NAN_METHOD(Context::createFromGLRenderbuffer)
   }
 
   NanReturnValue(NanObjectWrapHandle(WebCLBuffer::New(clmem)));
+}
+
+NAN_METHOD(Context::getGLContextInfo)
+{
+  NanScope();
+  Context *context = ObjectWrap::Unwrap<Context>(args.This());
+  cl_context ctx = context->getContext();
+  cl_int ret = CL_SUCCESS;
+
+  // retrieve context properties
+  size_t numProps=0;
+  ret = ::clGetContextInfo(context->getContext(),CL_CONTEXT_PROPERTIES,0,NULL,&numProps);
+  if (ret != CL_SUCCESS)
+  {
+    return NanThrowError("Can NOT get content info!");
+  }
+
+  // given the way we createContext(), we should always have these properties for GL
+  if(numProps==0)
+    NanReturnUndefined();
+
+  cl_context_properties *properties=new cl_context_properties[numProps];
+  ret = ::clGetContextInfo(ctx,CL_CONTEXT_PROPERTIES,numProps,properties,NULL);
+
+  // get GL context info
+  #ifdef __APPLE__
+    #define clGetGLContextInfo clGetGLContextInfoAPPLE
+  #endif
+
+  cl_device_id device=0;
+  ret = clGetGLContextInfo(ctx, properties,CL_CURRENT_DEVICE_FOR_GL_CONTEXT_KHR, sizeof(cl_device_id), &device, NULL);
+
+  cl_device_id *devicesCL=NULL;
+  size_t numDevicesCL=0;
+  ret = clGetGLContextInfo(ctx, properties,CL_DEVICES_FOR_GL_CONTEXT_KHR, 0, NULL, &numDevicesCL);
+  if(numDevicesCL>0) {
+    devicesCL=new cl_device_id[numDevicesCL];
+    ret = clGetGLContextInfo(ctx, properties,CL_DEVICES_FOR_GL_CONTEXT_KHR, numDevicesCL, devicesCL, NULL);  
+  }
+
+  if(ret != CL_SUCCESS) {
+    delete[] properties;
+    delete[] devicesCL;
+    REQ_ERROR_THROW(CL_INVALID_GL_SHAREGROUP_REFERENCE_KHR);
+    REQ_ERROR_THROW(CL_INVALID_OPERATION);
+    REQ_ERROR_THROW(CL_INVALID_VALUE);
+    REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+    return NanThrowError("UNKNOWN ERROR");   
+  }
+
+  Local<Array> arr = Array::New(numDevicesCL);
+  arr->Set(0,NanObjectWrapHandle(Device::New(device)));
+  for(size_t i=0,j=1;i<numDevicesCL;i++)
+    if(devicesCL[i]!=device)
+      arr->Set(j++,NanObjectWrapHandle(Device::New(devicesCL[i])));
+
+  delete[] properties;
+  delete[] devicesCL;
+  NanReturnValue(arr);
 }
 
 NAN_METHOD(Context::New)

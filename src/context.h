@@ -56,6 +56,8 @@ public:
   static NAN_METHOD(release);
   static NAN_METHOD(releaseAll);
 
+  static NAN_METHOD(getGLContextInfo);
+
   cl_context getContext() const { return context; };
   virtual bool isContext() const { return true; }
 

@@ -56,6 +56,7 @@ using namespace std;
     #include <OpenCL/opencl.h>
     #define CL_GL_CONTEXT_KHR 0x2008
     #define CL_EGL_DISPLAY_KHR 0x2009
+    #define CL_INVALID_GL_SHAREGROUP_REFERENCE_KHR CL_INVALID_GL_CONTEXT_APPLE
   #endif
 #elif defined(_WIN32)
     #include <GL/gl.h>
@@ -64,6 +65,13 @@ using namespace std;
     #include <GL/gl.h>
     #include <GL/glx.h>
     #include <CL/opencl.h>
+#endif
+
+#ifndef CL_CURRENT_DEVICE_FOR_GL_CONTEXT_KHR
+  #define CL_CURRENT_DEVICE_FOR_GL_CONTEXT_KHR 0x2006 
+#endif
+#ifndef CL_DEVICES_FOR_GL_CONTEXT_KHR
+  #define CL_DEVICES_FOR_GL_CONTEXT_KHR 0x2007 
 #endif
 
 namespace {

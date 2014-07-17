@@ -679,6 +679,13 @@ cl.WebCLContext.prototype.createFromGLTexture=function (flags, texture_target, m
   return this._createFromGLTexture(flags, texture_target, miplevel, texture ? texture._ : 0);
 }
 
+cl.WebCLContext.prototype.getGLContextInfo=function () {
+  if(!cl.WebCLDevice.prototype.enable_extensions.KHR_gl_sharing.enabled) {
+    throw new Error('WEBCL_EXTENSION_NOT_ENABLED');
+  }
+  return this._getGLContextInfo();
+}
+
 //////////////////////////////
 //WebCLEvent object
 //////////////////////////////
