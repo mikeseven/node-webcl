@@ -131,10 +131,10 @@ NAN_METHOD(Context::getInfo)
     cl_int ret=::clGetContextInfo(context->getContext(),param_name,0,NULL, &n);
     n /= sizeof(cl_device_id);
 
-    cl_device_id *ctx=new cl_device_id[n];
-    ret=::clGetContextInfo(context->getContext(),param_name,sizeof(cl_device_id)*n, ctx, NULL);
+    cl_device_id *devices=new cl_device_id[n];
+    ret=::clGetContextInfo(context->getContext(),param_name,sizeof(cl_device_id)*n, devices, NULL);
     if (ret != CL_SUCCESS) {
-	  delete[] ctx;
+      delete[] devices;
       REQ_ERROR_THROW(CL_INVALID_CONTEXT);
       REQ_ERROR_THROW(CL_INVALID_VALUE);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
@@ -144,11 +144,11 @@ NAN_METHOD(Context::getInfo)
 
     Local<Array> arr = Array::New((int)n);
     for(uint32_t i=0;i<n;i++) {
-      if(ctx[i]) {
-        arr->Set(i,NanObjectWrapHandle(Device::New(ctx[i])));
+      if(devices[i]) {
+        arr->Set(i,NanObjectWrapHandle(Device::New(devices[i])));
       }
     }
-    delete[] ctx;
+    delete[] devices;
     NanReturnValue(arr);
   }
   case CL_CONTEXT_PROPERTIES: {
@@ -249,12 +249,76 @@ NAN_METHOD(Context::createCommandQueue)
 {
   NanScope();
   Context *context = ObjectWrap::Unwrap<Context>(args.This());
-  cl_device_id device = ObjectWrap::Unwrap<Device>(args[0]->ToObject())->getDevice();
-  cl_command_queue_properties properties = args[1]->IsUndefined() ? 0 : args[1]->Uint32Value();
-
+  cl_device_id device;
+  cl_command_queue_properties properties = 0;
   cl_int ret=CL_SUCCESS;
+  cl_command_queue cw;
+  cl_context ctx=context->getContext();
+
+  if(args[0]->IsObject()) {
+    device = ObjectWrap::Unwrap<Device>(args[0]->ToObject())->getDevice();
+    if(!args[1]->IsUndefined())
+      properties = args[1]->Uint32Value();
+  }
+  else {
+    // find a device automatically that support properties in that context
+    if(!args[0]->IsUndefined())
+      properties = args[0]->Uint32Value();
+
+    size_t nDevices=0;
+    ret = ::clGetContextInfo(ctx,CL_CONTEXT_NUM_DEVICES,0,NULL, &nDevices);
+
+    cl_device_id *devices=new cl_device_id[nDevices];
+    ret = ::clGetContextInfo(ctx,CL_CONTEXT_DEVICES,sizeof(cl_device_id)*nDevices, devices, NULL);
+    if (ret != CL_SUCCESS) {
+      delete[] devices;
+      REQ_ERROR_THROW(CL_INVALID_CONTEXT);
+      REQ_ERROR_THROW(CL_INVALID_VALUE);
+      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      return NanThrowError("UNKNOWN ERROR");
+    }
+
+    bool device_found = false;
+    if(properties == 0) {
+      // no property, choose the first one, preferably GPU
+      device=devices[0];
+      cl_device_type type;
+
+      for(size_t j=1;j<nDevices;j++) {
+        ret = ::clGetDeviceInfo(devices[j], CL_DEVICE_TYPE, sizeof(cl_device_type), 
+                              &type, NULL);
+        if(type==CL_DEVICE_TYPE_GPU) {
+          device=devices[j];
+          break;
+        }
+      }
+      device_found = true;
+    }
+
+    for(size_t j=0;j<nDevices && !device_found;j++) {
+      cl_command_queue_properties device_q_props=0;
+      ret = ::clGetDeviceInfo(devices[j], CL_DEVICE_QUEUE_PROPERTIES, sizeof(cl_command_queue_properties), 
+                              &device_q_props, NULL);
+      if (ret != CL_SUCCESS) {
+        delete[] devices;
+        REQ_ERROR_THROW(CL_INVALID_DEVICE);
+        REQ_ERROR_THROW(CL_INVALID_VALUE);
+        REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+        REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+        return NanThrowError("UNKNOWN ERROR");
+      }
+      if(device_q_props & properties) {
+        device=devices[j];
+        device_found=true;
+        break;
+      }
+    }
+    delete[] devices;
+  }
+
   //printf("context = %p device=%p properties %llu\n",context->getContext(),device,properties);
-  cl_command_queue cw = ::clCreateCommandQueue(context->getContext(), device, properties, &ret);
+  cw = ::clCreateCommandQueue(ctx, device, properties, &ret);
   // printf("clCreateCommandQueue ret=%d\n",ret);
 
   if (ret != CL_SUCCESS) {

@@ -594,9 +594,11 @@ cl.WebCLContext.prototype.createProgramWithBinaries=function (devices, binaries)
 }
 
 cl.WebCLContext.prototype.createCommandQueue=function (device, properties) {
-  if (!(arguments.length >=1 && checkObjectType(device, 'WebCLDevice') && 
-      (properties==null || typeof properties === 'number' || typeof properties === 'object'))) {
-    throw new TypeError('Expected WebCLContext.createCommandQueue(WebCLDevice device, CLenum[] properties)');
+  if (!(arguments.length==0 || 
+      (arguments.length ==1 && (checkObjectType(device, 'WebCLDevice') || typeof device === 'number')) && 
+      (properties==null || typeof properties === 'number')
+  )) {
+    throw new TypeError('Expected WebCLContext.createCommandQueue(optional WebCLDevice device, optional CLenum properties = 0)');
   }
   return this._createCommandQueue(device, properties);
 }
