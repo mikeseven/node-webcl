@@ -427,14 +427,11 @@ cl.WebCLCommandQueue.prototype.enqueueUnmapMemObject=function (memory_object, re
   return this._enqueueUnmapMemObject(memory_object, region, event_list, event);
 }
 
-cl.WebCLCommandQueue.prototype.enqueueMarker=function (event_list, event) {
-  if (!(arguments.length >= 0 &&
-      (typeof event_list === 'undefined' || typeof event_list === 'object') &&
-      (typeof event === 'undefined' || checkObjectType(event, 'WebCLEvent'))
-      )) {
-    throw new TypeError('Expected WebCLCommandQueue.enqueueMarker(WebCLEvent[] event_list, WebCLEvent event)');
+cl.WebCLCommandQueue.prototype.enqueueMarker=function (event) {
+  if (!(arguments.length == 1 && checkObjectType(event, 'WebCLEvent'))) {
+    throw new TypeError('Expected WebCLCommandQueue.enqueueMarker(WebCLEvent event)');
   }
-  return this._enqueueMarker(event_list, event);
+  return this._enqueueMarker(event);
 }
 
 cl.WebCLCommandQueue.prototype.enqueueWaitForEvents=function (event_wait_list) {
@@ -684,6 +681,13 @@ cl.WebCLContext.prototype.getGLContextInfo=function () {
     throw new Error('WEBCL_EXTENSION_NOT_ENABLED');
   }
   return this._getGLContextInfo();
+}
+
+cl.WebCLContext.prototype.getGLContext=function () {
+  if(!cl.WebCLDevice.prototype.enable_extensions.KHR_gl_sharing.enabled) {
+    throw new Error('WEBCL_EXTENSION_NOT_ENABLED');
+  }
+  return this._getGLContext();
 }
 
 //////////////////////////////
