@@ -1265,31 +1265,10 @@ NAN_METHOD(CommandQueue::enqueueMarker)
   NanScope();
   CommandQueue *cq = ObjectWrap::Unwrap<CommandQueue>(args.This());
 
-  MakeEventWaitList(args[0]);
-
   cl_event event;
-  bool no_event = (args[1]->IsUndefined() || args[1]->IsNull());
+  bool no_event = (args[0]->IsUndefined() || args[0]->IsNull());
 
-  cl_int ret = ::clEnqueueMarker(cq->getCommandQueue(),
-  no_event ? NULL : &event);
-
-  if(events_wait_list && ret==CL_SUCCESS) {
-    cl_int ret2 = ::clEnqueueWaitForEvents(
-        cq->getCommandQueue(),
-        num_events_wait_list,
-        events_wait_list);
-    if (ret2 != CL_SUCCESS) {
-      REQ_ERROR_THROW(CL_INVALID_COMMAND_QUEUE);
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_INVALID_CONTEXT);
-      REQ_ERROR_THROW(CL_INVALID_EVENT);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return NanThrowError("UNKNOWN ERROR");
-    }
-
-    delete[] events_wait_list;
-  }
+  cl_int ret = ::clEnqueueMarker(cq->getCommandQueue(), no_event ? NULL : &event);
 
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(CL_INVALID_COMMAND_QUEUE);
