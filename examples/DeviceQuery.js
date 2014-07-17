@@ -31,6 +31,8 @@ if(nodejs) {
   util = require('util');
   log = console.log;
 }
+else
+  WebCL = window.webcl;
 
 //list of platforms
 log("OpenCL SW Info:\n");

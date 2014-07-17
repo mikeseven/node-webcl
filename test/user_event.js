@@ -30,6 +30,8 @@ if(nodejs) {
   log = console.log;
   exit = process.exit;
 }
+else
+  WebCL = window.webcl;
 
 function read_complete(event, data) {
   log('in read_complete, status: '+event.status);

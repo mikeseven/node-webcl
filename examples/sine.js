@@ -38,6 +38,8 @@ if(nodejs) {
   //Read and eval library for mat/vec operations
   eval(fs.readFileSync(__dirname + '/glMatrix-0.9.5.min.js', 'utf8'));
 }
+else
+  WebCL = window.webcl;
 
 requestAnimationFrame = document.requestAnimationFrame;
 

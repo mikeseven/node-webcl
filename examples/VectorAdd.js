@@ -30,6 +30,8 @@ if(nodejs) {
   clu = require('../lib/clUtils');
   log=console.log;
 }
+else
+  WebCL = window.webcl;
 
 //First check if the WebCL extension is installed at all 
 if (WebCL == undefined) {

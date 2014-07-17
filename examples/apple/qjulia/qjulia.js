@@ -37,6 +37,8 @@ if(nodejs) {
   ATB=document.AntTweakBar;
   Image = WebGL.Image;
 }
+else
+  WebCL = window.webcl;
 
 requestAnimationFrame = document.requestAnimationFrame;
 var use_gpu=true;

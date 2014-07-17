@@ -32,6 +32,8 @@ if(nodejs) {
   clu = require('../lib/clUtils');
   log=console.log;
 }
+else
+  WebCL = window.webcl;
 
 //defines, project
 var MEMCOPY_ITERATIONS  = 100;

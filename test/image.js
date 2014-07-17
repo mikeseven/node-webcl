@@ -36,6 +36,8 @@ if(nodejs) {
   log = console.log;
   alert = console.log;
 }
+else
+  WebCL = window.webcl;
 
 requestAnimationFrame = document.requestAnimationFrame;
 

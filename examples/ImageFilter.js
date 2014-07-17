@@ -33,6 +33,8 @@ if(nodejs) {
   Image = require("node-image").Image;
   log   = console.log;
 }
+else
+  WebCL = window.webcl;
 
 //First check if the webcl extension is installed at all 
 if (WebCL == undefined) {
