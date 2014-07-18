@@ -169,6 +169,14 @@ NAN_METHOD(Kernel::getArgInfo)
                               CL_KERNEL_ARG_NAME, 
                               sizeof(name), name, NULL);
 
+  if(ret!=CL_SUCCESS) {
+    REQ_ERROR_THROW(CL_INVALID_ARG_INDEX);
+    REQ_ERROR_THROW(CL_INVALID_VALUE);
+    REQ_ERROR_THROW(CL_KERNEL_ARG_INFO_NOT_AVAILABLE);
+    REQ_ERROR_THROW(CL_INVALID_KERNEL);
+    return NanThrowError("Unknown Error");
+  }
+
   // TODO create WebCLKernelArgInfo dictionary
   Local<Object> kArgInfo = Object::New();
   kArgInfo->Set(JS_STR("name"), JS_STR(name));
@@ -292,152 +300,13 @@ NAN_METHOD(Kernel::setArg)
       }
       else
         ret = ::clSetKernelArg(kernel->getKernel(), arg_index, bytes, host_ptr);
-
-      // String::AsciiValue astr(obj->GetConstructorName());
-      // printf("[SetArg] host_ptr %p, index %d, class %s, len %d, byteLen %d, byteOff %d\n", host_ptr, arg_index, *astr, len,bytes,byteOffset);
-      // for(int i=0;i<bytes;i++)
-      //   printf("%d ", (host_ptr)[i]);
-      // printf("\n");
-      // if(!strcmp(*astr, "Int32Array") || !strcmp(*astr, "Uint32Array")) {
-      //   ret = ::clSetKernelArg(kernel->getKernel(), arg_index, bytes, host_ptr+byteOffset);
-      // }
-      // else if(!strcmp(*astr, "Int16Array") || !strcmp(*astr, "Uint16Array")) {
-      //   ret = ::clSetKernelArg(kernel->getKernel(), arg_index, bytes, host_ptr+byteOffset);
-      // }
-      // else if(!strcmp(*astr, "Int8Array") || !strcmp(*astr, "Uint8Array") || !strcmp(*astr, "Uint8ClampedArray")) {
-      //   ret = ::clSetKernelArg(kernel->getKernel(), arg_index, bytes, host_ptr+byteOffset);
-      // }
-      // else if(!strcmp(*astr, "Float32Array")) {
-      //   ret = ::clSetKernelArg(kernel->getKernel(), arg_index, bytes, host_ptr+byteOffset);
-      // }
-      // else if(!strcmp(*astr, "Float64Array")) {
-      //   ret = ::clSetKernelArg(kernel->getKernel(), arg_index, bytes, host_ptr+byteOffset);
-      // }
-    }
+   }
     else 
       return NanThrowTypeError("Invalid object for arg 1");
   }
   else 
     return NanThrowTypeError("Invalid object for arg 1");
-  // {
-  //   cl_uint type = args[2]->Uint32Value();
-  //   cl_uint vec_type = type & 0xFFFF0000;
-  //   type &= 0xFFFF;
-
-  //   // TODO support for vectors
-  //   // TODO check types LOCAL
-  //   switch (type) {
-  //   case types::LOCAL_MEMORY_SIZE: {
-  //     ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(float), NULL);
-  //     break;
-  //   }
-  //   case types::INT: {
-  //     if (!args[1]->IsInt32())
-  //       return NanThrowError("ARG is not of specified type");
-  //     cl_int arg = args[1]->Int32Value();
-  //     ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_int), &arg);
-  //     break;
-  //   }
-  //   case types::UINT: {
-  //     if (!args[1]->IsUint32())
-  //       return NanThrowError("ARG is not of specified type");
-  //     cl_uint arg = args[1]->Uint32Value();
-  //     ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_uint), &arg);
-  //     break;
-  //   }
-  //   case types::LONG: {
-  //     if (!args[1]->IsNumber())
-  //       return NanThrowError("ARG is not of specified type");
-  //     cl_long arg = (cl_long)args[1]->NumberValue();
-  //     ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_long), &arg);
-  //     break;
-  //   }
-  //   case types::ULONG: {
-  //     if (!args[1]->IsNumber())
-  //       return NanThrowError("ARG is not of specified type");
-  //     cl_ulong arg = (cl_ulong)args[1]->NumberValue();
-  //     ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_ulong), &arg);
-  //     break;
-  //   }
-  //   case types::FLOAT: {
-  //     if (vec_type & types::VEC4) {
-  //       float *arg = NULL;
-  //       if (args[1]->IsArray()) {
-  //         Local<Array> arr = Local<Array>::Cast(args[1]);
-  //         if (arr->GetIndexedPropertiesExternalArrayDataLength() < 0) {
-  //           // pure JS array, no native backend
-  //           float _arg[4];
-  //           _arg[0] = (float) arr->Get(0)->NumberValue();
-  //           _arg[1] = (float) arr->Get(1)->NumberValue();
-  //           _arg[2] = (float) arr->Get(2)->NumberValue();
-  //           _arg[3] = (float) arr->Get(3)->NumberValue();
-  //           ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_float) * 4, _arg);
-  //         } else {
-  //           arg = (float*) arr->GetIndexedPropertiesExternalArrayData();
-  //           ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_float) * 4, arg);
-  //         }
-  //       } else if (args[1]->IsObject()) {
-  //         arg = (float*) args[1]->ToObject()->GetIndexedPropertiesExternalArrayData();
-  //         ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_float) * 4, arg);
-  //       }
-  //     } else if (!args[1]->IsNumber()) {
-  //       return NanThrowError("ARG is not of specified type");
-  //     }
-  //     else {
-  //       cl_float arg = (float) args[1]->NumberValue();
-  //       ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_float), &arg);
-  //     }
-  //     break;
-  //   }
-  //   case types::DOUBLE: {
-  //     if (!args[1]->IsNumber())
-  //       return NanThrowError("ARG is not of specified type");
-  //     cl_double arg = (cl_double)args[1]->NumberValue();
-  //     ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_double), &arg);
-  //     break;
-  //   }
-  //   case types::HALF: { // TODO HALF may not be mapped correctly!
-  //     if (!args[1]->IsNumber())
-  //       return NanThrowError("ARG is not of specified type");
-  //     cl_half arg = (cl_half) args[1]->NumberValue();
-  //     ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_half), &arg);
-  //     break;
-  //   }
-  //   case types::SHORT: {
-  //     if (!args[1]->IsNumber())
-  //       return NanThrowError("ARG is not of specified type");
-  //     cl_short arg = (cl_short) args[1]->NumberValue();
-  //     ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_short), &arg);
-  //     break;
-  //   }
-  //   case types::USHORT: {
-  //     if (!args[1]->IsNumber())
-  //       return NanThrowError("ARG is not of specified type");
-  //     cl_ushort arg = (cl_ushort) args[1]->NumberValue();
-  //     ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_ushort), &arg);
-  //     break;
-  //   }
-  //   case types::CHAR: {
-  //     if (!args[1]->IsNumber())
-  //       return NanThrowError("ARG is not of specified type");
-  //     cl_char arg =(cl_char)  args[1]->NumberValue();
-  //     ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_char), &arg);
-  //     break;
-  //   }
-  //   case types::UCHAR: {
-  //     if (!args[1]->IsNumber())
-  //       return NanThrowError("ARG is not of specified type");
-  //     cl_uchar arg = (cl_uchar) args[1]->NumberValue();
-  //     ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_uchar), &arg);
-  //     break;
-  //   }
-  //   default: {
-  //     return NanThrowError("UNKNOWN TYPE");
-  //   }
-
-  //   }
-  // }
-
+ 
   if (ret != CL_SUCCESS) {
     printf("[setArg] ret = %d\n",ret);
     REQ_ERROR_THROW(CL_INVALID_KERNEL);

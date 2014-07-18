@@ -87,23 +87,45 @@ NAN_METHOD(Event::getInfo)
   NanScope();
   Event *e = ObjectWrap::Unwrap<Event>(args.This());
   cl_event_info param_name = args[0]->Uint32Value();
+  cl_int ret=CL_SUCCESS;
 
   switch (param_name) {
   case CL_EVENT_CONTEXT:{
     cl_context param_value=NULL;
-    ::clGetEventInfo(e->getEvent(), param_name, sizeof(cl_context), &param_value, NULL);
+    ret=::clGetEventInfo(e->getEvent(), param_name, sizeof(cl_context), &param_value, NULL);
+    if(ret!=CL_SUCCESS) {
+      REQ_ERROR_THROW(CL_INVALID_VALUE);
+      REQ_ERROR_THROW(CL_INVALID_EVENT);
+      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      return NanThrowError("Unknown error");
+    }
     NanReturnValue(NanObjectWrapHandle(Context::New(param_value)));
   }
   case CL_EVENT_COMMAND_QUEUE:{
     cl_command_queue param_value=NULL;
-    ::clGetEventInfo(e->getEvent(), param_name, sizeof(cl_command_queue), &param_value, NULL);
+    ret=::clGetEventInfo(e->getEvent(), param_name, sizeof(cl_command_queue), &param_value, NULL);
+    if(ret!=CL_SUCCESS) {
+      REQ_ERROR_THROW(CL_INVALID_VALUE);
+      REQ_ERROR_THROW(CL_INVALID_EVENT);
+      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      return NanThrowError("Unknown error");
+    }
     NanReturnValue(NanObjectWrapHandle(CommandQueue::New(param_value)));
   }
   case CL_EVENT_REFERENCE_COUNT:
   case CL_EVENT_COMMAND_TYPE:
   case CL_EVENT_COMMAND_EXECUTION_STATUS: {
     cl_uint param_value=0;
-    ::clGetEventInfo(e->getEvent(), param_name, sizeof(cl_uint), &param_value, NULL);
+    ret=::clGetEventInfo(e->getEvent(), param_name, sizeof(cl_uint), &param_value, NULL);
+    if(ret!=CL_SUCCESS) {
+      REQ_ERROR_THROW(CL_INVALID_VALUE);
+      REQ_ERROR_THROW(CL_INVALID_EVENT);
+      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      return NanThrowError("Unknown error");
+    }
     NanReturnValue(Integer::NewFromUnsigned(param_value));
   }
   default:
@@ -117,6 +139,7 @@ NAN_METHOD(Event::getProfilingInfo)
   NanScope();
   Event *e = ObjectWrap::Unwrap<Event>(args.This());
   cl_event_info param_name = args[0]->Uint32Value();
+  cl_int ret=CL_SUCCESS;
 
   switch (param_name) {
   case CL_PROFILING_COMMAND_QUEUED:
@@ -124,7 +147,15 @@ NAN_METHOD(Event::getProfilingInfo)
   case CL_PROFILING_COMMAND_START:
   case CL_PROFILING_COMMAND_END: {
     cl_ulong param_value=0;
-    ::clGetEventProfilingInfo(e->getEvent(), param_name, sizeof(cl_ulong), &param_value, NULL);
+    ret=::clGetEventProfilingInfo(e->getEvent(), param_name, sizeof(cl_ulong), &param_value, NULL);
+    if(ret!=CL_SUCCESS) {
+      REQ_ERROR_THROW(CL_PROFILING_INFO_NOT_AVAILABLE);
+      REQ_ERROR_THROW(CL_INVALID_VALUE);
+      REQ_ERROR_THROW(CL_INVALID_EVENT);
+      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      return NanThrowError("Unknown error");
+    }
     NanReturnValue(JS_INT((int32_t)param_value));
   }
   default:
