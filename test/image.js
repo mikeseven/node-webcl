@@ -298,7 +298,7 @@ function init_cl() {
     throw new Error("Can NOT create context");
 
   // Create a command queue
-  ComputeCommands = ComputeContext.createCommandQueue(ComputeDevice, 0);
+  ComputeCommands = ComputeContext.createCommandQueue(ComputeDevice);
   if (!ComputeCommands) 
     throw new Error("Failed to create a command queue!");
 

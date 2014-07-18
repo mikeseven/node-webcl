@@ -626,6 +626,14 @@ NAN_METHOD(Context::createFromGLRenderbuffer)
   NanReturnValue(NanObjectWrapHandle(WebCLBuffer::New(clmem)));
 }
 
+NAN_METHOD(Context::getGLContext)
+{
+  NanScope();
+  Context *context = ObjectWrap::Unwrap<Context>(args.This());
+  
+  NanReturnValue(context->webgl_context_);
+}
+
 NAN_METHOD(Context::getGLContextInfo)
 {
   NanScope();
@@ -709,6 +717,22 @@ Context *Context::New(cl_context cw)
 
   Context *context = ObjectWrap::Unwrap<Context>(obj);
   context->context = cw;
+
+  return context;
+}
+
+Context *Context::New(cl_context cw, Handle<Object> webgl_context)
+{
+
+  NanScope();
+
+  Local<Value> arg = Integer::NewFromUnsigned(0);
+  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor_template);
+  Local<Object> obj = constructorHandle->GetFunction()->NewInstance(1, &arg);
+
+  Context *context = ObjectWrap::Unwrap<Context>(obj);
+  context->context = cw;
+  context->webgl_context_ = webgl_context->ToObject();
 
   return context;
 }

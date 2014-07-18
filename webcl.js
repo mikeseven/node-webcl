@@ -592,8 +592,8 @@ cl.WebCLContext.prototype.createProgramWithBinaries=function (devices, binaries)
 
 cl.WebCLContext.prototype.createCommandQueue=function (device, properties) {
   if (!(arguments.length==0 || 
-      (arguments.length ==1 && (checkObjectType(device, 'WebCLDevice') || typeof device === 'number')) && 
-      (properties==null || typeof properties === 'number')
+      ((arguments.length ==1 && (checkObjectType(device, 'WebCLDevice') || typeof device === 'number'))) || 
+      (typeof properties==='undefined' || typeof properties === 'number')
   )) {
     throw new TypeError('Expected WebCLContext.createCommandQueue(optional WebCLDevice device, optional CLenum properties = 0)');
   }
