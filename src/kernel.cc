@@ -256,6 +256,7 @@ NAN_METHOD(Kernel::setArg)
     return NanThrowError("CL_INVALID_ARG_INDEX");
 
   Kernel *kernel = ObjectWrap::Unwrap<Kernel>(args.This());
+  cl_kernel k = kernel->getKernel();
   cl_uint arg_index = args[0]->Uint32Value();
   cl_int ret=CL_SUCCESS;
 
@@ -267,14 +268,14 @@ NAN_METHOD(Kernel::setArg)
       Sampler *s = ObjectWrap::Unwrap<Sampler>(args[1]->ToObject());
       sampler = s->getSampler();
 
-      ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_sampler), &sampler);
+      ret = ::clSetKernelArg(k, arg_index, sizeof(cl_sampler), &sampler);
     }
     else if(!strcmp(*str, "WebCLBuffer") || !strcmp(*str, "WebCLImage")) {
       // WebCLBuffer and WebCLImage
       // printf("[SetArg] mem object\n");
       MemoryObject *mo = ObjectWrap::Unwrap<MemoryObject>(args[1]->ToObject());
       cl_mem mem = mo->getMemory();
-      ret = ::clSetKernelArg(kernel->getKernel(), arg_index, sizeof(cl_mem), &mem);
+      ret = ::clSetKernelArg(k, arg_index, sizeof(cl_mem), &mem);
     }
     else if(!args[1]->IsArray()) {
       // ArrayBufferView
@@ -283,23 +284,46 @@ NAN_METHOD(Kernel::setArg)
       int len=obj->GetIndexedPropertiesExternalArrayDataLength(); // number of elements
       int bytes=obj->Get(JS_STR("byteLength"))->Uint32Value();
       // int byteOffset=obj->Get(JS_STR("byteOffset"))->Uint32Value();
+      // printf("TypedArray: len %d, bytes %d, byteOffset %d\n",len,bytes,byteOffset);
+      char typeName[256];
+      ret = ::clGetKernelArgInfo(k, arg_index, CL_KERNEL_ARG_TYPE_NAME, sizeof(typeName), typeName, NULL);
+      static char* types[]={"char","uchar","short","ushort","int","uint","long","ulong","float","double","half"};
+      static int nTypes=11;
+
+      if(len>1) {
+        for(int i=0;i<nTypes;i++) {
+          if(strstr(typeName,types[i])==typeName) {
+            if(strlen(typeName) > strlen(types[i])) {
+              int vecSize = atoi(typeName+strlen(types[i]));
+              bytes*=vecSize;
+            }
+            bytes/=len;
+
+            break;
+          }
+        }
+      }
 
       if(len == 1) {
         // handle __local params
         // printf("[setArg] index %d has 1 value\n",arg_index);
         cl_kernel_arg_address_qualifier addr=0;
-        ret = ::clGetKernelArgInfo(kernel->getKernel(), arg_index, CL_KERNEL_ARG_ADDRESS_QUALIFIER, 
+        ret = ::clGetKernelArgInfo(k, arg_index, CL_KERNEL_ARG_ADDRESS_QUALIFIER, 
                               sizeof(cl_kernel_arg_address_qualifier), &addr, NULL);
         if(addr == CL_KERNEL_ARG_ADDRESS_LOCAL) {
           // printf("  index %d size: %d\n",arg_index,*((cl_int*) host_ptr));          
-          ret = ::clSetKernelArg(kernel->getKernel(), arg_index, *((cl_int*) host_ptr), NULL);
+          ret = ::clSetKernelArg(k, arg_index, *((cl_int*) host_ptr), NULL);
           // printf("[setArg __local] ret = %d\n",ret);
         }
-        else
-          ret = ::clSetKernelArg(kernel->getKernel(), arg_index, bytes, host_ptr);
+        else {
+          ret = ::clSetKernelArg(k, arg_index, bytes, host_ptr);
+          // printf("ret1= %d\n",ret);
+        }
       }
-      else
-        ret = ::clSetKernelArg(kernel->getKernel(), arg_index, bytes, host_ptr);
+      else {
+        ret = ::clSetKernelArg(k, arg_index, bytes, host_ptr);
+        // printf("ret2= %d\n",ret);
+      }
    }
     else 
       return NanThrowTypeError("Invalid object for arg 1");
@@ -308,7 +332,6 @@ NAN_METHOD(Kernel::setArg)
     return NanThrowTypeError("Invalid object for arg 1");
  
   if (ret != CL_SUCCESS) {
-    printf("[setArg] ret = %d\n",ret);
     REQ_ERROR_THROW(CL_INVALID_KERNEL);
     REQ_ERROR_THROW(CL_INVALID_ARG_INDEX);
     REQ_ERROR_THROW(CL_INVALID_ARG_VALUE);

@@ -165,29 +165,17 @@ NAN_METHOD(Platform::enableExtension)
       return NanThrowError("UNKNOWN ERROR");
     }
 
-    #ifdef _WIN32
-    if(!_stricmp(param_value,"gl_sharing")) platform->availableExtensions |= GL_SHARING;
-    if(!_stricmp(param_value,"fp16"))       platform->availableExtensions |= FP16;
-    if(!_stricmp(param_value,"fp64"))       platform->availableExtensions |= FP64;
-    #else
     if(!strcasecmp(param_value,"gl_sharing")) platform->availableExtensions |= GL_SHARING;
     if(!strcasecmp(param_value,"fp16"))       platform->availableExtensions |= FP16;
     if(!strcasecmp(param_value,"fp64"))       platform->availableExtensions |= FP64;
-    #endif
   }
 
   Local<String> name=args[0]->ToString();
   String::AsciiValue astr(name);
   bool ret=false;
-  #ifdef _WIN32
-  if(!_stricmp(*astr,"gl_sharing") && (platform->availableExtensions & GL_SHARING)) { platform->enableExtensions |= GL_SHARING; ret = true; }
-  else if(!_stricmp(*astr,"fp16") && (platform->availableExtensions & FP16))        { platform->enableExtensions |= FP16; ret = true; }
-  else if(!_stricmp(*astr,"fp64") && (platform->availableExtensions & FP64))        { platform->enableExtensions |= FP64; ret = true; }
-  #else
   if(!strcasecmp(*astr,"gl_sharing") && (platform->availableExtensions & GL_SHARING)) { platform->enableExtensions |= GL_SHARING; ret = true; }
   else if(!strcasecmp(*astr,"fp16") && (platform->availableExtensions & FP16))        { platform->enableExtensions |= FP16; ret = true; }
   else if(!strcasecmp(*astr,"fp64") && (platform->availableExtensions & FP64))        { platform->enableExtensions |= FP64; ret = true; }
-  #endif
 
   NanReturnValue(JS_BOOL(ret));
 }

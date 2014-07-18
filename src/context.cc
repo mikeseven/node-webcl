@@ -267,6 +267,7 @@ NAN_METHOD(Context::createCommandQueue)
 
     size_t nDevices=0;
     ret = ::clGetContextInfo(ctx,CL_CONTEXT_NUM_DEVICES,0,NULL, &nDevices);
+    // printf("Found %d devices in context\n",nDevices);
 
     cl_device_id *devices=new cl_device_id[nDevices];
     ret = ::clGetContextInfo(ctx,CL_CONTEXT_DEVICES,sizeof(cl_device_id)*nDevices, devices, NULL);
@@ -284,11 +285,14 @@ NAN_METHOD(Context::createCommandQueue)
       // no property, choose the first one, preferably GPU
       device=devices[0];
       cl_device_type type;
+        // ret = ::clGetDeviceInfo(devices[0], CL_DEVICE_TYPE, sizeof(cl_device_type), &type, NULL);
+        // printf("Device 0, type %d, ret %d: %d\n",type,ret, devices[0]);
 
-      for(size_t j=1;j<nDevices;j++) {
-        ret = ::clGetDeviceInfo(devices[j], CL_DEVICE_TYPE, sizeof(cl_device_type), 
-                              &type, NULL);
+      for(size_t j=0;j<nDevices;j++) {
+        ret = ::clGetDeviceInfo(devices[j], CL_DEVICE_TYPE, sizeof(cl_device_type), &type, NULL);
+        // printf("Device %d, type %d, ret %d: %d\n",j,type,ret, devices[j]);
         if(type==CL_DEVICE_TYPE_GPU) {
+          // printf("Selecting device %d: %d\n",j,devices[j]);
           device=devices[j];
           break;
         }
@@ -300,6 +304,8 @@ NAN_METHOD(Context::createCommandQueue)
       cl_command_queue_properties device_q_props=0;
       ret = ::clGetDeviceInfo(devices[j], CL_DEVICE_QUEUE_PROPERTIES, sizeof(cl_command_queue_properties), 
                               &device_q_props, NULL);
+      // printf("Device %d, Qproperties %d, ret=%d\n",j,device_q_props,ret);
+
       if (ret != CL_SUCCESS) {
         delete[] devices;
         REQ_ERROR_THROW(CL_INVALID_DEVICE);
@@ -316,6 +322,8 @@ NAN_METHOD(Context::createCommandQueue)
     }
     delete[] devices;
   }
+
+  // printf("Using device %p\n",device);
 
   //printf("context = %p device=%p properties %llu\n",context->getContext(),device,properties);
   cw = ::clCreateCommandQueue(ctx, device, properties, &ret);
@@ -641,6 +649,7 @@ NAN_METHOD(Context::getGLContext)
   NanReturnValue(context->webgl_context_);
 }
 
+#ifdef HAS_clGetContextInfo // disabled for now as this is not supported in all drivers
 NAN_METHOD(Context::getGLContextInfo)
 {
   NanScope();
@@ -664,19 +673,28 @@ NAN_METHOD(Context::getGLContextInfo)
   ret = ::clGetContextInfo(ctx,CL_CONTEXT_PROPERTIES,numProps,properties,NULL);
 
   // get GL context info
-  #ifdef __APPLE__
-    #define clGetGLContextInfo clGetGLContextInfoAPPLE
-  #endif
-
   cl_device_id device=0;
-  ret = clGetGLContextInfo(ctx, properties,CL_CURRENT_DEVICE_FOR_GL_CONTEXT_KHR, sizeof(cl_device_id), &device, NULL);
+#ifdef __APPLE__
+  ret = clGetGLContextInfoAPPLE(ctx, properties, CL_CURRENT_DEVICE_FOR_GL_CONTEXT_KHR, sizeof(cl_device_id), &device, NULL);
+#else
+  ret = clGetGLContextInfoKHR(properties, CL_CURRENT_DEVICE_FOR_GL_CONTEXT_KHR, sizeof(cl_device_id), &device, NULL);
+#endif
 
   cl_device_id *devicesCL=NULL;
   size_t numDevicesCL=0;
-  ret = clGetGLContextInfo(ctx, properties,CL_DEVICES_FOR_GL_CONTEXT_KHR, 0, NULL, &numDevicesCL);
+#ifdef __APPLE__
+  ret = clGetGLContextInfoAPPLE(ctx, properties,CL_DEVICES_FOR_GL_CONTEXT_KHR, 0, NULL, &numDevicesCL);
+#else
+  ret = clGetGLContextInfoKHR(properties, CL_CURRENT_DEVICE_FOR_GL_CONTEXT_KHR, 0, NULL, &numDevicesCL);
+#endif
+
   if(numDevicesCL>0) {
     devicesCL=new cl_device_id[numDevicesCL];
-    ret = clGetGLContextInfo(ctx, properties,CL_DEVICES_FOR_GL_CONTEXT_KHR, numDevicesCL, devicesCL, NULL);  
+#ifdef __APPLE__
+    ret = clGetGLContextInfoAPPLE(ctx, properties,CL_DEVICES_FOR_GL_CONTEXT_KHR, numDevicesCL, devicesCL, NULL);  
+#else
+	ret = clGetGLContextInfoKHR(properties, CL_DEVICES_FOR_GL_CONTEXT_KHR, numDevicesCL, devicesCL, NULL);
+#endif
   }
 
   if(ret != CL_SUCCESS) {
@@ -700,6 +718,7 @@ NAN_METHOD(Context::getGLContextInfo)
   delete[] devicesCL;
   NanReturnValue(arr);
 }
+#endif
 
 NAN_METHOD(Context::New)
 {

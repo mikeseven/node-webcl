@@ -57,7 +57,9 @@ public:
   static NAN_METHOD(release);
   static NAN_METHOD(releaseAll);
 
+#ifdef HAS_clGetContextInfo
   static NAN_METHOD(getGLContextInfo);
+#endif
   static NAN_METHOD(getGLContext);
 
   cl_context getContext() const { return context; };

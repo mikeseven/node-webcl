@@ -30,8 +30,14 @@ function VectorAdd() {
   context=WebCL.createContext(WebCL.DEVICE_TYPE_DEFAULT);
 
   // Create command queue
-  queue=context.createCommandQueue();
-
+  try {
+    queue=context.createCommandQueue();
+  }
+  catch(ex) {
+    log(ex);
+    exit(-1);
+  }
+  
   device = queue.getInfo(WebCL.QUEUE_DEVICE);
   log('using device: '+device.getInfo(WebCL.DEVICE_NAME));
 

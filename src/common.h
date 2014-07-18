@@ -58,9 +58,11 @@ using namespace std;
     #define CL_EGL_DISPLAY_KHR 0x2009
     #define CL_INVALID_GL_SHAREGROUP_REFERENCE_KHR CL_INVALID_GL_CONTEXT_APPLE
   #endif
+  #define HAS_clGetContextInfo
 #elif defined(_WIN32)
     #include <GL/gl.h>
     #include <CL/opencl.h>
+    #define strcasecmp _stricmp
 #else
     #include <GL/gl.h>
     #include <GL/glx.h>

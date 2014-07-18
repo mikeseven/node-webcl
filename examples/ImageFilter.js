@@ -82,7 +82,13 @@ function ImageFilter(image) {
   program=context.createProgram(kernelSourceCode);
   
   //Build program
-  program.build(device);
+  try {
+    program.build(device);
+  } catch (err) {
+    log('Error building program: ' + err);
+    log(program.getBuildInfo(device, WebCL.PROGRAM_BUILD_LOG));
+    process.exit(-1);
+  }
 
   // create device buffers
   try {
@@ -103,12 +109,18 @@ function ImageFilter(image) {
   }
 
   // Set the arguments to our compute kernel
-  var aints=new Int32Array(2);
-  aints.set([image.width, image.height]);
+  var aints=new Int32Array(3);
+  aints.set([image.width, image.height, 0]);
+  try {
   kernel.setArg(0, cmPinnedBufIn);
   kernel.setArg(1, cmPinnedBufOut);
   kernel.setArg(2, aints);
-  kernel.setArg(3, aints.subarray(1));
+  // kernel.setArg(3, aints.subarray(1));
+  }
+  catch(ex) {
+    log(ex);
+    process.exit(-1);
+  }
 
   //Create command queue
   queue=context.createCommandQueue(device, 0);
