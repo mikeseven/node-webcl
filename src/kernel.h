@@ -30,33 +30,6 @@
 #include "common.h"
 
 namespace webcl {
-namespace types {
-
-enum CLType {
-  CHAR      = 0,
-  UCHAR     = 1,
-  SHORT     = 2,
-  USHORT    = 3,
-  INT       = 4,
-  UINT      = 5,
-  LONG      = 6,
-  ULONG     = 7,
-  FLOAT     = 8,
-  HALF      = 9,
-  DOUBLE    = 10,
-  QUAD      = 11,
-  LONG_LONG = 12,
-
-  VEC2      = 1<<16,
-  VEC3      = 1<<17,
-  VEC4      = 1<<18,
-  VEC8      = 1<<19,
-  VEC16     = 1<<20,
-
-  LOCAL_MEMORY_SIZE = 0xFF
-};
-
-} // namespace types
 
 class Kernel : public WebCLObject
 {

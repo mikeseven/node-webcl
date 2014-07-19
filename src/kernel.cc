@@ -247,7 +247,23 @@ NAN_METHOD(Kernel::getWorkGroupInfo)
   }
 }
 
-// TODO: setArg is incomplete!!!!
+// static const char* types[]={"char","uchar","short","ushort","int","uint","long","ulong","float","double","half"};
+
+struct TypeInfo {
+  const char *name; // type name
+  const size_t lname;  // type name's length (# of chars)
+  const size_t size;   // type size
+};
+static const TypeInfo types[]={
+  { "char", 4, 1 }, { "uchar", 5, 1 },
+  { "short", 5, 2 }, { "ushort", 6, 2 },
+  { "int", 3, 4 }, { "uint", 4, 4 },
+  { "long", 4, 4 }, { "ulong", 5, 4 },
+  { "float", 5, 4 }, { "double", 6, 8 }, 
+  { "half", 4, 2 },
+};
+static const int nTypes=sizeof(types)/sizeof(TypeInfo);
+
 NAN_METHOD(Kernel::setArg)
 {
   NanScope();
@@ -278,32 +294,43 @@ NAN_METHOD(Kernel::setArg)
       ret = ::clSetKernelArg(k, arg_index, sizeof(cl_mem), &mem);
     }
     else if(!args[1]->IsArray()) {
-      // ArrayBufferView
-      Handle<Object> obj=args[1]->ToObject();
-      char *host_ptr= (char*) (obj->GetIndexedPropertiesExternalArrayData());
-      int len=obj->GetIndexedPropertiesExternalArrayDataLength(); // number of elements
-      int bytes=obj->Get(JS_STR("byteLength"))->Uint32Value();
-      // int byteOffset=obj->Get(JS_STR("byteOffset"))->Uint32Value();
+      Local<Object> obj=args[1]->ToObject();
+      String::AsciiValue name(obj->GetConstructorName());
+      char *host_ptr=NULL;
+      int len=0;
+      int bytes=0;
+
+      if(!strcmp("Buffer",*name)) {
+        host_ptr = node::Buffer::Data(obj);
+        bytes = node::Buffer::Length(obj);
+      }
+      else {
+        // ArrayBufferView
+        host_ptr= (char*) (obj->GetIndexedPropertiesExternalArrayData());
+        len=obj->GetIndexedPropertiesExternalArrayDataLength(); // number of elements
+        bytes=obj->Get(JS_STR("byteLength"))->Uint32Value();
+        // int byteOffset=obj->Get(JS_STR("byteOffset"))->Uint32Value();
+      }
       // printf("TypedArray: len %d, bytes %d, byteOffset %d\n",len,bytes,byteOffset);
-      char typeName[256];
+
+      char typeName[16];
       ret = ::clGetKernelArgInfo(k, arg_index, CL_KERNEL_ARG_TYPE_NAME, sizeof(typeName), typeName, NULL);
-      static const char* types[]={"char","uchar","short","ushort","int","uint","long","ulong","float","double","half"};
-      static const int nTypes=11;
 
       if(len>1) {
         for(int i=0;i<nTypes;i++) {
-          if(strstr(typeName,types[i])==typeName) {
-            if(strlen(typeName) > strlen(types[i])) {
-              int vecSize = atoi(typeName+strlen(types[i]));
+          if(strstr(typeName,types[i].name)==typeName) {
+            if(strlen(typeName) > types[i].lname) {
+              int vecSize = atoi(typeName + types[i].lname);
               bytes*=vecSize;
             }
-            bytes/=len;
+            if(len)
+              bytes/=len;
 
             break;
           }
         }
       }
-
+    
       if(len == 1) {
         // handle __local params
         // printf("[setArg] index %d has 1 value\n",arg_index);
