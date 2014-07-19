@@ -86,7 +86,7 @@ NAN_METHOD(Program::getInfo)
 {
   NanScope();
   Program *prog = ObjectWrap::Unwrap<Program>(args.This());
-  cl_program_info param_name = args[1]->Uint32Value();
+  cl_program_info param_name = args[0]->Uint32Value();
 
   switch (param_name) {
   case CL_PROGRAM_REFERENCE_COUNT:
