@@ -425,13 +425,14 @@ NAN_METHOD(CommandQueue::enqueueWriteBufferRect)
       Local<Array> arr=Local<Array>::Cast(args[9]);
       ptr = arr->GetIndexedPropertiesExternalArrayData();
     }
-    else if(args[9]->IsObject())
+    else if(args[9]->IsObject()) {
       Local<Object> obj=args[9]->ToObject();
       String::AsciiValue name(obj->GetConstructorName());
       if(!strcmp("Buffer",*name))
         ptr=Buffer::Data(obj);
       else
         ptr = obj->GetIndexedPropertiesExternalArrayData();
+    }
     else
       NanThrowError("Invalid memory object");
   }

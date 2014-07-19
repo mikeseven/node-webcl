@@ -404,7 +404,15 @@ NAN_METHOD(Context::createImage)
   size_t height = obj->Get(JS_STR("height"))->Uint32Value();
   size_t row_pitch =  obj->Get(JS_STR("rowPitch"))->Uint32Value();
 
-  void *host_ptr=args[2]->IsUndefined() ? NULL : args[2]->ToObject()->GetIndexedPropertiesExternalArrayData();
+  void *host_ptr=NULL;
+  if(args[2]->IsObject()) {
+    Local<Object> obj=args[2]->ToObject();
+    String::AsciiValue name(obj->GetConstructorName());
+    if(!strcmp("Buffer",*name))
+      host_ptr=Buffer::Data(obj);
+    else
+      host_ptr = obj->GetIndexedPropertiesExternalArrayData();
+  }
   cl_int ret=CL_SUCCESS;
   cl_mem mw;
 
