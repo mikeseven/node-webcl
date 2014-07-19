@@ -356,11 +356,16 @@ NAN_METHOD(Context::createBuffer)
       host_ptr=arr->GetIndexedPropertiesExternalArrayData();
     }
     else if(args[2]->IsObject()) {
-      // TypedArray
-      Handle<Object> obj=args[2]->ToObject();
-      assert(obj->HasIndexedPropertiesInExternalArrayData());
-      host_ptr=obj->GetIndexedPropertiesExternalArrayData();
-      // printf("CreateBuffer host_ptr %p\n",host_ptr);
+      Local<Object> obj=args[2]->ToObject();
+      String::AsciiValue name(obj->GetConstructorName());
+      if(!strcmp("Buffer",*name)) 
+        host_ptr=Buffer::Data(obj);
+      else {
+        // TypedArray
+        assert(obj->HasIndexedPropertiesInExternalArrayData());
+        host_ptr=obj->GetIndexedPropertiesExternalArrayData();
+        // printf("CreateBuffer host_ptr %p\n",host_ptr);
+      }
     }
     else
       NanThrowError("Invalid memory object");

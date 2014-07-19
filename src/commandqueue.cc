@@ -341,8 +341,14 @@ NAN_METHOD(CommandQueue::enqueueWriteBuffer)
       Local<Array> arr=Local<Array>::Cast(args[4]);
       ptr = arr->GetIndexedPropertiesExternalArrayData();
     }
-    else if(args[4]->IsObject())
-      ptr = args[4]->ToObject()->GetIndexedPropertiesExternalArrayData();
+    else if(args[4]->IsObject()) {
+      Local<Object> obj=args[4]->ToObject();
+      String::AsciiValue name(obj->GetConstructorName());
+      if(!strcmp("Buffer",*name))
+        ptr=Buffer::Data(obj);
+      else
+        ptr = obj->GetIndexedPropertiesExternalArrayData();
+    }
     else
       NanThrowError("Invalid memory object");
   }
@@ -487,8 +493,14 @@ NAN_METHOD(CommandQueue::enqueueReadBuffer)
       Local<Array> arr=Local<Array>::Cast(args[4]);
       ptr = arr->GetIndexedPropertiesExternalArrayData();
     }
-    else if(args[4]->IsObject())
-      ptr = args[4]->ToObject()->GetIndexedPropertiesExternalArrayData();
+    else if(args[4]->IsObject()) {
+      Local<Object> obj=args[4]->ToObject();
+      String::AsciiValue name(obj->GetConstructorName());
+      if(!strcmp("Buffer",*name))
+        ptr=Buffer::Data(obj);
+      else
+        ptr = obj->GetIndexedPropertiesExternalArrayData();
+    }
     else
       NanThrowError("Invalid memory object");
   }
