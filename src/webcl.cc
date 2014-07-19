@@ -59,7 +59,7 @@ void unregisterCLObj(WebCLObject* obj) {
   clobjs.erase(obj);
 }
 
-void AtExit(void* /*arg*/) {
+void AtExit(void* arg) {
   atExit=true;
   #ifdef LOGGING
   cout<<"WebCL AtExit() called"<<endl;
@@ -85,17 +85,39 @@ void AtExit(void* /*arg*/) {
   }
 
   // must kill events first
+  // vector<cl_event> events;
+  // it = clobjs.begin();
+  // while(it != clobjs.end()) {
+  //   WebCLObject *clo = *it;
+  //   ++it;
+  //   if(clo->isEvent()) {
+  //     events.push_back(((Event*)clo)->getEvent());
+  //   }
+  // }
+
+  // if(!arg && events.size()) {
+  //   // normal exit, wait for events to complete and call their callbacks
+  //   // args!=0 for CTRL+C, we don't wait 
+  //   printf("*** waiting for %lu events to complete\n",events.size());
+  //   cl_int ret;
+  //   for(size_t i=0;i<events.size();i++) {
+  //     cl_int status;
+  //     do {
+  //       ret=::clGetEventInfo(events[i],CL_EVENT_COMMAND_EXECUTION_STATUS,sizeof(cl_int),&status,NULL);
+  //       printf("  event %lu, status: %d, ret: %d\n",i,status,ret);
+  //     } while(status!=CL_COMPLETE);
+  //   }
+  // }
+  // events.clear();
+
   it = clobjs.begin();
   while(it != clobjs.end()) {
     WebCLObject *clo = *it;
-    ++it;
     if(clo->isEvent()) {
-#ifdef LOGGING
-      cout<<"  Destroying event"<<endl;
-#endif
       clobjs.erase(clo);
       clo->Destructor();
     }
+    ++it;
   }
 
   // must kill kernels first
@@ -178,7 +200,7 @@ NAN_METHOD(getPlatforms) {
 NAN_METHOD(releaseAll) {
   NanScope();
   
-  AtExit(NULL);
+  AtExit(args[0]->IsUndefined() ? NULL : (void*) args[0]->IntegerValue());
   atExit=true;
 
   NanReturnUndefined();

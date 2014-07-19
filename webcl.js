@@ -67,6 +67,10 @@ process.on('exit',function() {
   cl.releaseAll();
 });
   
+// process.on('SIGINT', function () { 
+//   cl.releaseAll(-1);
+// });
+
 
 //////////////////////////////
 // WebCL object

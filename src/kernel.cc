@@ -287,8 +287,8 @@ NAN_METHOD(Kernel::setArg)
       // printf("TypedArray: len %d, bytes %d, byteOffset %d\n",len,bytes,byteOffset);
       char typeName[256];
       ret = ::clGetKernelArgInfo(k, arg_index, CL_KERNEL_ARG_TYPE_NAME, sizeof(typeName), typeName, NULL);
-      static char* types[]={"char","uchar","short","ushort","int","uint","long","ulong","float","double","half"};
-      static int nTypes=11;
+      static const char* types[]={"char","uchar","short","ushort","int","uint","long","ulong","float","double","half"};
+      static const int nTypes=11;
 
       if(len>1) {
         for(int i=0;i<nTypes;i++) {
