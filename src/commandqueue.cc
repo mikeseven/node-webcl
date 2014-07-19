@@ -45,9 +45,11 @@ namespace webcl {
     if(!arg->IsUndefined() && !arg->IsNull()) { \
       Local<Array> arr = Local<Array>::Cast(arg); \
       num_events_wait_list=arr->Length(); \
-      events_wait_list=new cl_event[num_events_wait_list]; \
-      for(cl_uint i=0;i<num_events_wait_list;i++) \
-        events_wait_list[i]=ObjectWrap::Unwrap<Event>(arr->Get(i)->ToObject())->getEvent(); \
+      if(num_events_wait_list>0) {\
+        events_wait_list=new cl_event[num_events_wait_list]; \
+        for(cl_uint i=0;i<num_events_wait_list;i++) \
+          events_wait_list[i]=ObjectWrap::Unwrap<Event>(arr->Get(i)->ToObject())->getEvent(); \
+      }\
     }
 
 Persistent<FunctionTemplate> CommandQueue::constructor_template;
