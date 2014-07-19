@@ -426,7 +426,12 @@ NAN_METHOD(CommandQueue::enqueueWriteBufferRect)
       ptr = arr->GetIndexedPropertiesExternalArrayData();
     }
     else if(args[9]->IsObject())
-      ptr = args[9]->ToObject()->GetIndexedPropertiesExternalArrayData();
+      Local<Object> obj=args[9]->ToObject();
+      String::AsciiValue name(obj->GetConstructorName());
+      if(!strcmp("Buffer",*name))
+        ptr=Buffer::Data(obj);
+      else
+        ptr = obj->GetIndexedPropertiesExternalArrayData();
     else
       NanThrowError("Invalid memory object");
   }
@@ -577,8 +582,14 @@ NAN_METHOD(CommandQueue::enqueueReadBufferRect)
       Local<Array> arr=Local<Array>::Cast(args[9]);
       ptr = arr->GetIndexedPropertiesExternalArrayData();
     }
-    else if(args[9]->IsObject())
-      ptr = args[9]->ToObject()->GetIndexedPropertiesExternalArrayData();
+    else if(args[9]->IsObject()) {
+      Local<Object> obj=args[9]->ToObject();
+      String::AsciiValue name(obj->GetConstructorName());
+      if(!strcmp("Buffer",*name))
+        ptr=Buffer::Data(obj);
+      else
+        ptr = obj->GetIndexedPropertiesExternalArrayData(); 
+    }
     else
       NanThrowError("Invalid memory object");
   }
@@ -776,8 +787,14 @@ NAN_METHOD(CommandQueue::enqueueWriteImage)
       Local<Array> arr=Local<Array>::Cast(args[6]);
       ptr = arr->GetIndexedPropertiesExternalArrayData();
     }
-    else if(args[6]->IsObject())
-      ptr = args[6]->ToObject()->GetIndexedPropertiesExternalArrayData();
+    else if(args[6]->IsObject()) {
+      Local<Object> obj=args[6]->ToObject();
+      String::AsciiValue name(obj->GetConstructorName());
+      if(!strcmp("Buffer",*name))
+        ptr=Buffer::Data(obj);
+      else
+        ptr = obj->GetIndexedPropertiesExternalArrayData();
+    }
     else
       NanThrowError("Invalid memory object");
   }
@@ -852,8 +869,14 @@ NAN_METHOD(CommandQueue::enqueueReadImage)
       Local<Array> arr=Local<Array>::Cast(args[6]);
       ptr = arr->GetIndexedPropertiesExternalArrayData();
     }
-    else if(args[6]->IsObject())
-      ptr = args[6]->ToObject()->GetIndexedPropertiesExternalArrayData();
+    else if(args[6]->IsObject()) {
+      Local<Object> obj=args[6]->ToObject();
+      String::AsciiValue name(obj->GetConstructorName());
+      if(!strcmp("Buffer",*name))
+        ptr=Buffer::Data(obj);
+      else
+        ptr = obj->GetIndexedPropertiesExternalArrayData();
+    }
     else
       NanThrowError("Invalid memory object");
   }
