@@ -117,8 +117,8 @@ NAN_METHOD(Program::getInfo)
   case CL_PROGRAM_DEVICES: {
     size_t num_devices=0;
     cl_int ret=::clGetProgramInfo(prog->getProgram(), CL_PROGRAM_DEVICES, 0, NULL, &num_devices);
-    cl_device_id devices=new cl_device_id[num_devices];
-    cl_int ret=::clGetProgramInfo(prog->getProgram(), param_name, sizeof(cl_device_id)*num_devices, devices, NULL);
+    cl_device_id *devices=new cl_device_id[num_devices];
+    ret=::clGetProgramInfo(prog->getProgram(), CL_PROGRAM_DEVICES, sizeof(cl_device_id)*num_devices, devices, NULL);
     if (ret != CL_SUCCESS) {
       REQ_ERROR_THROW(CL_INVALID_VALUE);
       REQ_ERROR_THROW(CL_INVALID_PROGRAM);
@@ -127,16 +127,18 @@ NAN_METHOD(Program::getInfo)
       return NanThrowError("UNKNOWN ERROR");
     }
     Local<Array> deviceArray = Array::New(num_devices);
-    for (int i=0; i<num_devices; i++) {
+    for (size_t i=0; i<num_devices; i++) {
       cl_device_id d = devices[i];
       deviceArray->Set(i, NanObjectWrapHandle(Device::New(d)));
     }
+    delete[] devices;
     NanReturnValue(deviceArray);
   }
   case CL_PROGRAM_SOURCE: {
-    char source[1024];
-    size_t param_value_size_ret=0;
-    cl_int ret=::clGetProgramInfo(prog->getProgram(), param_name, sizeof(char)*1024, source, &param_value_size_ret);
+    size_t size=0;
+    cl_int ret=::clGetProgramInfo(prog->getProgram(), CL_PROGRAM_SOURCE, 0, NULL, &size);
+    char *source=new char[size];
+    ret=::clGetProgramInfo(prog->getProgram(), CL_PROGRAM_SOURCE, sizeof(char)*size, source, NULL);
     if (ret != CL_SUCCESS) {
       REQ_ERROR_THROW(CL_INVALID_VALUE);
       REQ_ERROR_THROW(CL_INVALID_PROGRAM);
@@ -144,7 +146,9 @@ NAN_METHOD(Program::getInfo)
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
-    NanReturnValue(JS_STR(source,(int)param_value_size_ret));
+    Local<String> str=String::New(source, (int) size);
+    delete[] source;
+    NanReturnValue(str);
   }
   case CL_PROGRAM_BINARY_SIZES:
     return NanThrowError("CL_PROGRAM_BINARY_SIZES unimplemented");
