@@ -402,7 +402,7 @@ NAN_METHOD(Context::createImage)
 
   size_t width = obj->Get(JS_STR("width"))->Uint32Value();;
   size_t height = obj->Get(JS_STR("height"))->Uint32Value();
-  size_t row_pitch =  obj->Get(JS_STR("rowPitch"))->Uint32Value();
+  size_t row_pitch =  obj->Get(JS_STR("rowPitch"))->IsUndefined() ? 0 : obj->Get(JS_STR("rowPitch"))->Uint32Value();
 
   void *host_ptr=NULL;
   if(args[2]->IsObject()) {
@@ -426,8 +426,8 @@ NAN_METHOD(Context::createImage)
 
   }
   else {
-    size_t depth = obj->Get(JS_STR("depth"))->Uint32Value();
-    size_t slice_pitch =obj->Get(JS_STR("slicePitch"))->Uint32Value();
+    size_t depth = obj->Get(JS_STR("depth"))->IsUndefined() ? 0 : obj->Get(JS_STR("depth"))->Uint32Value();
+    size_t slice_pitch =obj->Get(JS_STR("slicePitch"))->IsUndefined() ? 0 : obj->Get(JS_STR("slicePitch"))->Uint32Value();
     mw = ::clCreateImage3D(
                 context->getContext(), flags, &image_format,
                 width, height, depth, row_pitch,

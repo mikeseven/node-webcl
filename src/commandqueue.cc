@@ -864,16 +864,16 @@ NAN_METHOD(CommandQueue::enqueueReadImage)
       region[i]=arr->Get(i)->Uint32Value();
 
   size_t row_pitch = args[4]->Uint32Value();
-  size_t slice_pitch = args[5]->Uint32Value();
+  size_t slice_pitch = 0;
 
   void *ptr=NULL;
-  if(!args[6]->IsUndefined()) {
-    if(args[6]->IsArray()) {
-      Local<Array> arr=Local<Array>::Cast(args[6]);
+  if(!args[5]->IsUndefined()) {
+    if(args[5]->IsArray()) {
+      Local<Array> arr=Local<Array>::Cast(args[5]);
       ptr = arr->GetIndexedPropertiesExternalArrayData();
     }
-    else if(args[6]->IsObject()) {
-      Local<Object> obj=args[6]->ToObject();
+    else if(args[5]->IsObject()) {
+      Local<Object> obj=args[5]->ToObject();
       String::AsciiValue name(obj->GetConstructorName());
       if(!strcmp("Buffer",*name))
         ptr=Buffer::Data(obj);
@@ -884,16 +884,17 @@ NAN_METHOD(CommandQueue::enqueueReadImage)
       NanThrowError("Invalid memory object");
   }
 
-  MakeEventWaitList(args[7]);
+  MakeEventWaitList(args[6]);
 
   cl_event event;
-  bool no_event = (args[8]->IsUndefined() || args[8]->IsNull());
+  bool no_event = (args[7]->IsUndefined() || args[7]->IsNull());
 
   cl_int ret=::clEnqueueReadImage(
       cq->getCommandQueue(), mo->getMemory(), blocking_read,
       origin,
       region,
-      row_pitch, slice_pitch, ptr,
+      row_pitch, slice_pitch, 
+      ptr,
       num_events_wait_list,
       events_wait_list,
       no_event ? NULL : &event);

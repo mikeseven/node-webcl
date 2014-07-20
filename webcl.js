@@ -317,23 +317,22 @@ cl.WebCLCommandQueue.prototype.enqueueWriteImage=function (image, blocking_write
   return this._enqueueWriteImage(image, blocking_write, origin, region, row_pitch, slice_pitch, ptr, event_list, event);
 }
 
-cl.WebCLCommandQueue.prototype.enqueueReadImage=function (image, blocking_read, origin, region, row_pitch, slice_pitch,
+cl.WebCLCommandQueue.prototype.enqueueReadImage=function (image, blocking_read, origin, region, row_pitch,
                                                           ptr, event_list, event) {
-  if (!(arguments.length >= 7 && 
+  if (!(arguments.length >= 6 && 
     checkObjectType(image, 'WebCLImage') &&
     typeof origin === 'object' &&
     typeof region === 'object' &&
     typeof row_pitch === 'number' &&
-    typeof slice_pitch === 'number' &&
     typeof ptr === 'object' &&
     (event_list==null || typeof event_list === 'undefined' || typeof event_list === 'object') &&
     (event==null || typeof event === 'undefined' || checkObjectType(event, 'WebCLEvent'))
   )) {
     throw new TypeError('Expected WebCLCommandQueue.enqueueReadImage(WebCLImage image, boolean blocking_write, ' +
-        'uint[3] region, uint row_pitch, uint slice_pitch, ' +
-        'ArrayBuffer ptr, WebCLEvent[] event_list, WebCLEvent event)');
+        'uint[3] region, uint row_pitch, ' +
+        'ArrayBuffer ptr, optional WebCLEvent[] event_list, optional WebCLEvent event)');
   }
-  return this._enqueueReadImage(image, blocking_read, origin, region, row_pitch, slice_pitch, ptr, event_list, event);
+  return this._enqueueReadImage(image, blocking_read, origin, region, row_pitch, ptr, event_list, event);
 }
 
 cl.WebCLCommandQueue.prototype.enqueueCopyImage=function (src_image, dst_image, src_origin, dst_origin, region,
@@ -616,8 +615,8 @@ cl.WebCLContext.prototype.createBuffer=function (flags, size, host_ptr) {
 cl.WebCLContext.prototype.createImage=function (flags, descriptor, host_ptr) {
   if (!(arguments.length === 3 && typeof flags === 'number' &&
     typeof descriptor === 'object' &&
-    typeof host_ptr === 'object')) {
-    throw new TypeError('Expected WebCLContext.createImage3D(CLenum flags, WebCL.WebCLImageDescriptor descriptor, ' +
+    (host_ptr==null || typeof host_ptr==='undefined' || typeof host_ptr === 'object'))) {
+    throw new TypeError('Expected WebCLContext.createImage(CLenum flags, WebCL.WebCLImageDescriptor descriptor, ' +
       'ArrayBuffer host_ptr)');
   }
   return this._createImage(flags, descriptor, host_ptr);
