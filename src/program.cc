@@ -115,9 +115,10 @@ NAN_METHOD(Program::getInfo)
     NanReturnValue(NanObjectWrapHandle(Context::New(value)));
   }
   case CL_PROGRAM_DEVICES: {
-    cl_device_id devices[1024];
-    size_t param_value_size_ret=0;
-    cl_int ret=::clGetProgramInfo(prog->getProgram(), param_name, sizeof(cl_device_id)*1024, devices, &param_value_size_ret);
+    size_t num_devices=0;
+    cl_int ret=::clGetProgramInfo(prog->getProgram(), CL_PROGRAM_DEVICES, 0, NULL, &num_devices);
+    cl_device_id devices=new cl_device_id[num_devices];
+    cl_int ret=::clGetProgramInfo(prog->getProgram(), param_name, sizeof(cl_device_id)*num_devices, devices, NULL);
     if (ret != CL_SUCCESS) {
       REQ_ERROR_THROW(CL_INVALID_VALUE);
       REQ_ERROR_THROW(CL_INVALID_PROGRAM);
@@ -125,7 +126,6 @@ NAN_METHOD(Program::getInfo)
       REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
-    int num_devices=(int)param_value_size_ret;
     Local<Array> deviceArray = Array::New(num_devices);
     for (int i=0; i<num_devices; i++) {
       cl_device_id d = devices[i];
