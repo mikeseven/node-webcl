@@ -40,7 +40,7 @@ else
 if (WebCL == undefined) {
   alert("Unfortunately your system does not support WebCL. " +
   "Make sure that you have the WebCL extension installed.");
-  return;
+  process.exit(-1);
 }
 
 process.on('exit',function() {
@@ -88,7 +88,7 @@ log("  Using Device "+ uiTargetDevice+": "+device.getInfo(WebCL.DEVICE_NAME));
 var hasImageSupport=device.getInfo(WebCL.DEVICE_IMAGE_SUPPORT);
 if(hasImageSupport != WebCL.TRUE) {
   log("No image support");
-  return;
+  process.exit(-1);
 }
 
 var numComputeUnits=device.getInfo(WebCL.DEVICE_MAX_COMPUTE_UNITS);

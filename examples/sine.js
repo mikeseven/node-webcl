@@ -47,7 +47,7 @@ requestAnimationFrame = document.requestAnimationFrame;
 if (WebCL == undefined) {
   alert("Unfortunately your system does not support WebCL. "
       + "Make sure that you have the WebCL extension installed.");
-  return;
+  process.exit(-1);
 }
 
 //Rendering window vars
