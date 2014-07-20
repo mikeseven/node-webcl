@@ -145,7 +145,8 @@ cl.WebCLCommandQueue.prototype.getInfo=function (param_name) {
 
 cl.WebCLCommandQueue.prototype.enqueueNDRangeKernel=function (kernel, workDim, offsets, globals, locals, event_list, event) {
   if (!(arguments.length>= 4 && checkObjectType(kernel, 'WebCLKernel') && (typeof workDim === 'number') &&
-      typeof offsets === 'object' && typeof globals === 'object' && (typeof locals === 'object' || typeof locals === 'undefined') &&
+      typeof offsets === 'object' && typeof globals === 'object' && 
+      (locals==null || typeof locals === 'undefined' || typeof locals === 'object') &&
       (event_list==null || typeof event_list === 'undefined' || typeof event_list === 'object') &&
       (event==null || typeof event === 'undefined' || checkObjectType(event, 'WebCLEvent'))
       )) {
@@ -972,8 +973,8 @@ cl.WebCLProgram.prototype.build=function (devices, options, data, callback) {
   if (  !(arguments.length === 1 && typeof devices === 'object') &&
         !(arguments.length >= 2 && typeof devices === 'object' && 
             (options==null || typeof options==='undefined' || typeof options === 'string')) &&
-        !(typeof data === 'undefined' || typeof data === 'object') &&
-        !(typeof callback === 'undefined' || callback==null || typeof callback === 'function')
+        !(data==null || typeof data === 'undefined' || typeof data === 'object') &&
+        !(callback==null || typeof callback === 'undefined' || typeof callback === 'function')
         ) {
     throw new TypeError('Expected WebCLProgram.build(WebCLDevice[] devices, String options, any data, function callback)');
   }
