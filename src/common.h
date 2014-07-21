@@ -102,8 +102,21 @@ namespace {
     NanThrowTypeError("Argument " #I " must be a function");            \
   Local<Function> VAR = Local<Function>::Cast(args[I]);
 
-#define REQ_ERROR_THROW_NONE(error) if (ret == error) { NanThrowError(String::New(#error)); return; }
-#define REQ_ERROR_THROW(error) if (ret == error) { NanThrowError(String::New(#error)); NanReturnUndefined(); }
+#define REQ_ERROR_THROW_NONE(error) if (ret == error) { \
+    /* NanThrowError(String::New(#error)); return; */ \
+    Local<Object> err=Exception::Error(JS_STR(ErrorDesc(error)))->ToObject(); \
+    err->Set(JS_STR("name"),JS_STR(#error)); \
+    err->Set(JS_STR("code"),JS_INT(error)); \
+    return; \
+  }
+
+#define REQ_ERROR_THROW(error) if (ret == error) { \
+    /* NanThrowError(String::New(#error)); NanReturnUndefined(); */ \
+    Local<Object> err=Exception::Error(JS_STR(ErrorDesc(error)))->ToObject(); \
+    err->Set(JS_STR("name"),JS_STR(#error)); \
+    err->Set(JS_STR("code"),JS_INT(error)); \
+    return ThrowException(err); \
+  }
 
 #define DESTROY_WEBCL_OBJECT(obj)	\
   obj->Destructor();			\
@@ -112,6 +125,8 @@ namespace {
 } // namespace
 
 namespace webcl {
+
+const char* ErrorDesc(cl_int err);
 
 // generic baton for async callbacks
 struct Baton {

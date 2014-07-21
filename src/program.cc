@@ -150,10 +150,50 @@ NAN_METHOD(Program::getInfo)
     delete[] source;
     NanReturnValue(str);
   }
-  case CL_PROGRAM_BINARY_SIZES:
-    return NanThrowError("CL_PROGRAM_BINARY_SIZES unimplemented");
-  case CL_PROGRAM_BINARIES:
-    return NanThrowError("CL_PROGRAM_BINARIES unimplemented");
+  case CL_PROGRAM_BINARY_SIZES: {
+    size_t nsizes=0;
+    cl_int ret=::clGetProgramInfo(prog->getProgram(), CL_PROGRAM_BINARY_SIZES, 0, NULL, &nsizes);
+    size_t *sizes=new size_t[nsizes];
+    ret=::clGetProgramInfo(prog->getProgram(), CL_PROGRAM_BINARY_SIZES, sizeof(size_t)*nsizes, sizes, NULL);
+    if (ret != CL_SUCCESS) {
+      REQ_ERROR_THROW(CL_INVALID_VALUE);
+      REQ_ERROR_THROW(CL_INVALID_PROGRAM);
+      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      return NanThrowError("UNKNOWN ERROR");
+    }
+    Local<Array> sizesArray = Array::New(nsizes);
+    for (size_t i=0; i<nsizes; i++) {
+      sizesArray->Set(i, JS_INT(sizes[i]));
+    }
+    delete[] sizes;
+    NanReturnValue(sizesArray);
+  }
+  case CL_PROGRAM_BINARIES: { // TODO
+    return NanThrowError("PROGRAM_BINARIES not implemented");
+
+    size_t nbins=0;
+    cl_int ret=::clGetProgramInfo(prog->getProgram(), CL_PROGRAM_BINARIES, 0, NULL, &nbins);
+    char* *binaries=new char*[nbins];
+    ret=::clGetProgramInfo(prog->getProgram(), CL_PROGRAM_BINARIES, sizeof(char*)*nbins, binaries, NULL);
+    if (ret != CL_SUCCESS) {
+      REQ_ERROR_THROW(CL_INVALID_VALUE);
+      REQ_ERROR_THROW(CL_INVALID_PROGRAM);
+      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      return NanThrowError("UNKNOWN ERROR");
+    }
+
+    // TODO create an array for Uint8Array to return each binary associated to each device
+    // Handle<Value> abv = Context::GetCurrent()->Global()->Get(String::NewSymbol("ArrayBuffer"));
+    // Handle<Value> argv[] = { Integer::NewFromUnsigned(size) };
+    // Handle<Object> arrbuf = Handle<Function>::Cast(abv)->NewInstance(1, argv);
+    // void *buffer = arrbuf->GetPointerFromInternalField(0);
+    // memcpy(buffer, data, size);
+
+    delete[] binaries;
+    NanReturnUndefined();
+  }
   default:
     return NanThrowError("UNKNOWN param_name");
   }

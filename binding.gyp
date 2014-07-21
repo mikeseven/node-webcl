@@ -11,6 +11,7 @@
         'src/context.cc',
         'src/device.cc',
         'src/event.cc',
+        'src/exceptions.cc',
         'src/kernel.cc',
         'src/memoryobject.cc',
         'src/platform.cc',
