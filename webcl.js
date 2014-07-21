@@ -165,19 +165,19 @@ cl.WebCLCommandQueue.prototype.enqueueTask=function (kernel, event_list, event) 
   return this._enqueueTask(kernel, event_list, event);
 }
 
-cl.WebCLCommandQueue.prototype.enqueueWriteBuffer=function (buffer, blocking_write, offset, cb, ptr, event_list, event) {
+cl.WebCLCommandQueue.prototype.enqueueWriteBuffer=function (buffer, blocking_write, offset, sizeInBytes, ptr, event_list, event) {
     if (!(arguments.length >= 5 &&
       checkObjectType(buffer, 'WebCLBuffer') &&
       (typeof blocking_write === 'boolean' || typeof blocking_write === 'number') &&
-      typeof offset === 'number' && typeof cb === 'number' &&
+      typeof offset === 'number' && typeof sizeInBytes === 'number' &&
       typeof ptr === 'object' &&
       (event_list==null || typeof event_list === 'undefined' || typeof event_list === 'object') &&
       (event==null || typeof event === 'undefined' || checkObjectType(event, 'WebCLEvent'))
       )) {
         throw new TypeError('Expected WebCLCommandQueue.enqueueWriteBuffer(WebCLBuffer buffer, boolean blocking_write, ' +
-            'uint offset, uint cb, ArrayBuffer ptr, WebCLEvent[] event_list, WebCLEvent event)');
+            'uint offset, uint sizeInBytes, ArrayBuffer ptr, WebCLEvent[] event_list, WebCLEvent event)');
     }
-    return this._enqueueWriteBuffer(buffer, blocking_write, offset, cb, ptr, event_list, event);
+    return this._enqueueWriteBuffer(buffer, blocking_write, offset, sizeInBytes, ptr, event_list, event);
 }
 
 cl.WebCLCommandQueue.prototype.enqueueReadBuffer=function (buffer, blocking_read, offset, cb, ptr, event_list, event) {
