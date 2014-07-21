@@ -856,11 +856,8 @@ cl.WebCLImage.prototype.release=function () {
   return this._release();
 }
 
-cl.WebCLImage.prototype.getInfo=function (param_name) {
-  if (!(arguments.length === 1 && typeof param_name === 'number')) {
-    throw new TypeError('Expected WebCLImage.getInfo(CLenum param_name)');
-  }
-  return this._getImageInfo(param_name);
+cl.WebCLImage.prototype.getInfo=function () {
+  return this._getImageInfo();
 }
 
 cl.WebCLImage.prototype.getGLObjectInfo=function () {

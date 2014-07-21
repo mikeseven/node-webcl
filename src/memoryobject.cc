@@ -340,46 +340,42 @@ NAN_METHOD(WebCLImage::getInfo)
 {
   NanScope();
   WebCLImage *mo = ObjectWrap::Unwrap<WebCLImage>(args.This());;
-  cl_mem_info param_name = args[0]->Uint32Value();
 
-  switch (param_name) {
-  case CL_IMAGE_ELEMENT_SIZE:
-  case CL_IMAGE_ROW_PITCH:
-  case CL_IMAGE_SLICE_PITCH:
-  case CL_IMAGE_WIDTH:
-  case CL_IMAGE_HEIGHT:
-  case CL_IMAGE_DEPTH: {
-    size_t param_value=0;
-    cl_int ret=::clGetImageInfo(mo->getMemory(),param_name,sizeof(size_t), &param_value, NULL);
-    if (ret != CL_SUCCESS) {
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_INVALID_MEM_OBJECT);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return NanThrowError("UNKNOWN ERROR");
-    }
-    NanReturnValue(JS_INT((int32_t)param_value));
+  Local<Object> obj = Object::New();
+  cl_image_format param_value;
+  cl_int ret=::clGetImageInfo(mo->getMemory(),CL_IMAGE_FORMAT,sizeof(cl_image_format), &param_value, NULL);
+  if (ret != CL_SUCCESS) {
+    REQ_ERROR_THROW(CL_INVALID_VALUE);
+    REQ_ERROR_THROW(CL_INVALID_MEM_OBJECT);
+    REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+    return NanThrowError("UNKNOWN ERROR");
   }
-  case CL_IMAGE_FORMAT: {
-    cl_image_format param_value;
-    cl_int ret=::clGetImageInfo(mo->getMemory(),param_name,sizeof(cl_image_format), &param_value, NULL);
-    if (ret != CL_SUCCESS) {
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_INVALID_MEM_OBJECT);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return NanThrowError("UNKNOWN ERROR");
-    }
-    cl_channel_order channel_order = param_value.image_channel_order;
-    cl_channel_type channel_type = param_value.image_channel_data_type;
-    Local<Object> obj = Object::New();
-    obj->Set(JS_STR("order"), JS_INT(channel_order));
-    obj->Set(JS_STR("data_type"), JS_INT(channel_type));
-    NanReturnValue(obj);
+
+  obj->Set(JS_STR("channelOrder"), JS_INT(param_value.image_channel_order));
+  obj->Set(JS_STR("channelType"), JS_INT(param_value.image_channel_data_type));
+
+  size_t value=0;
+  ret |= ::clGetImageInfo(mo->getMemory(),CL_IMAGE_WIDTH,sizeof(size_t), &value, NULL);
+  obj->Set(JS_STR("width"), JS_INT(value));
+  ret |= ::clGetImageInfo(mo->getMemory(),CL_IMAGE_HEIGHT,sizeof(size_t), &value, NULL);
+  obj->Set(JS_STR("height"), JS_INT(value));
+  ret |= ::clGetImageInfo(mo->getMemory(),CL_IMAGE_DEPTH,sizeof(size_t), &value, NULL);
+  obj->Set(JS_STR("depth"), JS_INT(value));
+  ret |= ::clGetImageInfo(mo->getMemory(),CL_IMAGE_ROW_PITCH,sizeof(size_t), &value, NULL);
+  obj->Set(JS_STR("rowPitch"), JS_INT(value));
+  ret |= ::clGetImageInfo(mo->getMemory(),CL_IMAGE_SLICE_PITCH,sizeof(size_t), &value, NULL);
+  obj->Set(JS_STR("slicePitch"), JS_INT(value));
+
+  if (ret != CL_SUCCESS) {
+    REQ_ERROR_THROW(CL_INVALID_VALUE);
+    REQ_ERROR_THROW(CL_INVALID_MEM_OBJECT);
+    REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+    return NanThrowError("UNKNOWN ERROR");
   }
-  default:
-    return NanThrowError("UNKNOWN param_name");
-  }
+
+  NanReturnValue(obj);
 }
 
 NAN_METHOD(WebCLImage::getGLObjectInfo)
