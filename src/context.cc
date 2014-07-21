@@ -405,7 +405,7 @@ NAN_METHOD(Context::createImage)
   size_t row_pitch =  obj->Get(JS_STR("rowPitch"))->IsUndefined() ? 0 : obj->Get(JS_STR("rowPitch"))->Uint32Value();
 
   void *host_ptr=NULL;
-  if(args[2]->IsObject()) {
+  if(!args[2]->IsUndefined() && args[2]->IsObject()) {
     Local<Object> obj=args[2]->ToObject();
     String::AsciiValue name(obj->GetConstructorName());
     if(!strcmp("Buffer",*name))

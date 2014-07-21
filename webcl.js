@@ -613,7 +613,7 @@ cl.WebCLContext.prototype.createBuffer=function (flags, size, host_ptr) {
 }
 
 cl.WebCLContext.prototype.createImage=function (flags, descriptor, host_ptr) {
-  if (!(arguments.length === 3 && typeof flags === 'number' &&
+  if (!(arguments.length >=2 && typeof flags === 'number' &&
     typeof descriptor === 'object' &&
     (host_ptr==null || typeof host_ptr==='undefined' || typeof host_ptr === 'object'))) {
     throw new TypeError('Expected WebCLContext.createImage(CLenum flags, WebCL.WebCLImageDescriptor descriptor, ' +
