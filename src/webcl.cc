@@ -59,6 +59,19 @@ void unregisterCLObj(WebCLObject* obj) {
   clobjs.erase(obj);
 }
 
+/**
+ * Finds the WebCL objet already associated with an OpenCL object
+ */
+WebCLObject* findCLObj(void *clObj) {
+  set<WebCLObject*>::iterator it = clobjs.begin();
+  while(it != clobjs.end()) {
+    WebCLObject *clo = *it++;
+    if(clo->isEqual(clObj))
+      return clo;
+  }
+  return NULL;
+}
+
 void AtExit(void* arg) {
   atExit=true;
   #ifdef LOGGING

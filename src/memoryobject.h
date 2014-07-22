@@ -47,6 +47,7 @@ public:
   
   cl_mem getMemory() const { return memory; };
   bool isMemoryObject() const { return true; }
+  virtual bool isEqual(void *clObj) { return ((cl_mem)clObj)==memory; }
 
 private:
   static v8::Persistent<v8::FunctionTemplate> constructor_template;

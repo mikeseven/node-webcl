@@ -153,8 +153,22 @@ void registerCLObj(WebCLObject* obj);
 void unregisterCLObj(WebCLObject* obj);
 void AtExit(void* arg);
 
+enum CLObjType {
+  CLObjType_None,
+  CLObjType_Context,
+  CLObjType_CommandQueue,
+  CLObjType_Kernel,
+  CLObjType_Program,
+  CLObjType_Sampler,
+  CLObjType_Event,
+  CLObjType_MemoryObject
+};
+
+WebCLObject* findCLObj(void* type);
+
 class WebCLObject : public node::ObjectWrap {
 protected:
+  WebCLObject() : _type(CLObjType_None) {}
   virtual ~WebCLObject() {
     // printf("Destructor WebCLObject\n");
     Destructor();
@@ -163,13 +177,18 @@ protected:
 
 public:
   virtual void Destructor() {}
-  virtual bool isKernel() const { return false; }
-  virtual bool isCommandQueue() const { return false; }
-  virtual bool isMemoryObject() const { return false; }
-  virtual bool isProgram() const { return false; }
-  virtual bool isSampler() const { return false; }
-  virtual bool isEvent() const { return false; }
-  virtual bool isContext() const { return false; }
+  CLObjType getType() { return _type; }
+  virtual bool isKernel() const { return _type & CLObjType_Kernel; }
+  virtual bool isCommandQueue() const { return _type & CLObjType_CommandQueue; }
+  virtual bool isMemoryObject() const { return _type & CLObjType_MemoryObject; }
+  virtual bool isProgram() const { return _type & CLObjType_Program; }
+  virtual bool isSampler() const { return _type & CLObjType_Sampler; }
+  virtual bool isEvent() const { return _type & CLObjType_Event; }
+  virtual bool isContext() const { return _type & CLObjType_Context; }
+  virtual bool isEqual(void *clObj) { return false; }
+
+protected:
+  CLObjType _type;
 };
 
 } // namespace webcl

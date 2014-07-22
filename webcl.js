@@ -842,7 +842,7 @@ cl.WebCLBuffer.prototype.getGLObjectInfo=function () {
 }
 
 cl.WebCLBuffer.prototype.createSubBuffer=function (flags, origin, sizeInBytes) {
-  if (!(arguments.length === 3 && typeof flags === 'number' && typeof type === 'number' && typeof sizeInBytes === 'number')) {
+  if (!(arguments.length === 3 && typeof flags === 'number' && typeof origin === 'number' && typeof sizeInBytes === 'number')) {
     throw new TypeError('Expected WebCLMemoryObject.createSubBuffer(CLenum flags, CLuint origin, CLuint sizeInBytes)');
   }
   return this._createSubBuffer(flags, origin, sizeInBytes);

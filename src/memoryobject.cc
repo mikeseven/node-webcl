@@ -25,6 +25,7 @@
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "memoryobject.h"
+#include "context.h"
 #include <node_buffer.h>
 
 using namespace v8;
@@ -82,13 +83,23 @@ NAN_METHOD(MemoryObject::getInfo)
   cl_mem_info param_name = args[0]->Uint32Value();
 
   switch (param_name) {
-  case CL_MEM_TYPE:
-  case CL_MEM_FLAGS:
-  case CL_MEM_REFERENCE_COUNT:
-  case CL_MEM_MAP_COUNT: {
-    cl_uint param_value=0;
-    cl_int ret=::clGetMemObjectInfo(mo->getMemory(),param_name,sizeof(cl_uint), &param_value, NULL);
-    if (ret != CL_SUCCESS) {
+  case CL_MEM_TYPE: {
+    cl_mem_object_type param_value=0;
+    cl_int ret=::clGetMemObjectInfo(mo->getMemory(),param_name,sizeof(cl_mem_object_type), &param_value, NULL);
+     if (ret != CL_SUCCESS) {
+      REQ_ERROR_THROW(CL_INVALID_VALUE);
+      REQ_ERROR_THROW(CL_INVALID_MEM_OBJECT);
+      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      return NanThrowError("UNKNOWN ERROR");
+    }
+
+    NanReturnValue(Integer::NewFromUnsigned(param_value));
+  }
+  case CL_MEM_FLAGS: {
+    cl_mem_flags param_value=0;
+    cl_int ret=::clGetMemObjectInfo(mo->getMemory(),param_name,sizeof(cl_mem_flags), &param_value, NULL);
+     if (ret != CL_SUCCESS) {
       REQ_ERROR_THROW(CL_INVALID_VALUE);
       REQ_ERROR_THROW(CL_INVALID_MEM_OBJECT);
       REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
@@ -114,7 +125,7 @@ NAN_METHOD(MemoryObject::getInfo)
   }
   case CL_MEM_ASSOCIATED_MEMOBJECT: {
     cl_mem param_value=NULL;
-    cl_int ret=::clGetMemObjectInfo(mo->getMemory(),param_name,sizeof(size_t), &param_value, NULL);
+    cl_int ret=::clGetMemObjectInfo(mo->getMemory(),param_name,sizeof(cl_mem), &param_value, NULL);
     if (ret != CL_SUCCESS) {
       REQ_ERROR_THROW(CL_INVALID_VALUE);
       REQ_ERROR_THROW(CL_INVALID_MEM_OBJECT);
@@ -123,7 +134,33 @@ NAN_METHOD(MemoryObject::getInfo)
       return NanThrowError("UNKNOWN ERROR");
     }
 
-    NanReturnValue(NanObjectWrapHandle(MemoryObject::New(param_value)));
+    if(param_value) {
+      WebCLObject *obj=findCLObj((void*)param_value);
+      if(obj) {
+        clRetainMemObject(param_value);
+        NanReturnValue(NanObjectWrapHandle(obj));
+      }
+    }
+    NanReturnUndefined();
+  }
+  case CL_MEM_CONTEXT: {
+    cl_context param_value=NULL;
+    cl_int ret=::clGetMemObjectInfo(mo->getMemory(),param_name,sizeof(cl_context), &param_value, NULL);
+    if (ret != CL_SUCCESS) {
+      REQ_ERROR_THROW(CL_INVALID_VALUE);
+      REQ_ERROR_THROW(CL_INVALID_MEM_OBJECT);
+      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      return NanThrowError("UNKNOWN ERROR");
+    }
+    if(param_value) {
+      WebCLObject *obj=findCLObj((void*)param_value);
+      if(obj) {
+        clRetainContext(param_value);
+        NanReturnValue(NanObjectWrapHandle(obj));
+      }
+    }
+    NanReturnUndefined();
   }
   case CL_MEM_HOST_PTR: {
     char *param_value=NULL;
@@ -215,6 +252,8 @@ void WebCLBuffer::Init(Handle<Object> target)
 
   // prototype
   NODE_SET_PROTOTYPE_METHOD(ctor, "_createSubBuffer", createSubBuffer);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_getInfo", getInfo);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_getGLObjectInfo", getGLObjectInfo);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_release", release);
 
   target->Set(NanSymbol("WebCLBuffer"), ctor->GetFunction());
@@ -316,6 +355,7 @@ void WebCLImage::Init(Handle<Object> target)
 
   // prototype
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getInfo", getInfo);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_getGLObjectInfo", getGLObjectInfo);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getGLTextureInfo", getGLTextureInfo);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_release", release);
 
