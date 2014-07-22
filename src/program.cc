@@ -275,7 +275,7 @@ class ProgramWorker : public NanAsyncWorker {
   // should go on `this`.
   void Execute () {
     // SetErrorMessage("Error");
-    // printf("[async event] execute\n");
+    // printf("[build] execute\n");
   }
 
   // Executed when the async work is complete
@@ -285,11 +285,10 @@ class ProgramWorker : public NanAsyncWorker {
     NanScope();
 
     Local<Value> argv[]={
-        JS_INT(baton_->error),
-        NanPersistentToLocal(baton_->data)
+        JS_INT(baton_->error)
     };
 
-    // printf("[async event] callback JS\n");
+    // printf("[build] callback JS\n");
     callback->Call(2, argv);
   }
 
@@ -310,13 +309,14 @@ void Program::callback (cl_program program, void *user_data)
     cl_device_id *devices=new cl_device_id[num_devices];
     ::clGetProgramInfo(program, CL_PROGRAM_DEVICES, sizeof(cl_device_id)*num_devices, devices, NULL);
     for(int i=0;i<num_devices;i++) {
-      int err;
+      int err=CL_SUCCESS;
       ::clGetProgramBuildInfo(program, devices[i], CL_PROGRAM_BUILD_STATUS, sizeof(int), &err, NULL);
       baton->error |= err;
     }
     delete[] devices;
   }
 
+  printf("[build] calling async JS cb\n");
   NanAsyncQueueWorker(new ProgramWorker(baton));
 }
 
@@ -358,15 +358,13 @@ NAN_METHOD(Program::build)
   }
 
   Baton *baton=NULL;
-  if(args.Length()==4 && !args[3]->IsUndefined() && args[3]->IsFunction()) {
+  if(args.Length()==3 && !args[2]->IsUndefined() && args[2]->IsFunction()) {
 
     baton=new Baton();
-    baton->callback=new NanCallback(args[3].As<Function>());
-    if(!args[2].IsEmpty() && !args[2]->IsUndefined() && !args[2]->IsNull()) {
-      Local<Value> data=args[2];
-      NanAssignPersistent(v8::Value, baton->data, data);
-    }
+    baton->callback=new NanCallback(args[2].As<Function>());
   }
+
+  printf("Build program with baton %p\n",baton);
 
   cl_int ret = ::clBuildProgram(prog->getProgram(), num, devices,
       options,

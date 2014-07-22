@@ -965,16 +965,15 @@ cl.WebCLProgram.prototype.getBuildInfo=function (device, param_name) {
   return this._getBuildInfo(device, param_name);
 }
 
-cl.WebCLProgram.prototype.build=function (devices, options, data, callback) {
+cl.WebCLProgram.prototype.build=function (devices, options, callback) {
   if (  !(arguments.length === 1 && typeof devices === 'object') &&
         !(arguments.length >= 2 && typeof devices === 'object' && 
             (options==null || typeof options==='undefined' || typeof options === 'string')) &&
-        !(data==null || typeof data === 'undefined' || typeof data === 'object') &&
         !(callback==null || typeof callback === 'undefined' || typeof callback === 'function')
         ) {
-    throw new TypeError('Expected WebCLProgram.build(WebCLDevice[] devices, String options, any data, function callback)');
+    throw new TypeError('Expected WebCLProgram.build(WebCLDevice[] devices, String options, function callback)');
   }
-  return this._build(devices, options, data, callback);
+  return this._build(devices, options, callback);
 }
 
 cl.WebCLProgram.prototype.createKernel=function (name) {
