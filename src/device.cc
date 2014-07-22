@@ -75,10 +75,10 @@ NAN_METHOD(Device::getInfo)
     size_t param_value_size_ret=0;
     cl_int ret=::clGetDeviceInfo(device->device_id, param_name, sizeof(char)*1024, param_value, &param_value_size_ret);
     if (ret != CL_SUCCESS) {
-      REQ_ERROR_THROW(CL_INVALID_DEVICE);
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(INVALID_DEVICE);
+      REQ_ERROR_THROW(INVALID_VALUE);
+      REQ_ERROR_THROW(OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
     // NOTE: Adjust length because API returns NULL terminated string
@@ -90,10 +90,10 @@ NAN_METHOD(Device::getInfo)
 
     cl_int ret=::clGetDeviceInfo(device->device_id, param_name, sizeof(cl_platform_id), &param_value, NULL);
     if (ret != CL_SUCCESS) {
-      REQ_ERROR_THROW(CL_INVALID_DEVICE);
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(INVALID_DEVICE);
+      REQ_ERROR_THROW(INVALID_VALUE);
+      REQ_ERROR_THROW(OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
     NanReturnValue(Integer::NewFromUnsigned((unsigned long)param_value));
@@ -106,10 +106,10 @@ NAN_METHOD(Device::getInfo)
     #endif
     cl_int ret=::clGetDeviceInfo(device->device_id, param_name, sizeof(cl_device_type), &param_value, NULL);
     if (ret != CL_SUCCESS) {
-      REQ_ERROR_THROW(CL_INVALID_DEVICE);
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(INVALID_DEVICE);
+      REQ_ERROR_THROW(INVALID_VALUE);
+      REQ_ERROR_THROW(OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
     NanReturnValue(Integer::NewFromUnsigned((unsigned long)param_value));
@@ -119,10 +119,10 @@ NAN_METHOD(Device::getInfo)
     cl_device_local_mem_type param_value;
     cl_int ret=::clGetDeviceInfo(device->device_id, param_name, sizeof(cl_device_local_mem_type), &param_value, NULL);
     if (ret != CL_SUCCESS) {
-      REQ_ERROR_THROW(CL_INVALID_DEVICE);
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(INVALID_DEVICE);
+      REQ_ERROR_THROW(INVALID_VALUE);
+      REQ_ERROR_THROW(OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
     NanReturnValue(Integer::New(param_value));
@@ -132,10 +132,10 @@ NAN_METHOD(Device::getInfo)
     cl_device_mem_cache_type param_value;
     cl_int ret=::clGetDeviceInfo(device->device_id, param_name, sizeof(cl_device_mem_cache_type), &param_value, NULL);
     if (ret != CL_SUCCESS) {
-      REQ_ERROR_THROW(CL_INVALID_DEVICE);
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(INVALID_DEVICE);
+      REQ_ERROR_THROW(INVALID_VALUE);
+      REQ_ERROR_THROW(OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
     NanReturnValue(Integer::New(param_value));
@@ -145,10 +145,10 @@ NAN_METHOD(Device::getInfo)
     cl_device_exec_capabilities param_value;
     cl_int ret=::clGetDeviceInfo(device->device_id, param_name, sizeof(cl_device_exec_capabilities), &param_value, NULL);
     if (ret != CL_SUCCESS) {
-      REQ_ERROR_THROW(CL_INVALID_DEVICE);
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(INVALID_DEVICE);
+      REQ_ERROR_THROW(INVALID_VALUE);
+      REQ_ERROR_THROW(OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
     NanReturnValue(Integer::NewFromUnsigned(param_value));
@@ -158,10 +158,10 @@ NAN_METHOD(Device::getInfo)
     cl_command_queue_properties param_value;
     cl_int ret=::clGetDeviceInfo(device->device_id, param_name, sizeof(cl_command_queue_properties), &param_value, NULL);
     if (ret != CL_SUCCESS) {
-      REQ_ERROR_THROW(CL_INVALID_DEVICE);
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(INVALID_DEVICE);
+      REQ_ERROR_THROW(INVALID_VALUE);
+      REQ_ERROR_THROW(OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
     NanReturnValue(Integer::NewFromUnsigned(param_value));
@@ -173,10 +173,10 @@ NAN_METHOD(Device::getInfo)
     cl_device_fp_config param_value;
     cl_int ret=::clGetDeviceInfo(device->device_id, param_name, sizeof(cl_device_fp_config), &param_value, NULL);
     if (ret != CL_SUCCESS) {
-      REQ_ERROR_THROW(CL_INVALID_DEVICE);
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(INVALID_DEVICE);
+      REQ_ERROR_THROW(INVALID_VALUE);
+      REQ_ERROR_THROW(OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
     NanReturnValue(Integer::NewFromUnsigned(param_value));
@@ -189,10 +189,10 @@ NAN_METHOD(Device::getInfo)
     cl_uint max_work_item_dimensions;
     ret=::clGetDeviceInfo(device->device_id, CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS, sizeof(size_t), &max_work_item_dimensions, NULL);
     if (ret != CL_SUCCESS) {
-      REQ_ERROR_THROW(CL_INVALID_PLATFORM);
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(INVALID_PLATFORM);
+      REQ_ERROR_THROW(INVALID_VALUE);
+      REQ_ERROR_THROW(OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
 
@@ -201,10 +201,10 @@ NAN_METHOD(Device::getInfo)
     ret=::clGetDeviceInfo(device->device_id, param_name, max_work_item_dimensions*sizeof(size_t), param_value, NULL);
     if (ret != CL_SUCCESS) {
 		delete[] param_value;
-      REQ_ERROR_THROW(CL_INVALID_PLATFORM);
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(INVALID_PLATFORM);
+      REQ_ERROR_THROW(INVALID_VALUE);
+      REQ_ERROR_THROW(OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
 
@@ -227,10 +227,10 @@ NAN_METHOD(Device::getInfo)
     cl_bool param_value;
     cl_int ret=::clGetDeviceInfo(device->device_id, param_name, sizeof(cl_bool), &param_value, NULL);
     if (ret != CL_SUCCESS) {
-      REQ_ERROR_THROW(CL_INVALID_DEVICE);
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(INVALID_DEVICE);
+      REQ_ERROR_THROW(INVALID_VALUE);
+      REQ_ERROR_THROW(OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
     // keeping as Integer vs Boolean so comparisons with cl.TRUE/cl.FALSE work
@@ -272,10 +272,10 @@ NAN_METHOD(Device::getInfo)
     cl_uint param_value;
     cl_int ret=::clGetDeviceInfo(device->device_id, param_name, sizeof(cl_uint), &param_value, NULL);
     if (ret != CL_SUCCESS) {
-      REQ_ERROR_THROW(CL_INVALID_DEVICE);
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(INVALID_DEVICE);
+      REQ_ERROR_THROW(INVALID_VALUE);
+      REQ_ERROR_THROW(OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
     NanReturnValue(Integer::NewFromUnsigned(param_value));
@@ -290,10 +290,10 @@ NAN_METHOD(Device::getInfo)
     cl_ulong param_value;
     cl_int ret=::clGetDeviceInfo(device->device_id, param_name, sizeof(cl_ulong), &param_value, NULL);
     if (ret != CL_SUCCESS) {
-      REQ_ERROR_THROW(CL_INVALID_DEVICE);
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(INVALID_DEVICE);
+      REQ_ERROR_THROW(INVALID_VALUE);
+      REQ_ERROR_THROW(OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
     // FIXME: handle uint64 somehow
@@ -319,10 +319,10 @@ NAN_METHOD(Device::getInfo)
     size_t param_value;
     cl_int ret=::clGetDeviceInfo(device->device_id, param_name, sizeof(size_t), &param_value, NULL);
     if (ret != CL_SUCCESS) {
-      REQ_ERROR_THROW(CL_INVALID_DEVICE);
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(INVALID_DEVICE);
+      REQ_ERROR_THROW(INVALID_VALUE);
+      REQ_ERROR_THROW(OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
     // FIXME: handle 64 bit size_t somehow
@@ -350,10 +350,10 @@ NAN_METHOD(Device::enableExtension)
 
     cl_int ret=clGetDeviceInfo(device->device_id, CL_DEVICE_EXTENSIONS, 1024, param_value, &param_value_size_ret);
     if (ret != CL_SUCCESS) {
-      REQ_ERROR_THROW(CL_INVALID_DEVICE);
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(INVALID_DEVICE);
+      REQ_ERROR_THROW(INVALID_VALUE);
+      REQ_ERROR_THROW(OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
 
@@ -381,10 +381,10 @@ NAN_METHOD(Device::getSupportedExtensions)
 
   cl_int ret=clGetDeviceInfo(device->device_id, CL_DEVICE_EXTENSIONS, 1024, param_value, &param_value_size_ret);
   if (ret != CL_SUCCESS) {
-    REQ_ERROR_THROW(CL_INVALID_DEVICE);
-    REQ_ERROR_THROW(CL_INVALID_VALUE);
-    REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+    REQ_ERROR_THROW(INVALID_DEVICE);
+    REQ_ERROR_THROW(INVALID_VALUE);
+    REQ_ERROR_THROW(OUT_OF_RESOURCES);
+    REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
     return NanThrowError("UNKNOWN ERROR");
   }
 
@@ -403,6 +403,7 @@ NAN_METHOD(Device::New)
   NanScope();
   Device *cl = new Device(args.This());
   cl->Wrap(args.This());
+  registerCLObj(cl);
   NanReturnValue(args.This());
 }
 

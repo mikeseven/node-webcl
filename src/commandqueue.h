@@ -85,6 +85,7 @@ public:
 
   cl_command_queue getCommandQueue() const { return command_queue; };
   bool isCommandQueue() const { return true; }
+  virtual bool isEqual(void *clObj) { return ((cl_command_queue)clObj)==command_queue; }
 
 private:
   CommandQueue(v8::Handle<v8::Object> wrapper);

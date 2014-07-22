@@ -94,10 +94,10 @@ NAN_METHOD(Program::getInfo)
     cl_uint value=0;
     cl_int ret=::clGetProgramInfo(prog->getProgram(), param_name, sizeof(cl_uint), &value, NULL);
     if (ret != CL_SUCCESS) {
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_INVALID_PROGRAM);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(INVALID_VALUE);
+      REQ_ERROR_THROW(INVALID_PROGRAM);
+      REQ_ERROR_THROW(OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
     NanReturnValue(Integer::NewFromUnsigned(value));
@@ -106,10 +106,10 @@ NAN_METHOD(Program::getInfo)
     cl_context value=NULL;
     cl_int ret=::clGetProgramInfo(prog->getProgram(), param_name, sizeof(cl_context), &value, NULL);
     if (ret != CL_SUCCESS) {
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_INVALID_PROGRAM);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(INVALID_VALUE);
+      REQ_ERROR_THROW(INVALID_PROGRAM);
+      REQ_ERROR_THROW(OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
     NanReturnValue(NanObjectWrapHandle(Context::New(value)));
@@ -120,10 +120,10 @@ NAN_METHOD(Program::getInfo)
     cl_device_id *devices=new cl_device_id[num_devices];
     ret=::clGetProgramInfo(prog->getProgram(), CL_PROGRAM_DEVICES, sizeof(cl_device_id)*num_devices, devices, NULL);
     if (ret != CL_SUCCESS) {
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_INVALID_PROGRAM);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(INVALID_VALUE);
+      REQ_ERROR_THROW(INVALID_PROGRAM);
+      REQ_ERROR_THROW(OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
     Local<Array> deviceArray = Array::New(num_devices);
@@ -140,10 +140,10 @@ NAN_METHOD(Program::getInfo)
     char *source=new char[size];
     ret=::clGetProgramInfo(prog->getProgram(), CL_PROGRAM_SOURCE, sizeof(char)*size, source, NULL);
     if (ret != CL_SUCCESS) {
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_INVALID_PROGRAM);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(INVALID_VALUE);
+      REQ_ERROR_THROW(INVALID_PROGRAM);
+      REQ_ERROR_THROW(OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
     Local<String> str=String::New(source, (int) size);
@@ -156,10 +156,10 @@ NAN_METHOD(Program::getInfo)
     size_t *sizes=new size_t[nsizes];
     ret=::clGetProgramInfo(prog->getProgram(), CL_PROGRAM_BINARY_SIZES, sizeof(size_t)*nsizes, sizes, NULL);
     if (ret != CL_SUCCESS) {
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_INVALID_PROGRAM);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(INVALID_VALUE);
+      REQ_ERROR_THROW(INVALID_PROGRAM);
+      REQ_ERROR_THROW(OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
     Local<Array> sizesArray = Array::New(nsizes);
@@ -177,10 +177,10 @@ NAN_METHOD(Program::getInfo)
     char* *binaries=new char*[nbins];
     ret=::clGetProgramInfo(prog->getProgram(), CL_PROGRAM_BINARIES, sizeof(char*)*nbins, binaries, NULL);
     if (ret != CL_SUCCESS) {
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_INVALID_PROGRAM);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(INVALID_VALUE);
+      REQ_ERROR_THROW(INVALID_PROGRAM);
+      REQ_ERROR_THROW(OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
 
@@ -211,11 +211,11 @@ NAN_METHOD(Program::getBuildInfo)
     cl_build_status param_value;
     cl_int ret=::clGetProgramBuildInfo(prog->getProgram(), dev->getDevice(), param_name, sizeof(cl_build_status), &param_value, NULL);
     if (ret != CL_SUCCESS) {
-      REQ_ERROR_THROW(CL_INVALID_DEVICE);
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_INVALID_PROGRAM);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(INVALID_DEVICE);
+      REQ_ERROR_THROW(INVALID_VALUE);
+      REQ_ERROR_THROW(INVALID_PROGRAM);
+      REQ_ERROR_THROW(OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
     NanReturnValue(JS_INT(param_value));
@@ -228,11 +228,11 @@ NAN_METHOD(Program::getBuildInfo)
     ret=::clGetProgramBuildInfo(prog->getProgram(), dev->getDevice(), param_name, param_value_size_ret,
         param_value, NULL);
     if (ret != CL_SUCCESS) {
-      REQ_ERROR_THROW(CL_INVALID_DEVICE);
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_INVALID_PROGRAM);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(INVALID_DEVICE);
+      REQ_ERROR_THROW(INVALID_VALUE);
+      REQ_ERROR_THROW(INVALID_PROGRAM);
+      REQ_ERROR_THROW(OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
     Local<Value> obj = JS_STR(param_value,(int)param_value_size_ret);
@@ -365,16 +365,16 @@ NAN_METHOD(Program::build)
   if(devices) delete[] devices;
 
   if (ret != CL_SUCCESS) {
-    REQ_ERROR_THROW(CL_INVALID_PROGRAM);
-    REQ_ERROR_THROW(CL_INVALID_VALUE);
-    REQ_ERROR_THROW(CL_INVALID_DEVICE);
-    REQ_ERROR_THROW(CL_INVALID_BINARY);
-    REQ_ERROR_THROW(CL_INVALID_BUILD_OPTIONS);
-    REQ_ERROR_THROW(CL_INVALID_OPERATION);
-    REQ_ERROR_THROW(CL_COMPILER_NOT_AVAILABLE);
-    REQ_ERROR_THROW(CL_BUILD_PROGRAM_FAILURE);
-    REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+    REQ_ERROR_THROW(INVALID_PROGRAM);
+    REQ_ERROR_THROW(INVALID_VALUE);
+    REQ_ERROR_THROW(INVALID_DEVICE);
+    REQ_ERROR_THROW(INVALID_BINARY);
+    REQ_ERROR_THROW(INVALID_BUILD_OPTIONS);
+    REQ_ERROR_THROW(INVALID_OPERATION);
+    REQ_ERROR_THROW(COMPILER_NOT_AVAILABLE);
+    REQ_ERROR_THROW(BUILD_PROGRAM_FAILURE);
+    REQ_ERROR_THROW(OUT_OF_RESOURCES);
+    REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
     return NanThrowError("UNKNOWN ERROR");
   }
 
@@ -393,13 +393,13 @@ NAN_METHOD(Program::createKernel)
   cl_kernel kw = ::clCreateKernel(prog->getProgram(), (const char*) *astr, &ret);
 
   if (ret != CL_SUCCESS) {
-    REQ_ERROR_THROW(CL_INVALID_PROGRAM);
-    REQ_ERROR_THROW(CL_INVALID_PROGRAM_EXECUTABLE);
-    REQ_ERROR_THROW(CL_INVALID_KERNEL_NAME);
-    REQ_ERROR_THROW(CL_INVALID_KERNEL_DEFINITION);
-    REQ_ERROR_THROW(CL_INVALID_VALUE);
-    REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+    REQ_ERROR_THROW(INVALID_PROGRAM);
+    REQ_ERROR_THROW(INVALID_PROGRAM_EXECUTABLE);
+    REQ_ERROR_THROW(INVALID_KERNEL_NAME);
+    REQ_ERROR_THROW(INVALID_KERNEL_DEFINITION);
+    REQ_ERROR_THROW(INVALID_VALUE);
+    REQ_ERROR_THROW(OUT_OF_RESOURCES);
+    REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
     return NanThrowError("UNKNOWN ERROR");
   }
 
@@ -426,11 +426,11 @@ NAN_METHOD(Program::createKernelsInProgram)
 
   if (ret != CL_SUCCESS) {
     delete[] kernels;
-    REQ_ERROR_THROW(CL_INVALID_PROGRAM);
-    REQ_ERROR_THROW(CL_INVALID_PROGRAM_EXECUTABLE);
-    REQ_ERROR_THROW(CL_INVALID_VALUE);
-    REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+    REQ_ERROR_THROW(INVALID_PROGRAM);
+    REQ_ERROR_THROW(INVALID_PROGRAM_EXECUTABLE);
+    REQ_ERROR_THROW(INVALID_VALUE);
+    REQ_ERROR_THROW(OUT_OF_RESOURCES);
+    REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
     return NanThrowError("UNKNOWN ERROR");
   }
 
@@ -462,10 +462,10 @@ NAN_METHOD(Program::New)
   cl_int ret = CL_SUCCESS;
   cl::Program *pw = new cl::Program(*context->getContext(),sources,&ret);
   if (ret != CL_SUCCESS) {
-    REQ_ERROR_THROW(CL_INVALID_CONTEXT);
-    REQ_ERROR_THROW(CL_INVALID_VALUE);
-    REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+    REQ_ERROR_THROW(INVALID_CONTEXT);
+    REQ_ERROR_THROW(INVALID_VALUE);
+    REQ_ERROR_THROW(OUT_OF_RESOURCES);
+    REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
     return NanThrowError("UNKNOWN ERROR");
   }*/
 

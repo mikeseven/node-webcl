@@ -72,24 +72,24 @@ NAN_METHOD(Platform::getDevices)
   cout<<"Found "<<n<<" devices"<<endl;
   #endif
   if (ret != CL_SUCCESS) {
-    REQ_ERROR_THROW(CL_INVALID_PLATFORM);
-    REQ_ERROR_THROW(CL_INVALID_DEVICE_TYPE);
-    REQ_ERROR_THROW(CL_INVALID_VALUE);
-    REQ_ERROR_THROW(CL_DEVICE_NOT_FOUND);
-    REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+    REQ_ERROR_THROW(INVALID_PLATFORM);
+    REQ_ERROR_THROW(INVALID_DEVICE_TYPE);
+    REQ_ERROR_THROW(INVALID_VALUE);
+    REQ_ERROR_THROW(DEVICE_NOT_FOUND);
+    REQ_ERROR_THROW(OUT_OF_RESOURCES);
+    REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
     return NanThrowError("UNKNOWN ERROR");
   }
 
   cl_device_id* ids = new cl_device_id[n];
   ret = ::clGetDeviceIDs(platform->platform_id, type, n, ids, NULL);
   if (ret != CL_SUCCESS) {
-    REQ_ERROR_THROW(CL_INVALID_PLATFORM);
-    REQ_ERROR_THROW(CL_INVALID_DEVICE_TYPE);
-    REQ_ERROR_THROW(CL_INVALID_VALUE);
-    REQ_ERROR_THROW(CL_DEVICE_NOT_FOUND);
-    REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+    REQ_ERROR_THROW(INVALID_PLATFORM);
+    REQ_ERROR_THROW(INVALID_DEVICE_TYPE);
+    REQ_ERROR_THROW(INVALID_VALUE);
+    REQ_ERROR_THROW(DEVICE_NOT_FOUND);
+    REQ_ERROR_THROW(OUT_OF_RESOURCES);
+    REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
     return NanThrowError("UNKNOWN ERROR");
   }
 
@@ -118,9 +118,9 @@ NAN_METHOD(Platform::getInfo)
   cl_int ret=clGetPlatformInfo(platform->platform_id, param_name, 1024, param_value, &param_value_size_ret);
 
   if (ret != CL_SUCCESS) {
-    REQ_ERROR_THROW(CL_INVALID_PLATFORM);
-    REQ_ERROR_THROW(CL_INVALID_VALUE);
-    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+    REQ_ERROR_THROW(INVALID_PLATFORM);
+    REQ_ERROR_THROW(INVALID_VALUE);
+    REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
     return NanThrowError("UNKNOWN ERROR");
   }
 
@@ -137,9 +137,9 @@ NAN_METHOD(Platform::getSupportedExtensions)
 
   cl_int ret=clGetPlatformInfo(platform->platform_id, CL_PLATFORM_EXTENSIONS, 1024, param_value, &param_value_size_ret);
   if (ret != CL_SUCCESS) {
-    REQ_ERROR_THROW(CL_INVALID_PLATFORM);
-    REQ_ERROR_THROW(CL_INVALID_VALUE);
-    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+    REQ_ERROR_THROW(INVALID_PLATFORM);
+    REQ_ERROR_THROW(INVALID_VALUE);
+    REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
     return NanThrowError("UNKNOWN ERROR");
   }
 
@@ -159,9 +159,9 @@ NAN_METHOD(Platform::enableExtension)
 
     cl_int ret=clGetPlatformInfo(platform->platform_id, CL_PLATFORM_EXTENSIONS, 1024, param_value, &param_value_size_ret);
     if (ret != CL_SUCCESS) {
-      REQ_ERROR_THROW(CL_INVALID_PLATFORM);
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(INVALID_PLATFORM);
+      REQ_ERROR_THROW(INVALID_VALUE);
+      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
 

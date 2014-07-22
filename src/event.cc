@@ -94,10 +94,10 @@ NAN_METHOD(Event::getInfo)
     cl_context param_value=NULL;
     ret=::clGetEventInfo(e->getEvent(), param_name, sizeof(cl_context), &param_value, NULL);
     if(ret!=CL_SUCCESS) {
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_INVALID_EVENT);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(INVALID_VALUE);
+      REQ_ERROR_THROW(INVALID_EVENT);
+      REQ_ERROR_THROW(OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("Unknown error");
     }
     NanReturnValue(NanObjectWrapHandle(Context::New(param_value)));
@@ -106,10 +106,10 @@ NAN_METHOD(Event::getInfo)
     cl_command_queue param_value=NULL;
     ret=::clGetEventInfo(e->getEvent(), param_name, sizeof(cl_command_queue), &param_value, NULL);
     if(ret!=CL_SUCCESS) {
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_INVALID_EVENT);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(INVALID_VALUE);
+      REQ_ERROR_THROW(INVALID_EVENT);
+      REQ_ERROR_THROW(OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("Unknown error");
     }
     NanReturnValue(NanObjectWrapHandle(CommandQueue::New(param_value)));
@@ -120,10 +120,10 @@ NAN_METHOD(Event::getInfo)
     cl_uint param_value=0;
     ret=::clGetEventInfo(e->getEvent(), param_name, sizeof(cl_uint), &param_value, NULL);
     if(ret!=CL_SUCCESS) {
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_INVALID_EVENT);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(INVALID_VALUE);
+      REQ_ERROR_THROW(INVALID_EVENT);
+      REQ_ERROR_THROW(OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("Unknown error");
     }
     NanReturnValue(Integer::NewFromUnsigned(param_value));
@@ -149,11 +149,11 @@ NAN_METHOD(Event::getProfilingInfo)
     cl_ulong param_value=0;
     ret=::clGetEventProfilingInfo(e->getEvent(), param_name, sizeof(cl_ulong), &param_value, NULL);
     if(ret!=CL_SUCCESS) {
-      REQ_ERROR_THROW(CL_PROFILING_INFO_NOT_AVAILABLE);
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_INVALID_EVENT);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(PROFILING_INFO_NOT_AVAILABLE);
+      REQ_ERROR_THROW(INVALID_VALUE);
+      REQ_ERROR_THROW(INVALID_EVENT);
+      REQ_ERROR_THROW(OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("Unknown error");
     }
     NanReturnValue(JS_INT((int32_t)param_value));
@@ -244,10 +244,10 @@ NAN_METHOD(Event::setCallback)
   cl_int ret=::clSetEventCallback(e->getEvent(), command_exec_callback_type, callback, baton);
 
   if (ret != CL_SUCCESS) {
-    REQ_ERROR_THROW(CL_INVALID_EVENT);
-    REQ_ERROR_THROW(CL_INVALID_VALUE);
-    REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+    REQ_ERROR_THROW(INVALID_EVENT);
+    REQ_ERROR_THROW(INVALID_VALUE);
+    REQ_ERROR_THROW(OUT_OF_RESOURCES);
+    REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
     return NanThrowError("UNKNOWN ERROR");
   }
 
@@ -350,11 +350,11 @@ NAN_METHOD(UserEvent::setStatus)
 
   cl_int ret=::clSetUserEventStatus(e->getEvent(),status);
   if (ret != CL_SUCCESS) {
-    REQ_ERROR_THROW(CL_INVALID_EVENT);
-    REQ_ERROR_THROW(CL_INVALID_VALUE);
-    REQ_ERROR_THROW(CL_INVALID_OPERATION);
-    REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+    REQ_ERROR_THROW(INVALID_EVENT);
+    REQ_ERROR_THROW(INVALID_VALUE);
+    REQ_ERROR_THROW(INVALID_OPERATION);
+    REQ_ERROR_THROW(OUT_OF_RESOURCES);
+    REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
     return NanThrowError("UNKNOWN ERROR");
   }
 

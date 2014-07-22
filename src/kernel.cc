@@ -94,10 +94,10 @@ NAN_METHOD(Kernel::getInfo)
     size_t param_value_size_ret=0;
     cl_int ret=::clGetKernelInfo(kernel->getKernel(), param_name, sizeof(char)*1024, &param_value, &param_value_size_ret);
     if (ret != CL_SUCCESS) {
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_INVALID_KERNEL);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(INVALID_VALUE);
+      REQ_ERROR_THROW(INVALID_KERNEL);
+      REQ_ERROR_THROW(OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
     NanReturnValue(JS_STR(param_value,(int)param_value_size_ret));
@@ -106,10 +106,10 @@ NAN_METHOD(Kernel::getInfo)
     cl_context param_value=NULL;
     cl_int ret=::clGetKernelInfo(kernel->getKernel(), param_name, sizeof(cl_context), &param_value, NULL);
     if (ret != CL_SUCCESS) {
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_INVALID_KERNEL);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(INVALID_VALUE);
+      REQ_ERROR_THROW(INVALID_KERNEL);
+      REQ_ERROR_THROW(OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
     NanReturnValue(NanObjectWrapHandle(Context::New(param_value)));
@@ -118,10 +118,10 @@ NAN_METHOD(Kernel::getInfo)
     cl_program param_value=NULL;
     cl_int ret=::clGetKernelInfo(kernel->getKernel(), param_name, sizeof(cl_program), &param_value, NULL);
     if (ret != CL_SUCCESS) {
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_INVALID_KERNEL);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(INVALID_VALUE);
+      REQ_ERROR_THROW(INVALID_KERNEL);
+      REQ_ERROR_THROW(OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
     NanReturnValue(NanObjectWrapHandle(Program::New(param_value)));
@@ -131,10 +131,10 @@ NAN_METHOD(Kernel::getInfo)
     cl_uint param_value=0;
     cl_int ret=::clGetKernelInfo(kernel->getKernel(), param_name, sizeof(cl_uint), &param_value, NULL);
     if (ret != CL_SUCCESS) {
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_INVALID_KERNEL);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(INVALID_VALUE);
+      REQ_ERROR_THROW(INVALID_KERNEL);
+      REQ_ERROR_THROW(OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
     NanReturnValue(JS_INT(param_value));
@@ -170,10 +170,10 @@ NAN_METHOD(Kernel::getArgInfo)
                               sizeof(name), name, NULL);
 
   if(ret!=CL_SUCCESS) {
-    REQ_ERROR_THROW(CL_INVALID_ARG_INDEX);
-    REQ_ERROR_THROW(CL_INVALID_VALUE);
-    REQ_ERROR_THROW(CL_KERNEL_ARG_INFO_NOT_AVAILABLE);
-    REQ_ERROR_THROW(CL_INVALID_KERNEL);
+    REQ_ERROR_THROW(INVALID_ARG_INDEX);
+    REQ_ERROR_THROW(INVALID_VALUE);
+    REQ_ERROR_THROW(KERNEL_ARG_INFO_NOT_AVAILABLE);
+    REQ_ERROR_THROW(INVALID_KERNEL);
     return NanThrowError("Unknown Error");
   }
 
@@ -201,11 +201,11 @@ NAN_METHOD(Kernel::getWorkGroupInfo)
     size_t param_value=0;
     cl_int ret=::clGetKernelWorkGroupInfo(kernel->getKernel(), device->getDevice(), param_name, sizeof(size_t), &param_value, NULL);
     if (ret != CL_SUCCESS) {
-      REQ_ERROR_THROW(CL_INVALID_DEVICE);
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_INVALID_KERNEL);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(INVALID_DEVICE);
+      REQ_ERROR_THROW(INVALID_VALUE);
+      REQ_ERROR_THROW(INVALID_KERNEL);
+      REQ_ERROR_THROW(OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
     NanReturnValue(JS_INT((int32_t)param_value));
@@ -215,11 +215,11 @@ NAN_METHOD(Kernel::getWorkGroupInfo)
     cl_ulong param_value=0;
     cl_int ret=::clGetKernelWorkGroupInfo(kernel->getKernel(), device->getDevice(), param_name, sizeof(cl_ulong), &param_value, NULL);
     if (ret != CL_SUCCESS) {
-      REQ_ERROR_THROW(CL_INVALID_DEVICE);
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_INVALID_KERNEL);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(INVALID_DEVICE);
+      REQ_ERROR_THROW(INVALID_VALUE);
+      REQ_ERROR_THROW(INVALID_KERNEL);
+      REQ_ERROR_THROW(OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
     NanReturnValue(JS_NUM((double)param_value));
@@ -228,11 +228,11 @@ NAN_METHOD(Kernel::getWorkGroupInfo)
     ::size_t param_value[]={0,0,0};
     cl_int ret=::clGetKernelWorkGroupInfo(kernel->getKernel(), device->getDevice(), param_name, sizeof(size_t)*3, &param_value, NULL);
     if (ret != CL_SUCCESS) {
-      REQ_ERROR_THROW(CL_INVALID_DEVICE);
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_INVALID_KERNEL);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(INVALID_DEVICE);
+      REQ_ERROR_THROW(INVALID_VALUE);
+      REQ_ERROR_THROW(INVALID_KERNEL);
+      REQ_ERROR_THROW(OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
 
@@ -269,7 +269,7 @@ NAN_METHOD(Kernel::setArg)
   NanScope();
 
   if (!args[0]->IsUint32())
-    return NanThrowError("CL_INVALID_ARG_INDEX");
+    return NanThrowError("INVALID_ARG_INDEX");
 
   Kernel *kernel = ObjectWrap::Unwrap<Kernel>(args.This());
   cl_kernel k = kernel->getKernel();
@@ -359,14 +359,14 @@ NAN_METHOD(Kernel::setArg)
     return NanThrowTypeError("Invalid object for arg 1");
  
   if (ret != CL_SUCCESS) {
-    REQ_ERROR_THROW(CL_INVALID_KERNEL);
-    REQ_ERROR_THROW(CL_INVALID_ARG_INDEX);
-    REQ_ERROR_THROW(CL_INVALID_ARG_VALUE);
-    REQ_ERROR_THROW(CL_INVALID_MEM_OBJECT);
-    REQ_ERROR_THROW(CL_INVALID_SAMPLER);
-    REQ_ERROR_THROW(CL_INVALID_ARG_SIZE);
-    REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+    REQ_ERROR_THROW(INVALID_KERNEL);
+    REQ_ERROR_THROW(INVALID_ARG_INDEX);
+    REQ_ERROR_THROW(INVALID_ARG_VALUE);
+    REQ_ERROR_THROW(INVALID_MEM_OBJECT);
+    REQ_ERROR_THROW(INVALID_SAMPLER);
+    REQ_ERROR_THROW(INVALID_ARG_SIZE);
+    REQ_ERROR_THROW(OUT_OF_RESOURCES);
+    REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
     return NanThrowError("UNKNOWN ERROR");
   }
 

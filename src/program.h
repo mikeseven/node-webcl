@@ -51,6 +51,7 @@ public:
 
   cl_program getProgram() const { return program; };
   virtual bool isProgram() const { return true; }
+  virtual bool isEqual(void *clObj) { return ((cl_program)clObj)==program; }
 
 private:
   Program(v8::Handle<v8::Object> wrapper);
