@@ -25,6 +25,7 @@
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "device.h"
+#include "platform.h"
 
 #include <cstring>
 
@@ -89,6 +90,7 @@ NAN_METHOD(Device::getInfo)
     cl_platform_id param_value;
 
     cl_int ret=::clGetDeviceInfo(device->device_id, param_name, sizeof(cl_platform_id), &param_value, NULL);
+
     if (ret != CL_SUCCESS) {
       REQ_ERROR_THROW(INVALID_DEVICE);
       REQ_ERROR_THROW(INVALID_VALUE);
@@ -96,7 +98,15 @@ NAN_METHOD(Device::getInfo)
       REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
-    NanReturnValue(Integer::NewFromUnsigned((unsigned long)param_value));
+    if(param_value) {
+      WebCLObject *obj=findCLObj((void*)param_value);
+      if(obj) {
+        NanReturnValue(NanObjectWrapHandle(obj));
+      }
+      else
+        NanReturnValue(NanObjectWrapHandle(Platform::New(param_value)));
+    }
+    NanReturnUndefined();
   }
   break;
   case CL_DEVICE_TYPE: {

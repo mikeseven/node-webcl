@@ -145,7 +145,12 @@ NAN_METHOD(Context::getInfo)
     Local<Array> arr = Array::New((int)n);
     for(uint32_t i=0;i<n;i++) {
       if(devices[i]) {
-        arr->Set(i,NanObjectWrapHandle(Device::New(devices[i])));
+        WebCLObject *obj=findCLObj((void*)devices[i]);
+
+        if(obj)
+          arr->Set(i,NanObjectWrapHandle(obj));
+        else
+          arr->Set(i,NanObjectWrapHandle(Device::New(devices[i])));
       }
     }
     delete[] devices;

@@ -44,6 +44,7 @@ public:
   static NAN_METHOD(getSupportedExtensions);
 
   cl_platform_id getPlatformId() const { return platform_id; };
+  virtual bool isEqual(void *clObj) { return ((cl_platform_id)clObj)==platform_id; }
 
   static NAN_METHOD(enableExtension);
   bool hasGLSharingEnabled() const { return (enableExtensions & GL_SHARING); }
