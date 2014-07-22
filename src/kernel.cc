@@ -90,17 +90,23 @@ NAN_METHOD(Kernel::getInfo)
 
   switch (param_name) {
   case CL_KERNEL_FUNCTION_NAME: {
-    char param_value[1024];
     size_t param_value_size_ret=0;
-    cl_int ret=::clGetKernelInfo(kernel->getKernel(), param_name, sizeof(char)*1024, &param_value, &param_value_size_ret);
-    if (ret != CL_SUCCESS) {
-      REQ_ERROR_THROW(INVALID_VALUE);
-      REQ_ERROR_THROW(INVALID_KERNEL);
-      REQ_ERROR_THROW(OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
-      return NanThrowError("UNKNOWN ERROR");
+    cl_int ret=::clGetKernelInfo(kernel->getKernel(), param_name, 0, NULL, &param_value_size_ret);
+    if(ret==CL_SUCCESS && param_value_size_ret) {
+      char *param_value=new char[param_value_size_ret];
+      ret=::clGetKernelInfo(kernel->getKernel(), param_name, sizeof(char)*param_value_size_ret, param_value, NULL);
+      if (ret != CL_SUCCESS) {
+        REQ_ERROR_THROW(INVALID_VALUE);
+        REQ_ERROR_THROW(INVALID_KERNEL);
+        REQ_ERROR_THROW(OUT_OF_RESOURCES);
+        REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
+        return NanThrowError("UNKNOWN ERROR");
+      }
+      Local<String> str=JS_STR(param_value,(int)param_value_size_ret-1);
+      delete[] param_value;
+      NanReturnValue(str);
     }
-    NanReturnValue(JS_STR(param_value,(int)param_value_size_ret));
+    NanReturnUndefined();
   }
   case CL_KERNEL_CONTEXT: {
     cl_context param_value=NULL;
@@ -112,7 +118,15 @@ NAN_METHOD(Kernel::getInfo)
       REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
-    NanReturnValue(NanObjectWrapHandle(Context::New(param_value)));
+    if(param_value) {
+      WebCLObject *obj=findCLObj((void*)param_value);
+      if(obj) {
+        NanReturnValue(NanObjectWrapHandle(obj));
+      }
+      else
+        NanReturnValue(NanObjectWrapHandle(Context::New(param_value)));
+    }
+    NanReturnUndefined();
   }
   case CL_KERNEL_PROGRAM: {
     cl_program param_value=NULL;
@@ -124,7 +138,15 @@ NAN_METHOD(Kernel::getInfo)
       REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
-    NanReturnValue(NanObjectWrapHandle(Program::New(param_value)));
+    if(param_value) {
+      WebCLObject *obj=findCLObj((void*)param_value);
+      if(obj) {
+        NanReturnValue(NanObjectWrapHandle(obj));
+      }
+      else
+        NanReturnValue(NanObjectWrapHandle(Program::New(param_value)));
+    }
+    NanReturnUndefined();
   }
   case CL_KERNEL_NUM_ARGS:
   case CL_KERNEL_REFERENCE_COUNT: {

@@ -449,7 +449,7 @@ NAN_METHOD(Context::createImage)
   size_t row_pitch =  obj->Get(JS_STR("rowPitch"))->IsUndefined() ? 0 : obj->Get(JS_STR("rowPitch"))->Uint32Value();
 
   void *host_ptr=NULL;
-  if(!args[2]->IsUndefined() && args[2]->IsObject()) {
+  if(!args[2]->IsNull() && !args[2]->IsUndefined() && args[2]->IsObject()) {
     Local<Object> obj=args[2]->ToObject();
     String::AsciiValue name(obj->GetConstructorName());
     if(!strcmp("Buffer",*name))
@@ -488,6 +488,8 @@ NAN_METHOD(Context::createImage)
   desc.image_array_size = 1;
   desc.image_row_pitch = row_pitch;
   desc.image_slice_pitch =obj->Get(JS_STR("slicePitch"))->IsUndefined() ? 0 :obj->Get(JS_STR("slicePitch"))->Uint32Value();
+
+  // printf("size %d x %d, rowPitch %d, host ptr: %p\n",width,height,row_pitch, host_ptr);
 
   mw = ::clCreateImage(
               context->getContext(), flags, 

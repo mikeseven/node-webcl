@@ -857,7 +857,7 @@ cl.WebCLImage.prototype.release=function () {
 }
 
 cl.WebCLImage.prototype.getInfo=function () {
-  return this._getImageInfo();
+  return this._getInfo();
 }
 
 cl.WebCLImage.prototype.getGLObjectInfo=function () {

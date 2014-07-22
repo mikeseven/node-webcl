@@ -106,7 +106,15 @@ NAN_METHOD(Sampler::getInfo)
       REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
-    NanReturnValue(NanObjectWrapHandle(Context::New(param_value)));
+    if(param_value) {
+      WebCLObject *obj=findCLObj((void*)param_value);
+      if(obj) {
+        NanReturnValue(NanObjectWrapHandle(obj));
+      }
+      else
+        NanReturnValue(NanObjectWrapHandle(Context::New(param_value)));
+    }
+    NanReturnUndefined();
   }
   default:
     return NanThrowError("UNKNOWN param_name");

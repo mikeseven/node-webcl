@@ -78,6 +78,7 @@ void init(Handle<Object> target)
   webcl::MemoryObject::Init(target);
   webcl::WebCLBuffer::Init(target);
   webcl::WebCLImage::Init(target);
+  webcl::WebCLImageDescriptor::Init(target);
   webcl::Platform::Init(target);
   webcl::Program::Init(target);
   webcl::Sampler::Init(target);

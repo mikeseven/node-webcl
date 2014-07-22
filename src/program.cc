@@ -112,7 +112,15 @@ NAN_METHOD(Program::getInfo)
       REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
-    NanReturnValue(NanObjectWrapHandle(Context::New(value)));
+    if(value) {
+      WebCLObject *obj=findCLObj((void*)value);
+      if(obj) {
+        NanReturnValue(NanObjectWrapHandle(obj));
+      }
+      else
+        NanReturnValue(NanObjectWrapHandle(Context::New(value)));
+    }
+    NanReturnUndefined();
   }
   case CL_PROGRAM_DEVICES: {
     size_t num_devices=0;
@@ -129,7 +137,11 @@ NAN_METHOD(Program::getInfo)
     Local<Array> deviceArray = Array::New(num_devices);
     for (size_t i=0; i<num_devices; i++) {
       cl_device_id d = devices[i];
-      deviceArray->Set(i, NanObjectWrapHandle(Device::New(d)));
+      WebCLObject *obj=findCLObj((void*)d);
+      if(obj) 
+        deviceArray->Set(i, NanObjectWrapHandle(obj));
+      else
+        deviceArray->Set(i, NanObjectWrapHandle(Device::New(d)));
     }
     delete[] devices;
     NanReturnValue(deviceArray);
@@ -146,7 +158,7 @@ NAN_METHOD(Program::getInfo)
       REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
-    Local<String> str=String::New(source, (int) size);
+    Local<String> str=String::New(source, (int) size-1);
     delete[] source;
     NanReturnValue(str);
   }

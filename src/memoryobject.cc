@@ -381,7 +381,6 @@ NAN_METHOD(WebCLImage::getInfo)
   NanScope();
   WebCLImage *mo = ObjectWrap::Unwrap<WebCLImage>(args.This());;
 
-  Local<Object> obj = Object::New();
   cl_image_format param_value;
   cl_int ret=::clGetImageInfo(mo->getMemory(),CL_IMAGE_FORMAT,sizeof(cl_image_format), &param_value, NULL);
   if (ret != CL_SUCCESS) {
@@ -392,21 +391,13 @@ NAN_METHOD(WebCLImage::getInfo)
     return NanThrowError("UNKNOWN ERROR");
   }
 
-  obj->Set(JS_STR("channelOrder"), JS_INT(param_value.image_channel_order));
-  obj->Set(JS_STR("channelType"), JS_INT(param_value.image_channel_data_type));
-
-  size_t value=0;
-  ret |= ::clGetImageInfo(mo->getMemory(),CL_IMAGE_WIDTH,sizeof(size_t), &value, NULL);
-  obj->Set(JS_STR("width"), JS_INT(value));
-  ret |= ::clGetImageInfo(mo->getMemory(),CL_IMAGE_HEIGHT,sizeof(size_t), &value, NULL);
-  obj->Set(JS_STR("height"), JS_INT(value));
-  ret |= ::clGetImageInfo(mo->getMemory(),CL_IMAGE_DEPTH,sizeof(size_t), &value, NULL);
-  obj->Set(JS_STR("depth"), JS_INT(value));
-  ret |= ::clGetImageInfo(mo->getMemory(),CL_IMAGE_ROW_PITCH,sizeof(size_t), &value, NULL);
-  obj->Set(JS_STR("rowPitch"), JS_INT(value));
-  ret |= ::clGetImageInfo(mo->getMemory(),CL_IMAGE_SLICE_PITCH,sizeof(size_t), &value, NULL);
-  obj->Set(JS_STR("slicePitch"), JS_INT(value));
-
+  size_t w,h,d,rp,sp;
+  ret |= ::clGetImageInfo(mo->getMemory(),CL_IMAGE_WIDTH,sizeof(size_t), &w, NULL);
+  ret |= ::clGetImageInfo(mo->getMemory(),CL_IMAGE_HEIGHT,sizeof(size_t), &h, NULL);
+  ret |= ::clGetImageInfo(mo->getMemory(),CL_IMAGE_DEPTH,sizeof(size_t), &d, NULL);
+  ret |= ::clGetImageInfo(mo->getMemory(),CL_IMAGE_ROW_PITCH,sizeof(size_t), &rp, NULL);
+  ret |= ::clGetImageInfo(mo->getMemory(),CL_IMAGE_SLICE_PITCH,sizeof(size_t), &sp, NULL);
+  
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(INVALID_VALUE);
     REQ_ERROR_THROW(INVALID_MEM_OBJECT);
@@ -415,7 +406,12 @@ NAN_METHOD(WebCLImage::getInfo)
     return NanThrowError("UNKNOWN ERROR");
   }
 
-  NanReturnValue(obj);
+  WebCLImageDescriptor* obj = WebCLImageDescriptor::New(
+    param_value.image_channel_order,param_value.image_channel_data_type,
+    w,h,d,
+    rp,sp
+  );
+  NanReturnValue(NanObjectWrapHandle(obj));
 }
 
 NAN_METHOD(WebCLImage::getGLObjectInfo)
@@ -468,4 +464,118 @@ WebCLImage *WebCLImage::New(cl_mem mw)
   return memobj;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// WebCLImageDescriptor
+///////////////////////////////////////////////////////////////////////////////
+Persistent<FunctionTemplate> WebCLImageDescriptor::constructor_template;
+
+void WebCLImageDescriptor::Init(Handle<Object> target)
+{
+  NanScope();
+
+  // constructor
+  Local<FunctionTemplate> ctor = FunctionTemplate::New(WebCLImageDescriptor::New);
+  NanAssignPersistent(FunctionTemplate, constructor_template, ctor);
+  ctor->InstanceTemplate()->SetInternalFieldCount(1);
+  ctor->SetClassName(NanSymbol("WebCLImageDescriptor"));
+
+  // prototype
+  Local<ObjectTemplate> proto = ctor->PrototypeTemplate();
+  proto->SetAccessor(JS_STR("channelOrder"), WebCLImageDescriptor::getChannelOrder);
+  proto->SetAccessor(JS_STR("channelType"), WebCLImageDescriptor::getChannelType);
+  proto->SetAccessor(JS_STR("width"), WebCLImageDescriptor::getWidth);
+  proto->SetAccessor(JS_STR("height"), WebCLImageDescriptor::getHeight);
+  proto->SetAccessor(JS_STR("depth"), WebCLImageDescriptor::getDepth);
+  proto->SetAccessor(JS_STR("rowPitch"), WebCLImageDescriptor::getRowPitch);
+  proto->SetAccessor(JS_STR("slicePitch"), WebCLImageDescriptor::getSlicePitch);
+
+  target->Set(NanSymbol("WebCLImageDescriptor"), ctor->GetFunction());
 }
+
+WebCLImageDescriptor::WebCLImageDescriptor(Handle<Object> wrapper) : 
+  channelOrder(0), channelType(0), 
+  width(0), height(0), depth(0),
+  rowPitch(0), slicePitch(0)
+{
+}
+
+NAN_GETTER(WebCLImageDescriptor::getChannelOrder) {
+  NanScope();
+
+  WebCLImageDescriptor* desc = ObjectWrap::Unwrap<WebCLImageDescriptor>(args.This());
+  NanReturnValue(JS_INT(desc->channelOrder));
+}
+
+NAN_GETTER(WebCLImageDescriptor::getChannelType) {
+  NanScope();
+
+  WebCLImageDescriptor* desc = ObjectWrap::Unwrap<WebCLImageDescriptor>(args.This());
+  NanReturnValue(JS_INT(desc->channelType));
+}
+
+NAN_GETTER(WebCLImageDescriptor::getWidth) {
+  NanScope();
+
+  WebCLImageDescriptor* desc = ObjectWrap::Unwrap<WebCLImageDescriptor>(args.This());
+  NanReturnValue(JS_INT(desc->width));
+}
+
+NAN_GETTER(WebCLImageDescriptor::getHeight) {
+  NanScope();
+
+  WebCLImageDescriptor* desc = ObjectWrap::Unwrap<WebCLImageDescriptor>(args.This());
+  NanReturnValue(JS_INT(desc->height));
+}
+
+NAN_GETTER(WebCLImageDescriptor::getDepth) {
+  NanScope();
+
+  WebCLImageDescriptor* desc = ObjectWrap::Unwrap<WebCLImageDescriptor>(args.This());
+  NanReturnValue(JS_INT(desc->depth));
+}
+
+NAN_GETTER(WebCLImageDescriptor::getRowPitch) {
+  NanScope();
+
+  WebCLImageDescriptor* desc = ObjectWrap::Unwrap<WebCLImageDescriptor>(args.This());
+  NanReturnValue(JS_INT(desc->rowPitch));
+}
+
+NAN_GETTER(WebCLImageDescriptor::getSlicePitch) {
+  NanScope();
+
+  WebCLImageDescriptor* desc = ObjectWrap::Unwrap<WebCLImageDescriptor>(args.This());
+  NanReturnValue(JS_INT(desc->slicePitch));
+}
+
+NAN_METHOD(WebCLImageDescriptor::New)
+{
+  NanScope();
+  WebCLImageDescriptor *mo = new WebCLImageDescriptor(args.This());
+  mo->Wrap(args.This());
+
+  NanReturnValue(args.This());
+}
+
+WebCLImageDescriptor *WebCLImageDescriptor::New(int order, int type, int w, int h, int d, int rp, int sp)
+{
+
+  NanScope();
+
+  Local<Value> arg = Integer::NewFromUnsigned(0);
+  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor_template);
+  Local<Object> obj = constructorHandle->GetFunction()->NewInstance(1, &arg);
+ 
+  WebCLImageDescriptor *desc = ObjectWrap::Unwrap<WebCLImageDescriptor>(obj);
+  desc->channelOrder=order;
+  desc->channelType=type;
+  desc->width=w;
+  desc->height=h;
+  desc->depth=d;
+  desc->rowPitch=rp;
+  desc->slicePitch=sp;
+
+  return desc;
+}
+
+} // namespace webcl
