@@ -299,22 +299,21 @@ cl.WebCLCommandQueue.prototype.enqueueCopyBufferRect=function (src_buffer, dst_b
       event_list, event);
 }
 
-cl.WebCLCommandQueue.prototype.enqueueWriteImage=function (image, blocking_write, origin, region, row_pitch, slice_pitch, ptr, event_list, event) {
+cl.WebCLCommandQueue.prototype.enqueueWriteImage=function (image, blocking_write, origin, region, row_pitch, ptr, event_list, event) {
   //console.log('checking object: type: '+Object.prototype.toString.call(ptr)+' for typeof: '+typeof(ptr));
-  if (!(arguments.length >= 7 &&
+  if (!(arguments.length >= 6 &&
     checkObjectType(image, 'WebCLImage') &&
     typeof origin === 'object' &&
     typeof region === 'object' &&
     typeof row_pitch === 'number' &&
-    typeof slice_pitch === 'number' &&
     typeof ptr === 'object' &&
     (event_list==null || typeof event_list === 'undefined' || typeof event_list === 'object') &&
     (event==null || typeof event === 'undefined' || checkObjectType(event, 'WebCLEvent'))
   )) {
     throw new TypeError('Expected WebCLCommandQueue.enqueueWriteImage(WebCLImage image, boolean blocking_write, ' +
-      'int[3] origin, int[3] region, int row_pitch, int slice_pitch, ArrayBuffer ptr, WebCLEvent[] event_list, WebCLEvent event)');
+      'int[3] origin, int[3] region, int row_pitch, ArrayBuffer ptr, WebCLEvent[] event_list, WebCLEvent event)');
   }
-  return this._enqueueWriteImage(image, blocking_write, origin, region, row_pitch, slice_pitch, ptr, event_list, event);
+  return this._enqueueWriteImage(image, blocking_write, origin, region, row_pitch, ptr, event_list, event);
 }
 
 cl.WebCLCommandQueue.prototype.enqueueReadImage=function (image, blocking_read, origin, region, row_pitch,
@@ -464,8 +463,8 @@ cl.WebCLCommandQueue.prototype.flush=function () {
 }
 
 cl.WebCLCommandQueue.prototype.finish=function (callback) {
-  if (!(arguments.length === 0)) {
-    throw new TypeError('Expected WebCLCommandQueue.finish()');
+  if (!(arguments.length >=0)) {
+    throw new TypeError('Expected WebCLCommandQueue.finish(optional callback)');
   }
   return this._finish(callback);
 }
