@@ -3,7 +3,8 @@
     {
       'target_name': 'webcl',
       'defines': [
-        'VERSION=0.9.0'
+        'VERSION=0.9.0',
+#        'LOGGING'
       ],
       'sources': [
         'src/bindings.cc',
@@ -47,7 +48,6 @@
             'defines' : [
               'WIN32_LEAN_AND_MEAN',
               'VC_EXTRALEAN',
-#             'LOGGING'
             ],
             'cflags' : [
               '/O2','/Oy','/GL','/GF','/Gm-','/EHsc','/MT','/GS','/Gy','/GR-','/Gd'

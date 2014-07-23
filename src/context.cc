@@ -86,6 +86,7 @@ void Context::Destructor()
 
 NAN_METHOD(Context::release)
 {
+  printf("Context::release delete all objects in context and release context\n");
   NanScope();
   Context *context = ObjectWrap::Unwrap<Context>(args.This());
   
@@ -99,8 +100,7 @@ NAN_METHOD(Context::releaseAll)
   NanScope();
   Context *context = ObjectWrap::Unwrap<Context>(args.This());
   
-  // TODO delete all objects in context and release context
-
+  AtExit(NULL);
   DESTROY_WEBCL_OBJECT(context);
   
   NanReturnUndefined();

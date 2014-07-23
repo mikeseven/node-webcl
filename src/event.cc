@@ -317,19 +317,9 @@ UserEvent::UserEvent(Handle<Object> wrapper) : Event(wrapper)
 {
 }
 
-void UserEvent::Destructor()
-{
-  Event::Destructor();
-}
-
 NAN_METHOD(UserEvent::release)
 {
-  NanScope();
-  UserEvent *e = ObjectWrap::Unwrap<UserEvent>(args.This());
-  
-  DESTROY_WEBCL_OBJECT(e);
-  
-  NanReturnUndefined();
+  return Event::release(args);
 }
 
 NAN_METHOD(UserEvent::getInfo)
@@ -349,6 +339,7 @@ NAN_METHOD(UserEvent::setStatus)
   int status = args[0]->Int32Value();
 
   cl_int ret=::clSetUserEventStatus(e->getEvent(),status);
+
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(INVALID_EVENT);
     REQ_ERROR_THROW(INVALID_VALUE);

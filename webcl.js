@@ -572,6 +572,10 @@ cl.WebCLContext.prototype.release=function () {
   return this._release();
 }
 
+cl.WebCLContext.prototype.releaseAll=function () {
+  return this._releaseAll();
+}
+
 cl.WebCLContext.prototype.getInfo=function (param_name) {
   if (!(arguments.length === 1 && typeof param_name === 'number')) {
     throw new TypeError('Expected WebCLContext.getInfo(CLenum param_name)');

@@ -212,6 +212,7 @@ NAN_METHOD(getPlatforms) {
 
 NAN_METHOD(releaseAll) {
   NanScope();
+  // printf("webcl.AtExit()\n");
   
   AtExit(args[0]->IsUndefined() ? NULL : (void*) args[0]->IntegerValue());
   atExit=true;

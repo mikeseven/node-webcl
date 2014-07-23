@@ -35,6 +35,7 @@
 #include "platform.h"
 #include "program.h"
 #include "sampler.h"
+#include "exceptions.h"
 
 #include <cstdlib>
 
@@ -82,6 +83,7 @@ void init(Handle<Object> target)
   webcl::Platform::Init(target);
   webcl::Program::Init(target);
   webcl::Sampler::Init(target);
+  webcl::WebCLException::Init(target);
 
   // OpenCL 1.1 constants
 

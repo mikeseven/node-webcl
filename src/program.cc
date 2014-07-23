@@ -316,7 +316,7 @@ void Program::callback (cl_program program, void *user_data)
     delete[] devices;
   }
 
-  printf("[build] calling async JS cb\n");
+  // printf("[build] calling async JS cb\n");
   NanAsyncQueueWorker(new ProgramWorker(baton));
 }
 
@@ -364,7 +364,7 @@ NAN_METHOD(Program::build)
     baton->callback=new NanCallback(args[2].As<Function>());
   }
 
-  printf("Build program with baton %p\n",baton);
+  // printf("Build program with baton %p\n",baton);
 
   cl_int ret = ::clBuildProgram(prog->getProgram(), num, devices,
       options,

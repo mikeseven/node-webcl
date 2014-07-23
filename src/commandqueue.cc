@@ -99,19 +99,16 @@ CommandQueue::CommandQueue(Handle<Object> wrapper) : command_queue(0)
 }
 
 void CommandQueue::Destructor() {
-  #ifdef LOGGING
-  cout<<"  Destroying CL command queue"<<endl;
-  #endif
-  if(command_queue) {
-    cl_uint count;
-    ::clGetCommandQueueInfo(command_queue,CL_QUEUE_REFERENCE_COUNT,sizeof(cl_uint),&count,0);
 #ifdef LOGGING
+  cout<<"  Destroying CL command queue"<<endl;
+#endif
+  if(command_queue) {
+#ifdef LOGGING
+    cl_uint count;
+    ::clGetCommandQueueInfo(command_queue,CL_QUEUE_REFERENCE_COUNT,sizeof(cl_uint),&count,NULL);
     cout<<"CommandQueue ref count is: "<<count<<endl;
 #endif
     ::clReleaseCommandQueue(command_queue);
-#ifdef LOGGING
-    cout<<"CommandQueue released"<<endl;
-#endif
     }
   command_queue=0;
 }

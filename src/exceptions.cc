@@ -1,4 +1,6 @@
-#include "common.h"
+#include "exceptions.h"
+
+using namespace v8;
 
 namespace webcl {
 
@@ -67,6 +69,78 @@ const char* ErrorDesc(cl_int err)
     case CL_INVALID_DEVICE_PARTITION_COUNT:     return "Invalid device partition count";
   }
   return "Unknown";
+}
+
+Persistent<FunctionTemplate> WebCLException::constructor_template;
+
+void WebCLException::Init(Handle<Object> target)
+{
+  NanScope();
+
+  // constructor
+  Local<FunctionTemplate> ctor = FunctionTemplate::New(WebCLException::New);
+  NanAssignPersistent(FunctionTemplate, constructor_template, ctor);
+  ctor->InstanceTemplate()->SetInternalFieldCount(1);
+  ctor->SetClassName(NanSymbol("WebCLException"));
+
+  // prototype
+  Local<ObjectTemplate> proto = ctor->PrototypeTemplate();
+  proto->SetAccessor(JS_STR("name"), GetName, NULL);
+  proto->SetAccessor(JS_STR("description"), GetDescription, NULL);
+  proto->SetAccessor(JS_STR("code"), GetCode, NULL);
+
+  target->Set(NanSymbol("WebCLException"), ctor->GetFunction());
+}
+
+WebCLException::WebCLException(Handle<Object> wrapper)
+{
+}
+
+NAN_GETTER(WebCLException::GetName) {
+  NanScope();
+  WebCLException *ex = ObjectWrap::Unwrap<WebCLException>(args.This());
+  NanReturnValue(JS_STR(ex->name_));
+}
+
+NAN_GETTER(WebCLException::GetDescription) {
+  NanScope();
+  WebCLException *ex = ObjectWrap::Unwrap<WebCLException>(args.This());
+  NanReturnValue(JS_STR(ex->desc_));
+}
+
+NAN_GETTER(WebCLException::GetCode) {
+  NanScope();
+  WebCLException *ex = ObjectWrap::Unwrap<WebCLException>(args.This());
+  NanReturnValue(JS_INT(ex->code_));
+}
+
+NAN_METHOD(WebCLException::New)
+{
+  if (!args.IsConstructCall())
+    return NanThrowTypeError("Constructor cannot be called as a function.");
+
+  NanScope();
+  WebCLException *ex = new WebCLException(args.This());
+  ex->Wrap(args.This());
+
+  NanReturnValue(args.This());
+}
+
+WebCLException *WebCLException::New(const char *name, const char *desc, const int code)
+{
+
+  NanScope();
+
+  Local<Value> arg = Integer::NewFromUnsigned(0);
+  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor_template);
+  Local<Object> obj = constructorHandle->GetFunction()->NewInstance(1, &arg);
+
+  WebCLException *ex = ObjectWrap::Unwrap<WebCLException>(obj);
+  ex->name_=name;
+  ex->desc_=desc;
+  ex->code_=code;
+
+  return ex;
 }
 
 } // namespace webcl

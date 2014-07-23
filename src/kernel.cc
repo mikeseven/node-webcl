@@ -302,9 +302,13 @@ NAN_METHOD(Kernel::setArg)
     String::AsciiValue str(args[1]->ToObject()->GetConstructorName());
     if(!strcmp("WebCLSampler",*str)) {
       // WebCLSampler
-      cl_sampler sampler;
       Sampler *s = ObjectWrap::Unwrap<Sampler>(args[1]->ToObject());
-      sampler = s->getSampler();
+      cl_sampler sampler = s->getSampler();
+
+      if(sampler == 0) {
+        ret=CL_INVALID_SAMPLER;
+        REQ_ERROR_THROW(INVALID_SAMPLER); // bug in OSX that allows null sampler without throwing exception
+      }
 
       ret = ::clSetKernelArg(k, arg_index, sizeof(cl_sampler), &sampler);
     }

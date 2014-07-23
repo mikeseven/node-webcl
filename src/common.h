@@ -102,21 +102,9 @@ namespace {
     NanThrowTypeError("Argument " #I " must be a function");            \
   Local<Function> VAR = Local<Function>::Cast(args[I]);
 
-#define REQ_ERROR_THROW_NONE(error) if (ret == CL_##error) { \
-    /* NanThrowError(String::New(#error)); return; */ \
-    Local<Object> err=Exception::Error(JS_STR(ErrorDesc(CL_##error)))->ToObject(); \
-    err->Set(JS_STR("name"),JS_STR(#error)); \
-    err->Set(JS_STR("code"),JS_INT(CL_##error)); \
-    return; \
-  }
+#define REQ_ERROR_THROW_NONE(error) if (ret == CL_##error) ThrowException(NanObjectWrapHandle(WebCLException::New(#error, ErrorDesc(CL_##error), CL_##error))); return;
 
-#define REQ_ERROR_THROW(error) if (ret == CL_##error) { \
-    /* NanThrowError(String::New(#error)); NanReturnUndefined(); */ \
-    Local<Object> err=Exception::Error(JS_STR(ErrorDesc(CL_##error)))->ToObject(); \
-    err->Set(JS_STR("name"),JS_STR(#error)); \
-    err->Set(JS_STR("code"),JS_INT(CL_##error)); \
-    return ThrowException(err); \
-  }
+#define REQ_ERROR_THROW(error) if (ret == CL_##error) return ThrowException(NanObjectWrapHandle(WebCLException::New(#error, ErrorDesc(CL_##error), CL_##error)));
 
 #define DESTROY_WEBCL_OBJECT(obj)	\
   obj->Destructor();			\
@@ -192,5 +180,7 @@ protected:
 };
 
 } // namespace webcl
+
+#include "exceptions.h"
 
 #endif
