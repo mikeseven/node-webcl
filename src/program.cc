@@ -289,7 +289,7 @@ class ProgramWorker : public NanAsyncWorker {
     };
 
     // printf("[build] callback JS\n");
-    callback->Call(2, argv);
+    callback->Call(1, argv);
   }
 
   private:

@@ -742,11 +742,11 @@ cl.WebCLUserEvent.prototype.release=function () {
 }
 
 cl.WebCLUserEvent.prototype.getInfo=function (param_name) {
-  return cl.WebCLEvent.prototype.getInfo(param_name);
+  return this._getInfo(param_name);
 }
 
 cl.WebCLUserEvent.prototype.getProfilingInfo=function (param_name) {
-  return cl.WebCLEvent.prototype.getProfilingInfo(param_name);
+  return this._getProfilingInfo(param_name);
 }
 
 cl.WebCLUserEvent.prototype.setStatus=function (execution_status) {
@@ -757,7 +757,11 @@ cl.WebCLUserEvent.prototype.setStatus=function (execution_status) {
 }
 
 cl.WebCLUserEvent.prototype.setCallback=function (execution_status, fct, args) {
-  return cl.WebCLEvent.prototype.setCallback(execution_status, fct, args);
+ if (!(arguments.length >= 2 && typeof execution_status === 'number' &&
+      typeof fct === 'function')) {
+    throw new TypeError('Expected WebCLEvent.setCallback(CLenum execution_status, function callback, any args)');
+  }
+  return this._setCallback(execution_status, fct, args);
 }
 
 //////////////////////////////

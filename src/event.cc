@@ -206,13 +206,19 @@ class EventWorker : public NanAsyncWorker {
     e->setStatus(baton_->error);
 
     // // must return passed data
-    Local<Value> argv[] = {
-      NanPersistentToLocal(baton_->parent),  // event
-      NanPersistentToLocal(baton_->data)     // user's message
-    };
+    if(baton_->data.IsEmpty()) {
+      Local<Value> argv[] = { NanPersistentToLocal(baton_->parent) };
+      callback->Call(1, argv);
+    }
+    else {
+      Local<Value> argv[] = {
+        NanPersistentToLocal(baton_->parent),  // event
+        NanPersistentToLocal(baton_->data)     // user's message
+      };
 
-    // printf("[async event] callback JS\n");
-    callback->Call(2, argv);
+      // printf("[async event] callback JS\n");
+      callback->Call(2, argv);
+    }
   }
 
   private:
@@ -225,6 +231,7 @@ void CL_CALLBACK Event::callback (cl_event event, cl_int event_command_exec_stat
   Baton *baton = static_cast<Baton*>(user_data);
   baton->error = event_command_exec_status;
 
+  // printf("EventWorker launched\n");
   NanAsyncQueueWorker(new EventWorker(baton));
 }
 
@@ -233,10 +240,10 @@ NAN_METHOD(Event::setCallback)
   NanScope();
   Event *e = ObjectWrap::Unwrap<Event>(args.This());
   cl_int command_exec_callback_type = args[0]->Int32Value();
-  Local<Value> data=args[2];
 
   Baton *baton=new Baton();
-  NanAssignPersistent(v8::Value, baton->data, data);
+  if(!args[2]->IsNull() && !args[2]->IsUndefined()) 
+    NanAssignPersistent(v8::Value, baton->data, args[2]);
   NanAssignPersistent(v8::Object, baton->parent, NanObjectWrapHandle(e));
   baton->callback=new NanCallback(args[1].As<Function>());
 
