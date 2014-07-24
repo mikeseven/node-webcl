@@ -35,7 +35,7 @@ class MemoryObject : public WebCLObject
 {
 
 public:
-  void Destructor();
+  virtual void Destructor();
 
   static void Init(v8::Handle<v8::Object> target);
 
@@ -46,7 +46,6 @@ public:
   static NAN_METHOD(release);
   
   cl_mem getMemory() const { return memory; };
-  bool isMemoryObject() const { return true; }
   virtual bool isEqual(void *clObj) { return ((cl_mem)clObj)==memory; }
 
 private:

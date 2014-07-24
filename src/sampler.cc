@@ -54,6 +54,7 @@ void Sampler::Init(Handle<Object> target)
 
 Sampler::Sampler(Handle<Object> wrapper) : sampler(0)
 {
+  _type=CLObjType::Sampler;
 }
 
 void Sampler::Destructor() {
@@ -109,6 +110,7 @@ NAN_METHOD(Sampler::getInfo)
     if(param_value) {
       WebCLObject *obj=findCLObj((void*)param_value);
       if(obj) {
+        //::clRetainContext(param_value);
         NanReturnValue(NanObjectWrapHandle(obj));
       }
       else

@@ -63,7 +63,6 @@ public:
   static NAN_METHOD(getGLContext);
 
   cl_context getContext() const { return context; };
-  virtual bool isContext() const { return true; }
   virtual bool isEqual(void *clObj) { return ((cl_context)clObj)==context; }
 
 private:

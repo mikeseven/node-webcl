@@ -59,14 +59,15 @@ void Event::Init(Handle<Object> target)
 
 Event::Event(Handle<Object> wrapper) : /*callback(NULL),*/ event(0), status(0)
 {
+  _type=CLObjType::Event;
 }
 
 void Event::Destructor()
 {
-  if(event) {
 #ifdef LOGGING
-    cout<<"  Destroying CL event "<<event<<endl;//<<" thread: 0x"<<hex<<pthread_self()<<dec<<endl;
+    printf("  Destroying CL event %p\n",this);
 #endif
+  if(event) {
     ::clReleaseEvent(event);
   }
   event=0;
@@ -76,6 +77,9 @@ NAN_METHOD(Event::release)
 {
   NanScope();
   Event *e = ObjectWrap::Unwrap<Event>(args.This());
+  #ifdef LOGGING
+  printf("  In Event::release %p\n",e);
+  #endif
   
   DESTROY_WEBCL_OBJECT(e);
   
@@ -112,7 +116,14 @@ NAN_METHOD(Event::getInfo)
       REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("Unknown error");
     }
-    NanReturnValue(NanObjectWrapHandle(CommandQueue::New(param_value)));
+    if(param_value) {
+      WebCLObject *obj=findCLObj((void*)param_value);
+      if(obj) {
+        //::clRetainCommandQueue(param_value);
+        NanReturnValue(NanObjectWrapHandle(obj));
+      }
+    }
+    NanReturnUndefined();
   }
   case CL_EVENT_REFERENCE_COUNT:
   case CL_EVENT_COMMAND_TYPE:

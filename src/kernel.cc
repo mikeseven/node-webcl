@@ -62,6 +62,7 @@ void Kernel::Init(Handle<Object> target)
 
 Kernel::Kernel(Handle<Object> wrapper) : kernel(0)
 {
+  _type=CLObjType::Kernel;
 }
 
 void Kernel::Destructor() {
@@ -121,6 +122,10 @@ NAN_METHOD(Kernel::getInfo)
     if(param_value) {
       WebCLObject *obj=findCLObj((void*)param_value);
       if(obj) {
+#ifdef LOGGING
+        printf("[Kernel::getInfo] returning context %p\n",obj);
+#endif
+        // ::clRetainContext(param_value);
         NanReturnValue(NanObjectWrapHandle(obj));
       }
       else
@@ -141,6 +146,10 @@ NAN_METHOD(Kernel::getInfo)
     if(param_value) {
       WebCLObject *obj=findCLObj((void*)param_value);
       if(obj) {
+#ifdef LOGGING
+        printf("[Kernel::getInfo] returning program %p\n",obj);
+#endif
+        // ::clRetainProgram(param_value);
         NanReturnValue(NanObjectWrapHandle(obj));
       }
       else

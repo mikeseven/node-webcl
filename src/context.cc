@@ -73,6 +73,7 @@ void Context::Init(Handle<Object> target)
 
 Context::Context(Handle<Object> wrapper) : context(0)
 {
+  _type=CLObjType::Context;
 }
 
 void Context::Destructor()
@@ -99,7 +100,8 @@ NAN_METHOD(Context::releaseAll)
 {
   NanScope();
   Context *context = ObjectWrap::Unwrap<Context>(args.This());
-  
+
+  printf("[Context::releaseAll]\n");  
   AtExit(NULL);
   DESTROY_WEBCL_OBJECT(context);
   
@@ -147,8 +149,10 @@ NAN_METHOD(Context::getInfo)
       if(devices[i]) {
         WebCLObject *obj=findCLObj((void*)devices[i]);
 
-        if(obj)
+        if(obj) {
+          //::clRetainDevice(devices[i]);
           arr->Set(i,NanObjectWrapHandle(obj));
+        }
         else
           arr->Set(i,NanObjectWrapHandle(Device::New(devices[i])));
       }
@@ -194,7 +198,7 @@ NAN_METHOD(Context::createProgram)
     Local<String> str = args[0]->ToString();
     String::AsciiValue astr(str);
 
-    size_t lengths[]={astr.length()};
+    size_t lengths[]={(size_t) astr.length()};
     const char *strings[]={*astr};
     pw=::clCreateProgramWithSource(context->getContext(), 1, strings, lengths, &ret);
 

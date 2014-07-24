@@ -1,5 +1,5 @@
 {
-  'targets': [
+    'targets': [
     {
       'target_name': 'webcl',
       'defines': [
@@ -24,7 +24,18 @@
         "<!(node -e \"require('nan')\")",
       ],
       'conditions': [
-        ['OS=="mac"', {'libraries': ['-framework OpenGL', '-framework OpenCL']}],
+        ['OS=="mac"', {
+          'make_global_settings': [
+            ['CC', '/usr/bin/clang'],
+            ['CXX', '/usr/bin/clang++'],
+          ],
+          "xcode_settings": {
+#              'OTHER_CPLUSPLUSFLAGS' : ['-std=c++11','-stdlib=libc++'],
+#              'OTHER_LDFLAGS': ['-stdlib=libc++'],
+              'MACOSX_DEPLOYMENT_TARGET': '10.7'
+          },
+          'libraries': ['-framework OpenGL', '-framework OpenCL']
+        }],
         ['OS=="linux"', {'libraries': ['-lGL', '-lOpenCL']}],
         ['OS=="win"', {
           'variables' :

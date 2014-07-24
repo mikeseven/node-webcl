@@ -42,28 +42,38 @@ using namespace std;
 
 namespace webcl {
 
-static set<WebCLObject*> clobjs;
+static vector<WebCLObject*> clobjs;
 static bool atExit=false;
 
 void registerCLObj(WebCLObject* obj) {
-  if(obj) {
-    // printf("Adding CLObject %p\n", obj);
-    clobjs.insert(obj);
-  }
+  if(!obj) return;
+
+  #ifdef LOGGING
+  printf("Adding CLObject %p type %d, size %d\n", obj, obj->getType(),clobjs.size()); fflush(stdout);
+  #endif
+  clobjs.push_back(obj);
 }
 
 void unregisterCLObj(WebCLObject* obj) {
-  if(atExit || !obj) return;
+  if(/*atExit ||*/ !obj) return;
 
-  // printf("Removing CLObject %p\n", obj);
-  clobjs.erase(obj);
+  #ifdef LOGGING
+  printf("Removing CLObject %p, size %d\n", obj, clobjs.size()); fflush(stdout);
+  #endif
+  // clobjs.erase(obj);
+  for(vector<WebCLObject*>::iterator it = clobjs.begin();it!=clobjs.end();++it) {
+    if(*it == obj) {
+      clobjs.erase(it);
+      return;
+    }
+  }
 }
 
 /**
  * Finds the WebCL objet already associated with an OpenCL object
  */
 WebCLObject* findCLObj(void *clObj) {
-  set<WebCLObject*>::iterator it = clobjs.begin();
+  vector<WebCLObject*>::iterator it = clobjs.begin();
   while(it != clobjs.end()) {
     WebCLObject *clo = *it++;
     if(clo->isEqual(clObj))
@@ -74,28 +84,22 @@ WebCLObject* findCLObj(void *clObj) {
 
 void AtExit(void* arg) {
   atExit=true;
-  #ifdef LOGGING
-  cout<<"WebCL AtExit() called"<<endl;
-  cout<<"  # objects allocated: "<<clobjs.size()<<endl;
-  #endif
+  // #ifdef LOGGING
+  // {
+  //   cout<<"WebCL AtExit() called"<<endl;
+  //   cout<<"  # objects allocated: "<<clobjs.size()<<endl;
+
+  //   set<WebCLObject*>::iterator it = clobjs.begin();
+  //   while(it != clobjs.end()) {
+  //     WebCLObject *clo = *it++;
+  //     cout<<"  obj type: "<<clo->getType()<<endl;
+  //   }
+  // }
+  // #endif
 
   // make sure all queues are flushed
-  set<WebCLObject*>::iterator it = clobjs.begin();
-  while(it != clobjs.end()) {
-    WebCLObject *clo = *it;
-    ++it;
-    if(clo->isCommandQueue()) {
-#ifdef LOGGING
-      cout<<"  Flushing commandqueue"<<endl;
-#endif
-      CommandQueue *queue=static_cast<CommandQueue*>(clo);
-      // PATCH: Destroyed by release from JS
-      cl_command_queue q=queue->getCommandQueue();
-      if ( q ) {
-        clFlush(q);
-      }
-    }
-  }
+  // vector<WebCLObject*>::iterator it;
+  vector<WebCLObject*>::reverse_iterator it;
 
   // must kill events first
   // vector<cl_event> events;
@@ -123,57 +127,46 @@ void AtExit(void* arg) {
   // }
   // events.clear();
 
-  it = clobjs.begin();
-  while(it != clobjs.end()) {
-    WebCLObject *clo = *it;
-    if(clo->isEvent()) {
-      clobjs.erase(clo);
-      clo->Destructor();
-    }
-    ++it;
-  }
+////////////////////////////////////////////////////////
 
   // must kill kernels first
-  it = clobjs.begin();
-  while(it != clobjs.end()) {
-    WebCLObject *clo = *it;
-    ++it;
-    if(clo->isKernel()) {
-#ifdef LOGGING
-      cout<<"  Destroying kernel"<<endl;
-#endif
-      clobjs.erase(clo);
-      clo->Destructor();
-    }
-  }
+//   #ifdef LOGGING
+//   cout<<"  # objects allocated: "<<clobjs.size()<<endl; fflush(stdout);
+//   #endif
+//   it = clobjs.begin();
+//   while(it != clobjs.end()) {
+//     WebCLObject *clo = *it;
+//     if(clo->isKernel()) {
+// #ifdef LOGGING
+//       cout<<"  Destroying kernel"<<endl;
+// #endif
+//       clobjs.erase(it++);
+//       clo->Destructor();
+//     }
+//     else
+//       ++it;
+//   }
 
   #ifdef LOGGING
-  cout<<"  # objects allocated: "<<clobjs.size()<<endl;
+  cout<<"  # objects allocated: "<<clobjs.size()<<endl; fflush(stdout);
   #endif
-  it = clobjs.begin();
-  while(it != clobjs.end()) {
+  for(it = clobjs.rbegin(); it != clobjs.rend(); ++it) {
     WebCLObject *clo = *it;
 #ifdef LOGGING
-      cout<<"  [AtExit] Destroying ";
-      if(clo->isCommandQueue())
-        cout<<"CommandQueue";
-      else if(clo->isKernel())
-        cout<<"Kernel";
-      else if(clo->isEvent())
-        cout<<"Event";
-      else if(clo->isProgram())
-        cout<<"Program";
-      else if(clo->isMemoryObject())
-        cout<<"MemoryObject";
-      else if(clo->isSampler())
-        cout<<"Sampler";
-      else if(clo->isContext())
-        cout<<"Context";
-      else
-        cout<<"UNKNOWN";
-      cout<<endl;
+    cout<<"  [AtExit] Destroying ";
+    if(clo->isCommandQueue())   cout<<"CommandQueue";
+    else if(clo->isKernel())    cout<<"Kernel";
+    else if(clo->isEvent())     cout<<"Event";
+    else if(clo->isProgram())   cout<<"Program";
+    else if(clo->isMemoryObject()) cout<<"MemoryObject";
+    else if(clo->isSampler())   cout<<"Sampler";
+    else if(clo->isContext())   cout<<"Context";
+    else if(clo->isPlatform())  cout<<"Platform";
+    else if(clo->isDevice())    cout<<"Device";
+    else
+      printf("UNKNOWN");
+    printf(" %p\n",clo); fflush(stdout);
 #endif
-    ++it;
     clo->Destructor();
   }
 
@@ -213,7 +206,7 @@ NAN_METHOD(getPlatforms) {
 NAN_METHOD(releaseAll) {
   NanScope();
   // printf("webcl.AtExit()\n");
-  
+
   AtExit(args[0]->IsUndefined() ? NULL : (void*) args[0]->IntegerValue());
   atExit=true;
 

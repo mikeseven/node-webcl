@@ -50,11 +50,11 @@ public:
 
   cl_event getEvent() const { return event; };
   void setEvent(cl_event e);
-  bool isEvent() const { return true; }
 
   static NAN_GETTER(GetStatus);
   void setStatus(int s) { status = s; }
-  
+  virtual bool isEqual(void *clObj) { return ((cl_event)clObj)==event; }
+
 protected:
   Event(v8::Handle<v8::Object> wrapper);
 

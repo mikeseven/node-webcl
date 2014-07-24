@@ -62,6 +62,7 @@ void Program::Init(Handle<Object> target)
 
 Program::Program(Handle<Object> wrapper) : program(0)
 {
+  _type=CLObjType::Program;
 }
 
 void Program::Destructor() {
@@ -115,6 +116,7 @@ NAN_METHOD(Program::getInfo)
     if(value) {
       WebCLObject *obj=findCLObj((void*)value);
       if(obj) {
+        //::clRetainContext(value);
         NanReturnValue(NanObjectWrapHandle(obj));
       }
       else
@@ -138,8 +140,10 @@ NAN_METHOD(Program::getInfo)
     for (size_t i=0; i<num_devices; i++) {
       cl_device_id d = devices[i];
       WebCLObject *obj=findCLObj((void*)d);
-      if(obj) 
+      if(obj) {
+        //::clRetainDevice(d);
         deviceArray->Set(i, NanObjectWrapHandle(obj));
+      }
       else
         deviceArray->Set(i, NanObjectWrapHandle(Device::New(d)));
     }
@@ -431,7 +435,6 @@ NAN_METHOD(Program::createKernelsInProgram)
   if(ret == CL_SUCCESS && num_kernels>0) {
     kernels=new cl_kernel[num_kernels];
     ret = ::clCreateKernelsInProgram(prog->getProgram(), num_kernels, kernels, NULL);
-
   }
 
   if (ret != CL_SUCCESS) {

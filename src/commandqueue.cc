@@ -96,6 +96,7 @@ void CommandQueue::Init(Handle<Object> target)
 
 CommandQueue::CommandQueue(Handle<Object> wrapper) : command_queue(0)
 {
+  _type=CLObjType::CommandQueue;
 }
 
 void CommandQueue::Destructor() {
@@ -1482,10 +1483,10 @@ NAN_METHOD(CommandQueue::finish)
   NanScope();
   CommandQueue *cq = ObjectWrap::Unwrap<CommandQueue>(args.This());
 
-  if(args[1]->IsFunction()) {
+  if(args.Length()>0 && args[0]->IsFunction()) {
       Baton *baton=new Baton();
       NanAssignPersistent(v8::Object, baton->parent, NanObjectWrapHandle(cq));
-      baton->callback=new NanCallback(args[1].As<Function>());
+      baton->callback=new NanCallback(args[0].As<Function>());
       NanAsyncQueueWorker(new FinishWorker(baton));
       NanReturnUndefined();
   }

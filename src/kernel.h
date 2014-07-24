@@ -49,7 +49,6 @@ public:
 
   cl_kernel getKernel() const { return kernel; };
   
-  bool isKernel() const { return true; }
   virtual bool isEqual(void *clObj) { return ((cl_kernel)clObj)==kernel; }
 
 private:

@@ -94,6 +94,7 @@ void WebCLException::Init(Handle<Object> target)
 
 WebCLException::WebCLException(Handle<Object> wrapper)
 {
+  _type=CLObjType::Exception;
 }
 
 NAN_GETTER(WebCLException::GetName) {

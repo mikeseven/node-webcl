@@ -57,6 +57,7 @@ void Platform::Init(Handle<Object> target)
 
 Platform::Platform(Handle<Object> wrapper) : platform_id(0), enableExtensions(NONE), availableExtensions(NONE)
 {
+  _type=CLObjType::Platform;
 }
 
 NAN_METHOD(Platform::getDevices)
@@ -96,7 +97,9 @@ NAN_METHOD(Platform::getDevices)
   Local<Array> deviceArray = Array::New(n);
   for (uint32_t i=0; i<n; i++) {
     #ifdef LOGGING
-    cout<<"Found device: "<<ids[i]<<endl;
+    char name[256];
+    ::clGetDeviceInfo(ids[i],CL_DEVICE_NAME,sizeof(name),name,NULL);
+    cout<<"Found device: "<<ids[i]<<" "<<name<<endl;
     #endif
     WebCLObject *obj=findCLObj((void*)ids[i]);
     if(obj)

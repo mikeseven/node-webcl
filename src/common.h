@@ -141,42 +141,54 @@ void registerCLObj(WebCLObject* obj);
 void unregisterCLObj(WebCLObject* obj);
 void AtExit(void* arg);
 
+namespace CLObjType {
 enum CLObjType {
-  CLObjType_None,
-  CLObjType_Context,
-  CLObjType_CommandQueue,
-  CLObjType_Kernel,
-  CLObjType_Program,
-  CLObjType_Sampler,
-  CLObjType_Event,
-  CLObjType_MemoryObject
+  None=0,
+  Platform,
+  Device,
+  Context,
+  CommandQueue,
+  Kernel,
+  Program,
+  Sampler,
+  Event,
+  MemoryObject,
+  Exception,
 };
+}
 
 WebCLObject* findCLObj(void* type);
 
 class WebCLObject : public node::ObjectWrap {
 protected:
-  WebCLObject() : _type(CLObjType_None) {}
-  virtual ~WebCLObject() {
-    // printf("Destructor WebCLObject\n");
-    Destructor();
-    unregisterCLObj(this);
-  }
+  WebCLObject() : _type(CLObjType::None) {}
+  // virtual ~WebCLObject() {
+  //   // printf("Destructor WebCLObject\n");
+  //   // Destructor();
+  //   // unregisterCLObj(this);
+  // }
 
+#define isA(value, type) ((int)value & (int)type)==(int)type
 public:
-  virtual void Destructor() {}
-  CLObjType getType() { return _type; }
-  virtual bool isKernel() const { return _type & CLObjType_Kernel; }
-  virtual bool isCommandQueue() const { return _type & CLObjType_CommandQueue; }
-  virtual bool isMemoryObject() const { return _type & CLObjType_MemoryObject; }
-  virtual bool isProgram() const { return _type & CLObjType_Program; }
-  virtual bool isSampler() const { return _type & CLObjType_Sampler; }
-  virtual bool isEvent() const { return _type & CLObjType_Event; }
-  virtual bool isContext() const { return _type & CLObjType_Context; }
+  virtual void Destructor() { 
+#ifdef LOGGING
+    printf("In WebCLObject::Destructor\n"); 
+#endif
+  }
+  CLObjType::CLObjType getType() { return _type; }
+  bool isPlatform() const { return isA(_type, CLObjType::Platform); }
+  bool isDevice() const { return isA(_type, CLObjType::Device); }
+  bool isKernel() const { return isA(_type, CLObjType::Kernel); }
+  bool isCommandQueue() const { return isA(_type, CLObjType::CommandQueue); }
+  bool isMemoryObject() const { return isA(_type, CLObjType::MemoryObject); }
+  bool isProgram() const { return isA(_type, CLObjType::Program); }
+  bool isSampler() const { return isA(_type, CLObjType::Sampler); }
+  bool isEvent() const { return isA(_type, CLObjType::Event); }
+  bool isContext() const { return isA(_type, CLObjType::Context); }
   virtual bool isEqual(void *clObj) { return false; }
 
 protected:
-  CLObjType _type;
+  CLObjType::CLObjType _type;
 };
 
 } // namespace webcl

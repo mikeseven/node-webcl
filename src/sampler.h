@@ -45,7 +45,6 @@ public:
   static NAN_METHOD(release);
 
   cl_sampler getSampler() const { return sampler; };
-  virtual bool isSampler() const { return true; }
   virtual bool isEqual(void *clObj) { return ((cl_sampler)clObj)==sampler; }
 
 private:

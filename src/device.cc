@@ -56,6 +56,7 @@ void Device::Init(Handle<Object> target)
 
 Device::Device(Handle<Object> wrapper) : device_id(0), enableExtensions(NONE), availableExtensions(NONE)
 {
+  _type=CLObjType::Device;
 }
 
 NAN_METHOD(Device::getInfo)

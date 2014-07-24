@@ -55,11 +55,12 @@ void MemoryObject::Init(Handle<Object> target)
 
 MemoryObject::MemoryObject(Handle<Object> wrapper) : memory(0)
 {
+  _type=CLObjType::MemoryObject;
 }
 
 void MemoryObject::Destructor() {
   #ifdef LOGGING
-  cout<<"  Destroying CL memory object"<<endl;
+  printf("  Destroying CL memory object %p\n",this);
   #endif
   if(memory) ::clReleaseMemObject(memory);
   memory=0;
@@ -70,6 +71,9 @@ NAN_METHOD(MemoryObject::release)
   NanScope();
 
   MemoryObject *mo = ObjectWrap::Unwrap<MemoryObject>(args.This());
+  #ifdef LOGGING
+  printf("  In MemoryObject::release%p\n",mo);
+  #endif
   DESTROY_WEBCL_OBJECT(mo);
   
   NanReturnUndefined();
@@ -156,7 +160,7 @@ NAN_METHOD(MemoryObject::getInfo)
     if(param_value) {
       WebCLObject *obj=findCLObj((void*)param_value);
       if(obj) {
-        clRetainContext(param_value);
+        //::clRetainContext(param_value);
         NanReturnValue(NanObjectWrapHandle(obj));
       }
     }
