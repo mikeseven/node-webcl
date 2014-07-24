@@ -30,6 +30,8 @@ if(nodejs) {
   log = console.log;
   exit = process.exit;
 }
+else
+  WebCL = window.webcl;
 
 function read_complete(event, data) {
   log('in read_complete, status: '+event.status);
@@ -74,10 +76,7 @@ function main() {
 
   var context=null;
   try {
-    context=WebCL.createContext({
-      deviceType: WebCL.DEVICE_TYPE_ALL, 
-      // platform: platform
-    });
+    context=WebCL.createContext(WebCL.DEVICE_TYPE_ALL);
   }
   catch(ex) {
     throw new Exception("Can't create CL context");
@@ -147,7 +146,7 @@ function main() {
   try {
     user_event = context.createUserEvent();
   } catch(ex) {
-     log("Couldn't enqueue the kernel");
+     log("Couldn't create UserEvent. "+ex);
      exit(1);   
   }
 
@@ -180,7 +179,7 @@ function main() {
   log("Old data: "+data[0]+', '+data[1]+', '+data[2]+', '+data[3]);
 
   /* Set user event to success */
-  user_event.setUserEventStatus(WebCL.SUCCESS);
+  user_event.setStatus(WebCL.SUCCESS);
   
   queue.finish();
   log('queue finished');

@@ -32,6 +32,8 @@ if(nodejs) {
   clu = require('../lib/clUtils');
   log=console.log;
 }
+else
+  WebCL = window.webcl;
 
 //defines, project
 var MEMCOPY_ITERATIONS  = 100;
@@ -49,16 +51,13 @@ var MAPPED=0, DIRECT=1; // access modes
 if (WebCL == undefined) {
   alert("Unfortunately your system does not support WebCL. " +
   "Make sure that you have the WebCL extension installed.");
-  return;
+  process.exit(-1);
 }
 
 // Create the OpenCL context
 var ctx=null;
 try {
-  ctx=WebCL.createContext({
-    deviceType: WebCL.DEVICE_TYPE_ALL, 
-    platform: WebCL.getPlatforms()[0]
-  });
+  ctx=WebCL.createContext(WebCL.DEVICE_TYPE_ALL);
 }
 catch(ex) {
   throw new Error("Can't create CL context");

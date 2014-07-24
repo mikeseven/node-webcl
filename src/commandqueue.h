@@ -42,34 +42,49 @@ public:
   static CommandQueue *New(cl_command_queue cw);
   static NAN_METHOD(New);
 
-  static NAN_METHOD(getInfo);
-  static NAN_METHOD(enqueueNDRangeKernel);
-  static NAN_METHOD(enqueueTask);
-  static NAN_METHOD(enqueueWriteBuffer);
-  static NAN_METHOD(enqueueReadBuffer);
+  // Copying: Buffer <-> Buffer, Image <-> Image, Buffer <-> Image
   static NAN_METHOD(enqueueCopyBuffer);
-  static NAN_METHOD(enqueueWriteBufferRect);
-  static NAN_METHOD(enqueueReadBufferRect);
   static NAN_METHOD(enqueueCopyBufferRect);
-  static NAN_METHOD(enqueueWriteImage);
-  static NAN_METHOD(enqueueReadImage);
   static NAN_METHOD(enqueueCopyImage);
   static NAN_METHOD(enqueueCopyImageToBuffer);
   static NAN_METHOD(enqueueCopyBufferToImage);
+
+  // Reading: Buffer -> Host, Image -> Host
+  static NAN_METHOD(enqueueReadBuffer);
+  static NAN_METHOD(enqueueReadBufferRect);
+  static NAN_METHOD(enqueueReadImage);
+
+  // Writing: Host -> Buffer, Host -> Image  
+  static NAN_METHOD(enqueueWriteBuffer);
+  static NAN_METHOD(enqueueWriteBufferRect);
+  static NAN_METHOD(enqueueWriteImage);
+
+  // Executing kernels
+  static NAN_METHOD(enqueueNDRangeKernel);
+  static NAN_METHOD(enqueueTask);
+
+  // Synchronization
+  static NAN_METHOD(enqueueMarker);
+  static NAN_METHOD(enqueueBarrier);
+  static NAN_METHOD(enqueueWaitForEvents);
+  static NAN_METHOD(flush);
+  static NAN_METHOD(finish);
+
+  // Querying command queue information
+  static NAN_METHOD(getInfo);
+  static NAN_METHOD(release);
+
+  // Buffer mapping
   static NAN_METHOD(enqueueMapBuffer);
   static NAN_METHOD(enqueueMapImage);
   static NAN_METHOD(enqueueUnmapMemObject);
-  static NAN_METHOD(enqueueMarker);
-  static NAN_METHOD(enqueueWaitForEvents);
-  static NAN_METHOD(enqueueBarrier);
-  static NAN_METHOD(flush);
-  static NAN_METHOD(finish);
+
+  // CL-GL
   static NAN_METHOD(enqueueAcquireGLObjects);
   static NAN_METHOD(enqueueReleaseGLObjects);
-  static NAN_METHOD(release);
 
   cl_command_queue getCommandQueue() const { return command_queue; };
-  bool isCommandQueue() const { return true; }
+  virtual bool isEqual(void *clObj) { return ((cl_command_queue)clObj)==command_queue; }
 
 private:
   CommandQueue(v8::Handle<v8::Object> wrapper);

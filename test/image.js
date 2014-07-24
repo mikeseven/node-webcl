@@ -36,6 +36,8 @@ if(nodejs) {
   log = console.log;
   alert = console.log;
 }
+else
+  WebCL = window.webcl;
 
 requestAnimationFrame = document.requestAnimationFrame;
 
@@ -58,6 +60,7 @@ var Width = WIDTH;
 var Height = HEIGHT;
 var Reshaped = false;
 var Update = false;
+var iRadius = 1; //???
 var newWidth, newHeight; // only when reshape
 
 // gl stuff
@@ -272,47 +275,34 @@ function init_cl() {
   log('init CL');
 
   // Pick platform
-  // var platformList = WebCL.getPlatforms();
-  // var platform = platformList[0];
+  var platformList = WebCL.getPlatforms();
+  var platform = platformList[0];
+  var devices = platform.getDevices(WebCL.DEVICE_TYPE_GPU);
+  ComputeDevice=devices[0];
+
+  // make sure we use a discrete GPU
+  for(var i=0;i<devices.length;i++) {
+    var vendor=devices[i].getInfo(WebCL.DEVICE_VENDOR);
+    // log('found vendor '+vendor+', is Intel? '+(vendor.indexOf('Intel')>=0))
+    if(vendor.indexOf('Intel')==-1)
+      ComputeDevice=devices[i];
+  }
+  log('found '+devices.length+' devices, using device: '+ComputeDevice.getInfo(WebCL.DEVICE_NAME));
+
+  if(!ComputeDevice.enableExtension('KHR_gl_sharing'))
+    throw new Error("Can NOT use GL sharing");
 
   // create the OpenCL context
-  ComputeContext = WebCL.createContext({
-    deviceType: ComputeDeviceType, 
-    shareGroup: gl, 
-    // platform: platform 
-  });
-
-  var device_ids = ComputeContext.getInfo(WebCL.CONTEXT_DEVICES);
-  if (!device_ids) {
-    alert("Error: Failed to retrieve compute devices for context!");
-    return -1;
-  }
-
-  var device_found = false;
-  for(var i=0,l=device_ids.length;i<l;++i ) {
-    device_type = device_ids[i].getInfo(WebCL.DEVICE_TYPE);
-    if (device_type == ComputeDeviceType) {
-      ComputeDevice = device_ids[i];
-      device_found = true;
-      break;
-    }
-  }
-
-  if (!device_found) {
-    alert("Error: Failed to locate compute device!");
-    return -1;
-  }
+  ComputeContext = WebCL.createContext(gl, ComputeDevice);
+  if(!ComputeContext)
+    throw new Error("Can NOT create context");
 
   // Create a command queue
-  //
-  ComputeCommands = ComputeContext.createCommandQueue(ComputeDevice, 0);
-  if (!ComputeCommands) {
-    alert("Error: Failed to create a command queue!");
-    return -1;
-  }
+  ComputeCommands = ComputeContext.createCommandQueue(ComputeDevice);
+  if (!ComputeCommands) 
+    throw new Error("Failed to create a command queue!");
 
   // Report the device vendor and device name
-  // 
   var vendor_name = ComputeDevice.getInfo(WebCL.DEVICE_VENDOR);
   var device_name = ComputeDevice.getInfo(WebCL.DEVICE_NAME);
 
@@ -521,7 +511,7 @@ function execute_kernel() {
   var global = [ TextureWidth, TextureHeight ];
 
   try {
-    ComputeCommands.enqueueNDRangeKernel(ckCompute, null, global, local);
+    ComputeCommands.enqueueNDRangeKernel(ckCompute, 2, null, global, local);
   } catch (err) {
     alert("Failed to enqueue row kernel! " + err);
     return err;

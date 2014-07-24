@@ -35,6 +35,7 @@
 #include "platform.h"
 #include "program.h"
 #include "sampler.h"
+#include "exceptions.h"
 
 #include <cstdlib>
 
@@ -73,13 +74,16 @@ void init(Handle<Object> target)
   webcl::Context::Init(target);
   webcl::Device::Init(target);
   webcl::Event::Init(target);
+  webcl::UserEvent::Init(target);
   webcl::Kernel::Init(target);
   webcl::MemoryObject::Init(target);
   webcl::WebCLBuffer::Init(target);
   webcl::WebCLImage::Init(target);
+  webcl::WebCLImageDescriptor::Init(target);
   webcl::Platform::Init(target);
   webcl::Program::Init(target);
   webcl::Sampler::Init(target);
+  webcl::WebCLException::Init(target);
 
   // OpenCL 1.1 constants
 

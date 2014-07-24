@@ -1,29 +1,3 @@
-// Copyright (c) 2011-2012, Motorola Mobility, Inc.
-// All rights reserved.
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are met:
-//
-//  * Redistributions of source code must retain the above copyright
-//    notice, this list of conditions and the following disclaimer.
-//  * Redistributions in binary form must reproduce the above copyright
-//    notice, this list of conditions and the following disclaimer in the
-//    documentation and/or other materials provided with the distribution.
-//  * Neither the name of the Motorola Mobility, Inc. nor the names of its
-//    contributors may be used to endorse or promote products derived from this
-//    software without specific prior written permission.
-//
-//  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-// ARE DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
-// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-// THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
 var nodejs = (typeof window === 'undefined');
 if(nodejs) {
   WebCL = require('../webcl');
@@ -52,17 +26,20 @@ function VectorAdd() {
     B[i] = i * 2;
   }
 
-  //Pick platform
-  var platformList=WebCL.getPlatforms();
-  platform=platformList[0];
-  log('using platform: '+platform.getInfo(WebCL.PLATFORM_NAME));
-  
-  //Query the set of devices on this platform
-  devices = platform.getDevices(WebCL.DEVICE_TYPE_DEFAULT);
-  log('using device: '+devices[0].getInfo(WebCL.DEVICE_NAME));
-
   // create GPU context for this platform
   context=WebCL.createContext(WebCL.DEVICE_TYPE_DEFAULT);
+
+  // Create command queue
+  try {
+    queue=context.createCommandQueue();
+  }
+  catch(ex) {
+    log(ex);
+    exit(-1);
+  }
+  
+  device = queue.getInfo(WebCL.QUEUE_DEVICE);
+  log('using device: '+device.getInfo(WebCL.DEVICE_NAME));
 
   kernelSourceCode = [
 "__kernel void vadd(__global int *a, __global int *b, __global int *c, uint iNumElements) ",
@@ -77,7 +54,7 @@ function VectorAdd() {
   program=context.createProgram(kernelSourceCode);
 
   //Build program
-  program.build(devices);
+  program.build(device);
 
   size=BUFFER_SIZE*Uint32Array.BYTES_PER_ELEMENT; // size in bytes
   
@@ -93,7 +70,7 @@ function VectorAdd() {
     kernel= program.createKernel("vadd");
   }
   catch(err) {
-    console.log(program.getBuildInfo(devices[0],WebCL.PROGRAM_BUILD_LOG));
+    console.log(program.getBuildInfo(device,WebCL.PROGRAM_BUILD_LOG));
   }
   
   // Set kernel args
@@ -101,9 +78,6 @@ function VectorAdd() {
   kernel.setArg(1, bBuffer);
   kernel.setArg(2, cBuffer);
   kernel.setArg(3, new Uint32Array([BUFFER_SIZE]));
-
-  // Create command queue
-  queue=context.createCommandQueue(devices[0], 0);
 
   // Execute the OpenCL kernel on the list
   var localWS = [5]; // process one list at a time
