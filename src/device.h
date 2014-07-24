@@ -40,9 +40,15 @@ public:
   static Device *New(cl_device_id did);
   static NAN_METHOD(New);
   static NAN_METHOD(getInfo);
-	static NAN_METHOD(getSupportedExtensions);
+  static NAN_METHOD(getSupportedExtensions);
+
+  static NAN_METHOD(enableExtension);
+  bool hasGLSharingEnabled() const { return (enableExtensions & GL_SHARING); }
+  bool hasFP16Enabled() const { return (enableExtensions & FP16); }
+  bool hasFP64Enabled() const { return (enableExtensions & FP64); }
 
   cl_device_id getDevice() const { return device_id; };
+  virtual bool isEqual(void *clObj) { return ((cl_device_id)clObj)==device_id; }
 
 private:
   Device(v8::Handle<v8::Object> wrapper);
@@ -50,6 +56,16 @@ private:
   static v8::Persistent<v8::FunctionTemplate> constructor_template;
 
   cl_device_id device_id;
+
+  cl_uint enableExtensions;
+  cl_uint availableExtensions;
+
+  enum WEBCL_EXTENSIONS {
+  	NONE		     = 0x00,
+  	GL_SHARING 	 = 0x01,
+  	FP16		     = 0x02,
+  	FP64		     = 0x04
+  };
 };
 
 } // namespace

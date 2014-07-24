@@ -35,7 +35,7 @@ class MemoryObject : public WebCLObject
 {
 
 public:
-  void Destructor();
+  virtual void Destructor();
 
   static void Init(v8::Handle<v8::Object> target);
 
@@ -46,7 +46,7 @@ public:
   static NAN_METHOD(release);
   
   cl_mem getMemory() const { return memory; };
-  bool isMemoryObject() const { return true; }
+  virtual bool isEqual(void *clObj) { return ((cl_mem)clObj)==memory; }
 
 private:
   static v8::Persistent<v8::FunctionTemplate> constructor_template;
@@ -63,6 +63,8 @@ public:
 
   static WebCLBuffer *New(cl_mem mw);
   static NAN_METHOD(New);
+  static NAN_METHOD(getInfo);
+  static NAN_METHOD(getGLObjectInfo);
   static NAN_METHOD(release);
   static NAN_METHOD(createSubBuffer);
 
@@ -80,12 +82,38 @@ public:
   static NAN_METHOD(New);
   static NAN_METHOD(release);  
   static NAN_METHOD(getInfo);
+  static NAN_METHOD(getGLObjectInfo);
   static NAN_METHOD(getGLTextureInfo);
 
 private:
   WebCLImage(v8::Handle<v8::Object> wrapper);
 
   static v8::Persistent<v8::FunctionTemplate> constructor_template;
+};
+
+class WebCLImageDescriptor : public WebCLObject
+{
+public:
+  static void Init(v8::Handle<v8::Object> target);
+
+  static WebCLImageDescriptor* New(int order=0, int type=0, int w=0, int h=0, int d=0, int rp=0, int sp=0);
+  static NAN_METHOD(New);
+  static NAN_GETTER(getChannelOrder);
+  static NAN_GETTER(getChannelType);
+  static NAN_GETTER(getWidth);
+  static NAN_GETTER(getHeight);
+  static NAN_GETTER(getDepth);
+  static NAN_GETTER(getRowPitch);
+  static NAN_GETTER(getSlicePitch);
+
+private:
+  WebCLImageDescriptor(v8::Handle<v8::Object> wrapper);
+
+  static v8::Persistent<v8::FunctionTemplate> constructor_template;
+
+  int channelOrder, channelType;
+  int width, height, depth;
+  int rowPitch, slicePitch;
 };
 
 } // namespace

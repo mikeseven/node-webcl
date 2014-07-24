@@ -54,6 +54,7 @@ void Sampler::Init(Handle<Object> target)
 
 Sampler::Sampler(Handle<Object> wrapper) : sampler(0)
 {
+  _type=CLObjType::Sampler;
 }
 
 void Sampler::Destructor() {
@@ -88,10 +89,10 @@ NAN_METHOD(Sampler::getInfo)
     cl_uint param_value=0;
     cl_int ret=::clGetSamplerInfo(sampler->getSampler(), param_name,sizeof(cl_uint), &param_value, NULL);
     if (ret != CL_SUCCESS) {
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_INVALID_SAMPLER);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(INVALID_VALUE);
+      REQ_ERROR_THROW(INVALID_SAMPLER);
+      REQ_ERROR_THROW(OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
     NanReturnValue(Integer::NewFromUnsigned(param_value));
@@ -100,13 +101,22 @@ NAN_METHOD(Sampler::getInfo)
     cl_context param_value=0;
     cl_int ret=::clGetSamplerInfo(sampler->getSampler(), param_name,sizeof(cl_context), &param_value, NULL);
     if (ret != CL_SUCCESS) {
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_INVALID_SAMPLER);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(INVALID_VALUE);
+      REQ_ERROR_THROW(INVALID_SAMPLER);
+      REQ_ERROR_THROW(OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
-    NanReturnValue(NanObjectWrapHandle(Context::New(param_value)));
+    if(param_value) {
+      WebCLObject *obj=findCLObj((void*)param_value);
+      if(obj) {
+        //::clRetainContext(param_value);
+        NanReturnValue(NanObjectWrapHandle(obj));
+      }
+      else
+        NanReturnValue(NanObjectWrapHandle(Context::New(param_value)));
+    }
+    NanReturnUndefined();
   }
   default:
     return NanThrowError("UNKNOWN param_name");

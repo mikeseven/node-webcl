@@ -25,6 +25,7 @@
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "memoryobject.h"
+#include "context.h"
 #include <node_buffer.h>
 
 using namespace v8;
@@ -54,11 +55,12 @@ void MemoryObject::Init(Handle<Object> target)
 
 MemoryObject::MemoryObject(Handle<Object> wrapper) : memory(0)
 {
+  _type=CLObjType::MemoryObject;
 }
 
 void MemoryObject::Destructor() {
   #ifdef LOGGING
-  cout<<"  Destroying CL memory object"<<endl;
+  printf("  Destroying CL memory object %p\n",this);
   #endif
   if(memory) ::clReleaseMemObject(memory);
   memory=0;
@@ -69,6 +71,9 @@ NAN_METHOD(MemoryObject::release)
   NanScope();
 
   MemoryObject *mo = ObjectWrap::Unwrap<MemoryObject>(args.This());
+  #ifdef LOGGING
+  printf("  In MemoryObject::release%p\n",mo);
+  #endif
   DESTROY_WEBCL_OBJECT(mo);
   
   NanReturnUndefined();
@@ -82,17 +87,27 @@ NAN_METHOD(MemoryObject::getInfo)
   cl_mem_info param_name = args[0]->Uint32Value();
 
   switch (param_name) {
-  case CL_MEM_TYPE:
-  case CL_MEM_FLAGS:
-  case CL_MEM_REFERENCE_COUNT:
-  case CL_MEM_MAP_COUNT: {
-    cl_uint param_value=0;
-    cl_int ret=::clGetMemObjectInfo(mo->getMemory(),param_name,sizeof(cl_uint), &param_value, NULL);
-    if (ret != CL_SUCCESS) {
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_INVALID_MEM_OBJECT);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+  case CL_MEM_TYPE: {
+    cl_mem_object_type param_value=0;
+    cl_int ret=::clGetMemObjectInfo(mo->getMemory(),param_name,sizeof(cl_mem_object_type), &param_value, NULL);
+     if (ret != CL_SUCCESS) {
+      REQ_ERROR_THROW(INVALID_VALUE);
+      REQ_ERROR_THROW(INVALID_MEM_OBJECT);
+      REQ_ERROR_THROW(OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
+      return NanThrowError("UNKNOWN ERROR");
+    }
+
+    NanReturnValue(Integer::NewFromUnsigned(param_value));
+  }
+  case CL_MEM_FLAGS: {
+    cl_mem_flags param_value=0;
+    cl_int ret=::clGetMemObjectInfo(mo->getMemory(),param_name,sizeof(cl_mem_flags), &param_value, NULL);
+     if (ret != CL_SUCCESS) {
+      REQ_ERROR_THROW(INVALID_VALUE);
+      REQ_ERROR_THROW(INVALID_MEM_OBJECT);
+      REQ_ERROR_THROW(OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
 
@@ -103,10 +118,10 @@ NAN_METHOD(MemoryObject::getInfo)
     size_t param_value=0;
     cl_int ret=::clGetMemObjectInfo(mo->getMemory(),param_name,sizeof(size_t), &param_value, NULL);
     if (ret != CL_SUCCESS) {
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_INVALID_MEM_OBJECT);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(INVALID_VALUE);
+      REQ_ERROR_THROW(INVALID_MEM_OBJECT);
+      REQ_ERROR_THROW(OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
 
@@ -114,25 +129,51 @@ NAN_METHOD(MemoryObject::getInfo)
   }
   case CL_MEM_ASSOCIATED_MEMOBJECT: {
     cl_mem param_value=NULL;
-    cl_int ret=::clGetMemObjectInfo(mo->getMemory(),param_name,sizeof(size_t), &param_value, NULL);
+    cl_int ret=::clGetMemObjectInfo(mo->getMemory(),param_name,sizeof(cl_mem), &param_value, NULL);
     if (ret != CL_SUCCESS) {
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_INVALID_MEM_OBJECT);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(INVALID_VALUE);
+      REQ_ERROR_THROW(INVALID_MEM_OBJECT);
+      REQ_ERROR_THROW(OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
 
-    NanReturnValue(NanObjectWrapHandle(MemoryObject::New(param_value)));
+    if(param_value) {
+      WebCLObject *obj=findCLObj((void*)param_value);
+      if(obj) {
+        clRetainMemObject(param_value);
+        NanReturnValue(NanObjectWrapHandle(obj));
+      }
+    }
+    NanReturnUndefined();
+  }
+  case CL_MEM_CONTEXT: {
+    cl_context param_value=NULL;
+    cl_int ret=::clGetMemObjectInfo(mo->getMemory(),param_name,sizeof(cl_context), &param_value, NULL);
+    if (ret != CL_SUCCESS) {
+      REQ_ERROR_THROW(INVALID_VALUE);
+      REQ_ERROR_THROW(INVALID_MEM_OBJECT);
+      REQ_ERROR_THROW(OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
+      return NanThrowError("UNKNOWN ERROR");
+    }
+    if(param_value) {
+      WebCLObject *obj=findCLObj((void*)param_value);
+      if(obj) {
+        //::clRetainContext(param_value);
+        NanReturnValue(NanObjectWrapHandle(obj));
+      }
+    }
+    NanReturnUndefined();
   }
   case CL_MEM_HOST_PTR: {
     char *param_value=NULL;
     cl_int ret=::clGetMemObjectInfo(mo->getMemory(),param_name,sizeof(char*), &param_value, NULL);
     if (ret != CL_SUCCESS) {
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_INVALID_MEM_OBJECT);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(INVALID_VALUE);
+      REQ_ERROR_THROW(INVALID_MEM_OBJECT);
+      REQ_ERROR_THROW(OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
     size_t nbytes = *(size_t*)param_value;
@@ -152,10 +193,10 @@ NAN_METHOD(MemoryObject::getGLObjectInfo)
   int ret = ::clGetGLObjectInfo(memobj->getMemory(), &gl_object_type, &gl_object_name);
 
   if (ret != CL_SUCCESS) {
-    REQ_ERROR_THROW(CL_INVALID_MEM_OBJECT);
-    REQ_ERROR_THROW(CL_INVALID_GL_OBJECT);
-    REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+    REQ_ERROR_THROW(INVALID_MEM_OBJECT);
+    REQ_ERROR_THROW(INVALID_GL_OBJECT);
+    REQ_ERROR_THROW(OUT_OF_RESOURCES);
+    REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
     return NanThrowError("UNKNOWN ERROR");
   }
 
@@ -215,6 +256,8 @@ void WebCLBuffer::Init(Handle<Object> target)
 
   // prototype
   NODE_SET_PROTOTYPE_METHOD(ctor, "_createSubBuffer", createSubBuffer);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_getInfo", getInfo);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_getGLObjectInfo", getGLObjectInfo);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_release", release);
 
   target->Set(NanSymbol("WebCLBuffer"), ctor->GetFunction());
@@ -222,6 +265,16 @@ void WebCLBuffer::Init(Handle<Object> target)
 
 WebCLBuffer::WebCLBuffer(Handle<Object> wrapper) : MemoryObject(wrapper)
 {
+}
+
+NAN_METHOD(WebCLBuffer::getInfo)
+{
+  return MemoryObject::getInfo(args);
+}
+
+NAN_METHOD(WebCLBuffer::getGLObjectInfo)
+{
+  return MemoryObject::getGLObjectInfo(args);
 }
 
 NAN_METHOD(WebCLBuffer::release)
@@ -240,30 +293,25 @@ NAN_METHOD(WebCLBuffer::createSubBuffer)
   NanScope();
   WebCLBuffer *mo = ObjectWrap::Unwrap<WebCLBuffer>(args.This());
   cl_mem_flags flags = args[0]->Uint32Value();
-  cl_buffer_create_type buffer_create_type = args[1]->Uint32Value();
-
-  if (buffer_create_type != CL_BUFFER_CREATE_TYPE_REGION)
-    return NanThrowError("CL_INVALID_VALUE");
 
   cl_buffer_region region;
-  Local<Object> obj = args[2]->ToObject();
-  region.origin = obj->Get(JS_STR("origin"))->Uint32Value();
-  region.size = obj->Get(JS_STR("size"))->Uint32Value();
+  region.origin = args[1]->Uint32Value();
+  region.size = args[2]->Uint32Value();
 
   cl_int ret=CL_SUCCESS;
   cl_mem sub_buffer = ::clCreateSubBuffer(
       mo->getMemory(),
       flags,
-      buffer_create_type,
+      CL_BUFFER_CREATE_TYPE_REGION,
       &region,
       &ret);
   if (ret != CL_SUCCESS) {
-    REQ_ERROR_THROW(CL_INVALID_VALUE);
-    REQ_ERROR_THROW(CL_INVALID_BUFFER_SIZE);
-    REQ_ERROR_THROW(CL_INVALID_HOST_PTR);
-    REQ_ERROR_THROW(CL_MEM_OBJECT_ALLOCATION_FAILURE);
-    REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+    REQ_ERROR_THROW(INVALID_MEM_OBJECT);
+    REQ_ERROR_THROW(INVALID_VALUE);
+    REQ_ERROR_THROW(INVALID_BUFFER_SIZE);
+    REQ_ERROR_THROW(MEM_OBJECT_ALLOCATION_FAILURE);
+    REQ_ERROR_THROW(OUT_OF_RESOURCES);
+    REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
     return NanThrowError("UNKNOWN ERROR");
   }
 
@@ -311,6 +359,7 @@ void WebCLImage::Init(Handle<Object> target)
 
   // prototype
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getInfo", getInfo);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_getGLObjectInfo", getGLObjectInfo);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getGLTextureInfo", getGLTextureInfo);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_release", release);
 
@@ -335,46 +384,43 @@ NAN_METHOD(WebCLImage::getInfo)
 {
   NanScope();
   WebCLImage *mo = ObjectWrap::Unwrap<WebCLImage>(args.This());;
-  cl_mem_info param_name = args[0]->Uint32Value();
 
-  switch (param_name) {
-  case CL_IMAGE_ELEMENT_SIZE:
-  case CL_IMAGE_ROW_PITCH:
-  case CL_IMAGE_SLICE_PITCH:
-  case CL_IMAGE_WIDTH:
-  case CL_IMAGE_HEIGHT:
-  case CL_IMAGE_DEPTH: {
-    size_t param_value=0;
-    cl_int ret=::clGetImageInfo(mo->getMemory(),param_name,sizeof(size_t), &param_value, NULL);
-    if (ret != CL_SUCCESS) {
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_INVALID_MEM_OBJECT);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return NanThrowError("UNKNOWN ERROR");
-    }
-    NanReturnValue(JS_INT((int32_t)param_value));
+  cl_image_format param_value;
+  cl_int ret=::clGetImageInfo(mo->getMemory(),CL_IMAGE_FORMAT,sizeof(cl_image_format), &param_value, NULL);
+  if (ret != CL_SUCCESS) {
+    REQ_ERROR_THROW(INVALID_VALUE);
+    REQ_ERROR_THROW(INVALID_MEM_OBJECT);
+    REQ_ERROR_THROW(OUT_OF_RESOURCES);
+    REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
+    return NanThrowError("UNKNOWN ERROR");
   }
-  case CL_IMAGE_FORMAT: {
-    cl_image_format param_value;
-    cl_int ret=::clGetImageInfo(mo->getMemory(),param_name,sizeof(cl_image_format), &param_value, NULL);
-    if (ret != CL_SUCCESS) {
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_INVALID_MEM_OBJECT);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-      return NanThrowError("UNKNOWN ERROR");
-    }
-    cl_channel_order channel_order = param_value.image_channel_order;
-    cl_channel_type channel_type = param_value.image_channel_data_type;
-    Local<Object> obj = Object::New();
-    obj->Set(JS_STR("order"), JS_INT(channel_order));
-    obj->Set(JS_STR("data_type"), JS_INT(channel_type));
-    NanReturnValue(obj);
+
+  size_t w,h,d,rp,sp;
+  ret |= ::clGetImageInfo(mo->getMemory(),CL_IMAGE_WIDTH,sizeof(size_t), &w, NULL);
+  ret |= ::clGetImageInfo(mo->getMemory(),CL_IMAGE_HEIGHT,sizeof(size_t), &h, NULL);
+  ret |= ::clGetImageInfo(mo->getMemory(),CL_IMAGE_DEPTH,sizeof(size_t), &d, NULL);
+  ret |= ::clGetImageInfo(mo->getMemory(),CL_IMAGE_ROW_PITCH,sizeof(size_t), &rp, NULL);
+  ret |= ::clGetImageInfo(mo->getMemory(),CL_IMAGE_SLICE_PITCH,sizeof(size_t), &sp, NULL);
+  
+  if (ret != CL_SUCCESS) {
+    REQ_ERROR_THROW(INVALID_VALUE);
+    REQ_ERROR_THROW(INVALID_MEM_OBJECT);
+    REQ_ERROR_THROW(OUT_OF_RESOURCES);
+    REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
+    return NanThrowError("UNKNOWN ERROR");
   }
-  default:
-    return NanThrowError("UNKNOWN param_name");
-  }
+
+  WebCLImageDescriptor* obj = WebCLImageDescriptor::New(
+    param_value.image_channel_order,param_value.image_channel_data_type,
+    w,h,d,
+    rp,sp
+  );
+  NanReturnValue(NanObjectWrapHandle(obj));
+}
+
+NAN_METHOD(WebCLImage::getGLObjectInfo)
+{
+  return MemoryObject::getGLObjectInfo(args);
 }
 
 NAN_METHOD(WebCLImage::getGLTextureInfo)
@@ -387,10 +433,11 @@ NAN_METHOD(WebCLImage::getGLTextureInfo)
   // TODO no other value that GLenum/GLint returned in OpenCL 1.1
   int ret = ::clGetGLTextureInfo(memobj->getMemory(), param_name, sizeof(GLint), &param_value, NULL);
   if (ret != CL_SUCCESS) {
-    REQ_ERROR_THROW(CL_INVALID_MEM_OBJECT);
-    REQ_ERROR_THROW(CL_INVALID_GL_OBJECT);
-    REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+    REQ_ERROR_THROW(INVALID_MEM_OBJECT);
+    REQ_ERROR_THROW(INVALID_GL_OBJECT);
+    REQ_ERROR_THROW(INVALID_VALUE);
+    REQ_ERROR_THROW(OUT_OF_RESOURCES);
+    REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
     return NanThrowError("UNKNOWN ERROR");
   }
 
@@ -421,4 +468,118 @@ WebCLImage *WebCLImage::New(cl_mem mw)
   return memobj;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// WebCLImageDescriptor
+///////////////////////////////////////////////////////////////////////////////
+Persistent<FunctionTemplate> WebCLImageDescriptor::constructor_template;
+
+void WebCLImageDescriptor::Init(Handle<Object> target)
+{
+  NanScope();
+
+  // constructor
+  Local<FunctionTemplate> ctor = FunctionTemplate::New(WebCLImageDescriptor::New);
+  NanAssignPersistent(FunctionTemplate, constructor_template, ctor);
+  ctor->InstanceTemplate()->SetInternalFieldCount(1);
+  ctor->SetClassName(NanSymbol("WebCLImageDescriptor"));
+
+  // prototype
+  Local<ObjectTemplate> proto = ctor->PrototypeTemplate();
+  proto->SetAccessor(JS_STR("channelOrder"), WebCLImageDescriptor::getChannelOrder);
+  proto->SetAccessor(JS_STR("channelType"), WebCLImageDescriptor::getChannelType);
+  proto->SetAccessor(JS_STR("width"), WebCLImageDescriptor::getWidth);
+  proto->SetAccessor(JS_STR("height"), WebCLImageDescriptor::getHeight);
+  proto->SetAccessor(JS_STR("depth"), WebCLImageDescriptor::getDepth);
+  proto->SetAccessor(JS_STR("rowPitch"), WebCLImageDescriptor::getRowPitch);
+  proto->SetAccessor(JS_STR("slicePitch"), WebCLImageDescriptor::getSlicePitch);
+
+  target->Set(NanSymbol("WebCLImageDescriptor"), ctor->GetFunction());
 }
+
+WebCLImageDescriptor::WebCLImageDescriptor(Handle<Object> wrapper) : 
+  channelOrder(0), channelType(0), 
+  width(0), height(0), depth(0),
+  rowPitch(0), slicePitch(0)
+{
+}
+
+NAN_GETTER(WebCLImageDescriptor::getChannelOrder) {
+  NanScope();
+
+  WebCLImageDescriptor* desc = ObjectWrap::Unwrap<WebCLImageDescriptor>(args.This());
+  NanReturnValue(JS_INT(desc->channelOrder));
+}
+
+NAN_GETTER(WebCLImageDescriptor::getChannelType) {
+  NanScope();
+
+  WebCLImageDescriptor* desc = ObjectWrap::Unwrap<WebCLImageDescriptor>(args.This());
+  NanReturnValue(JS_INT(desc->channelType));
+}
+
+NAN_GETTER(WebCLImageDescriptor::getWidth) {
+  NanScope();
+
+  WebCLImageDescriptor* desc = ObjectWrap::Unwrap<WebCLImageDescriptor>(args.This());
+  NanReturnValue(JS_INT(desc->width));
+}
+
+NAN_GETTER(WebCLImageDescriptor::getHeight) {
+  NanScope();
+
+  WebCLImageDescriptor* desc = ObjectWrap::Unwrap<WebCLImageDescriptor>(args.This());
+  NanReturnValue(JS_INT(desc->height));
+}
+
+NAN_GETTER(WebCLImageDescriptor::getDepth) {
+  NanScope();
+
+  WebCLImageDescriptor* desc = ObjectWrap::Unwrap<WebCLImageDescriptor>(args.This());
+  NanReturnValue(JS_INT(desc->depth));
+}
+
+NAN_GETTER(WebCLImageDescriptor::getRowPitch) {
+  NanScope();
+
+  WebCLImageDescriptor* desc = ObjectWrap::Unwrap<WebCLImageDescriptor>(args.This());
+  NanReturnValue(JS_INT(desc->rowPitch));
+}
+
+NAN_GETTER(WebCLImageDescriptor::getSlicePitch) {
+  NanScope();
+
+  WebCLImageDescriptor* desc = ObjectWrap::Unwrap<WebCLImageDescriptor>(args.This());
+  NanReturnValue(JS_INT(desc->slicePitch));
+}
+
+NAN_METHOD(WebCLImageDescriptor::New)
+{
+  NanScope();
+  WebCLImageDescriptor *mo = new WebCLImageDescriptor(args.This());
+  mo->Wrap(args.This());
+
+  NanReturnValue(args.This());
+}
+
+WebCLImageDescriptor *WebCLImageDescriptor::New(int order, int type, int w, int h, int d, int rp, int sp)
+{
+
+  NanScope();
+
+  Local<Value> arg = Integer::NewFromUnsigned(0);
+  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor_template);
+  Local<Object> obj = constructorHandle->GetFunction()->NewInstance(1, &arg);
+ 
+  WebCLImageDescriptor *desc = ObjectWrap::Unwrap<WebCLImageDescriptor>(obj);
+  desc->channelOrder=order;
+  desc->channelType=type;
+  desc->width=w;
+  desc->height=h;
+  desc->depth=d;
+  desc->rowPitch=rp;
+  desc->slicePitch=sp;
+
+  return desc;
+}
+
+} // namespace webcl

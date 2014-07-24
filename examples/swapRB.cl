@@ -26,12 +26,11 @@
 
 __kernel void swapRB(__global const uchar* src,
                      __global uchar* dst,
-                     unsigned int width,
-                     unsigned int height)
+                     uint2 size)
 {
   int x = get_global_id(0);
   int i = x*4;
-  if(i>=width*height*4) return;
+  if(i>=size.x*size.y*4) return;
 
   dst[i]=src[i+2];
   dst[i+1]=src[i+1];

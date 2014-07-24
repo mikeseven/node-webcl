@@ -30,6 +30,8 @@ if(nodejs) {
   log = console.log;
   exit = process.exit;
 }
+else
+  WebCL = window.webcl;
 
 /* CL objects */
 var /* WebCLPlatform */     platform;
@@ -169,10 +171,7 @@ function main() {
     ' '+device.getInfo(WebCL.DEVICE_NAME).trim());
 
   // create GPU context for this platform
-  context=WebCL.createContext({
-    devices: device, 
-    platform: platform
-  } ,'Error occured in context', function(err,data){
+  context=WebCL.createContext(device ,'Error occured in context', function(err,data){
     log(data+" : "+err);
   });
 

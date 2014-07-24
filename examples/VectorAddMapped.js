@@ -30,6 +30,8 @@ if(nodejs) {
   clu = require('../lib/clUtils');
   log=console.log;
 }
+else
+  WebCL = window.webcl;
 
 //First check if the WebCL extension is installed at all 
 if (WebCL == undefined) {
@@ -52,17 +54,10 @@ function VectorAdd() {
     C[i] = 10;
   }
 
-  // //Pick platform
-  // var platformList=WebCL.getPlatforms();
-  // platform=platformList[0];
-
   // create GPU context for this platform
   var context=null;
   try {
-    context=WebCL.createContext({
-      deviceType: WebCL.DEVICE_TYPE_GPU, 
-      // platform: platform
-    });
+    context=WebCL.createContext(WebCL.DEVICE_TYPE_GPU);
   }
   catch(ex) {
     throw new Exception("Can't create CL context");
@@ -115,7 +110,7 @@ function VectorAdd() {
   kernel.setArg(0, aBuffer);
   kernel.setArg(1, bBuffer);
   kernel.setArg(2, cBuffer);
-  kernel.setArg(3, BUFFER_SIZE, WebCL.type.UINT);
+  kernel.setArg(3, new Uint32Array([BUFFER_SIZE]));
 
   // Execute the OpenCL kernel on the list
   // var localWS = [5]; // process one list at a time
@@ -127,7 +122,7 @@ function VectorAdd() {
   log("Local work item size: " + localWS);
 
   // Execute (enqueue) kernel
-  queue.enqueueNDRangeKernel(kernel,
+  queue.enqueueNDRangeKernel(kernel, 1,
       null,
       globalWS,
       localWS);

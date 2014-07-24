@@ -31,6 +31,8 @@ if(nodejs) {
   util = require('util');
   log = console.log;
 }
+else
+  WebCL = window.webcl;
 
 //list of platforms
 log("OpenCL SW Info:\n");
@@ -70,9 +72,7 @@ platforms.forEach(function(p) {
     //Create a context for the devices
     var context;
     try {
-      context = WebCL.createContext({ 
-        devices: device,
-        platform: p} );
+      context = WebCL.createContext(device);
     }
     catch(ex) {
       log("createContext() exception: "+ex);
@@ -98,8 +98,8 @@ platforms.forEach(function(p) {
     for(var j = 0; j < uiNumSupportedFormats; j++) 
     {  
       log(clu.sprintf("  %-6u%-16s%-22s", (j + 1),
-          oclImageFormatString(ImageFormats[j].order), 
-          oclImageFormatString(ImageFormats[j].data_type)));
+          oclImageFormatString(ImageFormats[j].channelOrder), 
+          oclImageFormatString(ImageFormats[j].channelType)));
     }
     log("");
     
@@ -114,20 +114,22 @@ platforms.forEach(function(p) {
     for(var j = 0; j < uiNumSupportedFormats; j++) 
     {  
       log(clu.sprintf("  %-6u%-16s%-22s", (j + 1),
-          oclImageFormatString(ImageFormats[j].order), 
-          oclImageFormatString(ImageFormats[j].data_type)));
+          oclImageFormatString(ImageFormats[j].channelOrder), 
+          oclImageFormatString(ImageFormats[j].channelType)));
     }
     log(""); 
   });
   
   // Size of basic types
-  log("  size of char: \t"+WebCL.size.CHAR);
-  log("  size of short: \t"+WebCL.size.SHORT);
-  log("  size of int: \t"+WebCL.size.INT);
-  log("  size of long: \t"+WebCL.size.LONG);
-  log("  size of float: \t"+WebCL.size.FLOAT);
-  log("  size of double: \t"+WebCL.size.DOUBLE);
-  log("  size of half: \t"+WebCL.size.HALF);
+  log("  size of char: \t"+Int8Array.BYTES_PER_ELEMENT);
+  log("  size of short: \t"+Int16Array.BYTES_PER_ELEMENT);
+  log("  size of int: \t"+Int32Array.BYTES_PER_ELEMENT);
+  log("  size of long: \t"+Int32Array.BYTES_PER_ELEMENT);
+  log("  size of float: \t"+Float32Array.BYTES_PER_ELEMENT);
+  if(typeof Float64Array !== 'undefined') 
+    log("  size of double: \t"+Float64Array.BYTES_PER_ELEMENT);
+  if(typeof Float16Array !== 'undefined') 
+    log("  size of half: \t"+Float16Array.BYTES_PER_ELEMENT);
 });
 
 function printDeviceInfo(device)

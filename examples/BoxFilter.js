@@ -33,12 +33,14 @@ if(nodejs) {
   Image = require('node-image').Image;
   log = console.log;
 }
+else
+  WebCL = window.webcl;
 
 //First check if the webcl extension is installed at all 
 if (WebCL == undefined) {
   alert("Unfortunately your system does not support WebCL. " +
   "Make sure that you have the WebCL extension installed.");
-  return;
+  process.exit(-1);
 }
 
 process.on('exit',function() {
@@ -86,26 +88,24 @@ log("  Using Device "+ uiTargetDevice+": "+device.getInfo(WebCL.DEVICE_NAME));
 var hasImageSupport=device.getInfo(WebCL.DEVICE_IMAGE_SUPPORT);
 if(hasImageSupport != WebCL.TRUE) {
   log("No image support");
-  return;
+  process.exit(-1);
 }
 
 var numComputeUnits=device.getInfo(WebCL.DEVICE_MAX_COMPUTE_UNITS);
 log('  # of Compute Units = '+numComputeUnits);
 
 log('  createContext...');
-context=WebCL.createContext({
-  devices: device, 
-  platform: platform
-});
+context=WebCL.createContext(device);
 
 // Create a command-queue 
 queue=context.createCommandQueue(device, 0);
 
 // Allocate OpenCL object for the source data
 var InputFormat= {
-  order : WebCL.RGBA,
-  data_type : WebCL.UNSIGNED_INT8,
-  size : [ image.width, image.height ],
+  channelOrder : WebCL.RGBA,
+  channelType : WebCL.UNSIGNED_INT8,
+  width : image.width, 
+  height : image.height,
   rowPitch : image.pitch
 };
 
@@ -154,21 +154,28 @@ log(util.inspect(process.memoryUsage()));
 function ResetKernelArgs(width, height, r, fScale)
 {
   // (Image/texture version)
+  var aints=new Int32Array(3);
+  aints[0]=width;
+  aints[1]=height;
+  aints[2]=r;
+  var afloats=new Float32Array(1);
+  afloats[0]=fScale;
+
   ckBoxRowsTex.setArg(0, cmDevBufIn);
   ckBoxRowsTex.setArg(1, cmDevBufTemp);
   ckBoxRowsTex.setArg(2, RowSampler); 
-  ckBoxRowsTex.setArg(3, width, WebCL.type.UINT);
-  ckBoxRowsTex.setArg(4, height, WebCL.type.UINT);
-  ckBoxRowsTex.setArg(5, r, WebCL.type.INT);
-  ckBoxRowsTex.setArg(6, fScale, WebCL.type.FLOAT);
+  ckBoxRowsTex.setArg(3, aints);
+  ckBoxRowsTex.setArg(4, aints.subarray(1));
+  ckBoxRowsTex.setArg(5, aints.subarray(2));
+  ckBoxRowsTex.setArg(6, afloats);
 
   // Set the Argument values for the column kernel
   ckBoxColumns.setArg(0, cmDevBufTemp);
   ckBoxColumns.setArg(1, cmDevBufOut);
-  ckBoxColumns.setArg(2, width, WebCL.type.UINT);
-  ckBoxColumns.setArg(3, height, WebCL.type.UINT);
-  ckBoxColumns.setArg(4, r, WebCL.type.INT);
-  ckBoxColumns.setArg(5, fScale, WebCL.type.FLOAT);
+  ckBoxColumns.setArg(2, aints);
+  ckBoxColumns.setArg(3, aints.subarray(1));
+  ckBoxColumns.setArg(4, aints.subarray(2));
+  ckBoxColumns.setArg(5, afloats);
 }
 
 //OpenCL computation function for GPU:  
@@ -196,7 +203,7 @@ function BoxFilterGPU(image, cmOutputBuffer, r, fScale)
   queue.finish();
 
   //Launch row kernel
-  queue.enqueueNDRangeKernel(ckBoxRowsTex, null, szGlobalWorkSize, szLocalWorkSize);
+  queue.enqueueNDRangeKernel(ckBoxRowsTex, 2, null, szGlobalWorkSize, szLocalWorkSize);
 
   //Set global and local work sizes for column kernel
   szLocalWorkSize[0] = 64;
@@ -206,7 +213,7 @@ function BoxFilterGPU(image, cmOutputBuffer, r, fScale)
   log("column kernel work sizes: global="+szGlobalWorkSize+" local="+szLocalWorkSize);
 
   //Launch column kernel
-  queue.enqueueNDRangeKernel(ckBoxColumns, null, szGlobalWorkSize, szLocalWorkSize);
+  queue.enqueueNDRangeKernel(ckBoxColumns, 2, null, szGlobalWorkSize, szLocalWorkSize);
 
   //sync host
   queue.finish();

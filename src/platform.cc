@@ -50,12 +50,14 @@ void Platform::Init(Handle<Object> target)
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getInfo", getInfo);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getDevices", getDevices);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getSupportedExtensions", getSupportedExtensions);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_enableExtension", enableExtension);
 
   target->Set(NanSymbol("WebCLPlatform"), ctor->GetFunction());
 }
 
-Platform::Platform(Handle<Object> wrapper) : platform_id(0)
+Platform::Platform(Handle<Object> wrapper) : platform_id(0), enableExtensions(NONE), availableExtensions(NONE)
 {
+  _type=CLObjType::Platform;
 }
 
 NAN_METHOD(Platform::getDevices)
@@ -71,33 +73,39 @@ NAN_METHOD(Platform::getDevices)
   cout<<"Found "<<n<<" devices"<<endl;
   #endif
   if (ret != CL_SUCCESS) {
-    REQ_ERROR_THROW(CL_INVALID_PLATFORM);
-    REQ_ERROR_THROW(CL_INVALID_DEVICE_TYPE);
-    REQ_ERROR_THROW(CL_INVALID_VALUE);
-    REQ_ERROR_THROW(CL_DEVICE_NOT_FOUND);
-    REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+    REQ_ERROR_THROW(INVALID_PLATFORM);
+    REQ_ERROR_THROW(INVALID_DEVICE_TYPE);
+    REQ_ERROR_THROW(INVALID_VALUE);
+    REQ_ERROR_THROW(DEVICE_NOT_FOUND);
+    REQ_ERROR_THROW(OUT_OF_RESOURCES);
+    REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
     return NanThrowError("UNKNOWN ERROR");
   }
 
   cl_device_id* ids = new cl_device_id[n];
   ret = ::clGetDeviceIDs(platform->platform_id, type, n, ids, NULL);
   if (ret != CL_SUCCESS) {
-    REQ_ERROR_THROW(CL_INVALID_PLATFORM);
-    REQ_ERROR_THROW(CL_INVALID_DEVICE_TYPE);
-    REQ_ERROR_THROW(CL_INVALID_VALUE);
-    REQ_ERROR_THROW(CL_DEVICE_NOT_FOUND);
-    REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+    REQ_ERROR_THROW(INVALID_PLATFORM);
+    REQ_ERROR_THROW(INVALID_DEVICE_TYPE);
+    REQ_ERROR_THROW(INVALID_VALUE);
+    REQ_ERROR_THROW(DEVICE_NOT_FOUND);
+    REQ_ERROR_THROW(OUT_OF_RESOURCES);
+    REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
     return NanThrowError("UNKNOWN ERROR");
   }
 
   Local<Array> deviceArray = Array::New(n);
   for (uint32_t i=0; i<n; i++) {
     #ifdef LOGGING
-    cout<<"Found device: "<<ids[i]<<endl;
+    char name[256];
+    ::clGetDeviceInfo(ids[i],CL_DEVICE_NAME,sizeof(name),name,NULL);
+    cout<<"Found device: "<<ids[i]<<" "<<name<<endl;
     #endif
-    deviceArray->Set(i, NanObjectWrapHandle(Device::New(ids[i])));
+    WebCLObject *obj=findCLObj((void*)ids[i]);
+    if(obj)
+      deviceArray->Set(i, NanObjectWrapHandle(obj));
+    else
+      deviceArray->Set(i, NanObjectWrapHandle(Device::New(ids[i])));
   }
 
   delete[] ids;
@@ -117,9 +125,9 @@ NAN_METHOD(Platform::getInfo)
   cl_int ret=clGetPlatformInfo(platform->platform_id, param_name, 1024, param_value, &param_value_size_ret);
 
   if (ret != CL_SUCCESS) {
-    REQ_ERROR_THROW(CL_INVALID_PLATFORM);
-    REQ_ERROR_THROW(CL_INVALID_VALUE);
-    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+    REQ_ERROR_THROW(INVALID_PLATFORM);
+    REQ_ERROR_THROW(INVALID_VALUE);
+    REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
     return NanThrowError("UNKNOWN ERROR");
   }
 
@@ -136,26 +144,48 @@ NAN_METHOD(Platform::getSupportedExtensions)
 
   cl_int ret=clGetPlatformInfo(platform->platform_id, CL_PLATFORM_EXTENSIONS, 1024, param_value, &param_value_size_ret);
   if (ret != CL_SUCCESS) {
-    REQ_ERROR_THROW(CL_INVALID_PLATFORM);
-    REQ_ERROR_THROW(CL_INVALID_VALUE);
-    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+    REQ_ERROR_THROW(INVALID_PLATFORM);
+    REQ_ERROR_THROW(INVALID_VALUE);
+    REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
     return NanThrowError("UNKNOWN ERROR");
   }
 
  NanReturnValue(JS_STR(param_value));
 }
 
-// NAN_METHOD(Platform::enableExtension)
-// {
-//   NanScope();
-//   Platform *platform = ObjectWrap::Unwrap<Platform>(args.This());
-//   if(args[0]->IsString()) {
-//     Local<String> str = args[0]->ToString();
-//     String::AsciiValue astr(str);
-//     size_t length=astr.length();
-//   }
-//   NanReturnValue(JS_BOOL(true));
-// }
+NAN_METHOD(Platform::enableExtension)
+{
+  NanScope();
+  Platform *platform = ObjectWrap::Unwrap<Platform>(args.This());
+  if(!args[0]->IsString())
+    return NanThrowTypeError("invalid extension name");
+
+  if(platform->availableExtensions==0x00) {
+    char param_value[1024];
+    size_t param_value_size_ret=0;
+
+    cl_int ret=clGetPlatformInfo(platform->platform_id, CL_PLATFORM_EXTENSIONS, 1024, param_value, &param_value_size_ret);
+    if (ret != CL_SUCCESS) {
+      REQ_ERROR_THROW(INVALID_PLATFORM);
+      REQ_ERROR_THROW(INVALID_VALUE);
+      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
+      return NanThrowError("UNKNOWN ERROR");
+    }
+
+    if(!strcasecmp(param_value,"gl_sharing")) platform->availableExtensions |= GL_SHARING;
+    if(!strcasecmp(param_value,"fp16"))       platform->availableExtensions |= FP16;
+    if(!strcasecmp(param_value,"fp64"))       platform->availableExtensions |= FP64;
+  }
+
+  Local<String> name=args[0]->ToString();
+  String::AsciiValue astr(name);
+  bool ret=false;
+  if(!strcasecmp(*astr,"gl_sharing") && (platform->availableExtensions & GL_SHARING)) { platform->enableExtensions |= GL_SHARING; ret = true; }
+  else if(!strcasecmp(*astr,"fp16") && (platform->availableExtensions & FP16))        { platform->enableExtensions |= FP16; ret = true; }
+  else if(!strcasecmp(*astr,"fp64") && (platform->availableExtensions & FP64))        { platform->enableExtensions |= FP64; ret = true; }
+
+  NanReturnValue(JS_BOOL(ret));
+}
 
 NAN_METHOD(Platform::New)
 {
@@ -165,6 +195,7 @@ NAN_METHOD(Platform::New)
   NanScope();
   Platform *cl = new Platform(args.This());
   cl->Wrap(args.This());
+  registerCLObj(cl);
   NanReturnValue(args.This());
 }
 
@@ -183,34 +214,6 @@ Platform *Platform::New(cl_platform_id pid)
 
   return platform;
 }
-
-/*NAN_METHOD(Platform::getExtension) {
-  NanScope();
-
-  Platform *platform = ObjectWrap::Unwrap<Platform>(args.This());
-  Local<String> vstr = args[0]->ToString();
-  String::AsciiValue astr(vstr);
-  char *str= *astr;
-  for(int i=0;i<astr.length();i++)
-    str[i]=tolower(str[i]);
-
-  char param_value[1024];
-  size_t param_value_size_ret=0;
-
-  cl_int ret=::clGetPlatformInfo(platform->platform_id, CL_PLATFORM_EXTENSIONS, 1024, param_value, &param_value_size_ret);
-  if (ret != CL_SUCCESS) {
-    REQ_ERROR_THROW(CL_INVALID_PLATFORM);
-    REQ_ERROR_THROW(CL_INVALID_VALUE);
-    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
-    return NanThrowError("UNKNOWN ERROR");
-  }
-
-  char *p= ::strstr(param_value,str);
-  if(!p)
-    return NanThrowError("UNKNOWN EXTENSION");
-
-  NanReturnUndefined();
-}*/
 
 } // namespace webcl
 

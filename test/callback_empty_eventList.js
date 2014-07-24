@@ -173,7 +173,7 @@ function read_complete(event, data) {
   var data=new Float32Array(4096);
   try {
     read_event=new WebCL.WebCLEvent();
-    queue.enqueueReadBuffer(data_buffer, false, 0, 4096*4, data, null, read_event);
+    queue.enqueueReadBuffer(data_buffer, false, 0, 4096*4, data, [], read_event);
   } catch(ex) {
     log("Couldn't read the buffer. "+ex);
     exit(1);   

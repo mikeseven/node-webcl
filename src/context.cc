@@ -73,6 +73,7 @@ void Context::Init(Handle<Object> target)
 
 Context::Context(Handle<Object> wrapper) : context(0)
 {
+  _type=CLObjType::Context;
 }
 
 void Context::Destructor()
@@ -86,6 +87,7 @@ void Context::Destructor()
 
 NAN_METHOD(Context::release)
 {
+  printf("Context::release delete all objects in context and release context\n");
   NanScope();
   Context *context = ObjectWrap::Unwrap<Context>(args.This());
   
@@ -98,9 +100,9 @@ NAN_METHOD(Context::releaseAll)
 {
   NanScope();
   Context *context = ObjectWrap::Unwrap<Context>(args.This());
-  
-  // TODO delete all objects in context and release context
 
+  printf("[Context::releaseAll]\n");  
+  AtExit(NULL);
   DESTROY_WEBCL_OBJECT(context);
   
   NanReturnUndefined();
@@ -118,10 +120,10 @@ NAN_METHOD(Context::getInfo)
     cl_uint param_value=0;
     cl_int ret=::clGetContextInfo(context->getContext(),param_name,sizeof(cl_uint), &param_value, NULL);
     if (ret != CL_SUCCESS) {
-      REQ_ERROR_THROW(CL_INVALID_CONTEXT);
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(INVALID_CONTEXT);
+      REQ_ERROR_THROW(INVALID_VALUE);
+      REQ_ERROR_THROW(OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
     NanReturnValue(JS_INT(param_value));
@@ -131,24 +133,31 @@ NAN_METHOD(Context::getInfo)
     cl_int ret=::clGetContextInfo(context->getContext(),param_name,0,NULL, &n);
     n /= sizeof(cl_device_id);
 
-    cl_device_id *ctx=new cl_device_id[n];
-    ret=::clGetContextInfo(context->getContext(),param_name,sizeof(cl_device_id)*n, ctx, NULL);
+    cl_device_id *devices=new cl_device_id[n];
+    ret=::clGetContextInfo(context->getContext(),param_name,sizeof(cl_device_id)*n, devices, NULL);
     if (ret != CL_SUCCESS) {
-	  delete[] ctx;
-      REQ_ERROR_THROW(CL_INVALID_CONTEXT);
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      delete[] devices;
+      REQ_ERROR_THROW(INVALID_CONTEXT);
+      REQ_ERROR_THROW(INVALID_VALUE);
+      REQ_ERROR_THROW(OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
 
     Local<Array> arr = Array::New((int)n);
     for(uint32_t i=0;i<n;i++) {
-      if(ctx[i]) {
-        arr->Set(i,NanObjectWrapHandle(Device::New(ctx[i])));
+      if(devices[i]) {
+        WebCLObject *obj=findCLObj((void*)devices[i]);
+
+        if(obj) {
+          //::clRetainDevice(devices[i]);
+          arr->Set(i,NanObjectWrapHandle(obj));
+        }
+        else
+          arr->Set(i,NanObjectWrapHandle(Device::New(devices[i])));
       }
     }
-    delete[] ctx;
+    delete[] devices;
     NanReturnValue(arr);
   }
   case CL_CONTEXT_PROPERTIES: {
@@ -158,10 +167,10 @@ NAN_METHOD(Context::getInfo)
     ret=::clGetContextInfo(context->getContext(),param_name,sizeof(cl_context_properties)*n, ctx, NULL);
     if (ret != CL_SUCCESS) {
 	  delete[] ctx;
-      REQ_ERROR_THROW(CL_INVALID_CONTEXT);
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(INVALID_CONTEXT);
+      REQ_ERROR_THROW(INVALID_VALUE);
+      REQ_ERROR_THROW(OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
 
@@ -189,15 +198,15 @@ NAN_METHOD(Context::createProgram)
     Local<String> str = args[0]->ToString();
     String::AsciiValue astr(str);
 
-    size_t lengths[]={astr.length()};
+    size_t lengths[]={(size_t) astr.length()};
     const char *strings[]={*astr};
     pw=::clCreateProgramWithSource(context->getContext(), 1, strings, lengths, &ret);
 
     if (ret != CL_SUCCESS) {
-      REQ_ERROR_THROW(CL_INVALID_CONTEXT);
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(INVALID_CONTEXT);
+      REQ_ERROR_THROW(INVALID_VALUE);
+      REQ_ERROR_THROW(OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
     NanReturnValue(NanObjectWrapHandle(Program::New(pw)));
@@ -229,12 +238,12 @@ NAN_METHOD(Context::createProgram)
                 lengths, images,
                 NULL, &ret);
     if (ret != CL_SUCCESS) {
-      REQ_ERROR_THROW(CL_INVALID_CONTEXT);
-      REQ_ERROR_THROW(CL_INVALID_VALUE);
-      REQ_ERROR_THROW(CL_INVALID_DEVICE);
-      REQ_ERROR_THROW(CL_INVALID_BINARY);
-      REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-      REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+      REQ_ERROR_THROW(INVALID_CONTEXT);
+      REQ_ERROR_THROW(INVALID_VALUE);
+      REQ_ERROR_THROW(INVALID_DEVICE);
+      REQ_ERROR_THROW(INVALID_BINARY);
+      REQ_ERROR_THROW(OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
 
@@ -249,21 +258,132 @@ NAN_METHOD(Context::createCommandQueue)
 {
   NanScope();
   Context *context = ObjectWrap::Unwrap<Context>(args.This());
-  cl_device_id device = ObjectWrap::Unwrap<Device>(args[0]->ToObject())->getDevice();
-  cl_command_queue_properties properties = args[1]->IsUndefined() ? 0 : args[1]->Uint32Value();
-
+  cl_device_id device = 0;
+  cl_command_queue_properties properties = 0;
   cl_int ret=CL_SUCCESS;
-  //printf("context = %p device=%p properties %llu\n",context->getContext(),device,properties);
-  cl_command_queue cw = ::clCreateCommandQueue(context->getContext(), device, properties, &ret);
-  //printf("clCreateCommandQueue ret=0x%x\n",ret);
+  cl_command_queue cw;
+  cl_context ctx=context->getContext();
+
+  if(args[0]->IsNull() || args[0]->IsObject()) {
+    if(!args[1]->IsUndefined())
+      properties = args[1]->Uint32Value();
+
+    if(args[0]->IsNull()) {
+      size_t nDevices=0;
+      ret = ::clGetContextInfo(ctx,CL_CONTEXT_NUM_DEVICES,0,NULL, &nDevices);
+      // printf("Found %d devices in context\n",nDevices);
+
+      cl_device_id *devices=new cl_device_id[nDevices];
+      ret = ::clGetContextInfo(ctx,CL_CONTEXT_DEVICES,sizeof(cl_device_id)*nDevices, devices, NULL);
+      if (ret != CL_SUCCESS) {
+        delete[] devices;
+        REQ_ERROR_THROW(INVALID_CONTEXT);
+        REQ_ERROR_THROW(INVALID_VALUE);
+        REQ_ERROR_THROW(OUT_OF_RESOURCES);
+        REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
+        return NanThrowError("UNKNOWN ERROR");
+      }
+
+      bool device_found = false;
+      device=devices[0];
+      if(properties==0) {
+        cl_device_type type;
+          // ret = ::clGetDeviceInfo(devices[0], CL_DEVICE_TYPE, sizeof(cl_device_type), &type, NULL);
+          // printf("Device 0, type %d, ret %d: %d\n",type,ret, devices[0]);
+
+        for(size_t j=0;j<nDevices;j++) {
+          ret = ::clGetDeviceInfo(devices[j], CL_DEVICE_TYPE, sizeof(cl_device_type), &type, NULL);
+          // printf("Device %d, type %d, ret %d: %d\n",j,type,ret, devices[j]);
+          if(type==CL_DEVICE_TYPE_GPU) {
+            // printf("Selecting device %d: %d\n",j,devices[j]);
+            device=devices[j];
+            break;
+          }
+        }
+        device_found = true;
+      }
+      delete[] devices;
+    }
+    else
+      device = ObjectWrap::Unwrap<Device>(args[0]->ToObject())->getDevice();
+    
+  }
+  else {
+    // find a device automatically that support properties in that context
+    if(!args[0]->IsUndefined())
+      properties = args[0]->Uint32Value();
+
+    size_t nDevices=0;
+    ret = ::clGetContextInfo(ctx,CL_CONTEXT_NUM_DEVICES,0,NULL, &nDevices);
+    // printf("Found %d devices in context\n",nDevices);
+
+    cl_device_id *devices=new cl_device_id[nDevices];
+    ret = ::clGetContextInfo(ctx,CL_CONTEXT_DEVICES,sizeof(cl_device_id)*nDevices, devices, NULL);
+    if (ret != CL_SUCCESS) {
+      delete[] devices;
+      REQ_ERROR_THROW(INVALID_CONTEXT);
+      REQ_ERROR_THROW(INVALID_VALUE);
+      REQ_ERROR_THROW(OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
+      return NanThrowError("UNKNOWN ERROR");
+    }
+
+    bool device_found = false;
+    if(properties == 0) {
+      // no property, choose the first one, preferably GPU
+      device=devices[0];
+      cl_device_type type;
+        // ret = ::clGetDeviceInfo(devices[0], CL_DEVICE_TYPE, sizeof(cl_device_type), &type, NULL);
+        // printf("Device 0, type %d, ret %d: %d\n",type,ret, devices[0]);
+
+      for(size_t j=0;j<nDevices;j++) {
+        ret = ::clGetDeviceInfo(devices[j], CL_DEVICE_TYPE, sizeof(cl_device_type), &type, NULL);
+        // printf("Device %d, type %d, ret %d: %d\n",j,type,ret, devices[j]);
+        if(type==CL_DEVICE_TYPE_GPU) {
+          // printf("Selecting device %d: %d\n",j,devices[j]);
+          device=devices[j];
+          break;
+        }
+      }
+      device_found = true;
+    }
+
+    for(size_t j=0;j<nDevices && !device_found;j++) {
+      cl_command_queue_properties device_q_props=0;
+      ret = ::clGetDeviceInfo(devices[j], CL_DEVICE_QUEUE_PROPERTIES, sizeof(cl_command_queue_properties), 
+                              &device_q_props, NULL);
+      // printf("Device %d, Qproperties %d, ret=%d\n",j,device_q_props,ret);
+
+      if (ret != CL_SUCCESS) {
+        delete[] devices;
+        REQ_ERROR_THROW(INVALID_DEVICE);
+        REQ_ERROR_THROW(INVALID_VALUE);
+        REQ_ERROR_THROW(OUT_OF_RESOURCES);
+        REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
+        return NanThrowError("UNKNOWN ERROR");
+      }
+      if(device_q_props & properties) {
+        device=devices[j];
+        device_found=true;
+        break;
+      }
+    }
+    delete[] devices;
+  }
+
+  // printf("Using device %p\n",device);
+
+  // printf("context = %p device=%p properties %llu\n",context->getContext(),device,properties);
+  cw = ::clCreateCommandQueue(ctx, device, properties, &ret);
+  // printf("clCreateCommandQueue ret=%d\n",ret);
 
   if (ret != CL_SUCCESS) {
-    REQ_ERROR_THROW(CL_INVALID_CONTEXT);
-    REQ_ERROR_THROW(CL_INVALID_DEVICE);
-    REQ_ERROR_THROW(CL_INVALID_VALUE);
-    REQ_ERROR_THROW(CL_INVALID_QUEUE_PROPERTIES);
-    REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+    REQ_ERROR_THROW(INVALID_CONTEXT);
+    REQ_ERROR_THROW(INVALID_DEVICE);
+    REQ_ERROR_THROW(INVALID_VALUE);
+    REQ_ERROR_THROW(INVALID_QUEUE_PROPERTIES);
+    REQ_ERROR_THROW(OUT_OF_RESOURCES);
+    REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
     return NanThrowError("UNKNOWN ERROR");
   }
 
@@ -279,14 +399,21 @@ NAN_METHOD(Context::createBuffer)
   void *host_ptr = NULL;
   if(!args[2]->IsNull() && !args[2]->IsUndefined()) {
     if(args[2]->IsArray()) {
+      // JS Array
       Local<Array> arr=Local<Array>::Cast(args[2]);
       host_ptr=arr->GetIndexedPropertiesExternalArrayData();
     }
     else if(args[2]->IsObject()) {
-      Handle<Object> obj=args[2]->ToObject();
-      assert(obj->HasIndexedPropertiesInExternalArrayData());
-      host_ptr=obj->GetIndexedPropertiesExternalArrayData();
-      // printf("CreateBuffer host_ptr %p\n",host_ptr);
+      Local<Object> obj=args[2]->ToObject();
+      String::AsciiValue name(obj->GetConstructorName());
+      if(!strcmp("Buffer",*name)) 
+        host_ptr=Buffer::Data(obj);
+      else {
+        // TypedArray
+        assert(obj->HasIndexedPropertiesInExternalArrayData());
+        host_ptr=obj->GetIndexedPropertiesExternalArrayData();
+        // printf("external array data type %d\n",obj->GetIndexedPropertiesExternalArrayDataType());
+      }
     }
     else
       NanThrowError("Invalid memory object");
@@ -294,15 +421,16 @@ NAN_METHOD(Context::createBuffer)
 
   cl_int ret=CL_SUCCESS;
   cl_mem mw = ::clCreateBuffer(context->getContext(), flags, size, host_ptr, &ret);
-  // printf("cl_mem %p\n",mw);
+  // printf("cl_mem %p, ret %d (%s)\n",mw,ret,ErrorDesc(ret));
 
   if (ret != CL_SUCCESS) {
-    REQ_ERROR_THROW(CL_INVALID_VALUE);
-    REQ_ERROR_THROW(CL_INVALID_BUFFER_SIZE);
-    REQ_ERROR_THROW(CL_INVALID_HOST_PTR);
-    REQ_ERROR_THROW(CL_MEM_OBJECT_ALLOCATION_FAILURE);
-    REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+    REQ_ERROR_THROW(INVALID_CONTEXT);
+    REQ_ERROR_THROW(INVALID_VALUE);
+    REQ_ERROR_THROW(INVALID_BUFFER_SIZE);
+    REQ_ERROR_THROW(INVALID_HOST_PTR);
+    REQ_ERROR_THROW(MEM_OBJECT_ALLOCATION_FAILURE);
+    REQ_ERROR_THROW(OUT_OF_RESOURCES);
+    REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
     return NanThrowError("UNKNOWN ERROR");
   }
 
@@ -315,23 +443,29 @@ NAN_METHOD(Context::createImage)
   Context *context = ObjectWrap::Unwrap<Context>(args.This());
   cl_mem_flags flags = args[0]->Uint32Value();
 
-  cl_image_format image_format;
   Local<Object> obj = args[1]->ToObject();
-  image_format.image_channel_order = obj->Get(JS_STR("order"))->Uint32Value();
-  image_format.image_channel_data_type = obj->Get(JS_STR("data_type"))->Uint32Value();
+  cl_image_format image_format;
+  image_format.image_channel_order = obj->Get(JS_STR("channelOrder"))->Uint32Value();
+  image_format.image_channel_data_type = obj->Get(JS_STR("channelType"))->Uint32Value();
 
-  Local<Array> size=Local<Array>::Cast(obj->Get(JS_STR("size")));
-  bool is2D = (size->Length()<3);
-  size_t width = size->Get(0)->Uint32Value();
-  size_t height = size->Get(1)->Uint32Value();
-  size_t row_pitch = 0;
-  if(!obj->Get(JS_STR("rowPitch"))->IsUndefined())
-    row_pitch=obj->Get(JS_STR("rowPitch"))->Uint32Value();
+  size_t width = obj->Get(JS_STR("width"))->Uint32Value();;
+  size_t height = obj->Get(JS_STR("height"))->Uint32Value();
+  size_t row_pitch =  obj->Get(JS_STR("rowPitch"))->IsUndefined() ? 0 : obj->Get(JS_STR("rowPitch"))->Uint32Value();
 
-  void *host_ptr=args[2]->IsUndefined() ? NULL : args[2]->ToObject()->GetIndexedPropertiesExternalArrayData();
-
+  void *host_ptr=NULL;
+  if(!args[2]->IsNull() && !args[2]->IsUndefined() && args[2]->IsObject()) {
+    Local<Object> obj=args[2]->ToObject();
+    String::AsciiValue name(obj->GetConstructorName());
+    if(!strcmp("Buffer",*name))
+      host_ptr=Buffer::Data(obj);
+    else
+      host_ptr = obj->GetIndexedPropertiesExternalArrayData();
+  }
   cl_int ret=CL_SUCCESS;
   cl_mem mw;
+
+#ifndef CL_VERSION_1_2
+  bool is2D = obj->Get(JS_STR("depth"))->IsUndefined();
   if(is2D) {
     mw = ::clCreateImage2D(
                 context->getContext(), flags, &image_format,
@@ -340,25 +474,49 @@ NAN_METHOD(Context::createImage)
 
   }
   else {
-    size_t depth = size->Get(2)->Uint32Value();
-    size_t slice_pitch = obj->Get(JS_STR("slicePitch"))->Uint32Value();
+    size_t depth = obj->Get(JS_STR("depth"))->IsUndefined() ? 0 : obj->Get(JS_STR("depth"))->Uint32Value();
+    size_t slice_pitch =obj->Get(JS_STR("slicePitch"))->IsUndefined() ? 0 : obj->Get(JS_STR("slicePitch"))->Uint32Value();
     mw = ::clCreateImage3D(
                 context->getContext(), flags, &image_format,
                 width, height, depth, row_pitch,
                 slice_pitch, host_ptr, &ret);
   }
+#else
+  cl_image_desc desc;
+  memset(&desc,0,sizeof(cl_image_desc));
+
+  desc.image_type = obj->Get(JS_STR("depth"))->IsUndefined() ? CL_MEM_OBJECT_IMAGE2D : CL_MEM_OBJECT_IMAGE3D;
+  desc.image_width = width;
+  desc.image_height = height;
+  desc.image_depth = obj->Get(JS_STR("depth"))->IsUndefined() ? 0 : obj->Get(JS_STR("depth"))->Uint32Value();
+  desc.image_array_size = 1;
+  desc.image_row_pitch = row_pitch;
+  desc.image_slice_pitch =obj->Get(JS_STR("slicePitch"))->IsUndefined() ? 0 :obj->Get(JS_STR("slicePitch"))->Uint32Value();
+
+  // printf("size %d x %d, rowPitch %d, host ptr: %p\n",width,height,row_pitch, host_ptr);
+
+  mw = ::clCreateImage(
+              context->getContext(), flags, 
+              &image_format, &desc,
+              host_ptr, &ret);
+#endif
 
   if (ret != CL_SUCCESS) {
-    REQ_ERROR_THROW(CL_INVALID_CONTEXT);
-    REQ_ERROR_THROW(CL_INVALID_VALUE);
-    REQ_ERROR_THROW(CL_INVALID_IMAGE_FORMAT_DESCRIPTOR);
-    REQ_ERROR_THROW(CL_INVALID_IMAGE_SIZE);
-    REQ_ERROR_THROW(CL_INVALID_HOST_PTR);
-    REQ_ERROR_THROW(CL_IMAGE_FORMAT_NOT_SUPPORTED);
-    REQ_ERROR_THROW(CL_MEM_OBJECT_ALLOCATION_FAILURE);
-    REQ_ERROR_THROW(CL_INVALID_OPERATION);
-    REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+    REQ_ERROR_THROW(INVALID_CONTEXT);
+    REQ_ERROR_THROW(INVALID_VALUE);
+    REQ_ERROR_THROW(INVALID_IMAGE_FORMAT_DESCRIPTOR);
+    REQ_ERROR_THROW(INVALID_IMAGE_DESCRIPTOR);
+    REQ_ERROR_THROW(INVALID_IMAGE_SIZE);
+    REQ_ERROR_THROW(INVALID_HOST_PTR);
+    REQ_ERROR_THROW(INVALID_VALUE);
+    REQ_ERROR_THROW(IMAGE_FORMAT_NOT_SUPPORTED);
+    REQ_ERROR_THROW(MEM_OBJECT_ALLOCATION_FAILURE);
+    REQ_ERROR_THROW(INVALID_OPERATION);
+    REQ_ERROR_THROW(OUT_OF_RESOURCES);
+    REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
+#ifdef CL_VERSION_1_2
+    REQ_ERROR_THROW(INVALID_IMAGE_DESCRIPTOR);
+#endif
     return NanThrowError("UNKNOWN ERROR");
   }
 
@@ -381,11 +539,11 @@ NAN_METHOD(Context::createSampler)
               filter_mode,
               &ret);
   if (ret != CL_SUCCESS) {
-    REQ_ERROR_THROW(CL_INVALID_CONTEXT);
-    REQ_ERROR_THROW(CL_INVALID_VALUE);
-    REQ_ERROR_THROW(CL_INVALID_OPERATION);
-    REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+    REQ_ERROR_THROW(INVALID_CONTEXT);
+    REQ_ERROR_THROW(INVALID_VALUE);
+    REQ_ERROR_THROW(INVALID_OPERATION);
+    REQ_ERROR_THROW(OUT_OF_RESOURCES);
+    REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
     return NanThrowError("UNKNOWN ERROR");
   }
 
@@ -396,8 +554,8 @@ NAN_METHOD(Context::getSupportedImageFormats)
 {
   NanScope();
   Context *context = ObjectWrap::Unwrap<Context>(args.This());
-  cl_mem_flags flags = args[0]->Uint32Value();
-  cl_mem_object_type image_type = args[1]->Uint32Value();
+  cl_mem_flags flags = args[0]->IsUndefined() ? CL_MEM_READ_WRITE : args[0]->Uint32Value();
+  cl_mem_object_type image_type = (args[0]->IsUndefined() || args[1]->IsUndefined()) ? CL_MEM_OBJECT_IMAGE2D : args[1]->Uint32Value();
   cl_uint numEntries=0;
 
   cl_int ret = ::clGetSupportedImageFormats(
@@ -408,7 +566,10 @@ NAN_METHOD(Context::getSupportedImageFormats)
              NULL,
              &numEntries);
   if (ret != CL_SUCCESS) {
-    REQ_ERROR_THROW(CL_INVALID_VALUE);
+    REQ_ERROR_THROW(INVALID_CONTEXT);
+    REQ_ERROR_THROW(INVALID_VALUE);
+    REQ_ERROR_THROW(OUT_OF_RESOURCES);
+    REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
     return NanThrowError("UNKNOWN ERROR");
   }
 
@@ -423,20 +584,22 @@ NAN_METHOD(Context::getSupportedImageFormats)
 
   if (ret != CL_SUCCESS) {
     delete[] image_formats;
-    REQ_ERROR_THROW(CL_INVALID_CONTEXT);
-    REQ_ERROR_THROW(CL_INVALID_VALUE);
-    REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+    REQ_ERROR_THROW(INVALID_CONTEXT);
+    REQ_ERROR_THROW(INVALID_VALUE);
+    REQ_ERROR_THROW(OUT_OF_RESOURCES);
+    REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
     return NanThrowError("UNKNOWN ERROR");
   }
 
   Local<Array> imageFormats = Array::New();
   for (uint32_t i=0; i<numEntries; i++) {
     Local<Object> format = Object::New();
-    format->Set(JS_STR("order"), JS_INT(image_formats[i].image_channel_order));
-    format->Set(JS_STR("data_type"), JS_INT(image_formats[i].image_channel_data_type));
-    format->Set(JS_STR("row_pitch"), JS_INT(0));
-    format->Set(JS_STR("slice_pitch"), JS_INT(0));
+    format->Set(JS_STR("channelOrder"), JS_INT(image_formats[i].image_channel_order));
+    format->Set(JS_STR("channelType"), JS_INT(image_formats[i].image_channel_data_type));
+    format->Set(JS_STR("rowPitch"), JS_INT(0));
+    format->Set(JS_STR("slicePitch"), JS_INT(0));
+    format->Set(JS_STR("width"), JS_INT(0));
+    format->Set(JS_STR("height"), JS_INT(0));
     imageFormats->Set(i, format);
   }
   delete[] image_formats;
@@ -451,13 +614,13 @@ NAN_METHOD(Context::createUserEvent)
 
   cl_event ew=::clCreateUserEvent(context->getContext(),&ret);
   if (ret != CL_SUCCESS) {
-    REQ_ERROR_THROW(CL_INVALID_CONTEXT);
-    REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+    REQ_ERROR_THROW(INVALID_CONTEXT);
+    REQ_ERROR_THROW(OUT_OF_RESOURCES);
+    REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
     return NanThrowError("UNKNOWN ERROR");
   }
 
-  NanReturnValue(NanObjectWrapHandle(Event::New(ew)));
+  NanReturnValue(NanObjectWrapHandle(UserEvent::New(ew)));
 }
 
 NAN_METHOD(Context::createFromGLBuffer)
@@ -476,11 +639,11 @@ NAN_METHOD(Context::createFromGLBuffer)
   cout<<" -> clmem="<<hex<<clmem<<dec<<endl;
   #endif
   if (ret != CL_SUCCESS) {
-    REQ_ERROR_THROW(CL_INVALID_CONTEXT);
-    REQ_ERROR_THROW(CL_INVALID_VALUE);
-    REQ_ERROR_THROW(CL_INVALID_GL_OBJECT);
-    REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+    REQ_ERROR_THROW(INVALID_CONTEXT);
+    REQ_ERROR_THROW(INVALID_VALUE);
+    REQ_ERROR_THROW(INVALID_GL_OBJECT);
+    REQ_ERROR_THROW(OUT_OF_RESOURCES);
+    REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
     return NanThrowError("UNKNOWN ERROR");
   }
 
@@ -496,14 +659,22 @@ NAN_METHOD(Context::createFromGLTexture)
   cl_GLint miplevel = args[2]->Uint32Value();
   cl_GLuint texture = args[3]->Uint32Value();
   int ret;
-  cl_mem clmem = ::clCreateFromGLTexture2D(context->getContext(),flags,target,miplevel,texture,&ret);
+  cl_mem clmem;
+#ifdef CL_VERSION_1_2
+  clmem = ::clCreateFromGLTexture(context->getContext(),flags,target,miplevel,texture,&ret);
+#elif defined(CL_VERSION_1_1)
+  clmem = ::clCreateFromGLTexture2D(context->getContext(),flags,target,miplevel,texture,&ret);
+#endif
 
   if (ret != CL_SUCCESS) {
-    REQ_ERROR_THROW(CL_INVALID_CONTEXT);
-    REQ_ERROR_THROW(CL_INVALID_VALUE);
-    REQ_ERROR_THROW(CL_INVALID_GL_OBJECT);
-    REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+    REQ_ERROR_THROW(INVALID_CONTEXT);
+    REQ_ERROR_THROW(INVALID_VALUE);
+    REQ_ERROR_THROW(INVALID_MIP_LEVEL);
+    REQ_ERROR_THROW(INVALID_GL_OBJECT);
+    REQ_ERROR_THROW(INVALID_IMAGE_FORMAT_DESCRIPTOR);
+    REQ_ERROR_THROW(INVALID_OPERATION);
+    REQ_ERROR_THROW(OUT_OF_RESOURCES);
+    REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
     return NanThrowError("UNKNOWN ERROR");
   }
 
@@ -520,16 +691,97 @@ NAN_METHOD(Context::createFromGLRenderbuffer)
   cl_mem clmem = ::clCreateFromGLRenderbuffer(context->getContext(),flags,renderbuffer, &ret);
 
   if (ret != CL_SUCCESS) {
-    REQ_ERROR_THROW(CL_INVALID_CONTEXT);
-    REQ_ERROR_THROW(CL_INVALID_VALUE);
-    REQ_ERROR_THROW(CL_INVALID_GL_OBJECT);
-    REQ_ERROR_THROW(CL_OUT_OF_RESOURCES);
-    REQ_ERROR_THROW(CL_OUT_OF_HOST_MEMORY);
+    REQ_ERROR_THROW(INVALID_CONTEXT);
+    REQ_ERROR_THROW(INVALID_VALUE);
+    REQ_ERROR_THROW(INVALID_GL_OBJECT);
+    REQ_ERROR_THROW(INVALID_IMAGE_FORMAT_DESCRIPTOR);
+    REQ_ERROR_THROW(INVALID_OPERATION);
+    REQ_ERROR_THROW(OUT_OF_RESOURCES);
+    REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
     return NanThrowError("UNKNOWN ERROR");
   }
 
   NanReturnValue(NanObjectWrapHandle(WebCLBuffer::New(clmem)));
 }
+
+NAN_METHOD(Context::getGLContext)
+{
+  NanScope();
+  Context *context = ObjectWrap::Unwrap<Context>(args.This());
+
+  NanReturnValue(context->webgl_context_);
+}
+
+#ifdef HAS_clGetContextInfo // disabled for now as this is not supported in all drivers
+NAN_METHOD(Context::getGLContextInfo)
+{
+  NanScope();
+  Context *context = ObjectWrap::Unwrap<Context>(args.This());
+  cl_context ctx = context->getContext();
+  cl_int ret = CL_SUCCESS;
+
+  // retrieve context properties
+  size_t numProps=0;
+  ret = ::clGetContextInfo(context->getContext(),CL_CONTEXT_PROPERTIES,0,NULL,&numProps);
+  if (ret != CL_SUCCESS)
+  {
+    return NanThrowError("Can NOT get content info!");
+  }
+
+  // given the way we createContext(), we should always have these properties for GL
+  if(numProps==0)
+    NanReturnUndefined();
+
+  cl_context_properties *properties=new cl_context_properties[numProps];
+  ret = ::clGetContextInfo(ctx,CL_CONTEXT_PROPERTIES,numProps,properties,NULL);
+
+  // get GL context info
+  cl_device_id device=0;
+#ifdef __APPLE__
+  ret = clGetGLContextInfoAPPLE(ctx, properties, CL_CURRENT_DEVICE_FOR_GL_CONTEXT_KHR, sizeof(cl_device_id), &device, NULL);
+#else
+  ret = clGetGLContextInfoKHR(properties, CL_CURRENT_DEVICE_FOR_GL_CONTEXT_KHR, sizeof(cl_device_id), &device, NULL);
+#endif
+
+  cl_device_id *devicesCL=NULL;
+  size_t numDevicesCL=0;
+#ifdef __APPLE__
+  ret = clGetGLContextInfoAPPLE(ctx, properties,CL_DEVICES_FOR_GL_CONTEXT_KHR, 0, NULL, &numDevicesCL);
+#else
+  ret = clGetGLContextInfoKHR(properties, CL_CURRENT_DEVICE_FOR_GL_CONTEXT_KHR, 0, NULL, &numDevicesCL);
+#endif
+
+  if(numDevicesCL>0) {
+    devicesCL=new cl_device_id[numDevicesCL];
+#ifdef __APPLE__
+    ret = clGetGLContextInfoAPPLE(ctx, properties,CL_DEVICES_FOR_GL_CONTEXT_KHR, numDevicesCL, devicesCL, NULL);  
+#else
+	ret = clGetGLContextInfoKHR(properties, CL_DEVICES_FOR_GL_CONTEXT_KHR, numDevicesCL, devicesCL, NULL);
+#endif
+  }
+
+  if(ret != CL_SUCCESS) {
+    delete[] properties;
+    delete[] devicesCL;
+    REQ_ERROR_THROW(INVALID_GL_SHAREGROUP_REFERENCE_KHR);
+    REQ_ERROR_THROW(INVALID_OPERATION);
+    REQ_ERROR_THROW(INVALID_VALUE);
+    REQ_ERROR_THROW(OUT_OF_RESOURCES);
+    REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
+    return NanThrowError("UNKNOWN ERROR");   
+  }
+
+  Local<Array> arr = Array::New(numDevicesCL);
+  arr->Set(0,NanObjectWrapHandle(Device::New(device)));
+  for(size_t i=0,j=1;i<numDevicesCL;i++)
+    if(devicesCL[i]!=device)
+      arr->Set(j++,NanObjectWrapHandle(Device::New(devicesCL[i])));
+
+  delete[] properties;
+  delete[] devicesCL;
+  NanReturnValue(arr);
+}
+#endif
 
 NAN_METHOD(Context::New)
 {
@@ -554,6 +806,22 @@ Context *Context::New(cl_context cw)
 
   Context *context = ObjectWrap::Unwrap<Context>(obj);
   context->context = cw;
+
+  return context;
+}
+
+Context *Context::New(cl_context cw, Handle<Object> webgl_context)
+{
+
+  NanScope();
+
+  Local<Value> arg = Integer::NewFromUnsigned(0);
+  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor_template);
+  Local<Object> obj = constructorHandle->GetFunction()->NewInstance(1, &arg);
+
+  Context *context = ObjectWrap::Unwrap<Context>(obj);
+  context->context = cw;
+  context->webgl_context_ = webgl_context->ToObject();
 
   return context;
 }
