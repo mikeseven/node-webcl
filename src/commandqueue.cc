@@ -279,7 +279,6 @@ NAN_METHOD(CommandQueue::enqueueNDRangeKernel)
   if(events_wait_list) delete[] events_wait_list;
 
   if (ret != CL_SUCCESS) {
-    printf("[setArg] ret = %d\n",ret);
     REQ_ERROR_THROW(INVALID_PROGRAM_EXECUTABLE);
     REQ_ERROR_THROW(INVALID_COMMAND_QUEUE);
     REQ_ERROR_THROW(INVALID_KERNEL);
@@ -1651,7 +1650,6 @@ NAN_METHOD(CommandQueue::New)
   NanScope();
   CommandQueue *cq = new CommandQueue(args.This());
   cq->Wrap(args.This());
-  registerCLObj(cq->command_queue, cq);
   NanReturnValue(args.This());
 }
 
@@ -1667,6 +1665,7 @@ CommandQueue *CommandQueue::New(cl_command_queue cw, WebCLObject *parent)
   CommandQueue *commandqueue = ObjectWrap::Unwrap<CommandQueue>(obj);
   commandqueue->command_queue = cw;
   commandqueue->setParent(parent);
+  registerCLObj(cw, commandqueue);
 
   return commandqueue;
 }

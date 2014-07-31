@@ -51,7 +51,7 @@ void registerCLObj(void *clid, WebCLObject* obj) {
   if(!obj) return;
 
 #ifdef LOGGING
-  printf("Adding CLObject %p %s (%d), size %lu\n", clid, obj->getCLObjName(),obj->getType(),clobjs.size()); fflush(stdout);
+  printf("Adding CLObject %p %s (%d), clobjs size %lu\n", clid, obj->getCLObjName(),obj->getType(),clobjs.size()); fflush(stdout);
 #endif
   clobjs.push_back(obj);
   if(obj->getType()==CLObjType::Context)
@@ -70,10 +70,16 @@ void unregisterCLObj(WebCLObject *obj) {
       break;
     }
   }
-  if(obj->getParent()) {
-    obj->unRef();
-    obj->getParent()->getChildren().remove(obj);
-  }
+  obj->unRef();
+  // if(obj->getParent()) {
+  //   list<WebCLObject*> children=obj->getParent()->getChildren();
+  //   children.erase(std::remove(children.begin(), children.end(), obj), children.end());
+  //   // for(list<WebCLObject*>::iterator it=children.begin();it!=children.end();++it)
+  //   //   if(*it == obj) {
+  //   //     children.erase(it);
+  //   //     break;
+  //   //   }
+  // }
 }
 
 /**
@@ -127,10 +133,10 @@ void AtExit(void* arg) {
 
   if(clobjs.size() != 0) {
     
+#ifdef LOGGING
     for(vector<WebCLObject*>::iterator it=clobjs.begin();it!=clobjs.end();++it)
       dumpChildren(*it);
 
-#ifdef LOGGING
     printf("\n=== Destroying all %lu WebCL objects ===\n", clobjs.size());
 #endif
 

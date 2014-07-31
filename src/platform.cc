@@ -195,7 +195,6 @@ NAN_METHOD(Platform::New)
   NanScope();
   Platform *cl = new Platform(args.This());
   cl->Wrap(args.This());
-  registerCLObj(cl->platform_id, cl);
   NanReturnValue(args.This());
 }
 
@@ -211,6 +210,7 @@ Platform *Platform::New(cl_platform_id pid)
 
   Platform *platform = ObjectWrap::Unwrap<Platform>(obj);
   platform->platform_id = pid;
+  registerCLObj(pid, platform);
 
   return platform;
 }

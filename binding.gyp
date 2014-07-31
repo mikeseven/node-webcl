@@ -4,7 +4,7 @@
       'target_name': 'webcl',
       'defines': [
         'VERSION=0.9.0',
-        'LOGGING'
+        # 'LOGGING'
       ],
       'sources': [
         'src/bindings.cc',

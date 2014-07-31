@@ -110,7 +110,9 @@ void Context::Destructor()
 
 NAN_METHOD(Context::release)
 {
+#ifdef LOGGING
   printf("[Context::release]\n");
+#endif
   NanScope();
   Context *context = ObjectWrap::Unwrap<Context>(args.This());
   context->Destructor();
@@ -820,7 +822,6 @@ NAN_METHOD(Context::New)
   NanScope();
   Context *ctx = new Context(args.This());
   ctx->Wrap(args.This());
-  registerCLObj(ctx->context, ctx);
   NanReturnValue(args.This());
 }
 
@@ -835,6 +836,7 @@ Context *Context::New(cl_context cw)
 
   Context *context = ObjectWrap::Unwrap<Context>(obj);
   context->context = cw;
+  registerCLObj(cw, context);
 
   return context;
 }

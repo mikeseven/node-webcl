@@ -155,7 +155,6 @@ NAN_METHOD(Sampler::New)
   NanScope();
   Sampler *s = new Sampler(args.This());
   s->Wrap(args.This());
-  registerCLObj(s->sampler, s);
   NanReturnValue(args.This());
 }
 
@@ -171,6 +170,7 @@ Sampler *Sampler::New(cl_sampler sw, WebCLObject *parent)
   Sampler *sampler = ObjectWrap::Unwrap<Sampler>(obj);
   sampler->sampler = sw;
   sampler->setParent(parent);
+  registerCLObj(sw, sampler);
 
   return sampler;
 }

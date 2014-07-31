@@ -414,7 +414,6 @@ NAN_METHOD(Device::New)
   NanScope();
   Device *cl = new Device(args.This());
   cl->Wrap(args.This());
-  registerCLObj(cl->device_id, cl);
   NanReturnValue(args.This());
 }
 
@@ -430,6 +429,7 @@ Device *Device::New(cl_device_id dw)
 
   Device *device = ObjectWrap::Unwrap<Device>(obj);
   device->device_id = dw;
+  registerCLObj(dw, device);
 
   return device;
 }

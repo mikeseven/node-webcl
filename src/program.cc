@@ -494,7 +494,6 @@ NAN_METHOD(Program::New)
 
   Program *p = new Program(args.This());
   p->Wrap(args.This());
-  registerCLObj(p->program, p);
   NanReturnValue(args.This());
 }
 
@@ -506,11 +505,12 @@ Program *Program::New(cl_program pw, WebCLObject *parent)
   Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor_template);
   Local<Object> obj = constructorHandle->GetFunction()->NewInstance(1, &arg);
 
-  Program *progobj = ObjectWrap::Unwrap<Program>(obj);
-  progobj->program = pw;
-  progobj->setParent(parent);
-
-  return progobj;
+  Program *p = ObjectWrap::Unwrap<Program>(obj);
+  p->program = pw;
+  p->setParent(parent);
+  registerCLObj(pw, p);
+ 
+  return p;
 }
 
 } // namespace

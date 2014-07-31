@@ -242,7 +242,6 @@ NAN_METHOD(MemoryObject::New)
   NanScope();
   MemoryObject *mo = new MemoryObject(args.This());
   mo->Wrap(args.This());
-  registerCLObj(mo->memory, mo);
   NanReturnValue(args.This());
 }
 
@@ -257,6 +256,7 @@ MemoryObject *MemoryObject::New(cl_mem mw)
 
   MemoryObject *memobj = ObjectWrap::Unwrap<MemoryObject>(obj);
   memobj->memory = mw;
+  registerCLObj(mw, memobj);
 
   return memobj;
 }
@@ -347,7 +347,6 @@ NAN_METHOD(WebCLBuffer::New)
   NanScope();
   WebCLBuffer *mo = new WebCLBuffer(args.This());
   mo->Wrap(args.This());
-  registerCLObj(mo->memory, mo);
   NanReturnValue(args.This());
 }
 
@@ -362,6 +361,7 @@ WebCLBuffer *WebCLBuffer::New(cl_mem mw, WebCLObject *parent)
   WebCLBuffer *memobj = ObjectWrap::Unwrap<WebCLBuffer>(obj);
   memobj->memory = mw;
   memobj->setParent(parent);
+  registerCLObj(mw, memobj);
 
   return memobj;
 }
@@ -475,7 +475,6 @@ NAN_METHOD(WebCLImage::New)
   NanScope();
   WebCLImage *mo = new WebCLImage(args.This());
   mo->Wrap(args.This());
-  registerCLObj(mo->memory, mo);
   NanReturnValue(args.This());
 }
 
@@ -491,6 +490,7 @@ WebCLImage *WebCLImage::New(cl_mem mw, WebCLObject *parent)
   WebCLImage *memobj = ObjectWrap::Unwrap<WebCLImage>(obj);
   memobj->memory = mw;
   memobj->setParent(parent);
+  registerCLObj(mw, memobj);
 
   return memobj;
 }

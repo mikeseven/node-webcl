@@ -201,7 +201,7 @@ protected:
   }
 
   virtual ~WebCLObject() {
-    // printf("%s is being destroyed\n",CLObjType::CLObjName[_type]);
+    // printf("%s is being destroyed\n",getCLObjName());
     unregisterCLObj(this);
   }
 
@@ -224,7 +224,7 @@ public:
   
   WebCLObject *getParent() const { return _parent; }
   
-  std::list<WebCLObject*>& getChildren() { return _children; }
+  std::list<WebCLObject*> getChildren() { return _children; }
 
 protected:
   CLObjType::CLObjType _type;

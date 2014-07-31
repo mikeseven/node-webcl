@@ -89,7 +89,7 @@ var file = __dirname+'/lenaRGB.jpg';
 log('Loading image '+file);
 var img=Image.load(file);
 var image=img.convertTo32Bits();
-log('Image '+file+': \n'+util.inspect(image));
+// log('Image '+file+': \n'+util.inspect(image));
 
 image.size = image.height*image.pitch;
 log('Total number of pixels: '+ (image.width*image.height));

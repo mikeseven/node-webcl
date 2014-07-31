@@ -49,12 +49,13 @@ function read_complete(event, data) {
   if(status<0) 
     log('Error: '+status);
 
-  var check = WebCL.TRUE;
+  log('data: '+data+' size: '+data.length)
+  var check = true;
   //var str="";
   for(i=0; i<4096; i++) {
     //str+=data[i]+' ';
     if(data[i] != 5.0) {
-      check = WebCL.FALSE;
+      check = false;
       break;
     }  
   }
@@ -190,8 +191,7 @@ function read_complete(event, data) {
 
   // test 2: wait for all events to complete
   log('Wait for events to complete');
-  var event_list=[kernel_event, read_event];
-  WebCL.waitForEvents(event_list);
+  WebCL.waitForEvents([kernel_event, read_event]);
   
   // test 3: spin on all event completions
   // log('  spinning on event completion');
@@ -204,6 +204,5 @@ function read_complete(event, data) {
   //       break;
   //   }
   // }
-
   log("main app thread END"); 
 })();

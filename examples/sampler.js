@@ -27,7 +27,7 @@ var file = __dirname+'/mike_scooter.jpg';
 log('Loading image '+file);
 var img=Image.load(file);
 var image=img.convertTo32Bits();
-log('Image '+file+': \n'+util.inspect(image));
+// log('Image '+file+': \n'+util.inspect(image));
 
 image.size = image.height*image.pitch;
 

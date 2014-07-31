@@ -304,7 +304,6 @@ NAN_METHOD(Event::New)
   NanScope();
   Event *e = new Event(args.This());
   e->Wrap(args.This());
-  registerCLObj(e->event, e);
   NanReturnValue(args.This());
 }
 
@@ -319,6 +318,7 @@ Event *Event::New(cl_event ew, WebCLObject *parent)
   Event *e = ObjectWrap::Unwrap<Event>(obj);
   e->event = ew;
   e->setParent(parent);
+  registerCLObj(ew, e);
 
   return e;
 }
@@ -367,7 +367,9 @@ UserEvent::UserEvent(Handle<Object> wrapper) : Event(wrapper)
 }
 
 UserEvent::~UserEvent() {
+#ifdef LOGGING
   printf("In ~UserEvent\n");
+#endif
   Destructor();
 }
 
@@ -422,7 +424,6 @@ NAN_METHOD(UserEvent::New)
   NanScope();
   UserEvent *e = new UserEvent(args.This());
   e->Wrap(args.This());
-  registerCLObj(e->event, e);
   NanReturnValue(args.This());
 }
 
@@ -437,6 +438,7 @@ UserEvent *UserEvent::New(cl_event ew, WebCLObject *parent)
   UserEvent *e = ObjectWrap::Unwrap<UserEvent>(obj);
   e->event = ew;
   e->setParent(parent);
+  registerCLObj(ew, e);
 
   return e;
 }

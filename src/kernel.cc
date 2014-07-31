@@ -440,7 +440,6 @@ NAN_METHOD(Kernel::New)
   NanScope();
   Kernel *k = new Kernel(args.This());
   k->Wrap(args.This());
-  registerCLObj(k->kernel, k);
   NanReturnValue(args.This());
 }
 
@@ -456,6 +455,7 @@ Kernel *Kernel::New(cl_kernel kw, WebCLObject *parent)
   Kernel *kernel = ObjectWrap::Unwrap<Kernel>(obj);
   kernel->kernel = kw;
   kernel->setParent(parent);
+  registerCLObj(kw, kernel);
 
   return kernel;
 }
