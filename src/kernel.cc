@@ -40,6 +40,14 @@ namespace webcl {
 
 Persistent<FunctionTemplate> Kernel::constructor_template;
 
+void KernelCB(Persistent<Value> value, void *param) {
+#ifdef LOGGING
+  String::AsciiValue str(value->ToObject()->GetConstructorName());
+  printf("%s weak ref cb\n", *str);
+#endif
+  value.Dispose();
+}
+
 void Kernel::Init(Handle<Object> target)
 {
   NanScope();
@@ -58,6 +66,7 @@ void Kernel::Init(Handle<Object> target)
   NODE_SET_PROTOTYPE_METHOD(ctor, "_release", release);
 
   target->Set(NanSymbol("WebCLKernel"), ctor->GetFunction());
+  constructor_template.MakeWeak(NULL, KernelCB);
 }
 
 Kernel::Kernel(Handle<Object> wrapper) : kernel(0)
@@ -65,12 +74,26 @@ Kernel::Kernel(Handle<Object> wrapper) : kernel(0)
   _type=CLObjType::Kernel;
 }
 
+Kernel::~Kernel() {
+#ifdef LOGGING
+  printf("In ~Kernel\n");
+#endif
+  // Destructor();
+}
+
 void Kernel::Destructor() {
-  #ifdef LOGGING
-  cout<<"  Destroying CL kernel"<<endl;
-  #endif
-  if(kernel) ::clReleaseKernel(kernel);
-  kernel=0;
+  if(kernel) {
+#ifdef LOGGING
+    cl_uint count;
+    ::clGetKernelInfo(kernel,CL_KERNEL_REFERENCE_COUNT,sizeof(cl_uint),&count,NULL);
+    cout<<"  Destroying Kernel, CLrefCount is: "<<count<<endl;
+#endif
+    ::clReleaseKernel(kernel);
+    if(getCount()==1) {
+      unregisterCLObj(this);
+      kernel=0;
+    }
+  }
 }
 
 NAN_METHOD(Kernel::release)
@@ -78,7 +101,7 @@ NAN_METHOD(Kernel::release)
   NanScope();
   Kernel *kernel = ObjectWrap::Unwrap<Kernel>(args.This());
   
-  DESTROY_WEBCL_OBJECT(kernel);
+  kernel->Destructor();
   
   NanReturnUndefined();
 }
@@ -120,12 +143,11 @@ NAN_METHOD(Kernel::getInfo)
       return NanThrowError("UNKNOWN ERROR");
     }
     if(param_value) {
-      WebCLObject *obj=findCLObj((void*)param_value);
+      WebCLObject *obj=findCLObj((void*)param_value, CLObjType::Context);
       if(obj) {
 #ifdef LOGGING
         printf("[Kernel::getInfo] returning context %p\n",obj);
 #endif
-        // ::clRetainContext(param_value);
         NanReturnValue(NanObjectWrapHandle(obj));
       }
       else
@@ -144,16 +166,13 @@ NAN_METHOD(Kernel::getInfo)
       return NanThrowError("UNKNOWN ERROR");
     }
     if(param_value) {
-      WebCLObject *obj=findCLObj((void*)param_value);
+      WebCLObject *obj=findCLObj((void*)param_value, CLObjType::Program);
       if(obj) {
 #ifdef LOGGING
         printf("[Kernel::getInfo] returning program %p\n",obj);
 #endif
-        // ::clRetainProgram(param_value);
         NanReturnValue(NanObjectWrapHandle(obj));
       }
-      else
-        NanReturnValue(NanObjectWrapHandle(Program::New(param_value)));
     }
     NanReturnUndefined();
   }
@@ -307,6 +326,11 @@ NAN_METHOD(Kernel::setArg)
   cl_uint arg_index = args[0]->Uint32Value();
   cl_int ret=CL_SUCCESS;
 
+  if(!k) {
+    cl_int ret=CL_INVALID_KERNEL;
+    REQ_ERROR_THROW(INVALID_KERNEL);
+  }
+
   if(args[1]->IsObject()) {
     String::AsciiValue str(args[1]->ToObject()->GetConstructorName());
     if(!strcmp("WebCLSampler",*str)) {
@@ -416,11 +440,11 @@ NAN_METHOD(Kernel::New)
   NanScope();
   Kernel *k = new Kernel(args.This());
   k->Wrap(args.This());
-  registerCLObj(k);
+  registerCLObj(k->kernel, k);
   NanReturnValue(args.This());
 }
 
-Kernel *Kernel::New(cl_kernel kw)
+Kernel *Kernel::New(cl_kernel kw, WebCLObject *parent)
 {
 
   NanScope();
@@ -431,6 +455,7 @@ Kernel *Kernel::New(cl_kernel kw)
 
   Kernel *kernel = ObjectWrap::Unwrap<Kernel>(obj);
   kernel->kernel = kw;
+  kernel->setParent(parent);
 
   return kernel;
 }

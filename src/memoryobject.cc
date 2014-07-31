@@ -35,6 +35,14 @@ namespace webcl {
 
 Persistent<FunctionTemplate> MemoryObject::constructor_template;
 
+void MemoryObjectCB(Persistent<Value> value, void *param) {
+#ifdef LOGGING
+  String::AsciiValue str(value->ToObject()->GetConstructorName());
+  printf("%s weak ref cb\n", *str);
+#endif
+  value.Dispose();
+}
+
 void MemoryObject::Init(Handle<Object> target)
 {
   NanScope();
@@ -51,6 +59,7 @@ void MemoryObject::Init(Handle<Object> target)
   NODE_SET_PROTOTYPE_METHOD(ctor, "_release", release);
 
   target->Set(NanSymbol("WebCLMemoryObject"), ctor->GetFunction());
+  constructor_template.MakeWeak(NULL, MemoryObjectCB);
 }
 
 MemoryObject::MemoryObject(Handle<Object> wrapper) : memory(0)
@@ -58,12 +67,26 @@ MemoryObject::MemoryObject(Handle<Object> wrapper) : memory(0)
   _type=CLObjType::MemoryObject;
 }
 
+MemoryObject::~MemoryObject() {
+#ifdef LOGGING
+  printf("In ~MemoryObject\n");
+#endif
+  // Destructor();
+}
+
 void MemoryObject::Destructor() {
-  #ifdef LOGGING
-  printf("  Destroying CL memory object %p\n",this);
-  #endif
-  if(memory) ::clReleaseMemObject(memory);
-  memory=0;
+  if(memory) {
+#ifdef LOGGING
+    cl_uint count;
+    ::clGetMemObjectInfo(memory,CL_MEM_REFERENCE_COUNT,sizeof(cl_uint),&count,NULL);
+    cout<<"  Destroying MemoryObject, CLrefCount is: "<<count<<endl;
+#endif
+    ::clReleaseMemObject(memory);
+    if(getCount()==1) {
+      unregisterCLObj(this);
+      memory=0;
+    }
+  }
 }
 
 NAN_METHOD(MemoryObject::release)
@@ -71,10 +94,10 @@ NAN_METHOD(MemoryObject::release)
   NanScope();
 
   MemoryObject *mo = ObjectWrap::Unwrap<MemoryObject>(args.This());
-  #ifdef LOGGING
+#ifdef LOGGING
   printf("  In MemoryObject::release%p\n",mo);
-  #endif
-  DESTROY_WEBCL_OBJECT(mo);
+#endif
+  mo->Destructor();
   
   NanReturnUndefined();
 }
@@ -139,7 +162,7 @@ NAN_METHOD(MemoryObject::getInfo)
     }
 
     if(param_value) {
-      WebCLObject *obj=findCLObj((void*)param_value);
+      WebCLObject *obj=findCLObj((void*)param_value, CLObjType::MemoryObject);
       if(obj) {
         clRetainMemObject(param_value);
         NanReturnValue(NanObjectWrapHandle(obj));
@@ -158,7 +181,7 @@ NAN_METHOD(MemoryObject::getInfo)
       return NanThrowError("UNKNOWN ERROR");
     }
     if(param_value) {
-      WebCLObject *obj=findCLObj((void*)param_value);
+      WebCLObject *obj=findCLObj((void*)param_value, CLObjType::Context);
       if(obj) {
         //::clRetainContext(param_value);
         NanReturnValue(NanObjectWrapHandle(obj));
@@ -219,7 +242,7 @@ NAN_METHOD(MemoryObject::New)
   NanScope();
   MemoryObject *mo = new MemoryObject(args.This());
   mo->Wrap(args.This());
-  registerCLObj(mo);
+  registerCLObj(mo->memory, mo);
   NanReturnValue(args.This());
 }
 
@@ -261,6 +284,7 @@ void WebCLBuffer::Init(Handle<Object> target)
   NODE_SET_PROTOTYPE_METHOD(ctor, "_release", release);
 
   target->Set(NanSymbol("WebCLBuffer"), ctor->GetFunction());
+  constructor_template.MakeWeak(NULL, MemoryObjectCB);
 }
 
 WebCLBuffer::WebCLBuffer(Handle<Object> wrapper) : MemoryObject(wrapper)
@@ -282,7 +306,7 @@ NAN_METHOD(WebCLBuffer::release)
   NanScope();
 
   MemoryObject *mo = (MemoryObject*) ObjectWrap::Unwrap<WebCLBuffer>(args.This());
-  DESTROY_WEBCL_OBJECT(mo);
+  mo->Destructor();
   
   NanReturnUndefined();
 }
@@ -315,7 +339,7 @@ NAN_METHOD(WebCLBuffer::createSubBuffer)
     return NanThrowError("UNKNOWN ERROR");
   }
 
-  NanReturnValue(NanObjectWrapHandle(WebCLBuffer::New(sub_buffer)));
+  NanReturnValue(NanObjectWrapHandle(WebCLBuffer::New(sub_buffer, mo)));
 }
 
 NAN_METHOD(WebCLBuffer::New)
@@ -323,11 +347,11 @@ NAN_METHOD(WebCLBuffer::New)
   NanScope();
   WebCLBuffer *mo = new WebCLBuffer(args.This());
   mo->Wrap(args.This());
-  registerCLObj(mo);
+  registerCLObj(mo->memory, mo);
   NanReturnValue(args.This());
 }
 
-WebCLBuffer *WebCLBuffer::New(cl_mem mw)
+WebCLBuffer *WebCLBuffer::New(cl_mem mw, WebCLObject *parent)
 {
   NanScope();
 
@@ -337,6 +361,7 @@ WebCLBuffer *WebCLBuffer::New(cl_mem mw)
 
   WebCLBuffer *memobj = ObjectWrap::Unwrap<WebCLBuffer>(obj);
   memobj->memory = mw;
+  memobj->setParent(parent);
 
   return memobj;
 }
@@ -364,6 +389,7 @@ void WebCLImage::Init(Handle<Object> target)
   NODE_SET_PROTOTYPE_METHOD(ctor, "_release", release);
 
   target->Set(NanSymbol("WebCLImage"), ctor->GetFunction());
+  constructor_template.MakeWeak(NULL, MemoryObjectCB);
 }
 
 WebCLImage::WebCLImage(Handle<Object> wrapper) : MemoryObject(wrapper)
@@ -375,7 +401,7 @@ NAN_METHOD(WebCLImage::release)
   NanScope();
 
   MemoryObject *mo = (MemoryObject*) ObjectWrap::Unwrap<WebCLImage>(args.This());
-  DESTROY_WEBCL_OBJECT(mo);
+  mo->Destructor();
   
   NanReturnUndefined();
 }
@@ -449,11 +475,11 @@ NAN_METHOD(WebCLImage::New)
   NanScope();
   WebCLImage *mo = new WebCLImage(args.This());
   mo->Wrap(args.This());
-  registerCLObj(mo);
+  registerCLObj(mo->memory, mo);
   NanReturnValue(args.This());
 }
 
-WebCLImage *WebCLImage::New(cl_mem mw)
+WebCLImage *WebCLImage::New(cl_mem mw, WebCLObject *parent)
 {
 
   NanScope();
@@ -464,6 +490,7 @@ WebCLImage *WebCLImage::New(cl_mem mw)
  
   WebCLImage *memobj = ObjectWrap::Unwrap<WebCLImage>(obj);
   memobj->memory = mw;
+  memobj->setParent(parent);
 
   return memobj;
 }

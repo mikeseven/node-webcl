@@ -46,14 +46,15 @@ public:
   static NAN_METHOD(release);
   
   cl_mem getMemory() const { return memory; };
-  virtual bool isEqual(void *clObj) { return ((cl_mem)clObj)==memory; }
+  virtual bool operator==(void *clObj) { return ((cl_mem)clObj)==memory; }
 
 private:
   static v8::Persistent<v8::FunctionTemplate> constructor_template;
 
 protected:
   MemoryObject(v8::Handle<v8::Object> wrapper);
-
+  ~MemoryObject();
+  
   cl_mem memory;
 };
 
@@ -61,7 +62,7 @@ class WebCLBuffer : public MemoryObject {
 public:
   static void Init(v8::Handle<v8::Object> target);
 
-  static WebCLBuffer *New(cl_mem mw);
+  static WebCLBuffer *New(cl_mem mw, WebCLObject *parent);
   static NAN_METHOD(New);
   static NAN_METHOD(getInfo);
   static NAN_METHOD(getGLObjectInfo);
@@ -78,7 +79,7 @@ class WebCLImage : public MemoryObject {
 public:
   static void Init(v8::Handle<v8::Object> target);
 
-  static WebCLImage *New(cl_mem mw);
+  static WebCLImage *New(cl_mem mw, WebCLObject *parent);
   static NAN_METHOD(New);
   static NAN_METHOD(release);  
   static NAN_METHOD(getInfo);

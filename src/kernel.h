@@ -39,7 +39,7 @@ public:
 
   static void Init(v8::Handle<v8::Object> target);
 
-  static Kernel *New(cl_kernel kw);
+  static Kernel *New(cl_kernel kw, WebCLObject *parent);
   static NAN_METHOD(New);
   static NAN_METHOD(getInfo);
   static NAN_METHOD(getWorkGroupInfo);
@@ -49,11 +49,12 @@ public:
 
   cl_kernel getKernel() const { return kernel; };
   
-  virtual bool isEqual(void *clObj) { return ((cl_kernel)clObj)==kernel; }
+  virtual bool operator==(void *clObj) { return ((cl_kernel)clObj)==kernel; }
 
 private:
   Kernel(v8::Handle<v8::Object> wrapper);
-
+  ~Kernel();
+  
   static v8::Persistent<v8::FunctionTemplate> constructor_template;
 
   cl_kernel kernel;

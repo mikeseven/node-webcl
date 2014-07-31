@@ -31,8 +31,9 @@
 #include "event.h"
 #include "commandqueue.h"
 
-#include <set>
+#include <list>
 #include <vector>
+#include <map>
 #include <algorithm>
 #include <cstring>
 
@@ -42,135 +43,112 @@ using namespace std;
 
 namespace webcl {
 
-static vector<WebCLObject*> clobjs;
 static bool atExit=false;
+static vector<WebCLObject*> clobjs;
+list<WebCLObject *> root; // list of Contexts
 
-void registerCLObj(WebCLObject* obj) {
+void registerCLObj(void *clid, WebCLObject* obj) {
   if(!obj) return;
 
-  #ifdef LOGGING
-  printf("Adding CLObject %p type %d, size %d\n", obj, obj->getType(),clobjs.size()); fflush(stdout);
-  #endif
+#ifdef LOGGING
+  printf("Adding CLObject %p %s (%d), size %lu\n", clid, obj->getCLObjName(),obj->getType(),clobjs.size()); fflush(stdout);
+#endif
   clobjs.push_back(obj);
+  if(obj->getType()==CLObjType::Context)
+    root.push_back(obj);
 }
 
-void unregisterCLObj(WebCLObject* obj) {
-  if(/*atExit ||*/ !obj) return;
+void unregisterCLObj(WebCLObject *obj) {
+  if(atExit || !obj) return;
 
-  #ifdef LOGGING
-  printf("Removing CLObject %p, size %d\n", obj, clobjs.size()); fflush(stdout);
-  #endif
-  // clobjs.erase(obj);
-  for(vector<WebCLObject*>::iterator it = clobjs.begin();it!=clobjs.end();++it) {
-    if(*it == obj) {
+#ifdef LOGGING
+  printf("Removing WebCLObject %s %p, size %lu\n", obj->getCLObjName(),obj, clobjs.size()); fflush(stdout);
+#endif
+  for(vector<WebCLObject*>::iterator it=clobjs.begin();it!=clobjs.end();++it) {
+    if((*it) == obj) {
       clobjs.erase(it);
-      return;
+      break;
     }
+  }
+  if(obj->getParent()) {
+    obj->unRef();
+    obj->getParent()->getChildren().remove(obj);
   }
 }
 
 /**
  * Finds the WebCL objet already associated with an OpenCL object
  */
-WebCLObject* findCLObj(void *clObj) {
-  vector<WebCLObject*>::iterator it = clobjs.begin();
-  while(it != clobjs.end()) {
-    WebCLObject *clo = *it++;
-    if(clo->isEqual(clObj))
-      return clo;
+WebCLObject* findCLObj(void *clid, CLObjType::CLObjType type) {
+  if(!clid) return NULL;
+
+#ifdef LOGGING
+  printf("Finding CL id %p amongst %lu WebCL objs\n",clid,clobjs.size());
+#endif
+  for(vector<WebCLObject*>::iterator it=clobjs.begin();it != clobjs.end();++it) {
+    WebCLObject *obj = *it;
+#ifdef LOGGING
+    printf("  obj %p type %d %s\n",obj,obj->getType(),obj->getCLObjName());
+#endif
+    if(obj->getType() == type && *obj == clid)
+      return obj;
   }
+
   return NULL;
 }
 
+void dumpChildren(WebCLObject *root, int spc =0) {
+  for(int i=0;i<spc;i++) printf(" ");
+#ifdef LOGGING
+  printf("%s count %d\n",root->getCLObjName(),root->getCount());
+#endif
+
+  list<WebCLObject*> children=root->getChildren();
+  for(list<WebCLObject*>::iterator it=children.begin(); it!=children.end();++it) {
+    dumpChildren(*it,spc+2);
+  }
+}
+
+// void destroyChildren(WebCLObject *root, int spc =0) {
+//   for(list<WebCLObject*>::iterator it=root->84dren().begin(); it!=root->getChildren().end();++it) {
+//     destroyChildren(*it,spc+2);
+//   }
+//   root->Destructor();
+//   for(int i=0;i<spc;i++) printf(" ");
+//   printf("%s count %d\n",root->getCLObjName(),root->getCount());
+// }
+
 void AtExit(void* arg) {
   atExit=true;
-  // #ifdef LOGGING
-  // {
-  //   cout<<"WebCL AtExit() called"<<endl;
-  //   cout<<"  # objects allocated: "<<clobjs.size()<<endl;
 
-  //   set<WebCLObject*>::iterator it = clobjs.begin();
-  //   while(it != clobjs.end()) {
-  //     WebCLObject *clo = *it++;
-  //     cout<<"  obj type: "<<clo->getType()<<endl;
-  //   }
-  // }
-  // #endif
-
-  // make sure all queues are flushed
-  // vector<WebCLObject*>::iterator it;
-  vector<WebCLObject*>::reverse_iterator it;
-
-  // must kill events first
-  // vector<cl_event> events;
-  // it = clobjs.begin();
-  // while(it != clobjs.end()) {
-  //   WebCLObject *clo = *it;
-  //   ++it;
-  //   if(clo->isEvent()) {
-  //     events.push_back(((Event*)clo)->getEvent());
-  //   }
-  // }
-
-  // if(!arg && events.size()) {
-  //   // normal exit, wait for events to complete and call their callbacks
-  //   // args!=0 for CTRL+C, we don't wait 
-  //   printf("*** waiting for %lu events to complete\n",events.size());
-  //   cl_int ret;
-  //   for(size_t i=0;i<events.size();i++) {
-  //     cl_int status;
-  //     do {
-  //       ret=::clGetEventInfo(events[i],CL_EVENT_COMMAND_EXECUTION_STATUS,sizeof(cl_int),&status,NULL);
-  //       printf("  event %lu, status: %d, ret: %d\n",i,status,ret);
-  //     } while(status!=CL_COMPLETE);
-  //   }
-  // }
-  // events.clear();
-
-////////////////////////////////////////////////////////
-
-  // must kill kernels first
-//   #ifdef LOGGING
-//   cout<<"  # objects allocated: "<<clobjs.size()<<endl; fflush(stdout);
-//   #endif
-//   it = clobjs.begin();
-//   while(it != clobjs.end()) {
-//     WebCLObject *clo = *it;
-//     if(clo->isKernel()) {
-// #ifdef LOGGING
-//       cout<<"  Destroying kernel"<<endl;
-// #endif
-//       clobjs.erase(it++);
-//       clo->Destructor();
-//     }
-//     else
-//       ++it;
-//   }
-
-  #ifdef LOGGING
-  cout<<"  # objects allocated: "<<clobjs.size()<<endl; fflush(stdout);
-  #endif
-  for(it = clobjs.rbegin(); it != clobjs.rend(); ++it) {
-    WebCLObject *clo = *it;
 #ifdef LOGGING
-    cout<<"  [AtExit] Destroying ";
-    if(clo->isCommandQueue())   cout<<"CommandQueue";
-    else if(clo->isKernel())    cout<<"Kernel";
-    else if(clo->isEvent())     cout<<"Event";
-    else if(clo->isProgram())   cout<<"Program";
-    else if(clo->isMemoryObject()) cout<<"MemoryObject";
-    else if(clo->isSampler())   cout<<"Sampler";
-    else if(clo->isContext())   cout<<"Context";
-    else if(clo->isPlatform())  cout<<"Platform";
-    else if(clo->isDevice())    cout<<"Device";
-    else
-      printf("UNKNOWN");
-    printf(" %p\n",clo); fflush(stdout);
+  cout<<"  # objects allocated: "<<clobjs.size()<<endl; fflush(stdout);
 #endif
-    clo->Destructor();
+
+  if(clobjs.size() != 0) {
+    
+    for(vector<WebCLObject*>::iterator it=clobjs.begin();it!=clobjs.end();++it)
+      dumpChildren(*it);
+
+#ifdef LOGGING
+    printf("\n=== Destroying all %lu WebCL objects ===\n", clobjs.size());
+#endif
+
+    // destroyChildren(clobjs.front());    
+    for(vector<WebCLObject*>::reverse_iterator it=clobjs.rbegin(); it!=clobjs.rend();++it) {
+      WebCLObject *obj=*it;
+      if(obj->getType() > CLObjType::Context) {
+#ifdef LOGGING
+        printf("Disposing %s %p, count %d\n",obj->getCLObjName(),obj,obj->getCount());
+#endif
+        obj->Destructor();
+      }
+    }
+
+    clobjs.clear();
   }
 
-  clobjs.clear();
+  while(!v8::V8::IdleNotification()); // force GC
 }
 
 NAN_METHOD(getPlatforms) {

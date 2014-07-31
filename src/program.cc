@@ -39,6 +39,14 @@ namespace webcl {
 
 Persistent<FunctionTemplate> Program::constructor_template;
 
+void ProgramCB(Persistent<Value> value, void *param) {
+#ifdef LOGGING
+  String::AsciiValue str(value->ToObject()->GetConstructorName());
+  printf("%s weak ref cb\n", *str);
+#endif
+  value.Dispose();
+}
+
 void Program::Init(Handle<Object> target)
 {
   NanScope();
@@ -58,6 +66,7 @@ void Program::Init(Handle<Object> target)
   NODE_SET_PROTOTYPE_METHOD(ctor, "_release", release);
 
   target->Set(NanSymbol("WebCLProgram"), ctor->GetFunction());
+  constructor_template.MakeWeak(NULL, ProgramCB);
 }
 
 Program::Program(Handle<Object> wrapper) : program(0)
@@ -65,12 +74,26 @@ Program::Program(Handle<Object> wrapper) : program(0)
   _type=CLObjType::Program;
 }
 
+Program::~Program() {
+#ifdef LOGGING
+  printf("In ~Program\n");
+#endif
+  // Destructor();
+}
+
 void Program::Destructor() {
-  #ifdef LOGGING
-  cout<<"  Destroying CL program"<<endl;
-  #endif
-  if(program) ::clReleaseProgram(program);
-  program=0;
+  if(program) {
+#ifdef LOGGING
+    cl_uint count;
+    ::clGetProgramInfo(program,CL_PROGRAM_REFERENCE_COUNT,sizeof(cl_uint),&count,NULL);
+    cout<<"  Destroying Program, CLrefCount is: "<<count<<endl;
+#endif
+    ::clReleaseProgram(program);
+    if(getCount()==1) {
+      unregisterCLObj(this);
+      program=0;
+    }
+  }
 }
 
 NAN_METHOD(Program::release)
@@ -78,7 +101,7 @@ NAN_METHOD(Program::release)
   NanScope();
   Program *prog = ObjectWrap::Unwrap<Program>(args.This());
   
-  DESTROY_WEBCL_OBJECT(prog);
+  prog->Destructor();
   
   NanReturnUndefined();
 }
@@ -114,7 +137,7 @@ NAN_METHOD(Program::getInfo)
       return NanThrowError("UNKNOWN ERROR");
     }
     if(value) {
-      WebCLObject *obj=findCLObj((void*)value);
+      WebCLObject *obj=findCLObj((void*)value, CLObjType::Context);
       if(obj) {
         //::clRetainContext(value);
         NanReturnValue(NanObjectWrapHandle(obj));
@@ -139,7 +162,7 @@ NAN_METHOD(Program::getInfo)
     Local<Array> deviceArray = Array::New(num_devices);
     for (size_t i=0; i<num_devices; i++) {
       cl_device_id d = devices[i];
-      WebCLObject *obj=findCLObj((void*)d);
+      WebCLObject *obj=findCLObj((void*)d, CLObjType::Device);
       if(obj) {
         //::clRetainDevice(d);
         deviceArray->Set(i, NanObjectWrapHandle(obj));
@@ -328,6 +351,10 @@ NAN_METHOD(Program::build)
 {
   NanScope();
   Program *prog = ObjectWrap::Unwrap<Program>(args.This());
+  if(!prog->getProgram()) {
+    cl_int ret=CL_INVALID_PROGRAM;
+    REQ_ERROR_THROW(INVALID_PROGRAM);
+  }
 
   cl_device_id *devices=NULL;
   int num=0;
@@ -417,7 +444,7 @@ NAN_METHOD(Program::createKernel)
     return NanThrowError("UNKNOWN ERROR");
   }
 
-  NanReturnValue(NanObjectWrapHandle(Kernel::New(kw)));
+  NanReturnValue(NanObjectWrapHandle(Kernel::New(kw, prog)));
 }
 
 NAN_METHOD(Program::createKernelsInProgram)
@@ -451,7 +478,7 @@ NAN_METHOD(Program::createKernelsInProgram)
   Local<Array> jsKernels=Array::New(num_kernels);
 
   for(cl_uint i=0;i<num_kernels;i++) {
-    jsKernels->Set(i, NanObjectWrapHandle( Kernel::New( kernels[i] ) ) );
+    jsKernels->Set(i, NanObjectWrapHandle( Kernel::New( kernels[i], prog ) ) );
   }
 
   delete[] kernels;
@@ -464,32 +491,14 @@ NAN_METHOD(Program::New)
     return NanThrowTypeError("Constructor cannot be called as a function.");
 
   NanScope();
-  /*Context *context = ObjectWrap::Unwrap<Context>(args[0]->ToObject());
-
-  Local<String> str = args[1]->ToString();
-  String::AsciiValue astr(str);
-  cl::Program::Sources sources;
-  std::pair<const char*, ::size_t> source(*astr,astr.length());
-  sources.push_back(source);
-
-  cl_int ret = CL_SUCCESS;
-  cl::Program *pw = new cl::Program(*context->getContext(),sources,&ret);
-  if (ret != CL_SUCCESS) {
-    REQ_ERROR_THROW(INVALID_CONTEXT);
-    REQ_ERROR_THROW(INVALID_VALUE);
-    REQ_ERROR_THROW(OUT_OF_RESOURCES);
-    REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
-    return NanThrowError("UNKNOWN ERROR");
-  }*/
 
   Program *p = new Program(args.This());
-  //p->program=pw;
   p->Wrap(args.This());
-  registerCLObj(p);
+  registerCLObj(p->program, p);
   NanReturnValue(args.This());
 }
 
-Program *Program::New(cl_program pw)
+Program *Program::New(cl_program pw, WebCLObject *parent)
 {
   NanScope();
 
@@ -499,6 +508,7 @@ Program *Program::New(cl_program pw)
 
   Program *progobj = ObjectWrap::Unwrap<Program>(obj);
   progobj->program = pw;
+  progobj->setParent(parent);
 
   return progobj;
 }

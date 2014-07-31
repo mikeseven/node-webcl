@@ -31,6 +31,7 @@
 #include <node.h>
 #include "nan.h"
 #include <string>
+#include <list>
 #ifdef LOGGING
 #include <iostream>
 #endif
@@ -107,8 +108,8 @@ namespace {
 #define REQ_ERROR_THROW(error) if (ret == CL_##error) return ThrowException(NanObjectWrapHandle(WebCLException::New(#error, ErrorDesc(CL_##error), CL_##error)));
 
 #define DESTROY_WEBCL_OBJECT(obj)	\
-  obj->Destructor();			\
-  unregisterCLObj(obj);
+  obj->Destructor();			
+
   
 } // namespace
 
@@ -137,7 +138,7 @@ struct Baton {
 };
 
 class WebCLObject;
-void registerCLObj(WebCLObject* obj);
+void registerCLObj(void *clid, WebCLObject* obj);
 void unregisterCLObj(WebCLObject* obj);
 void AtExit(void* arg);
 
@@ -155,40 +156,86 @@ enum CLObjType {
   MemoryObject,
   Exception,
 };
+static const char* CLObjName[] = {
+  "UNKNOWN",
+  "Platform",
+  "Device",
+  "Context",
+  "CommandQueue",
+  "Kernel",
+  "Program",
+  "Sampler",
+  "Event",
+  "MemoryObject",
+  "Exception",
+};
 }
 
-WebCLObject* findCLObj(void* type);
+WebCLObject* findCLObj(void* clid, CLObjType::CLObjType type);
 
 class WebCLObject : public node::ObjectWrap {
-protected:
-  WebCLObject() : _type(CLObjType::None) {}
-  // virtual ~WebCLObject() {
-  //   // printf("Destructor WebCLObject\n");
-  //   // Destructor();
-  //   // unregisterCLObj(this);
-  // }
+public:
+  CLObjType::CLObjType getType() const { return _type; }
+  const char* getCLObjName() const { return CLObjType::CLObjName[this->_type]; }
 
-#define isA(value, type) ((int)value & (int)type)==(int)type
+  int addRef() {
+    ++_ref;
+    if(_parent)
+      _parent->addRef();
+
+    return _ref;
+  }
+
+  int unRef() {
+    --_ref;
+    if(_parent)
+      _parent->unRef();
+    return _ref;
+  }
+
+  int getCount() const { return _ref; }
+
+protected:
+  WebCLObject() : _type(CLObjType::None),_parent(NULL),_ref(0),_shared(false) {
+    addRef();
+  }
+
+  virtual ~WebCLObject() {
+    // printf("%s is being destroyed\n",CLObjType::CLObjName[_type]);
+    unregisterCLObj(this);
+  }
+
 public:
   virtual void Destructor() { 
 #ifdef LOGGING
-    printf("In WebCLObject::Destructor\n"); 
+    printf("In WebCLObject::Destructor for %s\n",getCLObjName()); 
 #endif
   }
-  CLObjType::CLObjType getType() { return _type; }
-  bool isPlatform() const { return isA(_type, CLObjType::Platform); }
-  bool isDevice() const { return isA(_type, CLObjType::Device); }
-  bool isKernel() const { return isA(_type, CLObjType::Kernel); }
-  bool isCommandQueue() const { return isA(_type, CLObjType::CommandQueue); }
-  bool isMemoryObject() const { return isA(_type, CLObjType::MemoryObject); }
-  bool isProgram() const { return isA(_type, CLObjType::Program); }
-  bool isSampler() const { return isA(_type, CLObjType::Sampler); }
-  bool isEvent() const { return isA(_type, CLObjType::Event); }
-  bool isContext() const { return isA(_type, CLObjType::Context); }
-  virtual bool isEqual(void *clObj) { return false; }
+
+  virtual bool operator==(void *clid) { return false; }
+
+  void setParent(WebCLObject *parent) {
+    _parent=parent;
+    if(_parent) {
+      _parent->_children.push_back(this);
+      _parent->addRef();
+    }
+  }
+  
+  WebCLObject *getParent() const { return _parent; }
+  
+  std::list<WebCLObject*>& getChildren() { return _children; }
 
 protected:
   CLObjType::CLObjType _type;
+  WebCLObject *_parent;
+  std::list<WebCLObject*> _children;
+  int _ref;
+  bool _shared;
+
+private:
+  WebCLObject( const WebCLObject& other ); // non construction-copyable
+  WebCLObject& operator=( const WebCLObject& ); // non copyable
 };
 
 } // namespace webcl

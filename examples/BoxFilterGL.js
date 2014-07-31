@@ -637,7 +637,7 @@ function BoxFilterGPU(image, cmOutputBuffer, r, scale) {
   var TexOrigin = [ 0, 0, 0 ]; // Offset of input texture origin relative to host image
   var TexRegion = [ image.width, image.height, 1 ]; // Size of texture region to operate on
   ComputeCommands.enqueueWriteImage(ComputeTexture, WebCL.TRUE, TexOrigin,
-      TexRegion, 0, 0, image);
+      TexRegion, 0, image);
 
   // Set global and local work sizes for row kernel
   var local = [ uiNumOutputPix, 1 ];

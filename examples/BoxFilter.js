@@ -190,7 +190,7 @@ function BoxFilterGPU(image, cmOutputBuffer, r, fScale)
   var szTexOrigin = [0, 0, 0];                // Offset of input texture origin relative to host image
   var szTexRegion = [image.width, image.height, 1];   // Size of texture region to operate on
   log('enqueue image: origin='+szTexOrigin+", region="+szTexRegion);
-  queue.enqueueWriteImage(cmDevBufIn, WebCL.TRUE, szTexOrigin, szTexRegion, 0, 0, image.buffer);
+  queue.enqueueWriteImage(cmDevBufIn, WebCL.TRUE, szTexOrigin, szTexRegion, 0, image.buffer);
 
   // Set global and local work sizes for row kernel
   szLocalWorkSize[0] = uiNumOutputPix;

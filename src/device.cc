@@ -100,7 +100,7 @@ NAN_METHOD(Device::getInfo)
       return NanThrowError("UNKNOWN ERROR");
     }
     if(param_value) {
-      WebCLObject *obj=findCLObj((void*)param_value);
+      WebCLObject *obj=findCLObj((void*)param_value, CLObjType::Platform);
       if(obj) {
         NanReturnValue(NanObjectWrapHandle(obj));
       }
@@ -414,7 +414,7 @@ NAN_METHOD(Device::New)
   NanScope();
   Device *cl = new Device(args.This());
   cl->Wrap(args.This());
-  registerCLObj(cl);
+  registerCLObj(cl->device_id, cl);
   NanReturnValue(args.This());
 }
 

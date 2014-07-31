@@ -101,7 +101,7 @@ NAN_METHOD(Platform::getDevices)
     ::clGetDeviceInfo(ids[i],CL_DEVICE_NAME,sizeof(name),name,NULL);
     cout<<"Found device: "<<ids[i]<<" "<<name<<endl;
     #endif
-    WebCLObject *obj=findCLObj((void*)ids[i]);
+    WebCLObject *obj=findCLObj((void*)ids[i], CLObjType::Device);
     if(obj)
       deviceArray->Set(i, NanObjectWrapHandle(obj));
     else
@@ -195,7 +195,7 @@ NAN_METHOD(Platform::New)
   NanScope();
   Platform *cl = new Platform(args.This());
   cl->Wrap(args.This());
-  registerCLObj(cl);
+  registerCLObj(cl->platform_id, cl);
   NanReturnValue(args.This());
 }
 

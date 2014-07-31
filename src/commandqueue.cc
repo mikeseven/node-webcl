@@ -54,6 +54,14 @@ namespace webcl {
 
 Persistent<FunctionTemplate> CommandQueue::constructor_template;
 
+void CommandQueueCB(Persistent<Value> value, void *param) {
+#ifdef LOGGING
+  String::AsciiValue str(value->ToObject()->GetConstructorName());
+  printf("%s weak ref cb\n", *str);
+#endif
+  value.Dispose();
+}
+
 void CommandQueue::Init(Handle<Object> target)
 {
   NanScope();
@@ -92,6 +100,7 @@ void CommandQueue::Init(Handle<Object> target)
   NODE_SET_PROTOTYPE_METHOD(ctor, "_release", release);
 
   target->Set(NanSymbol("WebCLCommandQueue"), ctor->GetFunction());
+  constructor_template.MakeWeak(NULL, CommandQueueCB);
 }
 
 CommandQueue::CommandQueue(Handle<Object> wrapper) : command_queue(0)
@@ -99,19 +108,26 @@ CommandQueue::CommandQueue(Handle<Object> wrapper) : command_queue(0)
   _type=CLObjType::CommandQueue;
 }
 
-void CommandQueue::Destructor() {
+CommandQueue::~CommandQueue() {
 #ifdef LOGGING
-  cout<<"  Destroying CL command queue"<<endl;
+  printf("In ~CommandQueue\n");
 #endif
+  // Destructor();
+}
+
+void CommandQueue::Destructor() {
   if(command_queue) {
 #ifdef LOGGING
     cl_uint count;
     ::clGetCommandQueueInfo(command_queue,CL_QUEUE_REFERENCE_COUNT,sizeof(cl_uint),&count,NULL);
-    cout<<"CommandQueue ref count is: "<<count<<endl;
+    cout<<"  Destroying CommandQueue, CLrefCount is: "<<count<<endl;
 #endif
     ::clReleaseCommandQueue(command_queue);
+    if(getCount()==1) {
+      unregisterCLObj(this);
+      command_queue=0;
     }
-  command_queue=0;
+  }
 }
 
 NAN_METHOD(CommandQueue::release)
@@ -129,8 +145,7 @@ NAN_METHOD(CommandQueue::release)
     return NanThrowError("UNKNOWN ERROR");
   }
   
-  DESTROY_WEBCL_OBJECT(cq);
-  
+  cq->Destructor();
   NanReturnUndefined();
 }
 
@@ -152,11 +167,9 @@ NAN_METHOD(CommandQueue::getInfo)
       return NanThrowError("UNKNOWN ERROR");
     }
     if(ctx) {
-      WebCLObject *obj=findCLObj((void*)ctx);
-      if(obj) {
-        clRetainContext(ctx);
+      WebCLObject *obj=findCLObj((void*)ctx, CLObjType::Context);
+      if(!obj) 
         NanReturnValue(NanObjectWrapHandle(obj));
-      }
     }
     NanReturnUndefined();
   }
@@ -172,12 +185,12 @@ NAN_METHOD(CommandQueue::getInfo)
     }
 
     if(dev) {
-      WebCLObject *obj=findCLObj((void*)dev);
+      WebCLObject *obj=findCLObj((void*)dev, CLObjType::Device);
 
-      if(obj) {
-        clRetainDevice(dev);
-        NanReturnValue(NanObjectWrapHandle(obj));
-      }
+      if(!obj)
+        obj = Device::New(dev);
+
+      NanReturnValue(NanObjectWrapHandle(obj));
     }
     NanReturnUndefined();
   }
@@ -1482,6 +1495,10 @@ NAN_METHOD(CommandQueue::finish)
 {
   NanScope();
   CommandQueue *cq = ObjectWrap::Unwrap<CommandQueue>(args.This());
+  if(!cq->command_queue) {
+    cl_int ret=CL_INVALID_COMMAND_QUEUE;
+    REQ_ERROR_THROW(INVALID_COMMAND_QUEUE);
+  }
 
   if(args.Length()>0 && args[0]->IsFunction()) {
       Baton *baton=new Baton();
@@ -1634,11 +1651,11 @@ NAN_METHOD(CommandQueue::New)
   NanScope();
   CommandQueue *cq = new CommandQueue(args.This());
   cq->Wrap(args.This());
-  registerCLObj(cq);
+  registerCLObj(cq->command_queue, cq);
   NanReturnValue(args.This());
 }
 
-CommandQueue *CommandQueue::New(cl_command_queue cw)
+CommandQueue *CommandQueue::New(cl_command_queue cw, WebCLObject *parent)
 {
 
   NanScope();
@@ -1649,6 +1666,7 @@ CommandQueue *CommandQueue::New(cl_command_queue cw)
 
   CommandQueue *commandqueue = ObjectWrap::Unwrap<CommandQueue>(obj);
   commandqueue->command_queue = cw;
+  commandqueue->setParent(parent);
 
   return commandqueue;
 }

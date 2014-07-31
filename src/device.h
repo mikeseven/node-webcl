@@ -48,7 +48,7 @@ public:
   bool hasFP64Enabled() const { return (enableExtensions & FP64); }
 
   cl_device_id getDevice() const { return device_id; };
-  virtual bool isEqual(void *clObj) { return ((cl_device_id)clObj)==device_id; }
+  virtual bool operator==(void *clObj) { return ((cl_device_id)clObj)==device_id; }
 
 private:
   Device(v8::Handle<v8::Object> wrapper);

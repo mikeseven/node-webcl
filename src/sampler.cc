@@ -35,6 +35,14 @@ namespace webcl {
 
 Persistent<FunctionTemplate> Sampler::constructor_template;
 
+void SamplerCB(Persistent<Value> value, void *param) {
+#ifdef LOGGING
+  String::AsciiValue str(value->ToObject()->GetConstructorName());
+  printf("%s weak ref cb\n", *str);
+#endif
+  value.Dispose();
+}
+
 void Sampler::Init(Handle<Object> target)
 {
   NanScope();
@@ -50,6 +58,7 @@ void Sampler::Init(Handle<Object> target)
   NODE_SET_PROTOTYPE_METHOD(ctor, "_release", release);
 
   target->Set(NanSymbol("WebCLSampler"), ctor->GetFunction());
+  constructor_template.MakeWeak(NULL, SamplerCB);
 }
 
 Sampler::Sampler(Handle<Object> wrapper) : sampler(0)
@@ -57,12 +66,26 @@ Sampler::Sampler(Handle<Object> wrapper) : sampler(0)
   _type=CLObjType::Sampler;
 }
 
+Sampler::~Sampler() {
+#ifdef LOGGING
+  printf("In ~Sampler\n");
+#endif
+  // Destructor();
+}
+
 void Sampler::Destructor() {
-  #ifdef LOGGING
-  cout<<"  Destroying CL sampler"<<endl;
-  #endif
-  if(sampler) ::clReleaseSampler(sampler);
-  sampler=0;
+  if(sampler) {
+#ifdef LOGGING
+    cl_uint count;
+    ::clGetSamplerInfo(sampler,CL_SAMPLER_REFERENCE_COUNT,sizeof(cl_uint),&count,NULL);
+    cout<<"  Destroying Sampler, CLrefCount is: "<<count<<endl;
+#endif
+    ::clReleaseSampler(sampler);
+    if(getCount()==1) {
+      unregisterCLObj(this);
+      sampler=0;
+    }
+  }
 }
 
 NAN_METHOD(Sampler::release)
@@ -70,7 +93,7 @@ NAN_METHOD(Sampler::release)
   NanScope();
   Sampler *sampler = ObjectWrap::Unwrap<Sampler>(args.This());
   
-  DESTROY_WEBCL_OBJECT(sampler);
+  sampler->Destructor();
   
   NanReturnUndefined();
 }
@@ -108,7 +131,7 @@ NAN_METHOD(Sampler::getInfo)
       return NanThrowError("UNKNOWN ERROR");
     }
     if(param_value) {
-      WebCLObject *obj=findCLObj((void*)param_value);
+      WebCLObject *obj=findCLObj((void*)param_value, CLObjType::Context);
       if(obj) {
         //::clRetainContext(param_value);
         NanReturnValue(NanObjectWrapHandle(obj));
@@ -132,11 +155,11 @@ NAN_METHOD(Sampler::New)
   NanScope();
   Sampler *s = new Sampler(args.This());
   s->Wrap(args.This());
-  registerCLObj(s);
+  registerCLObj(s->sampler, s);
   NanReturnValue(args.This());
 }
 
-Sampler *Sampler::New(cl_sampler sw)
+Sampler *Sampler::New(cl_sampler sw, WebCLObject *parent)
 {
 
   NanScope();
@@ -147,6 +170,7 @@ Sampler *Sampler::New(cl_sampler sw)
 
   Sampler *sampler = ObjectWrap::Unwrap<Sampler>(obj);
   sampler->sampler = sw;
+  sampler->setParent(parent);
 
   return sampler;
 }

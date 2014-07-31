@@ -171,9 +171,7 @@ function main() {
     ' '+device.getInfo(WebCL.DEVICE_NAME).trim());
 
   // create GPU context for this platform
-  context=WebCL.createContext(device ,'Error occured in context', function(err,data){
-    log(data+" : "+err);
-  });
+  context=WebCL.createContext(device);
 
   /* Build the program and create a kernel */
   var source = [
@@ -193,7 +191,7 @@ function main() {
 
   /* Build program */
   try {
-    program.build(device, null, 'compil done', program_built);
+    program.build(device, null, program_built);
   } catch(ex) {
     /* Find size of log and print to std output */
     var info=program.getBuildInfo(device, WebCL.PROGRAM_BUILD_LOG);
@@ -204,13 +202,13 @@ function main() {
   log("main app thread END");
 
   // sleeping the main thread to let events propagate
-  function sleep() {
-    if(!done) {
-      log('sleeping 0.5s');
-      setTimeout(sleep, 500);
-    }
-  }
-  sleep();
+  // function sleep() {
+  //   if(!done) {
+  //     log('sleeping 0.5s');
+  //     setTimeout(sleep, 500);
+  //   }
+  // }
+  // sleep();
 }
 
 main();

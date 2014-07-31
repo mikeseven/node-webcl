@@ -72,7 +72,7 @@ function VectorAdd() {
   catch(err) {
     console.log(program.getBuildInfo(device,WebCL.PROGRAM_BUILD_LOG));
   }
-  
+
   // Set kernel args
   kernel.setArg(0, aBuffer);
   kernel.setArg(1, bBuffer);

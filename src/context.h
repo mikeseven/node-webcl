@@ -63,10 +63,11 @@ public:
   static NAN_METHOD(getGLContext);
 
   cl_context getContext() const { return context; };
-  virtual bool isEqual(void *clObj) { return ((cl_context)clObj)==context; }
+  virtual bool operator==(void *clObj) { return ((cl_context)clObj)==context; }
 
 private:
   Context(v8::Handle<v8::Object> wrapper);
+  ~Context();
 
   static v8::Persistent<v8::FunctionTemplate> constructor_template;
 

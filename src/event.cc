@@ -35,6 +35,14 @@ namespace webcl {
 
 Persistent<FunctionTemplate> Event::constructor_template;
 
+void EventCB(Persistent<Value> value, void *param) {
+#ifdef LOGGING
+  String::AsciiValue str(value->ToObject()->GetConstructorName());
+  printf("%s weak ref cb\n", *str);
+#endif
+  value.Dispose();
+}
+
 void Event::Init(Handle<Object> target)
 {
   NanScope();
@@ -55,6 +63,7 @@ void Event::Init(Handle<Object> target)
   proto->SetAccessor(JS_STR("status"), GetStatus, NULL);
   
   target->Set(JS_STR("WebCLEvent"), ctor->GetFunction());
+  constructor_template.MakeWeak(NULL, EventCB);
 }
 
 Event::Event(Handle<Object> wrapper) : /*callback(NULL),*/ event(0), status(0)
@@ -62,15 +71,27 @@ Event::Event(Handle<Object> wrapper) : /*callback(NULL),*/ event(0), status(0)
   _type=CLObjType::Event;
 }
 
+Event::~Event() {
+#ifdef LOGGING
+  printf("In ~Event\n");
+#endif
+  // Destructor();
+}
+
 void Event::Destructor()
 {
-#ifdef LOGGING
-    printf("  Destroying CL event %p\n",this);
-#endif
   if(event) {
+#ifdef LOGGING
+    cl_uint count;
+    ::clGetEventInfo(event,CL_EVENT_REFERENCE_COUNT,sizeof(cl_uint),&count,NULL);
+    cout<<"  Destroying Event, CLrefCount is: "<<count<<endl;
+#endif
     ::clReleaseEvent(event);
+    if(getCount()==1) {
+      unregisterCLObj(this);
+      event=0;
+    }
   }
-  event=0;
 }
 
 NAN_METHOD(Event::release)
@@ -81,7 +102,7 @@ NAN_METHOD(Event::release)
   printf("  In Event::release %p\n",e);
   #endif
   
-  DESTROY_WEBCL_OBJECT(e);
+  e->Destructor();
   
   NanReturnUndefined();
 }
@@ -117,7 +138,7 @@ NAN_METHOD(Event::getInfo)
       return NanThrowError("Unknown error");
     }
     if(param_value) {
-      WebCLObject *obj=findCLObj((void*)param_value);
+      WebCLObject *obj=findCLObj((void*)param_value, CLObjType::CommandQueue);
       if(obj) {
         //::clRetainCommandQueue(param_value);
         NanReturnValue(NanObjectWrapHandle(obj));
@@ -283,11 +304,11 @@ NAN_METHOD(Event::New)
   NanScope();
   Event *e = new Event(args.This());
   e->Wrap(args.This());
-  registerCLObj(e);
+  registerCLObj(e->event, e);
   NanReturnValue(args.This());
 }
 
-Event *Event::New(cl_event ew)
+Event *Event::New(cl_event ew, WebCLObject *parent)
 {
   NanScope();
 
@@ -297,6 +318,7 @@ Event *Event::New(cl_event ew)
 
   Event *e = ObjectWrap::Unwrap<Event>(obj);
   e->event = ew;
+  e->setParent(parent);
 
   return e;
 }
@@ -306,7 +328,15 @@ Event *Event::New(cl_event ew)
  * UserEvent
  *
  ********************************************/
- Persistent<FunctionTemplate> UserEvent::constructor_template;
+Persistent<FunctionTemplate> UserEvent::constructor_template;
+
+void UserEventCB(Persistent<Value> value, void *param) {
+#ifdef LOGGING
+  String::AsciiValue str(value->ToObject()->GetConstructorName());
+  printf("%s weak ref cb\n", *str);
+#endif
+  value.Dispose();
+}
 
 void UserEvent::Init(Handle<Object> target)
 {
@@ -329,10 +359,16 @@ void UserEvent::Init(Handle<Object> target)
   proto->SetAccessor(JS_STR("status"), GetStatus, NULL);
 
   target->Set(JS_STR("WebCLUserEvent"), ctor->GetFunction());
+  constructor_template.MakeWeak(NULL, UserEventCB);
 }
 
 UserEvent::UserEvent(Handle<Object> wrapper) : Event(wrapper)
 {
+}
+
+UserEvent::~UserEvent() {
+  printf("In ~UserEvent\n");
+  Destructor();
 }
 
 NAN_METHOD(UserEvent::release)
@@ -386,11 +422,11 @@ NAN_METHOD(UserEvent::New)
   NanScope();
   UserEvent *e = new UserEvent(args.This());
   e->Wrap(args.This());
-  registerCLObj(e);
+  registerCLObj(e->event, e);
   NanReturnValue(args.This());
 }
 
-UserEvent *UserEvent::New(cl_event ew)
+UserEvent *UserEvent::New(cl_event ew, WebCLObject *parent)
 {
   NanScope();
 
@@ -400,6 +436,7 @@ UserEvent *UserEvent::New(cl_event ew)
 
   UserEvent *e = ObjectWrap::Unwrap<UserEvent>(obj);
   e->event = ew;
+  e->setParent(parent);
 
   return e;
 }
