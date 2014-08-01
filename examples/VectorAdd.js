@@ -26,17 +26,17 @@
 
 var nodejs = (typeof window === 'undefined');
 if(nodejs) {
-  WebCL = require('../webcl');
+  webcl = require('../webcl');
   clu = require('../lib/clUtils');
   log=console.log;
 }
 else
-  WebCL = window.webcl;
+  webcl = window.webcl;
 
-//First check if the WebCL extension is installed at all 
-if (WebCL == undefined) {
-  alert("Unfortunately your system does not support WebCL. " +
-  "Make sure that you have the WebCL extension installed.");
+//First check if the webcl extension is installed at all 
+if (webcl == undefined) {
+  alert("Unfortunately your system does not support webcl. " +
+  "Make sure that you have the webcl extension installed.");
   process.exit(-1);
 }
 
@@ -53,16 +53,16 @@ function VectorAdd() {
   }
 
   //Pick platform
-  var platformList=WebCL.getPlatforms();
+  var platformList=webcl.getPlatforms();
   platform=platformList[0];
-  log('using platform: '+platform.getInfo(WebCL.PLATFORM_NAME));
+  log('using platform: '+platform.getInfo(webcl.PLATFORM_NAME));
   
   //Query the set of devices on this platform
-  devices = platform.getDevices(WebCL.DEVICE_TYPE_DEFAULT);
-  log('using device: '+devices[0].getInfo(WebCL.DEVICE_NAME));
+  devices = platform.getDevices(webcl.DEVICE_TYPE_DEFAULT);
+  log('using device: '+devices[0].getInfo(webcl.DEVICE_NAME));
 
   // create GPU context for this platform
-  context=WebCL.createContext(WebCL.DEVICE_TYPE_DEFAULT);
+  context=webcl.createContext(webcl.DEVICE_TYPE_DEFAULT);
 
   kernelSourceCode = [
 "__kernel void vadd(__global int *a, __global int *b, __global int *c, uint iNumElements) ",
@@ -82,18 +82,18 @@ function VectorAdd() {
   size=BUFFER_SIZE*Uint32Array.BYTES_PER_ELEMENT; // size in bytes
   
   // Create buffer for A and B and copy host contents
-  aBuffer = context.createBuffer(WebCL.MEM_READ_ONLY, size);
-  bBuffer = context.createBuffer(WebCL.MEM_READ_ONLY, size);
+  aBuffer = context.createBuffer(webcl.MEM_READ_ONLY, size);
+  bBuffer = context.createBuffer(webcl.MEM_READ_ONLY, size);
 
   // Create buffer for C to read results
-  cBuffer = context.createBuffer(WebCL.MEM_WRITE_ONLY, size);
+  cBuffer = context.createBuffer(webcl.MEM_WRITE_ONLY, size);
 
   // Create kernel object
   try {
     kernel= program.createKernel("vadd");
   }
   catch(err) {
-    console.log(program.getBuildInfo(devices[0],WebCL.PROGRAM_BUILD_LOG));
+    console.log(program.getBuildInfo(devices[0],webcl.PROGRAM_BUILD_LOG));
   }
   
   // Set kernel args
@@ -141,9 +141,9 @@ function VectorAdd() {
   // context.release();
 
   // test release all CL objects
-  // WebCL.releaseAll();
+  // webcl.releaseAll();
 
-  // if no manual cleanup specified, WebCL.releaseAll() is called at exit of program
+  // if no manual cleanup specified, webcl.releaseAll() is called at exit of program
 }
 
 function printResults(A,B,C) {

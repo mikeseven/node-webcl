@@ -28,7 +28,8 @@
 
 var cl = require('./build/Release/webcl.node');
 
-module.exports = cl;
+module.exports=cl;
+global.webcl=cl;
 
 // cl.size = {};
 // cl.size.CHAR = cl.size_CHAR;

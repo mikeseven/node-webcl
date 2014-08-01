@@ -5,7 +5,7 @@
 
 var nodejs = (typeof window === 'undefined');
 if(nodejs) {
-  WebCL    = require('../webcl');
+  webcl    = require('../webcl');
   clu   = require('../lib/clUtils');
   util  = require("util"),
   fs    = require("fs");
@@ -13,12 +13,12 @@ if(nodejs) {
   log   = console.log;
 }
 else
-  WebCL = window.webcl;
+  webcl = window.webcl;
 
 //First check if the webcl extension is installed at all 
-if (WebCL == undefined) {
-  alert("Unfortunately your system does not support WebCL. " +
-  "Make sure that you have the WebCL extension installed.");
+if (webcl == undefined) {
+  alert("Unfortunately your system does not support webcl. " +
+  "Make sure that you have the webcl extension installed.");
   process.exit(-1);
 }
 
@@ -41,17 +41,17 @@ image.unload();
 function ImageFilter(image) {
 
   // create GPU context for this platform
-  var context=WebCL.createContext(WebCL.DEVICE_TYPE_GPU);
+  var context=webcl.createContext(webcl.DEVICE_TYPE_GPU);
 
   // find the device for this context
-  var devices = context.getInfo(WebCL.CONTEXT_DEVICES);
+  var devices = context.getInfo(webcl.CONTEXT_DEVICES);
   device=devices[0];
 
   // Report the device vendor and device name
   // 
-  var vendor_name = device.getInfo(WebCL.DEVICE_VENDOR);
-  var device_name = device.getInfo(WebCL.DEVICE_NAME);
-  var has_image_support = device.getInfo(WebCL.DEVICE_IMAGE_SUPPORT)
+  var vendor_name = device.getInfo(webcl.DEVICE_VENDOR);
+  var device_name = device.getInfo(webcl.DEVICE_NAME);
+  var has_image_support = device.getInfo(webcl.DEVICE_IMAGE_SUPPORT)
   log("Connecting to: "+vendor_name+" "+device_name+", has image support = "+has_image_support);
 
   kernelSourceCode = fs.readFileSync(__dirname+'/gaussian_filter.cl','ascii');
@@ -64,21 +64,21 @@ function ImageFilter(image) {
   var /* WebCLSampler */  sampler;
 
   var image_desc={
-    channelOrder : WebCL.RGBA,
-    channelType : WebCL.UNORM_INT8,
+    channelOrder : webcl.RGBA,
+    channelType : webcl.UNORM_INT8,
     width : image.width,
     height : image.height,
     rowPitch : image.pitch
   };
   try {
     var image_desc={
-      channelOrder : WebCL.RGBA,
-      channelType : WebCL.UNORM_INT8,
+      channelOrder : webcl.RGBA,
+      channelType : webcl.UNORM_INT8,
       width : image.width,
       height : image.height,
       rowPitch : image.pitch
     };
-    clImage = context.createImage(WebCL.MEM_READ_ONLY | WebCL.MEM_COPY_HOST_PTR, image_desc, image.buffer);
+    clImage = context.createImage(webcl.MEM_READ_ONLY | webcl.MEM_COPY_HOST_PTR, image_desc, image.buffer);
   }
   catch(err) {
     console.log('error creating input CL image. '+err);
@@ -86,13 +86,13 @@ function ImageFilter(image) {
   }
   try {
     var image_desc={
-        channelOrder : WebCL.RGBA,
-        channelType : WebCL.UNORM_INT8,
+        channelOrder : webcl.RGBA,
+        channelType : webcl.UNORM_INT8,
         width : image.width,
         height : image.height,
         rowPitch : image.pitch
       };
-    clOutImage = context.createImage(WebCL.MEM_WRITE_ONLY, image_desc, null);
+    clOutImage = context.createImage(webcl.MEM_WRITE_ONLY, image_desc, null);
   }
   catch(err) {
     console.log('error creating output CL image. '+err);
@@ -101,7 +101,7 @@ function ImageFilter(image) {
 
   // create sampler
   try {
-    sampler = context.createSampler(false, WebCL.ADDRESS_CLAMP_TO_EDGE,WebCL.FILTER_NEAREST);
+    sampler = context.createSampler(false, webcl.ADDRESS_CLAMP_TO_EDGE,webcl.FILTER_NEAREST);
   }
   catch(ex) {
     log("Cant' create sampler. "+ex);
@@ -113,7 +113,7 @@ function ImageFilter(image) {
     program.build(device);
   } catch (err) {
     log('Error building program: ' + err);
-    log(program.getBuildInfo(device, WebCL.PROGRAM_BUILD_LOG));
+    log(program.getBuildInfo(device, webcl.PROGRAM_BUILD_LOG));
     process.exit(-1);
   }
 
@@ -122,7 +122,7 @@ function ImageFilter(image) {
     kernel= program.createKernel("gaussian_filter");
   }
   catch(err) {
-    console.log(program.getBuildInfo(device,WebCL.PROGRAM_BUILD_LOG));
+    console.log(program.getBuildInfo(device,webcl.PROGRAM_BUILD_LOG));
   }
 
   // Set the arguments to our compute kernel

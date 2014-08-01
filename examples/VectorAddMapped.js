@@ -26,17 +26,17 @@
 
 var nodejs = (typeof window === 'undefined');
 if(nodejs) {
-  WebCL = require('../webcl');
+  webcl = require('../webcl');
   clu = require('../lib/clUtils');
   log=console.log;
 }
 else
-  WebCL = window.webcl;
+  webcl = window.webcl;
 
-//First check if the WebCL extension is installed at all 
-if (WebCL == undefined) {
-  alert("Unfortunately your system does not support WebCL. " +
-  "Make sure that you have the WebCL extension installed.");
+//First check if the webcl extension is installed at all 
+if (webcl == undefined) {
+  alert("Unfortunately your system does not support webcl. " +
+  "Make sure that you have the webcl extension installed.");
   process.exit(-1);
 }
 
@@ -57,17 +57,17 @@ function VectorAdd() {
   // create GPU context for this platform
   var context=null;
   try {
-    context=WebCL.createContext(WebCL.DEVICE_TYPE_GPU);
+    context=webcl.createContext(webcl.DEVICE_TYPE_GPU);
   }
   catch(ex) {
     throw new Exception("Can't create CL context");
   }
 
-  var devices=context.getInfo(WebCL.CONTEXT_DEVICES);
+  var devices=context.getInfo(webcl.CONTEXT_DEVICES);
   device=devices[0];
 
-  log('using device: '+device.getInfo(WebCL.DEVICE_VENDOR).trim()+
-    ' '+device.getInfo(WebCL.DEVICE_NAME));
+  log('using device: '+device.getInfo(webcl.DEVICE_VENDOR).trim()+
+    ' '+device.getInfo(webcl.DEVICE_NAME));
 
   kernelSourceCode = [
 "__kernel void vadd(__global int *a, __global int *b, __global int *c, uint iNumElements) ",
@@ -91,20 +91,20 @@ function VectorAdd() {
     kernel= program.createKernel("vadd");
   }
   catch(err) {
-    console.log(program.getBuildInfo(device,WebCL.PROGRAM_BUILD_LOG));
+    console.log(program.getBuildInfo(device,webcl.PROGRAM_BUILD_LOG));
   }
   
   //Create command queue
   queue=context.createCommandQueue(device, 0);
 
   //Create buffer for A and copy host contents
-  aBuffer = context.createBuffer(WebCL.MEM_READ_ONLY | WebCL.MEM_USE_HOST_PTR, size, A);
+  aBuffer = context.createBuffer(webcl.MEM_READ_ONLY | webcl.MEM_USE_HOST_PTR, size, A);
 
   //Create buffer for B and copy host contents
-  bBuffer = context.createBuffer(WebCL.MEM_READ_ONLY | WebCL.MEM_USE_HOST_PTR, size, B);
+  bBuffer = context.createBuffer(webcl.MEM_READ_ONLY | webcl.MEM_USE_HOST_PTR, size, B);
 
   //Create buffer for that uses the host ptr C
-  cBuffer = context.createBuffer(WebCL.MEM_WRITE_ONLY | WebCL.MEM_USE_HOST_PTR, size, C);
+  cBuffer = context.createBuffer(webcl.MEM_WRITE_ONLY | webcl.MEM_USE_HOST_PTR, size, C);
 
   //Set kernel args
   kernel.setArg(0, aBuffer);
@@ -132,8 +132,8 @@ function VectorAdd() {
   // the host backing space, remember we choose GPU device.
   var map=queue.enqueueMapBuffer(
       cBuffer,
-      WebCL.TRUE, // block 
-      WebCL.MAP_READ,
+      webcl.TRUE, // block 
+      webcl.MAP_READ,
       0,
       size);
 
@@ -171,7 +171,7 @@ function VectorAdd() {
   // bBuffer.release();
   // cBuffer.release();
   // context.release();
-  //WebCL.releaseAll();
+  //webcl.releaseAll();
 }
 
 function printResults(A,B,C) {

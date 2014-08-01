@@ -26,7 +26,7 @@
 
 var nodejs = (typeof window === 'undefined');
 if(nodejs) {
-  WebCL = require('../../webcl');
+  webcl = require('../../webcl');
   clu = require('../../lib/clUtils');
   util = require('util');
   fs = require('fs');
@@ -41,7 +41,7 @@ if(nodejs) {
   //Compute = require('./compute_droplet3d');
 }
 else
-  WebCL = window.webcl;
+  webcl = window.webcl;
 
 log = console.log;
 requestAnimationFrame = document.requestAnimationFrame;
@@ -97,7 +97,7 @@ function keydown(evt) {
     return;
   }
   
-  // init WebCL
+  // init webcl
   var compute=Compute();
   try {
     compute.init(gfx, COMPUTE_KERNEL_ID, COMPUTE_KERNEL_NAME);

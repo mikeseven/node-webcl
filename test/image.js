@@ -26,7 +26,7 @@
 
 var nodejs = (typeof window === 'undefined');
 if(nodejs) {
-  WebCL = require('../webcl');
+  webcl = require('../webcl');
   clu = require('../lib/clUtils');
   util = require('util');
   fs = require('fs');
@@ -37,7 +37,7 @@ if(nodejs) {
   alert = console.log;
 }
 else
-  WebCL = window.webcl;
+  webcl = window.webcl;
 
 requestAnimationFrame = document.requestAnimationFrame;
 
@@ -51,7 +51,7 @@ var /* cl_context */        ComputeContext;
 var /* cl_command_queue */  ComputeCommands;
 var /* cl_program */        ComputeProgram;
 var /* cl_device_id */      ComputeDevice;
-var /* cl_device_type */    ComputeDeviceType = WebCL.DEVICE_TYPE_GPU;
+var /* cl_device_type */    ComputeDeviceType = webcl.DEVICE_TYPE_GPU;
 var /* cl_image */          ComputePBO;
 var /* cl_kernel */         ckCompute;
 var max_workgroup_size, max_workitem_sizes;
@@ -83,7 +83,7 @@ function initialize() {
   document.addEventListener('keydown', keydown);
 
   var err = init_gl(canvas);
-  if (err != WebCL.SUCCESS)
+  if (err != webcl.SUCCESS)
     return err;
 
   err = init_cl();
@@ -94,7 +94,7 @@ function initialize() {
 
   Update=true;
   
-  return WebCL.SUCCESS;
+  return webcl.SUCCESS;
 }
 
 // /////////////////////////////////////////////////////////////////////
@@ -122,7 +122,7 @@ function configure_shared_data(width, height) {
 
   // Create OpenCL representation of OpenGL PBO
   try {
-    ComputePBO = ComputeContext.createFromGLTexture(WebCL.MEM_WRITE_ONLY, gl.TEXTURE_2D, 0, TextureId);
+    ComputePBO = ComputeContext.createFromGLTexture(webcl.MEM_WRITE_ONLY, gl.TEXTURE_2D, 0, TextureId);
   }
   catch(ex) {
     alert("Error: Failed to create CL PBO buffer. "+ex);
@@ -264,7 +264,7 @@ function init_gl(canvas) {
   init_buffers();
   init_shaders();
 
-  return WebCL.SUCCESS;
+  return webcl.SUCCESS;
 }
 
 // /////////////////////////////////////////////////////////////////////
@@ -275,25 +275,25 @@ function init_cl() {
   log('init CL');
 
   // Pick platform
-  var platformList = WebCL.getPlatforms();
+  var platformList = webcl.getPlatforms();
   var platform = platformList[0];
-  var devices = platform.getDevices(WebCL.DEVICE_TYPE_GPU);
+  var devices = platform.getDevices(webcl.DEVICE_TYPE_GPU);
   ComputeDevice=devices[0];
 
   // make sure we use a discrete GPU
   for(var i=0;i<devices.length;i++) {
-    var vendor=devices[i].getInfo(WebCL.DEVICE_VENDOR);
+    var vendor=devices[i].getInfo(webcl.DEVICE_VENDOR);
     // log('found vendor '+vendor+', is Intel? '+(vendor.indexOf('Intel')>=0))
     if(vendor.indexOf('Intel')==-1)
       ComputeDevice=devices[i];
   }
-  log('found '+devices.length+' devices, using device: '+ComputeDevice.getInfo(WebCL.DEVICE_NAME));
+  log('found '+devices.length+' devices, using device: '+ComputeDevice.getInfo(webcl.DEVICE_NAME));
 
   if(!ComputeDevice.enableExtension('KHR_gl_sharing'))
     throw new Error("Can NOT use GL sharing");
 
   // create the OpenCL context
-  ComputeContext = WebCL.createContext(gl, ComputeDevice);
+  ComputeContext = webcl.createContext(gl, ComputeDevice);
   if(!ComputeContext)
     throw new Error("Can NOT create context");
 
@@ -303,29 +303,29 @@ function init_cl() {
     throw new Error("Failed to create a command queue!");
 
   // Report the device vendor and device name
-  var vendor_name = ComputeDevice.getInfo(WebCL.DEVICE_VENDOR);
-  var device_name = ComputeDevice.getInfo(WebCL.DEVICE_NAME);
+  var vendor_name = ComputeDevice.getInfo(webcl.DEVICE_VENDOR);
+  var device_name = ComputeDevice.getInfo(webcl.DEVICE_NAME);
 
   log("Connecting to " + vendor_name + " " + device_name);
 
-  if (!ComputeDevice.getInfo(WebCL.DEVICE_IMAGE_SUPPORT)) {
+  if (!ComputeDevice.getInfo(webcl.DEVICE_IMAGE_SUPPORT)) {
     log("Application requires images: Images not supported on this device.");
-    return WebCL.IMAGE_FORMAT_NOT_SUPPORTED;
+    return webcl.IMAGE_FORMAT_NOT_SUPPORTED;
   }
 
   err = init_cl_buffers();
-  if (err != WebCL.SUCCESS) {
+  if (err != webcl.SUCCESS) {
     log("Failed to create compute result! Error " + err);
     return err;
   }
 
   err = init_cl_kernels();
-  if (err != WebCL.SUCCESS) {
+  if (err != webcl.SUCCESS) {
     log("Failed to setup compute kernel! Error " + err);
     return err;
   }
 
-  return WebCL.SUCCESS;
+  return webcl.SUCCESS;
 }
 
 function init_cl_kernels() {
@@ -357,7 +357,7 @@ function init_cl_kernels() {
   } catch (err) {
     log('Error building program: ' + err);
     alert("Error: Failed to build program executable!\n"
-        + ComputeProgram.getBuildInfo(ComputeDevice, WebCL.PROGRAM_BUILD_LOG));
+        + ComputeProgram.getBuildInfo(ComputeDevice, webcl.PROGRAM_BUILD_LOG));
     return -1;
   }
 
@@ -373,11 +373,11 @@ function init_cl_kernels() {
 
   // Get the maximum work group size for executing the kernel on the device
   //
-  max_workgroup_size = ckCompute.getWorkGroupInfo(ComputeDevice, WebCL.KERNEL_WORK_GROUP_SIZE);
-  max_workitem_sizes=ComputeDevice.getInfo(WebCL.DEVICE_MAX_WORK_ITEM_SIZES);
+  max_workgroup_size = ckCompute.getWorkGroupInfo(ComputeDevice, webcl.KERNEL_WORK_GROUP_SIZE);
+  max_workitem_sizes=ComputeDevice.getInfo(webcl.DEVICE_MAX_WORK_ITEM_SIZES);
   log('  max workgroup size: '+max_workgroup_size);
   log('  max workitem sizes: '+max_workitem_sizes);
-  return WebCL.SUCCESS;
+  return webcl.SUCCESS;
 }
 
 function resetKernelArgs(image_width, image_height) {
@@ -392,13 +392,13 @@ function resetKernelArgs(image_width, image_height) {
     return -10;
   }
 
-  return WebCL.SUCCESS;
+  return webcl.SUCCESS;
 }
 
 function init_cl_buffers() {
   log('  create CL buffers');
 
-  return WebCL.SUCCESS;
+  return webcl.SUCCESS;
 }
 
 function cleanup() {
@@ -474,7 +474,7 @@ function display(timestamp) {
   //var uiEndTime = new Date().getTime();
   //ReportStats(uiStartTime, uiEndTime);
   //DrawText(TextOffset[0], TextOffset[1], 1, (Animated == 0) ? "Press space to animate" : " ");
-  return WebCL.SUCCESS;
+  return webcl.SUCCESS;
 }
 
 function reshape(evt) {
@@ -524,12 +524,12 @@ function execute_kernel() {
   // Update the texture from the pbo
   gl.bindTexture(gl.TEXTURE_2D, TextureId);
 
-  return WebCL.SUCCESS;
+  return webcl.SUCCESS;
 }
 
 (function main() {
   // init window
-  if(initialize()==WebCL.SUCCESS) {
+  if(initialize()==webcl.SUCCESS) {
     function update() {
       display();
       requestAnimationFrame(update);

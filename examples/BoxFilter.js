@@ -26,7 +26,7 @@
 
 var nodejs = (typeof window === 'undefined');
 if(nodejs) {
-  WebCL = require('../webcl');
+  webcl = require('../webcl');
   clu = require('../lib/clUtils');
   util = require('util');
   fs = require('fs');
@@ -34,12 +34,12 @@ if(nodejs) {
   log = console.log;
 }
 else
-  WebCL = window.webcl;
+  webcl = window.webcl;
 
 //First check if the webcl extension is installed at all 
-if (WebCL == undefined) {
-  alert("Unfortunately your system does not support WebCL. " +
-  "Make sure that you have the WebCL extension installed.");
+if (webcl == undefined) {
+  alert("Unfortunately your system does not support webcl. " +
+  "Make sure that you have the webcl extension installed.");
   process.exit(-1);
 }
 
@@ -75,48 +75,48 @@ var szBuffBytes = image.height*image.pitch;
 log('Image '+file+': \n'+util.inspect(image));
 
 //Pick platform
-var platformList=WebCL.getPlatforms();
+var platformList=webcl.getPlatforms();
 var platform=platformList[0];
 
 //Query the set of GPU devices on this platform
-var devices = platform.getDevices(WebCL.DEVICE_TYPE_ALL);
+var devices = platform.getDevices(webcl.DEVICE_TYPE_ALL);
 log("  # of Devices Available = "+devices.length); 
 var uiTargetDevice = clu.clamp(uiTargetDevice, 0, (devices.length - 1));
 var device=devices[uiTargetDevice];
-log("  Using Device "+ uiTargetDevice+": "+device.getInfo(WebCL.DEVICE_NAME)); 
+log("  Using Device "+ uiTargetDevice+": "+device.getInfo(webcl.DEVICE_NAME)); 
 
-var hasImageSupport=device.getInfo(WebCL.DEVICE_IMAGE_SUPPORT);
-if(hasImageSupport != WebCL.TRUE) {
+var hasImageSupport=device.getInfo(webcl.DEVICE_IMAGE_SUPPORT);
+if(hasImageSupport != webcl.TRUE) {
   log("No image support");
   process.exit(-1);
 }
 
-var numComputeUnits=device.getInfo(WebCL.DEVICE_MAX_COMPUTE_UNITS);
+var numComputeUnits=device.getInfo(webcl.DEVICE_MAX_COMPUTE_UNITS);
 log('  # of Compute Units = '+numComputeUnits);
 
 log('  createContext...');
-context=WebCL.createContext(device);
+context=webcl.createContext(device);
 
 // Create a command-queue 
 queue=context.createCommandQueue(device, 0);
 
 // Allocate OpenCL object for the source data
 var InputFormat= {
-  channelOrder : WebCL.RGBA,
-  channelType : WebCL.UNSIGNED_INT8,
+  channelOrder : webcl.RGBA,
+  channelType : webcl.UNSIGNED_INT8,
   width : image.width, 
   height : image.height,
   rowPitch : image.pitch
 };
 
 //2D Image (Texture) on device
-cmDevBufIn = context.createImage(WebCL.MEM_READ_ONLY | WebCL.MEM_USE_HOST_PTR, InputFormat, image.buffer);
+cmDevBufIn = context.createImage(webcl.MEM_READ_ONLY | webcl.MEM_USE_HOST_PTR, InputFormat, image.buffer);
 
-RowSampler = context.createSampler(false, WebCL.ADDRESS_CLAMP, WebCL.FILTER_NEAREST);
+RowSampler = context.createSampler(false, webcl.ADDRESS_CLAMP, webcl.FILTER_NEAREST);
 
 // Allocate the OpenCL intermediate and result buffer memory objects on the device GMEM
-cmDevBufTemp = context.createBuffer(WebCL.MEM_READ_WRITE, szBuffBytes);
-cmDevBufOut = context.createBuffer(WebCL.MEM_WRITE_ONLY, szBuffBytes);
+cmDevBufTemp = context.createBuffer(webcl.MEM_READ_WRITE, szBuffBytes);
+cmDevBufOut = context.createBuffer(webcl.MEM_WRITE_ONLY, szBuffBytes);
 
 //Create the program 
 sourceCL = fs.readFileSync(__dirname+'/BoxFilter.cl','ascii');
@@ -142,7 +142,7 @@ queue.finish();
 
 // Copy results back to host memory, block until complete
 var uiOutput=new Uint8Array(szBuffBytes);
-queue.enqueueReadBuffer(cmDevBufOut, WebCL.TRUE, 0, szBuffBytes, uiOutput);
+queue.enqueueReadBuffer(cmDevBufOut, webcl.TRUE, 0, szBuffBytes, uiOutput);
 
 // PNG uses 32-bit images, JPG can only work on 24-bit images
 if(!Image.save('out_'+iRadius+'.png',uiOutput, image.width,image.height, image.pitch, image.bpp, 0xFF0000, 0x00FF00, 0xFF))
@@ -190,7 +190,7 @@ function BoxFilterGPU(image, cmOutputBuffer, r, fScale)
   var szTexOrigin = [0, 0, 0];                // Offset of input texture origin relative to host image
   var szTexRegion = [image.width, image.height, 1];   // Size of texture region to operate on
   log('enqueue image: origin='+szTexOrigin+", region="+szTexRegion);
-  queue.enqueueWriteImage(cmDevBufIn, WebCL.TRUE, szTexOrigin, szTexRegion, 0, image.buffer);
+  queue.enqueueWriteImage(cmDevBufIn, webcl.TRUE, szTexOrigin, szTexRegion, 0, image.buffer);
 
   // Set global and local work sizes for row kernel
   szLocalWorkSize[0] = uiNumOutputPix;

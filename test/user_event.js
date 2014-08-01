@@ -26,12 +26,12 @@
 
 var nodejs = (typeof window === 'undefined');
 if(nodejs) {
-  WebCL = require('../webcl');
+  webcl = require('../webcl');
   log = console.log;
   exit = process.exit;
 }
 else
-  WebCL = window.webcl;
+  webcl = window.webcl;
 
 function read_complete(event, data) {
   log('in read_complete, status: '+event.status);
@@ -58,31 +58,31 @@ function main() {
   log('creating context');
   
   // //Pick platform
-  // var platformList=WebCL.getPlatforms();
+  // var platformList=webcl.getPlatforms();
   // platform=platformList[0];
-  // log('using platform: '+platform.getInfo(WebCL.PLATFORM_NAME));
+  // log('using platform: '+platform.getInfo(webcl.PLATFORM_NAME));
  
   
   // //Query the set of devices on this platform
-  // var devices = platform.getDevices(WebCL.DEVICE_TYPE_GPU);
+  // var devices = platform.getDevices(webcl.DEVICE_TYPE_GPU);
   // device=devices[0];
-  // log('using device: '+device.getInfo(WebCL.DEVICE_NAME));
+  // log('using device: '+device.getInfo(webcl.DEVICE_NAME));
 
   // // create GPU context for this platform
-  // var context=WebCL.createContext({
+  // var context=webcl.createContext({
   //   devices: device, 
   //   platform: platform
   // });
 
   var context=null;
   try {
-    context=WebCL.createContext(WebCL.DEVICE_TYPE_ALL);
+    context=webcl.createContext(webcl.DEVICE_TYPE_ALL);
   }
   catch(ex) {
     throw new Exception("Can't create CL context");
   }
 
-  var devices=context.getInfo(WebCL.CONTEXT_DEVICES);
+  var devices=context.getInfo(webcl.CONTEXT_DEVICES);
   log("Found "+devices.length+" devices");
   var device=devices[0];
 
@@ -106,7 +106,7 @@ function main() {
     program.build(devices);
   } catch(ex) {
     /* Find size of log and print to std output */
-    var info=program.getBuildInfo(devices[0], WebCL.PROGRAM_BUILD_LOG);
+    var info=program.getBuildInfo(devices[0], webcl.PROGRAM_BUILD_LOG);
     log(info);
     exit(1);
   }
@@ -120,7 +120,7 @@ function main() {
 
   /* Create a write-only buffer to hold the output data */
   try {
-    data_buffer = context.createBuffer(WebCL.MEM_READ_WRITE | WebCL.MEM_COPY_HOST_PTR, 4*Float32Array.BYTES_PER_ELEMENT,data);
+    data_buffer = context.createBuffer(webcl.MEM_READ_WRITE | webcl.MEM_COPY_HOST_PTR, 4*Float32Array.BYTES_PER_ELEMENT,data);
   } catch(ex) {
     log("Couldn't create a buffer. "+ex);
     exit(1);   
@@ -136,7 +136,7 @@ function main() {
 
   /* Create a command queue */
   try {
-    queue = context.createCommandQueue(device, WebCL.QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE);
+    queue = context.createCommandQueue(device, webcl.QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE);
   } catch(ex) {
     log("Couldn't create an out of order command queue, using in-order queue. "+ex);
     queue = context.createCommandQueue(device);
@@ -152,7 +152,7 @@ function main() {
 
   /* Enqueue kernel */
   try {
-    kernel_event=new WebCL.WebCLEvent();
+    kernel_event=new webcl.WebCLEvent();
     queue.enqueueTask(kernel , [user_event], kernel_event);
   } catch(ex) {
     log("Couldn't enqueue the kernel. "+ex);
@@ -161,7 +161,7 @@ function main() {
 
   /* Read the buffer */
   try {
-    read_event=new WebCL.WebCLEvent();
+    read_event=new webcl.WebCLEvent();
     queue.enqueueReadBuffer(data_buffer, false, 0, data.byteLength, data, [ kernel_event ], read_event);
   } catch(ex) {
     log("Couldn't read the buffer. "+ex);
@@ -170,7 +170,7 @@ function main() {
 
   /* Set event handling routines */
   try {
-    read_event.setCallback(WebCL.COMPLETE, read_complete, data);
+    read_event.setCallback(webcl.COMPLETE, read_complete, data);
   } catch(ex) {
     log("Couldn't set callback for read event. "+ex);
     exit(1);   
@@ -179,7 +179,7 @@ function main() {
   log("Old data: "+data[0]+', '+data[1]+', '+data[2]+', '+data[3]);
 
   /* Set user event to success */
-  user_event.setStatus(WebCL.SUCCESS);
+  user_event.setStatus(webcl.SUCCESS);
   
   queue.finish();
   log('queue finished');

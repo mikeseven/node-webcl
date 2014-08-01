@@ -28,7 +28,7 @@
 
 var nodejs = (typeof window === 'undefined');
 if(nodejs) {
-  WebCL = require('../webcl');
+  require('../webcl');
   clu = require('../lib/clUtils');
   log=console.log;
 }
@@ -48,7 +48,7 @@ var PAGEABLE=0, PINNED=1; // memory modes
 var MAPPED=0, DIRECT=1; // access modes
 
 //First check if the WebCL extension is installed at all 
-if (WebCL == undefined) {
+if (typeof webcl === 'undefined') {
   alert("Unfortunately your system does not support WebCL. " +
   "Make sure that you have the WebCL extension installed.");
   process.exit(-1);
@@ -57,26 +57,26 @@ if (WebCL == undefined) {
 // Create the OpenCL context
 var ctx=null;
 try {
-  ctx=WebCL.createContext(WebCL.DEVICE_TYPE_ALL);
+  ctx=webcl.createContext(webcl.DEVICE_TYPE_ALL);
 }
 catch(ex) {
   throw new Error("Can't create CL context");
 }
 
-var devices=ctx.getInfo(WebCL.CONTEXT_DEVICES);
+var devices=ctx.getInfo(webcl.CONTEXT_DEVICES);
 log("Found "+devices.length+" devices");
 
 devices.forEach(function(d) {
-  d.units=d.getInfo(WebCL.DEVICE_MAX_COMPUTE_UNITS);
-  d.clock=d.getInfo(WebCL.DEVICE_MAX_CLOCK_FREQUENCY);
-  //var timerRes=d.getInfo(WebCL.DEVICE_PROFILING_TIMER_RESOLUTION);
-  d.type=d.getInfo(WebCL.DEVICE_TYPE);
-  d.endian=(d.getInfo(WebCL.DEVICE_ENDIAN_LITTLE) ? "LITTLE" : "BIG");
-  d.name=d.getInfo(WebCL.DEVICE_NAME);
+  d.units=d.getInfo(webcl.DEVICE_MAX_COMPUTE_UNITS);
+  d.clock=d.getInfo(webcl.DEVICE_MAX_CLOCK_FREQUENCY);
+  //var timerRes=d.getInfo(webcl.DEVICE_PROFILING_TIMER_RESOLUTION);
+  d.type=d.getInfo(webcl.DEVICE_TYPE);
+  d.endian=(d.getInfo(webcl.DEVICE_ENDIAN_LITTLE) ? "LITTLE" : "BIG");
+  d.name=d.getInfo(webcl.DEVICE_NAME);
   
-  if(d.type==WebCL.DEVICE_TYPE_CPU) d.type="CPU";
-  else if(d.type==WebCL.DEVICE_TYPE_GPU) d.type="GPU";
-  else if(d.type==WebCL.DEVICE_TYPE_ACCELERATOR) d.type="ACCELERATOR";
+  if(d.type==webcl.DEVICE_TYPE_CPU) d.type="CPU";
+  else if(d.type==webcl.DEVICE_TYPE_GPU) d.type="GPU";
+  else if(d.type==webcl.DEVICE_TYPE_ACCELERATOR) d.type="ACCELERATOR";
   else d.type="DEFAULT";
 
   var flops=d.units * d.clock;
@@ -108,7 +108,7 @@ createQueue(device)
     //  cqCommandQueue.release();
     //}
   
-    cqCommandQueue = ctx.createCommandQueue(devices[device], WebCL.QUEUE_PROFILING_ENABLE);
+    cqCommandQueue = ctx.createCommandQueue(devices[device], webcl.QUEUE_PROFILING_ENABLE);
 }
   
 ///////////////////////////////////////////////////////////////////////////////
@@ -228,10 +228,10 @@ function testDeviceToHostTransfer(memSize, accMode, memMode)
   //allocate and init host memory, pinned or conventional
   if(memMode == PINNED) {
       // Create a host buffer
-      cmPinnedData = ctx.createBuffer(WebCL.MEM_READ_WRITE | WebCL.MEM_ALLOC_HOST_PTR, memSize);
+      cmPinnedData = ctx.createBuffer(webcl.MEM_READ_WRITE | webcl.MEM_ALLOC_HOST_PTR, memSize);
   
       // Get a mapped pointer
-      h_data = cqCommandQueue.enqueueMapBuffer(cmPinnedData, WebCL.TRUE, WebCL.MAP_WRITE, 0, memSize);
+      h_data = cqCommandQueue.enqueueMapBuffer(cmPinnedData, webcl.TRUE, webcl.MAP_WRITE, 0, memSize);
   
       //initialize 
       for(var i = 0; i < memSize; i++)
@@ -251,17 +251,17 @@ function testDeviceToHostTransfer(memSize, accMode, memMode)
   }
   
   // allocate device memory 
-  cmDevData = ctx.createBuffer(WebCL.MEM_READ_WRITE, memSize);
+  cmDevData = ctx.createBuffer(webcl.MEM_READ_WRITE, memSize);
   
   // initialize device memory 
   if(memMode == PINNED) {
     // Get a mapped pointer
-    h_data = cqCommandQueue.enqueueMapBuffer(cmPinnedData, WebCL.TRUE, WebCL.MAP_WRITE, 0, memSize);
+    h_data = cqCommandQueue.enqueueMapBuffer(cmPinnedData, webcl.TRUE, webcl.MAP_WRITE, 0, memSize);
   
-    cqCommandQueue.enqueueWriteBuffer(cmDevData, WebCL.FALSE, 0, memSize, h_data);
+    cqCommandQueue.enqueueWriteBuffer(cmDevData, webcl.FALSE, 0, memSize, h_data);
   }
   else {
-      ciErrNum = cqCommandQueue.enqueueWriteBuffer(cmDevData, WebCL.FALSE, 0, memSize, h_data);
+      ciErrNum = cqCommandQueue.enqueueWriteBuffer(cmDevData, webcl.FALSE, 0, memSize, h_data);
   }
   
   // Sync queue to host, start timer 0, and copy data from GPU to Host
@@ -270,13 +270,13 @@ function testDeviceToHostTransfer(memSize, accMode, memMode)
   if(accMode == DIRECT) { 
       // DIRECT:  API access to device buffer 
       for(var i = 0; i < MEMCOPY_ITERATIONS; i++) {
-          ciErrNum = cqCommandQueue.enqueueReadBuffer(cmDevData, WebCL.FALSE, 0, memSize, h_data);
+          ciErrNum = cqCommandQueue.enqueueReadBuffer(cmDevData, webcl.FALSE, 0, memSize, h_data);
       }
       cqCommandQueue.finish();
   } 
   else {
       // MAPPED: mapped pointers to device buffer for conventional pointer access
-      var dm_idata = cqCommandQueue.enqueueMapBuffer(cmDevData, WebCL.TRUE, WebCL.MAP_WRITE, 0, memSize);
+      var dm_idata = cqCommandQueue.enqueueMapBuffer(cmDevData, webcl.TRUE, webcl.MAP_WRITE, 0, memSize);
 
       for(var i = 0; i < MEMCOPY_ITERATIONS; i++) {
           for(var j=0;j<memSize;++j)
@@ -315,10 +315,10 @@ function testHostToDeviceTransfer(memSize, accMode, memMode) {
   if(memMode == PINNED)
   { 
     // Create a host buffer
-    cmPinnedData = ctx.createBuffer(WebCL.MEM_READ_WRITE | WebCL.MEM_ALLOC_HOST_PTR, memSize);
+    cmPinnedData = ctx.createBuffer(webcl.MEM_READ_WRITE | webcl.MEM_ALLOC_HOST_PTR, memSize);
 
     // Get a mapped pointer
-    h_data = cqCommandQueue.enqueueMapBuffer(cmPinnedData, WebCL.TRUE, WebCL.MAP_WRITE, 0, memSize);
+    h_data = cqCommandQueue.enqueueMapBuffer(cmPinnedData, webcl.TRUE, webcl.MAP_WRITE, 0, memSize);
 
     // initialize
     for(var i = 0; i < memSize; i++) {
@@ -340,7 +340,7 @@ function testHostToDeviceTransfer(memSize, accMode, memMode) {
   }
   
   // allocate device memory
-  cmDevData = ctx.createBuffer(WebCL.MEM_READ_WRITE, memSize);
+  cmDevData = ctx.createBuffer(webcl.MEM_READ_WRITE, memSize);
   
   // Sync queue to host, start timer 0, and copy data from Host to GPU
   cqCommandQueue.finish();
@@ -349,20 +349,20 @@ function testHostToDeviceTransfer(memSize, accMode, memMode) {
   if(accMode == DIRECT) { 
     if(memMode == PINNED) {
       // Get a mapped pointer
-      h_data = cqCommandQueue.enqueueMapBuffer(cmPinnedData, WebCL.TRUE, WebCL.MAP_READ, 0, memSize);
+      h_data = cqCommandQueue.enqueueMapBuffer(cmPinnedData, webcl.TRUE, webcl.MAP_READ, 0, memSize);
     }
   
     // DIRECT: API access to device buffer
     for(var i = 0; i < MEMCOPY_ITERATIONS; i++) {
-      ciErrNum = cqCommandQueue.enqueueWriteBuffer(cmDevData, WebCL.FALSE, 0, memSize, h_data);
+      ciErrNum = cqCommandQueue.enqueueWriteBuffer(cmDevData, webcl.FALSE, 0, memSize, h_data);
     }
     cqCommandQueue.finish();
   } 
   else {
     // MAPPED: mapped pointers to device buffer and conventional pointer access
-    var dm_idata = cqCommandQueue.enqueueMapBuffer(cmDevData, WebCL.TRUE, WebCL.MAP_WRITE, 0, memSize);
+    var dm_idata = cqCommandQueue.enqueueMapBuffer(cmDevData, webcl.TRUE, webcl.MAP_WRITE, 0, memSize);
     if(memMode == PINNED ) {
-      h_data = cqCommandQueue.enqueueMapBuffer(cmPinnedData, WebCL.TRUE, WebCL.MAP_READ, 0, memSize); 
+      h_data = cqCommandQueue.enqueueMapBuffer(cmPinnedData, webcl.TRUE, webcl.MAP_READ, 0, memSize); 
     }
     
     for(var i = 0; i < MEMCOPY_ITERATIONS; i++) {
@@ -405,10 +405,10 @@ function testDeviceToDeviceTransfer(memSize)
       h_idata[i] = (i & 0xff);
 
   // allocate device input and output memory and initialize the device input memory
-  var d_idata = ctx.createBuffer(WebCL.MEM_READ_ONLY, memSize);
-  var d_odata = ctx.createBuffer(WebCL.MEM_WRITE_ONLY, memSize);         
+  var d_idata = ctx.createBuffer(webcl.MEM_READ_ONLY, memSize);
+  var d_odata = ctx.createBuffer(webcl.MEM_WRITE_ONLY, memSize);         
  
-  cqCommandQueue.enqueueWriteBuffer(d_idata, WebCL.TRUE, 0, memSize, h_idata);
+  cqCommandQueue.enqueueWriteBuffer(d_idata, webcl.TRUE, 0, memSize, h_idata);
 
   // Sync queue to host, start timer 0, and copy data from one GPU buffer to another GPU bufffer
   cqCommandQueue.finish();

@@ -1,5 +1,5 @@
 /*
- * Compute contains all WebCL initializations and runtime for our kernel
+ * Compute contains all webcl initializations and runtime for our kernel
  * that update a texture.
  */
 function Compute() {

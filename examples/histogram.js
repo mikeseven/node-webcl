@@ -5,7 +5,7 @@
 
 var nodejs = (typeof window === 'undefined');
 if(nodejs) {
-  WebCL    = require('../webcl');
+  webcl    = require('../webcl');
   clu   = require('../lib/clUtils');
   util  = require("util"),
   fs    = require("fs");
@@ -13,12 +13,12 @@ if(nodejs) {
   log   = console.log;
 }
 else
-  WebCL = window.webcl;
+  webcl = window.webcl;
 
 //First check if the webcl extension is installed at all 
-if (WebCL == undefined) {
-  alert("Unfortunately your system does not support WebCL. " +
-  "Make sure that you have the WebCL extension installed.");
+if (webcl == undefined) {
+  alert("Unfortunately your system does not support webcl. " +
+  "Make sure that you have the webcl extension installed.");
   process.exit(-1);
 }
 
@@ -129,20 +129,20 @@ function histogram(image) {
   var deviceBinB    = new Uint32Array(binSize);
 
   // create GPU context for this platform
-  var context=WebCL.createContext(WebCL.DEVICE_TYPE_GPU);
+  var context=webcl.createContext(webcl.DEVICE_TYPE_GPU);
 
   // find the device for this context
-  var devices = context.getInfo(WebCL.CONTEXT_DEVICES);
+  var devices = context.getInfo(webcl.CONTEXT_DEVICES);
   var device=devices[0];
 
   // Report the device vendor and device name
-  var vendor_name = device.getInfo(WebCL.DEVICE_VENDOR);
-  var device_name = device.getInfo(WebCL.DEVICE_NAME);
+  var vendor_name = device.getInfo(webcl.DEVICE_VENDOR);
+  var device_name = device.getInfo(webcl.DEVICE_NAME);
   log("Connecting to: "+vendor_name+" "+device_name);
 
   // create device buffers
   try {
-    imageBuffer = context.createBuffer(WebCL.MEM_READ_ONLY | WebCL.MEM_ALLOC_HOST_PTR, image.size);
+    imageBuffer = context.createBuffer(webcl.MEM_READ_ONLY | webcl.MEM_ALLOC_HOST_PTR, image.size);
   }
   catch(err) {
     log('error creating input image buffer. '+err);
@@ -160,9 +160,9 @@ function histogram(image) {
 
   var szBytesIntermediateHist = Int32Array.BYTES_PER_ELEMENT * szIntermediateHist;
   try {
-    intermediateHistR = context.createBuffer(WebCL.MEM_WRITE_ONLY, szBytesIntermediateHist);
-    intermediateHistG = context.createBuffer(WebCL.MEM_WRITE_ONLY, szBytesIntermediateHist);
-    intermediateHistB = context.createBuffer(WebCL.MEM_WRITE_ONLY, szBytesIntermediateHist);
+    intermediateHistR = context.createBuffer(webcl.MEM_WRITE_ONLY, szBytesIntermediateHist);
+    intermediateHistG = context.createBuffer(webcl.MEM_WRITE_ONLY, szBytesIntermediateHist);
+    intermediateHistB = context.createBuffer(webcl.MEM_WRITE_ONLY, szBytesIntermediateHist);
   }
   catch(err) {
     log('error creating output buffers of size '+szBytesIntermediateHist+' bytes. '+err);
@@ -181,7 +181,7 @@ function histogram(image) {
     kernel= program.createKernel("histogram_kernel");
   }
   catch(err) {
-    log(program.getBuildInfo(device,WebCL.PROGRAM_BUILD_LOG));
+    log(program.getBuildInfo(device,webcl.PROGRAM_BUILD_LOG));
   }
 
   // Set the arguments to our compute kernel
@@ -211,12 +211,12 @@ function histogram(image) {
   queue.finish(); //Finish all the operations
 
   // read histograms
-  var readEvt=[new WebCL.WebCLEvent(), new WebCL.WebCLEvent(), new WebCL.WebCLEvent()];
+  var readEvt=[new webcl.WebCLEvent(), new webcl.WebCLEvent(), new webcl.WebCLEvent()];
   status = queue.enqueueReadBuffer(intermediateHistR, false, 0, szBytesIntermediateHist, midDeviceBinR, null, readEvt[0]);
   status |= queue.enqueueReadBuffer(intermediateHistG, false, 0, szBytesIntermediateHist, midDeviceBinG, null, readEvt[1]);
   status |= queue.enqueueReadBuffer(intermediateHistB, false, 0, szBytesIntermediateHist, midDeviceBinB, null, readEvt[2]);
 
-  status = WebCL.waitForEvents(readEvt);
+  status = webcl.waitForEvents(readEvt);
 
   // Calculate final histogram bin 
   for(var i = 0; i < subHistgCnt; ++i)
