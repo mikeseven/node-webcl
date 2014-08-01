@@ -54,6 +54,9 @@ private:
   static v8::Persistent<v8::FunctionTemplate> constructor_template;
 
   cl_sampler sampler;
+
+private:
+  DISABLE_COPY(Sampler)
 };
 
 } // namespace

@@ -58,6 +58,9 @@ private:
   static v8::Persistent<v8::FunctionTemplate> constructor_template;
 
   cl_kernel kernel;
+
+private:
+  DISABLE_COPY(Kernel)
 };
 
 } // namespace

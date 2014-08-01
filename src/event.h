@@ -68,6 +68,9 @@ protected:
 
   cl_event event;
   cl_int status;
+
+private:
+  DISABLE_COPY(Event)
 };
 
 class UserEvent : public Event
@@ -93,6 +96,9 @@ private:
   ~UserEvent();
   
   static v8::Persistent<v8::FunctionTemplate> constructor_template;
+
+private:
+  DISABLE_COPY(UserEvent)
 };
 
 } // namespace

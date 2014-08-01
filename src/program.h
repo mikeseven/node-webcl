@@ -61,6 +61,9 @@ private:
   static v8::Persistent<v8::FunctionTemplate> constructor_template;
 
   cl_program program;
+
+private:
+  DISABLE_COPY(Program)
 };
 
 } // namespace

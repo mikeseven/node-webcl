@@ -67,6 +67,9 @@ private:
     FP16         = 0x02,
     FP64         = 0x04
   };
+
+private:
+  DISABLE_COPY(Platform)
 };
 
 }

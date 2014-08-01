@@ -110,7 +110,10 @@ namespace {
 #define DESTROY_WEBCL_OBJECT(obj)	\
   obj->Destructor();			
 
-  
+#define DISABLE_COPY(ClassName) \
+  ClassName( const ClassName& other ); /* non construction-copyable */ \
+  ClassName& operator=( const ClassName& ); /* non copyable */
+
 } // namespace
 
 namespace webcl {
@@ -155,6 +158,7 @@ enum CLObjType {
   Event,
   MemoryObject,
   Exception,
+  MAX_WEBCL_TYPES
 };
 static const char* CLObjName[] = {
   "UNKNOWN",
@@ -176,7 +180,7 @@ WebCLObject* findCLObj(void* clid, CLObjType::CLObjType type);
 class WebCLObject : public node::ObjectWrap {
 public:
   CLObjType::CLObjType getType() const { return _type; }
-  const char* getCLObjName() const { return CLObjType::CLObjName[this->_type]; }
+  const char* getCLObjName() const { return _type<CLObjType::MAX_WEBCL_TYPES ? CLObjType::CLObjName[_type] : '\0'; }
 
   int addRef() {
     ++_ref;
@@ -234,8 +238,7 @@ protected:
   bool _shared;
 
 private:
-  WebCLObject( const WebCLObject& other ); // non construction-copyable
-  WebCLObject& operator=( const WebCLObject& ); // non copyable
+  DISABLE_COPY(WebCLObject)
 };
 
 } // namespace webcl

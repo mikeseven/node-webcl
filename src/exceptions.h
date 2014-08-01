@@ -26,6 +26,9 @@ protected:
   const char *name_;
   const char *desc_;
   int code_;
+
+private:
+  DISABLE_COPY(WebCLException)
 };
 
 } // namespace

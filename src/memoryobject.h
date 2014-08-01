@@ -56,6 +56,9 @@ protected:
   ~MemoryObject();
   
   cl_mem memory;
+
+private:
+  DISABLE_COPY(MemoryObject)
 };
 
 class WebCLBuffer : public MemoryObject {
@@ -73,6 +76,9 @@ private:
   WebCLBuffer(v8::Handle<v8::Object> wrapper);
 
   static v8::Persistent<v8::FunctionTemplate> constructor_template;
+
+private:
+  DISABLE_COPY(WebCLBuffer)
 };
 
 class WebCLImage : public MemoryObject {
@@ -90,6 +96,9 @@ private:
   WebCLImage(v8::Handle<v8::Object> wrapper);
 
   static v8::Persistent<v8::FunctionTemplate> constructor_template;
+
+private:
+  DISABLE_COPY(WebCLImage)
 };
 
 class WebCLImageDescriptor : public WebCLObject
@@ -115,6 +124,9 @@ private:
   int channelOrder, channelType;
   int width, height, depth;
   int rowPitch, slicePitch;
+
+private:
+  DISABLE_COPY(WebCLImageDescriptor)
 };
 
 } // namespace
