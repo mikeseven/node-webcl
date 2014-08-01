@@ -30,6 +30,19 @@ var cl = require('./build/Release/webcl.node');
 
 module.exports=cl;
 global.webcl=cl;
+global.WebCLPlatform=cl.WebCLPlatform;
+global.WebCLDevice=cl.WebCLDevice;
+global.WebCLContext=cl.WebCLContext;
+global.WebCLCommandQueue=cl.WebCLCommandQueue;
+global.WebCLEvent=cl.WebCLEvent;
+global.WebCLBuffer=cl.WebCLBuffer;
+global.WebCLImage=cl.WebCLImage;
+global.WebCLSampler=cl.WebCLSampler;
+global.WebCLUserEvent=cl.WebCLUserEvent;
+global.WebCLException=cl.WebCLException;
+global.WebCLProgram=cl.WebCLProgram;
+global.WebCLKernel=cl.WebCLKernel;
+global.WebCLImageDescriptor=cl.WebCLImageDescriptor;
 
 // cl.size = {};
 // cl.size.CHAR = cl.size_CHAR;
