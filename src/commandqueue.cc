@@ -117,13 +117,13 @@ CommandQueue::~CommandQueue() {
 
 void CommandQueue::Destructor() {
   if(command_queue) {
-#ifdef LOGGING
     cl_uint count;
     ::clGetCommandQueueInfo(command_queue,CL_QUEUE_REFERENCE_COUNT,sizeof(cl_uint),&count,NULL);
+#ifdef LOGGING
     cout<<"  Destroying CommandQueue, CLrefCount is: "<<count<<endl;
 #endif
     ::clReleaseCommandQueue(command_queue);
-    if(getCount()==1) {
+    if(count==1) {
       unregisterCLObj(this);
       command_queue=0;
     }
@@ -168,8 +168,10 @@ NAN_METHOD(CommandQueue::getInfo)
     }
     if(ctx) {
       WebCLObject *obj=findCLObj((void*)ctx, CLObjType::Context);
-      if(!obj) 
+      if(obj) 
         NanReturnValue(NanObjectWrapHandle(obj));
+      else
+        NanReturnValue(NanObjectWrapHandle(Context::New(ctx)));
     }
     NanReturnUndefined();
   }
@@ -187,10 +189,10 @@ NAN_METHOD(CommandQueue::getInfo)
     if(dev) {
       WebCLObject *obj=findCLObj((void*)dev, CLObjType::Device);
 
-      if(!obj)
-        obj = Device::New(dev);
-
-      NanReturnValue(NanObjectWrapHandle(obj));
+      if(obj) 
+        NanReturnValue(NanObjectWrapHandle(obj));
+      else
+        NanReturnValue(NanObjectWrapHandle(Device::New(dev)));
     }
     NanReturnUndefined();
   }

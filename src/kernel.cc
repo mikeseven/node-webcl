@@ -83,13 +83,13 @@ Kernel::~Kernel() {
 
 void Kernel::Destructor() {
   if(kernel) {
-#ifdef LOGGING
     cl_uint count;
     ::clGetKernelInfo(kernel,CL_KERNEL_REFERENCE_COUNT,sizeof(cl_uint),&count,NULL);
+#ifdef LOGGING
     cout<<"  Destroying Kernel, CLrefCount is: "<<count<<endl;
 #endif
     ::clReleaseKernel(kernel);
-    if(getCount()==1) {
+    if(count==1) {
       unregisterCLObj(this);
       kernel=0;
     }
@@ -144,20 +144,16 @@ NAN_METHOD(Kernel::getInfo)
     }
     if(param_value) {
       WebCLObject *obj=findCLObj((void*)param_value, CLObjType::Context);
-      if(obj) {
-#ifdef LOGGING
-        printf("[Kernel::getInfo] returning context %p\n",obj);
-#endif
+      if(obj) 
         NanReturnValue(NanObjectWrapHandle(obj));
-      }
       else
         NanReturnValue(NanObjectWrapHandle(Context::New(param_value)));
     }
     NanReturnUndefined();
   }
   case CL_KERNEL_PROGRAM: {
-    cl_program param_value=NULL;
-    cl_int ret=::clGetKernelInfo(kernel->getKernel(), param_name, sizeof(cl_program), &param_value, NULL);
+    cl_program p=NULL;
+    cl_int ret=::clGetKernelInfo(kernel->getKernel(), param_name, sizeof(cl_program), &p, NULL);
     if (ret != CL_SUCCESS) {
       REQ_ERROR_THROW(INVALID_VALUE);
       REQ_ERROR_THROW(INVALID_KERNEL);
@@ -165,14 +161,12 @@ NAN_METHOD(Kernel::getInfo)
       REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
-    if(param_value) {
-      WebCLObject *obj=findCLObj((void*)param_value, CLObjType::Program);
-      if(obj) {
-#ifdef LOGGING
-        printf("[Kernel::getInfo] returning program %p\n",obj);
-#endif
+    if(p) {
+      WebCLObject *obj=findCLObj((void*)p, CLObjType::Program);
+      if(obj) 
         NanReturnValue(NanObjectWrapHandle(obj));
-      }
+      else
+        NanReturnValue(NanObjectWrapHandle(Program::New(p, NULL)));
     }
     NanReturnUndefined();
   }

@@ -182,26 +182,26 @@ public:
   CLObjType::CLObjType getType() const { return _type; }
   const char* getCLObjName() const { return _type<CLObjType::MAX_WEBCL_TYPES ? CLObjType::CLObjName[_type] : '\0'; }
 
-  int addRef() {
-    ++_ref;
-    if(_parent)
-      _parent->addRef();
+  // int addRef() {
+  //   ++_ref;
+  //   if(_parent)
+  //     _parent->addRef();
 
-    return _ref;
-  }
+  //   return _ref;
+  // }
 
-  int unRef() {
-    --_ref;
-    if(_parent)
-      _parent->unRef();
-    return _ref;
-  }
+  // int unRef() {
+  //   --_ref;
+  //   if(_parent)
+  //     _parent->unRef();
+  //   return _ref;
+  // }
 
-  int getCount() const { return _ref; }
+  // int getCount() const { return _ref; }
 
 protected:
-  WebCLObject() : _type(CLObjType::None),_parent(NULL),_ref(0),_shared(false) {
-    addRef();
+  WebCLObject() : _type(CLObjType::None),_parent(NULL) /*,_ref(0),_shared(false)*/ {
+    // addRef();
   }
 
   virtual ~WebCLObject() {
@@ -220,22 +220,22 @@ public:
 
   void setParent(WebCLObject *parent) {
     _parent=parent;
-    if(_parent) {
-      _parent->_children.push_back(this);
-      _parent->addRef();
-    }
+    // if(_parent) {
+    //   _parent->_children.push_back(this);
+    //   _parent->addRef();
+    // }
   }
   
   WebCLObject *getParent() const { return _parent; }
   
-  std::list<WebCLObject*> getChildren() { return _children; }
+  // std::list<WebCLObject*> getChildren() { return _children; }
 
 protected:
   CLObjType::CLObjType _type;
   WebCLObject *_parent;
-  std::list<WebCLObject*> _children;
-  int _ref;
-  bool _shared;
+  // std::list<WebCLObject*> _children;
+  // int _ref;
+  // bool _shared;
 
 private:
   DISABLE_COPY(WebCLObject)

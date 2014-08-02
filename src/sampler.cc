@@ -75,13 +75,13 @@ Sampler::~Sampler() {
 
 void Sampler::Destructor() {
   if(sampler) {
-#ifdef LOGGING
     cl_uint count;
     ::clGetSamplerInfo(sampler,CL_SAMPLER_REFERENCE_COUNT,sizeof(cl_uint),&count,NULL);
+#ifdef LOGGING
     cout<<"  Destroying Sampler, CLrefCount is: "<<count<<endl;
 #endif
     ::clReleaseSampler(sampler);
-    if(getCount()==1) {
+    if(count==1) {
       unregisterCLObj(this);
       sampler=0;
     }
@@ -132,10 +132,8 @@ NAN_METHOD(Sampler::getInfo)
     }
     if(param_value) {
       WebCLObject *obj=findCLObj((void*)param_value, CLObjType::Context);
-      if(obj) {
-        //::clRetainContext(param_value);
+      if(obj) 
         NanReturnValue(NanObjectWrapHandle(obj));
-      }
       else
         NanReturnValue(NanObjectWrapHandle(Context::New(param_value)));
     }

@@ -76,13 +76,13 @@ MemoryObject::~MemoryObject() {
 
 void MemoryObject::Destructor() {
   if(memory) {
-#ifdef LOGGING
     cl_uint count;
     ::clGetMemObjectInfo(memory,CL_MEM_REFERENCE_COUNT,sizeof(cl_uint),&count,NULL);
+#ifdef LOGGING
     cout<<"  Destroying MemoryObject, CLrefCount is: "<<count<<endl;
 #endif
     ::clReleaseMemObject(memory);
-    if(getCount()==1) {
+    if(count==1) {
       unregisterCLObj(this);
       memory=0;
     }
@@ -163,16 +163,16 @@ NAN_METHOD(MemoryObject::getInfo)
 
     if(param_value) {
       WebCLObject *obj=findCLObj((void*)param_value, CLObjType::MemoryObject);
-      if(obj) {
-        clRetainMemObject(param_value);
+      if(obj) 
         NanReturnValue(NanObjectWrapHandle(obj));
-      }
+      else
+        NanReturnValue(NanObjectWrapHandle(MemoryObject::New(param_value)));
     }
     NanReturnUndefined();
   }
   case CL_MEM_CONTEXT: {
-    cl_context param_value=NULL;
-    cl_int ret=::clGetMemObjectInfo(mo->getMemory(),param_name,sizeof(cl_context), &param_value, NULL);
+    cl_context ctx=NULL;
+    cl_int ret=::clGetMemObjectInfo(mo->getMemory(),param_name,sizeof(cl_context), &ctx, NULL);
     if (ret != CL_SUCCESS) {
       REQ_ERROR_THROW(INVALID_VALUE);
       REQ_ERROR_THROW(INVALID_MEM_OBJECT);
@@ -180,12 +180,12 @@ NAN_METHOD(MemoryObject::getInfo)
       REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
-    if(param_value) {
-      WebCLObject *obj=findCLObj((void*)param_value, CLObjType::Context);
-      if(obj) {
-        //::clRetainContext(param_value);
+    if(ctx) {
+      WebCLObject *obj=findCLObj((void*)ctx, CLObjType::Context);
+      if(obj) 
         NanReturnValue(NanObjectWrapHandle(obj));
-      }
+      else
+        NanReturnValue(NanObjectWrapHandle(Context::New(ctx)));
     }
     NanReturnUndefined();
   }

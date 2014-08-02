@@ -83,13 +83,13 @@ Program::~Program() {
 
 void Program::Destructor() {
   if(program) {
-#ifdef LOGGING
     cl_uint count;
     ::clGetProgramInfo(program,CL_PROGRAM_REFERENCE_COUNT,sizeof(cl_uint),&count,NULL);
+#ifdef LOGGING
     cout<<"  Destroying Program, CLrefCount is: "<<count<<endl;
 #endif
     ::clReleaseProgram(program);
-    if(getCount()==1) {
+    if(count==1) {
       unregisterCLObj(this);
       program=0;
     }
@@ -138,10 +138,8 @@ NAN_METHOD(Program::getInfo)
     }
     if(value) {
       WebCLObject *obj=findCLObj((void*)value, CLObjType::Context);
-      if(obj) {
-        //::clRetainContext(value);
+      if(obj) 
         NanReturnValue(NanObjectWrapHandle(obj));
-      }
       else
         NanReturnValue(NanObjectWrapHandle(Context::New(value)));
     }
@@ -163,10 +161,8 @@ NAN_METHOD(Program::getInfo)
     for (size_t i=0; i<num_devices; i++) {
       cl_device_id d = devices[i];
       WebCLObject *obj=findCLObj((void*)d, CLObjType::Device);
-      if(obj) {
-        //::clRetainDevice(d);
+      if(obj) 
         deviceArray->Set(i, NanObjectWrapHandle(obj));
-      }
       else
         deviceArray->Set(i, NanObjectWrapHandle(Device::New(d)));
     }

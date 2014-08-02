@@ -70,7 +70,7 @@ void unregisterCLObj(WebCLObject *obj) {
       break;
     }
   }
-  obj->unRef();
+  // obj->unRef();
   // if(obj->getParent()) {
   //   list<WebCLObject*> children=obj->getParent()->getChildren();
   //   children.erase(std::remove(children.begin(), children.end(), obj), children.end());
@@ -103,17 +103,17 @@ WebCLObject* findCLObj(void *clid, CLObjType::CLObjType type) {
   return NULL;
 }
 
-void dumpChildren(WebCLObject *root, int spc =0) {
-  for(int i=0;i<spc;i++) printf(" ");
-#ifdef LOGGING
-  printf("%s count %d\n",root->getCLObjName(),root->getCount());
-#endif
+// void dumpChildren(WebCLObject *root, int spc =0) {
+//   for(int i=0;i<spc;i++) printf(" ");
+// #ifdef LOGGING
+//   printf("%s count %d\n",root->getCLObjName(),root->getCount());
+// #endif
 
-  list<WebCLObject*> children=root->getChildren();
-  for(list<WebCLObject*>::iterator it=children.begin(); it!=children.end();++it) {
-    dumpChildren(*it,spc+2);
-  }
-}
+//   list<WebCLObject*> children=root->getChildren();
+//   for(list<WebCLObject*>::iterator it=children.begin(); it!=children.end();++it) {
+//     dumpChildren(*it,spc+2);
+//   }
+// }
 
 // void destroyChildren(WebCLObject *root, int spc =0) {
 //   for(list<WebCLObject*>::iterator it=root->84dren().begin(); it!=root->getChildren().end();++it) {
@@ -134,18 +134,18 @@ void AtExit(void* arg) {
   if(clobjs.size() != 0) {
     
 #ifdef LOGGING
-    for(vector<WebCLObject*>::iterator it=clobjs.begin();it!=clobjs.end();++it)
-      dumpChildren(*it);
+    // for(vector<WebCLObject*>::iterator it=clobjs.begin();it!=clobjs.end();++it)
+    //   dumpChildren(*it);
 
     printf("\n=== Destroying all %lu WebCL objects ===\n", clobjs.size());
 #endif
 
-    // destroyChildren(clobjs.front());    
     for(vector<WebCLObject*>::reverse_iterator it=clobjs.rbegin(); it!=clobjs.rend();++it) {
       WebCLObject *obj=*it;
       if(obj->getType() > CLObjType::Context) {
 #ifdef LOGGING
-        printf("Disposing %s %p, count %d\n",obj->getCLObjName(),obj,obj->getCount());
+        // printf("Disposing %s %p, count %d\n",obj->getCLObjName(),obj,obj->getCount());
+        printf("Disposing %s %p\n",obj->getCLObjName(),obj);
 #endif
         obj->Destructor();
       }

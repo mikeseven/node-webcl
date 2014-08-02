@@ -81,13 +81,13 @@ Event::~Event() {
 void Event::Destructor()
 {
   if(event) {
-#ifdef LOGGING
     cl_uint count;
     ::clGetEventInfo(event,CL_EVENT_REFERENCE_COUNT,sizeof(cl_uint),&count,NULL);
+#ifdef LOGGING
     cout<<"  Destroying Event, CLrefCount is: "<<count<<endl;
 #endif
     ::clReleaseEvent(event);
-    if(getCount()==1) {
+    if(count==1) {
       unregisterCLObj(this);
       event=0;
     }
@@ -116,8 +116,8 @@ NAN_METHOD(Event::getInfo)
 
   switch (param_name) {
   case CL_EVENT_CONTEXT:{
-    cl_context param_value=NULL;
-    ret=::clGetEventInfo(e->getEvent(), param_name, sizeof(cl_context), &param_value, NULL);
+    cl_context ctx=NULL;
+    ret=::clGetEventInfo(e->getEvent(), param_name, sizeof(cl_context), &ctx, NULL);
     if(ret!=CL_SUCCESS) {
       REQ_ERROR_THROW(INVALID_VALUE);
       REQ_ERROR_THROW(INVALID_EVENT);
@@ -125,11 +125,17 @@ NAN_METHOD(Event::getInfo)
       REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("Unknown error");
     }
-    NanReturnValue(NanObjectWrapHandle(Context::New(param_value)));
+    if(ctx) {
+      WebCLObject *obj=findCLObj((void*)ctx, CLObjType::Context);
+      if(obj) 
+        NanReturnValue(NanObjectWrapHandle(obj));
+      else
+        NanReturnValue(NanObjectWrapHandle(Context::New(ctx)));
+    }
   }
   case CL_EVENT_COMMAND_QUEUE:{
-    cl_command_queue param_value=NULL;
-    ret=::clGetEventInfo(e->getEvent(), param_name, sizeof(cl_command_queue), &param_value, NULL);
+    cl_command_queue q=NULL;
+    ret=::clGetEventInfo(e->getEvent(), param_name, sizeof(cl_command_queue), &q, NULL);
     if(ret!=CL_SUCCESS) {
       REQ_ERROR_THROW(INVALID_VALUE);
       REQ_ERROR_THROW(INVALID_EVENT);
@@ -137,12 +143,12 @@ NAN_METHOD(Event::getInfo)
       REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("Unknown error");
     }
-    if(param_value) {
-      WebCLObject *obj=findCLObj((void*)param_value, CLObjType::CommandQueue);
-      if(obj) {
-        //::clRetainCommandQueue(param_value);
+    if(q) {
+      WebCLObject *obj=findCLObj((void*)q, CLObjType::CommandQueue);
+      if(obj) 
         NanReturnValue(NanObjectWrapHandle(obj));
-      }
+      else
+        NanReturnValue(NanObjectWrapHandle(CommandQueue::New(q, NULL)));
     }
     NanReturnUndefined();
   }

@@ -95,13 +95,13 @@ void Context::Destructor()
 {
   if(context) {
 
-#ifdef LOGGING
     cl_uint count;
     ::clGetContextInfo(context,CL_CONTEXT_REFERENCE_COUNT,sizeof(cl_uint),&count,NULL);
+#ifdef LOGGING
     cout<<"  Destroying Context, CLrefCount is: "<<count<<endl;
 #endif
     ::clReleaseContext(context);
-    if(getCount()==1) {
+    if(count==1) {
       unregisterCLObj(this);
       context=0;
     }
