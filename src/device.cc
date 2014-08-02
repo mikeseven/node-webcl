@@ -368,9 +368,24 @@ NAN_METHOD(Device::enableExtension)
       return NanThrowError("UNKNOWN ERROR");
     }
 
-    if(strstr(param_value,"gl_sharing"))  { device->availableExtensions |= GL_SHARING; printf("has GL_SHARING\n"); }
-    if(strstr(param_value,"fp16"))  { device->availableExtensions |= FP16; printf("has fp16\n"); }
-    if(strstr(param_value,"fp64"))  { device->availableExtensions |= FP64; printf("has fp64\n"); }
+    if(strstr(param_value,"gl_sharing"))  { 
+      device->availableExtensions |= GL_SHARING; 
+#ifdef LOGGING
+      printf("has GL_SHARING\n"); 
+#endif
+    }
+    if(strstr(param_value,"fp16"))  { 
+      device->availableExtensions |= FP16; 
+#ifdef LOGGING
+      printf("has fp16\n"); 
+#endif
+    }
+    if(strstr(param_value,"fp64"))  { 
+      device->availableExtensions |= FP64; 
+#ifdef LOGGING
+      printf("has fp64\n"); 
+#endif
+    }
   }
 
   Local<String> name=args[0]->ToString();

@@ -165,6 +165,9 @@ function VectorAdd() {
   printResults(A,B,C);
 
   // cleanup
+  read_event.release();
+  kernel_event.release();
+  
   // test release each CL object
   // queue.release();
   kernel.release();
