@@ -98,7 +98,7 @@ void Context::Destructor()
     cl_uint count;
     ::clGetContextInfo(context,CL_CONTEXT_REFERENCE_COUNT,sizeof(cl_uint),&count,NULL);
 #ifdef LOGGING
-    cout<<"  Destroying Context, CLrefCount is: "<<count<<endl;
+    printf("  Destroying Context, CLrefCount is: %d\n",count);
 #endif
     ::clReleaseContext(context);
     if(count==1) {
@@ -175,10 +175,8 @@ NAN_METHOD(Context::getInfo)
       if(devices[i]) {
         WebCLObject *obj=findCLObj((void*)devices[i], CLObjType::Device);
 
-        if(obj) {
-          //::clRetainDevice(devices[i]);
+        if(obj) 
           arr->Set(i,NanObjectWrapHandle(obj));
-        }
         else
           arr->Set(i,NanObjectWrapHandle(Device::New(devices[i])));
       }
@@ -207,8 +205,11 @@ NAN_METHOD(Context::getInfo)
 	delete[] ctx;
     NanReturnValue(arr);
   }
-  default:
-    return NanThrowError("UNKNOWN param_name");
+  default: {
+    cl_int ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnUndefined();
+  }
   }
 }
 
@@ -218,6 +219,12 @@ NAN_METHOD(Context::createProgram)
   Context *context = ObjectWrap::Unwrap<Context>(args.This());
   cl_program pw=NULL;
   cl_int ret = CL_SUCCESS;
+
+  if(args[0]->IsNull() || args[0]->IsUndefined()) {
+    ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnUndefined();
+  }
 
   // either we pass a code (string) or binary buffers
   if(args[0]->IsString()) {

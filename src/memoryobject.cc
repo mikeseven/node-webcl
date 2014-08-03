@@ -202,8 +202,11 @@ NAN_METHOD(MemoryObject::getInfo)
     size_t nbytes = *(size_t*)param_value;
     NanReturnValue(NanNewBufferHandle(param_value, nbytes));
   }
-  default:
-    return NanThrowError("UNKNOWN param_name");
+  default: {
+    cl_int ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnUndefined();
+  }
   }
 }
 
@@ -323,6 +326,16 @@ NAN_METHOD(WebCLBuffer::createSubBuffer)
   region.size = args[2]->Uint32Value();
 
   cl_int ret=CL_SUCCESS;
+
+  // bug on Mac to avoid core dump
+  cl_mem parent=NULL;
+  ::clGetMemObjectInfo(mo->getMemory(),CL_MEM_ASSOCIATED_MEMOBJECT,sizeof(cl_mem),&parent,NULL);
+  if(parent) {
+    ret=CL_INVALID_MEM_OBJECT;
+    REQ_ERROR_THROW(INVALID_MEM_OBJECT);
+    NanReturnNull();
+  }
+
   cl_mem sub_buffer = ::clCreateSubBuffer(
       mo->getMemory(),
       flags,

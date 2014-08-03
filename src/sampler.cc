@@ -107,7 +107,6 @@ NAN_METHOD(Sampler::getInfo)
   switch (param_name) {
   case CL_SAMPLER_ADDRESSING_MODE:
   case CL_SAMPLER_FILTER_MODE:
-  case CL_SAMPLER_NORMALIZED_COORDS:
   case CL_SAMPLER_REFERENCE_COUNT: {
     cl_uint param_value=0;
     cl_int ret=::clGetSamplerInfo(sampler->getSampler(), param_name,sizeof(cl_uint), &param_value, NULL);
@@ -119,6 +118,18 @@ NAN_METHOD(Sampler::getInfo)
       return NanThrowError("UNKNOWN ERROR");
     }
     NanReturnValue(Integer::NewFromUnsigned(param_value));
+  }
+  case CL_SAMPLER_NORMALIZED_COORDS: {
+    cl_uint param_value=0;
+    cl_int ret=::clGetSamplerInfo(sampler->getSampler(), param_name,sizeof(cl_uint), &param_value, NULL);
+    if (ret != CL_SUCCESS) {
+      REQ_ERROR_THROW(INVALID_VALUE);
+      REQ_ERROR_THROW(INVALID_SAMPLER);
+      REQ_ERROR_THROW(OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
+      return NanThrowError("UNKNOWN ERROR");
+    }
+    NanReturnValue(JS_BOOL(param_value));
   }
   case CL_SAMPLER_CONTEXT:{
     cl_context param_value=0;
@@ -139,8 +150,11 @@ NAN_METHOD(Sampler::getInfo)
     }
     NanReturnUndefined();
   }
-  default:
-    return NanThrowError("UNKNOWN param_name");
+  default: {
+    cl_int ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnUndefined();
+  }
   }
 
 }

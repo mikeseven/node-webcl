@@ -132,8 +132,9 @@ cl.createContext = function (arg1, arg2) {
 
 var _waitForEvents = cl.waitForEvents;
 cl.waitForEvents = function (events, callback) {
-  if (!(arguments.length === 1 && typeof events === 'object' )) {
-    throw new TypeError('Expected waitForEvents(WebCLEvent[] events)');
+  if (!(arguments.length >= 1 && typeof events === 'object'  && 
+    (typeof callback === 'undefined' || typeof callback === 'function'))) {
+    throw new TypeError('Expected waitForEvents(WebCLEvent[] events, optional callback)');
   }
   return _waitForEvents(events, callback);
 }
@@ -597,7 +598,7 @@ cl.WebCLContext.prototype.getInfo=function (param_name) {
 }
 
 cl.WebCLContext.prototype.createProgram=function (sources) {
-  if (!(arguments.length === 1 && typeof sources === 'string')) {
+  if (!(arguments.length === 1 && (sources==null || typeof sources === 'string'))) {
     throw new TypeError('Expected WebCLContext.createProgram(string sources)');
   }
   return this._createProgram(sources);

@@ -80,16 +80,16 @@ Event::~Event() {
 
 void Event::Destructor()
 {
-  if(event) {
+  if(this->event) {
     cl_uint count;
-    ::clGetEventInfo(event,CL_EVENT_REFERENCE_COUNT,sizeof(cl_uint),&count,NULL);
+    ::clGetEventInfo(this->event,CL_EVENT_REFERENCE_COUNT,sizeof(cl_uint),&count,NULL);
 #ifdef LOGGING
-    cout<<"  Destroying Event, CLrefCount is: "<<count<<endl;
+    printf("  Destroying Event %p, CLrefCount is: %d\n",this->event, count);
 #endif
-    ::clReleaseEvent(event);
+    ::clReleaseEvent(this->event);
     if(count==1) {
       unregisterCLObj(this);
-      event=0;
+      this->event=0;
     }
   }
 }
@@ -98,10 +98,13 @@ NAN_METHOD(Event::release)
 {
   NanScope();
   Event *e = ObjectWrap::Unwrap<Event>(args.This());
-  #ifdef LOGGING
-  printf("  In Event::release %p\n",e);
-  #endif
+#ifdef LOGGING
+  printf("  In Event::release %p\n",e->event);
+#endif
   
+  // [mbs] hack that allows sometime for ref count in CL driver to propagate (???)
+  while(!v8::V8::IdleNotification()); // force GC
+
   e->Destructor();
   
   NanReturnUndefined();
@@ -113,6 +116,8 @@ NAN_METHOD(Event::getInfo)
   Event *e = ObjectWrap::Unwrap<Event>(args.This());
   cl_event_info param_name = args[0]->Uint32Value();
   cl_int ret=CL_SUCCESS;
+
+  // printf("Event::getInfo(%d)\n",param_name);
 
   switch (param_name) {
   case CL_EVENT_CONTEXT:{
@@ -166,8 +171,11 @@ NAN_METHOD(Event::getInfo)
     }
     NanReturnValue(Integer::NewFromUnsigned(param_value));
   }
-  default:
-    return NanThrowError("UNKNOWN param_name");
+  default: {
+    cl_int ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnUndefined();
+  }
   }
 
 }

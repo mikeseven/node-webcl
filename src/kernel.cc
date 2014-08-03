@@ -183,8 +183,11 @@ NAN_METHOD(Kernel::getInfo)
     }
     NanReturnValue(JS_INT(param_value));
   }
-  default:
-    return NanThrowError("UNKNOWN param_name");
+  default: {
+    cl_int ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnUndefined();
+  }
   }
 }
 

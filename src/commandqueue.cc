@@ -209,8 +209,11 @@ NAN_METHOD(CommandQueue::getInfo)
     }
     NanReturnValue(JS_INT(param_value));
   }
-  default:
-    return NanThrowError("INVALID_VALUE");
+  default: {
+    cl_int ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnUndefined();
+  }
   }
 }
 
@@ -1448,8 +1451,9 @@ class FinishWorker : public NanAsyncWorker {
   ~FinishWorker() {
     if(baton_) {
       NanScope();
-      if (!baton_->parent.IsEmpty()) NanDisposePersistent(baton_->parent);
       // if (baton_->callback) delete baton_->callback;
+      // if (!baton_->parent.IsEmpty()) NanDisposePersistent(baton_->parent);
+      // if (!baton_->data.IsEmpty()) NanDisposePersistent(baton_->data);
       delete baton_;
     }
   }
@@ -1459,17 +1463,6 @@ class FinishWorker : public NanAsyncWorker {
   // here, so everything we need for input and output
   // should go on `this`.
   void Execute () {
-    // SetErrorMessage("Error");
-    // printf("[async event] execute\n");
-    CommandQueue *cq = ObjectWrap::Unwrap<CommandQueue>(NanPersistentToLocal(baton_->parent));
-
-    cl_int ret = ::clFinish(cq->getCommandQueue());
-    if (ret != CL_SUCCESS) {
-      REQ_ERROR_THROW_NONE(INVALID_COMMAND_QUEUE);
-      REQ_ERROR_THROW_NONE(OUT_OF_RESOURCES);
-      REQ_ERROR_THROW_NONE(OUT_OF_HOST_MEMORY);
-	    return;
-    }
   }
 
   // Executed when the async work is complete
@@ -1478,9 +1471,10 @@ class FinishWorker : public NanAsyncWorker {
   void HandleOKCallback () {
     NanScope();
 
-    // // must return passed data
+     // // must return passed data
     Local<Value> argv[] = {
-      NanPersistentToLocal(baton_->parent),  // event
+      // NanPersistentToLocal(baton_->parent),  // event
+      JS_INT(baton_->error)
     };
 
     // printf("[async event] callback JS\n");
@@ -1501,17 +1495,17 @@ NAN_METHOD(CommandQueue::finish)
     REQ_ERROR_THROW(INVALID_COMMAND_QUEUE);
   }
 
+  cl_int ret = ::clFinish(cq->getCommandQueue());
+
   if(args.Length()>0 && args[0]->IsFunction()) {
       Baton *baton=new Baton();
-      NanAssignPersistent(v8::Object, baton->parent, NanObjectWrapHandle(cq));
+      baton->error=ret;
       baton->callback=new NanCallback(args[0].As<Function>());
       NanAsyncQueueWorker(new FinishWorker(baton));
       NanReturnUndefined();
   }
 
-  cl_int ret = ::clFinish(cq->getCommandQueue());
-
-  if (ret != CL_SUCCESS) {
+  else if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(INVALID_COMMAND_QUEUE);
     REQ_ERROR_THROW(OUT_OF_RESOURCES);
     REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);

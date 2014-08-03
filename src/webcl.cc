@@ -45,7 +45,6 @@ namespace webcl {
 
 static bool atExit=false;
 static vector<WebCLObject*> clobjs;
-list<WebCLObject *> root; // list of Contexts
 
 void registerCLObj(void *clid, WebCLObject* obj) {
   if(!obj) return;
@@ -54,8 +53,6 @@ void registerCLObj(void *clid, WebCLObject* obj) {
   printf("Adding CLObject %p %s (%d), clobjs size %lu\n", clid, obj->getCLObjName(),obj->getType(),clobjs.size()); fflush(stdout);
 #endif
   clobjs.push_back(obj);
-  if(obj->getType()==CLObjType::Context)
-    root.push_back(obj);
 }
 
 void unregisterCLObj(WebCLObject *obj) {
@@ -128,7 +125,7 @@ void AtExit(void* arg) {
   atExit=true;
 
 #ifdef LOGGING
-  cout<<"  # objects allocated: "<<clobjs.size()<<endl; fflush(stdout);
+  printf("  # objects allocated: %lu\n",clobjs.size()); fflush(stdout);
 #endif
 
   if(clobjs.size() != 0) {
@@ -142,7 +139,7 @@ void AtExit(void* arg) {
 
     for(vector<WebCLObject*>::reverse_iterator it=clobjs.rbegin(); it!=clobjs.rend();++it) {
       WebCLObject *obj=*it;
-      if(obj->getType() > CLObjType::Context) {
+      if(obj->getType() >= CLObjType::Context) {
 #ifdef LOGGING
         // printf("Disposing %s %p, count %d\n",obj->getCLObjName(),obj,obj->getCount());
         printf("Disposing %s %p\n",obj->getCLObjName(),obj);
@@ -191,8 +188,8 @@ NAN_METHOD(releaseAll) {
   NanScope();
   // printf("webcl.AtExit()\n");
 
+  atExit=false;
   AtExit(args[0]->IsUndefined() ? NULL : (void*) args[0]->IntegerValue());
-  atExit=true;
 
   NanReturnUndefined();
 }
@@ -493,23 +490,6 @@ class WaitForEventsWorker : public NanAsyncWorker {
   void Execute () {
     // SetErrorMessage("Error");
     // printf("[async event] execute\n");
-    Local<Array> eventsArray = Local<Array>::Cast(NanPersistentToLocal(baton_->data));
-    std::vector<cl_event> events;
-    for (uint32_t i=0; i<eventsArray->Length(); i++) {
-     Event *we=ObjectWrap::Unwrap<Event>(eventsArray->Get(i)->ToObject());
-      cl_event e = we->getEvent();
-      events.push_back(e);
-    }
-    cl_int ret = baton_->error = ::clWaitForEvents( (int) events.size(), &events.front());
-    if (ret != CL_SUCCESS) {
-      REQ_ERROR_THROW_NONE(INVALID_VALUE);
-      REQ_ERROR_THROW_NONE(INVALID_CONTEXT);
-      REQ_ERROR_THROW_NONE(INVALID_EVENT);
-      REQ_ERROR_THROW_NONE(EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST);
-      REQ_ERROR_THROW_NONE(OUT_OF_RESOURCES);
-      REQ_ERROR_THROW_NONE(OUT_OF_HOST_MEMORY);
-      return;
-    }
   }
 
   // Executed when the async work is complete
@@ -517,6 +497,15 @@ class WaitForEventsWorker : public NanAsyncWorker {
   // so it is safe to use V8 again
   void HandleOKCallback () {
     NanScope();
+
+    Local<Array> eventsArray = Local<Array>::Cast(NanPersistentToLocal(baton_->data));
+    std::vector<cl_event> events;
+    for (uint32_t i=0; i<eventsArray->Length(); i++) {
+     Event *we=ObjectWrap::Unwrap<Event>(eventsArray->Get(i)->ToObject());
+      cl_event e = we->getEvent();
+      events.push_back(e);
+    }
+    baton_->error = ::clWaitForEvents( (int) events.size(), &events.front());
 
     // must return passed data
     Local<Value> argv[] = {

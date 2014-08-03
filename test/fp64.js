@@ -14,12 +14,15 @@ if (webcl == undefined) {
   process.exit(-1);
 }
 
+// options
 BUFFER_SIZE=4096;
 useGPU=false;
+
 VectorAdd();
 
 function select_FP64_device(devices, useGPU) {
   var i,device;
+  useGPU = (typeof useGPU === 'undefined') ? true : useGPU; // select GPU by default
 
   for(i=0;i<devices.length;i++) {
     var dev=devices[i];

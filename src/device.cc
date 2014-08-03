@@ -342,7 +342,9 @@ NAN_METHOD(Device::getInfo)
   }
   break;
   default: {
-    return NanThrowError("UNKNOWN PARAM NAME");
+    cl_int ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnUndefined();
   }
   }
   NanReturnUndefined();
