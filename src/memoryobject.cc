@@ -168,7 +168,7 @@ NAN_METHOD(MemoryObject::getInfo)
       else
         NanReturnValue(NanObjectWrapHandle(MemoryObject::New(param_value)));
     }
-    NanReturnUndefined();
+    NanReturnNull();
   }
   case CL_MEM_CONTEXT: {
     cl_context ctx=NULL;
@@ -187,7 +187,7 @@ NAN_METHOD(MemoryObject::getInfo)
       else
         NanReturnValue(NanObjectWrapHandle(Context::New(ctx)));
     }
-    NanReturnUndefined();
+    NanReturnNull();
   }
   case CL_MEM_HOST_PTR: {
     char *param_value=NULL;

@@ -595,8 +595,15 @@ NAN_METHOD(Context::getSupportedImageFormats)
   cl_mem_flags flags = args[0]->IsUndefined() ? CL_MEM_READ_WRITE : args[0]->Uint32Value();
   cl_mem_object_type image_type = (args[0]->IsUndefined() || args[1]->IsUndefined()) ? CL_MEM_OBJECT_IMAGE2D : args[1]->Uint32Value();
   cl_uint numEntries=0;
+  cl_int ret = CL_SUCCESS;
 
-  cl_int ret = ::clGetSupportedImageFormats(
+  if(flags > (CL_MEM_HOST_NO_ACCESS<<1)) {
+    ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnNull();
+  }
+
+  ret = ::clGetSupportedImageFormats(
              context->getContext(),
              flags,
              image_type,

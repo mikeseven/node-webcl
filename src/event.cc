@@ -102,7 +102,7 @@ NAN_METHOD(Event::release)
   printf("  In Event::release %p\n",e->event);
 #endif
   
-  // [mbs] hack that allows sometime for ref count in CL driver to propagate (???)
+  // [mbs] hack that allows some time for ref count in CL driver to propagate (???)
   while(!v8::V8::IdleNotification()); // force GC
 
   e->Destructor();
@@ -137,6 +137,7 @@ NAN_METHOD(Event::getInfo)
       else
         NanReturnValue(NanObjectWrapHandle(Context::New(ctx)));
     }
+    NanReturnNull();
   }
   case CL_EVENT_COMMAND_QUEUE:{
     cl_command_queue q=NULL;
@@ -155,7 +156,7 @@ NAN_METHOD(Event::getInfo)
       else
         NanReturnValue(NanObjectWrapHandle(CommandQueue::New(q, NULL)));
     }
-    NanReturnUndefined();
+    NanReturnNull();
   }
   case CL_EVENT_REFERENCE_COUNT:
   case CL_EVENT_COMMAND_TYPE:
@@ -204,8 +205,11 @@ NAN_METHOD(Event::getProfilingInfo)
     }
     NanReturnValue(JS_INT((int32_t)param_value));
   }
-  default:
-    return NanThrowError("UNKNOWN param_name");
+  default: {
+    cl_int ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnUndefined();
+  }
   }
 }
 
@@ -409,7 +413,7 @@ NAN_METHOD(UserEvent::setStatus)
   int status = args[0]->Int32Value();
 
   cl_int ret=::clSetUserEventStatus(e->getEvent(),status);
-
+  
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(INVALID_EVENT);
     REQ_ERROR_THROW(INVALID_VALUE);

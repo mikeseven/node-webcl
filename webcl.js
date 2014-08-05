@@ -454,7 +454,7 @@ cl.WebCLCommandQueue.prototype.enqueueMarker=function (event) {
 
 cl.WebCLCommandQueue.prototype.enqueueWaitForEvents=function (event_wait_list) {
   if (!(arguments.length >=0 &&       
-      (event_list==null || typeof event_list === 'undefined' || typeof event_list === 'object') )) {
+      (typeof event_list === 'undefined' || event_list==null || typeof event_list === 'object') )) {
     throw new TypeError('Expected WebCLCommandQueue.enqueueWaitForEvents(WebCLEvent[] event_wait_list)');
   }
   return this._enqueueWaitForEvents(event_wait_list);
@@ -478,7 +478,8 @@ cl.WebCLCommandQueue.prototype.flush=function () {
 }
 
 cl.WebCLCommandQueue.prototype.finish=function (callback) {
-  if (!(arguments.length >=0)) {
+  if (!(arguments.length == 0 || 
+    (arguments.length==1 && typeof callback === 'function'))) {
     throw new TypeError('Expected WebCLCommandQueue.finish(optional callback)');
   }
   return this._finish(callback);
@@ -800,7 +801,8 @@ cl.WebCLKernel.prototype.getArgInfo=function (index) {
 }
 
 cl.WebCLKernel.prototype.getWorkGroupInfo=function (device, param_name) {
-  if (!(arguments.length === 2 && checkObjectType(device, 'WebCLDevice') && typeof param_name === 'number')) {
+  if (!(arguments.length === 2 && 
+    (device==null || (checkObjectType(device, 'WebCLDevice') && typeof param_name === 'number')))) {
     throw new TypeError('Expected WebCLKernel.getWorkGroupInfo(WebCLDevice device, CLenum param_name)');
   }
   return this._getWorkGroupInfo(device, param_name);
@@ -960,7 +962,7 @@ cl.WebCLPlatform.prototype.enableExtension=function (param_name) {
 }
 
 cl.WebCLPlatform.prototype.getDevices=function (device_type) {
-  if (!(arguments.length === 1 && typeof device_type === 'number')) {
+  if (!(arguments.length == 0 || (arguments.length == 1 && typeof device_type === 'number'))) {
     throw new TypeError('Expected WebCLPlatform.getDevices(CLenum device_type)');
   }
   return this._getDevices(device_type);
@@ -981,18 +983,20 @@ cl.WebCLProgram.prototype.getInfo=function (param_name) {
 }
 
 cl.WebCLProgram.prototype.getBuildInfo=function (device, param_name) {
-  if (!(arguments.length === 2 && checkObjectType(device, 'WebCLDevice') && typeof param_name === 'number')) {
+  if (!(arguments.length === 2 && (typeof device === 'undefined' || checkObjectType(device, 'WebCLDevice')) && 
+    (typeof param_name === 'number' || param_name==null))) {
     throw new TypeError('Expected WebCLProgram.getBuildInfo(WebCLDevice device, CLenum param_name)');
   }
   return this._getBuildInfo(device, param_name);
 }
 
 cl.WebCLProgram.prototype.build=function (devices, options, callback) {
-  if (  !(arguments.length === 1 && typeof devices === 'object') &&
-        !(arguments.length >= 2 && typeof devices === 'object' && 
-            (options==null || typeof options==='undefined' || typeof options === 'string')) &&
-        !(callback==null || typeof callback === 'undefined' || typeof callback === 'function')
-        ) {
+  if ( !(arguments.length==0) && 
+    !(arguments.length == 1 && (typeof devices === 'object' || devices==null)) &&
+    !(arguments.length >= 2 && (typeof devices === 'object' || devices==null) && 
+      (options==null || typeof options==='undefined' || typeof options === 'string') &&
+      (callback==null || typeof callback === 'undefined' || typeof callback === 'function')
+  )) {
     throw new TypeError('Expected WebCLProgram.build(WebCLDevice[] devices, String options, function callback)');
   }
   return this._build(devices, options, callback);

@@ -65,7 +65,9 @@ NAN_METHOD(Platform::getDevices)
   NanScope();
 
   Platform *platform = ObjectWrap::Unwrap<Platform>(args.This());
-  cl_device_type type = args[0]->Uint32Value();
+  cl_device_type type = CL_DEVICE_TYPE_ALL;
+  if(!args[0]->IsUndefined() && !args[0]->IsNull())
+    type=args[0]->Uint32Value();
 
   cl_uint n = 0;
   cl_int ret = ::clGetDeviceIDs(platform->platform_id, type, 0, NULL, &n);
@@ -157,8 +159,12 @@ NAN_METHOD(Platform::enableExtension)
 {
   NanScope();
   Platform *platform = ObjectWrap::Unwrap<Platform>(args.This());
-  if(!args[0]->IsString())
-    return NanThrowTypeError("invalid extension name");
+
+  if(!args[0]->IsString()) {
+    cl_int ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_PLATFORM);
+    NanReturnValue(JS_BOOL(false));
+  }
 
   if(platform->availableExtensions==0x00) {
     char param_value[1024];
@@ -172,17 +178,17 @@ NAN_METHOD(Platform::enableExtension)
       return NanThrowError("UNKNOWN ERROR");
     }
 
-    if(!strcasecmp(param_value,"gl_sharing")) platform->availableExtensions |= GL_SHARING;
-    if(!strcasecmp(param_value,"fp16"))       platform->availableExtensions |= FP16;
-    if(!strcasecmp(param_value,"fp64"))       platform->availableExtensions |= FP64;
+    if(strcasestr(param_value,"gl_sharing")) platform->availableExtensions |= GL_SHARING;
+    if(strcasestr(param_value,"fp16"))       platform->availableExtensions |= FP16;
+    if(strcasestr(param_value,"fp64"))       platform->availableExtensions |= FP64;
   }
 
   Local<String> name=args[0]->ToString();
   String::AsciiValue astr(name);
   bool ret=false;
-  if(!strcasecmp(*astr,"gl_sharing") && (platform->availableExtensions & GL_SHARING)) { platform->enableExtensions |= GL_SHARING; ret = true; }
-  else if(!strcasecmp(*astr,"fp16") && (platform->availableExtensions & FP16))        { platform->enableExtensions |= FP16; ret = true; }
-  else if(!strcasecmp(*astr,"fp64") && (platform->availableExtensions & FP64))        { platform->enableExtensions |= FP64; ret = true; }
+  if(strcasestr(*astr,"gl_sharing") && (platform->availableExtensions & GL_SHARING)) { platform->enableExtensions |= GL_SHARING; ret = true; }
+  else if(strcasestr(*astr,"fp16") && (platform->availableExtensions & FP16))        { platform->enableExtensions |= FP16; ret = true; }
+  else if(strcasestr(*astr,"fp64") && (platform->availableExtensions & FP64))        { platform->enableExtensions |= FP64; ret = true; }
 
   NanReturnValue(JS_BOOL(ret));
 }

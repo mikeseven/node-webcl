@@ -387,12 +387,20 @@ NAN_METHOD(createContext) {
                                      NULL, NULL, // no callback
                                      &ret);
             }
-            else
-              return NanThrowTypeError("Invalid object in arg 2 of createContext");
+            else {
+              ret=CL_INVALID_VALUE;
+              REQ_ERROR_THROW(INVALID_VALUE);
+              NanReturnNull();
+            }
           }
           else {
             // 5.4 WebCLContext createContext(WebGLRenderingContext gl, sequence<WebCLDevice> devices);
             Local<Array> deviceArray = Local<Array>::Cast(obj);
+            if(deviceArray->Length()==0) {
+              ret=CL_INVALID_VALUE;
+              REQ_ERROR_THROW(INVALID_VALUE);
+              NanReturnNull();
+            }
 
             for (uint32_t i=0; i<deviceArray->Length(); i++) {
               Local<Object> obj = deviceArray->Get(i)->ToObject();
@@ -419,13 +427,20 @@ NAN_METHOD(createContext) {
           }
         }
       }
-      else
-        return NanThrowTypeError("UNKNOWN Object type for arg 1"); 
+      else {
+        ret=CL_INVALID_VALUE;
+        REQ_ERROR_THROW(INVALID_VALUE);
+        NanReturnNull();
+      }
     }
     else {
       // Case 4: WebCLContext createContext(sequence<WebCLDevice> devices);
       Local<Array> deviceArray = Local<Array>::Cast(obj);
-
+      if(deviceArray->Length()==0) {
+        ret=CL_INVALID_VALUE;
+        REQ_ERROR_THROW(INVALID_VALUE);
+        NanReturnNull();
+      }
       for (uint32_t i=0; i<deviceArray->Length(); i++) {
         Local<Object> obj = deviceArray->Get(i)->ToObject();
         Device *d = ObjectWrap::Unwrap<Device>(obj);

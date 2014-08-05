@@ -245,7 +245,7 @@ NAN_METHOD(Device::getInfo)
       return NanThrowError("UNKNOWN ERROR");
     }
     // keeping as Integer vs Boolean so comparisons with cl.TRUE/cl.FALSE work
-    NanReturnValue(Integer::New(param_value));
+    NanReturnValue(JS_BOOL(param_value));
   }
   break;
   // cl_uint params
@@ -370,32 +370,17 @@ NAN_METHOD(Device::enableExtension)
       return NanThrowError("UNKNOWN ERROR");
     }
 
-    if(strstr(param_value,"gl_sharing"))  { 
-      device->availableExtensions |= GL_SHARING; 
-#ifdef LOGGING
-      printf("has GL_SHARING\n"); 
-#endif
-    }
-    if(strstr(param_value,"fp16"))  { 
-      device->availableExtensions |= FP16; 
-#ifdef LOGGING
-      printf("has fp16\n"); 
-#endif
-    }
-    if(strstr(param_value,"fp64"))  { 
-      device->availableExtensions |= FP64; 
-#ifdef LOGGING
-      printf("has fp64\n"); 
-#endif
-    }
+    if(strcasestr(param_value,"gl_sharing")) device->availableExtensions |= GL_SHARING;
+    if(strcasestr(param_value,"fp16"))       device->availableExtensions |= FP16;
+    if(strcasestr(param_value,"fp64"))       device->availableExtensions |= FP64;
   }
 
   Local<String> name=args[0]->ToString();
   String::AsciiValue astr(name);
   bool ret=false;
-  if(strstr(*astr,"gl_sharing") && (device->availableExtensions & GL_SHARING)) { device->enableExtensions |= GL_SHARING; ret=true; }
-  else if(strstr(*astr,"fp16") && (device->availableExtensions & FP16))        { device->enableExtensions |= FP16;; ret=true; }
-  else if(strstr(*astr,"fp64") && (device->availableExtensions & FP64))        { device->enableExtensions |= FP64;; ret=true; }
+  if(strcasestr(*astr,"gl_sharing") && (device->availableExtensions & GL_SHARING)) { device->enableExtensions |= GL_SHARING; ret=true; }
+  else if(strcasestr(*astr,"fp16") && (device->availableExtensions & FP16))        { device->enableExtensions |= FP16;; ret=true; }
+  else if(strcasestr(*astr,"fp64") && (device->availableExtensions & FP64))        { device->enableExtensions |= FP64;; ret=true; }
 
   NanReturnValue(JS_BOOL(ret));
 }

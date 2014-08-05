@@ -191,13 +191,17 @@ NAN_METHOD(Kernel::getInfo)
   }
 }
 
+const char *address_qualifiers[]={ "global", "local", "constant", "private" };
+const char *access_qualifiers[]={ "read_only", "write_only", "read_write", "none" };
+
 NAN_METHOD(Kernel::getArgInfo)
 {
   NanScope();
   Kernel *kernel = ObjectWrap::Unwrap<Kernel>(args.This());
   int index = args[0]->Uint32Value();
-  char name[256], typeName[256];
-  int addressQualifier, accessQualifier, typeQualifier;
+  cl_kernel_arg_address_qualifier addressQualifier;
+  cl_kernel_arg_access_qualifier accessQualifier;
+  cl_kernel_arg_type_qualifier typeQualifier;
 
   cl_int ret = ::clGetKernelArgInfo(kernel->getKernel(), index, 
                                     CL_KERNEL_ARG_ADDRESS_QUALIFIER, 
@@ -209,12 +213,12 @@ NAN_METHOD(Kernel::getArgInfo)
   ret |= ::clGetKernelArgInfo(kernel->getKernel(), index, 
                               CL_KERNEL_ARG_TYPE_QUALIFIER, 
                               sizeof(cl_kernel_arg_type_qualifier), &typeQualifier, NULL);
-  ret |= ::clGetKernelArgInfo(kernel->getKernel(), index, 
-                              CL_KERNEL_ARG_TYPE_NAME, 
-                              sizeof(typeName), typeName, NULL);
-  ret |= ::clGetKernelArgInfo(kernel->getKernel(), index, 
-                              CL_KERNEL_ARG_NAME, 
-                              sizeof(name), name, NULL);
+
+  char name[256], typeName[256];
+  memset(name,0,256);
+  memset(typeName,0,256);
+  ret |= ::clGetKernelArgInfo(kernel->getKernel(), index, CL_KERNEL_ARG_TYPE_NAME, 256, typeName, NULL);
+  ret |= ::clGetKernelArgInfo(kernel->getKernel(), index, CL_KERNEL_ARG_NAME, 256, name, NULL);
 
   if(ret!=CL_SUCCESS) {
     REQ_ERROR_THROW(INVALID_ARG_INDEX);
@@ -224,13 +228,23 @@ NAN_METHOD(Kernel::getArgInfo)
     return NanThrowError("Unknown Error");
   }
 
-  // TODO create WebCLKernelArgInfo dictionary
+  // printf("name %s, typeName %s, addressQualifier %x, accessQualifier %x\n", name, typeName, addressQualifier,accessQualifier);
   Local<Object> kArgInfo = Object::New();
   kArgInfo->Set(JS_STR("name"), JS_STR(name));
   kArgInfo->Set(JS_STR("typeName"), JS_STR(typeName));
-  kArgInfo->Set(JS_STR("addressQualifier"), JS_INT(addressQualifier));
-  kArgInfo->Set(JS_STR("accessQualifier"), JS_INT(accessQualifier));
-  kArgInfo->Set(JS_STR("typeQualifier"), JS_INT(typeQualifier));
+  kArgInfo->Set(JS_STR("addressQualifier"), JS_STR(address_qualifiers[addressQualifier-CL_KERNEL_ARG_ADDRESS_GLOBAL]));
+  kArgInfo->Set(JS_STR("accessQualifier"), JS_STR(access_qualifiers[accessQualifier-CL_KERNEL_ARG_ACCESS_READ_ONLY]));
+  string str;
+  if(typeQualifier & CL_KERNEL_ARG_TYPE_NONE)
+    str+="none ";
+  if(typeQualifier & CL_KERNEL_ARG_TYPE_CONST)
+    str+="const ";
+  if(typeQualifier & CL_KERNEL_ARG_TYPE_RESTRICT)
+    str+="restrict ";
+  if(typeQualifier & CL_KERNEL_ARG_TYPE_VOLATILE)
+    str+="volatile ";
+
+  kArgInfo->Set(JS_STR("typeQualifier"), JS_STR(str.c_str()));
 
   NanReturnValue(kArgInfo);
 }
@@ -239,7 +253,34 @@ NAN_METHOD(Kernel::getWorkGroupInfo)
 {
   NanScope();
   Kernel *kernel = ObjectWrap::Unwrap<Kernel>(args.This());
-  Device *device = ObjectWrap::Unwrap<Device>(args[0]->ToObject());
+  Device *device = NULL;
+
+  if(!args[0]->IsNull())
+    device=ObjectWrap::Unwrap<Device>(args[0]->ToObject());
+  else {
+    // get 1st device associated with the program this kernel belongs to
+    cl_program p=NULL;
+    cl_int ret=::clGetKernelInfo(kernel->getKernel(), CL_KERNEL_PROGRAM, sizeof(cl_program), &p, NULL);
+    size_t num_devices=0;
+    ret=::clGetProgramInfo(p, CL_PROGRAM_DEVICES, 0, NULL, &num_devices);
+    num_devices /= sizeof(cl_device_id);
+    if(num_devices>1) {
+      ret = CL_INVALID_DEVICE;
+      REQ_ERROR_THROW(INVALID_DEVICE);
+      NanReturnUndefined();      
+    }
+    cl_device_id d=NULL;
+    ret |= ::clGetProgramInfo(p, CL_PROGRAM_DEVICES, sizeof(cl_device_id), &d, NULL);  
+    if(ret == CL_SUCCESS) {
+      device=static_cast<Device*>(findCLObj((void*)d, CLObjType::Device)); 
+    }
+    else {
+      ret = CL_INVALID_DEVICE;
+      REQ_ERROR_THROW(INVALID_DEVICE);
+      NanReturnUndefined();
+    }
+  }
+
   cl_kernel_work_group_info param_name = args[1]->Uint32Value();
 
   switch (param_name) {
@@ -289,8 +330,11 @@ NAN_METHOD(Kernel::getWorkGroupInfo)
     }
     NanReturnValue(sizeArray);
   }
-  default:
-    return NanThrowError("UNKNOWN param_name");
+  default: {
+    cl_int ret = CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnUndefined();
+  }
   }
 }
 

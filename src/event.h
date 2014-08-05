@@ -53,6 +53,7 @@ public:
 
   static NAN_GETTER(GetStatus);
   void setStatus(int s) { status = s; }
+  cl_int getStatus() { return status; }
   virtual bool operator==(void *clObj) { return ((cl_event)clObj)==event; }
 
 protected:

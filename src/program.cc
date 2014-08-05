@@ -148,6 +148,7 @@ NAN_METHOD(Program::getInfo)
   case CL_PROGRAM_DEVICES: {
     size_t num_devices=0;
     cl_int ret=::clGetProgramInfo(prog->getProgram(), CL_PROGRAM_DEVICES, 0, NULL, &num_devices);
+    num_devices /= sizeof(cl_device_id);
     cl_device_id *devices=new cl_device_id[num_devices];
     ret=::clGetProgramInfo(prog->getProgram(), CL_PROGRAM_DEVICES, sizeof(cl_device_id)*num_devices, devices, NULL);
     if (ret != CL_SUCCESS) {
@@ -188,6 +189,7 @@ NAN_METHOD(Program::getInfo)
   case CL_PROGRAM_BINARY_SIZES: {
     size_t nsizes=0;
     cl_int ret=::clGetProgramInfo(prog->getProgram(), CL_PROGRAM_BINARY_SIZES, 0, NULL, &nsizes);
+    nsizes /= sizeof(size_t);
     size_t *sizes=new size_t[nsizes];
     ret=::clGetProgramInfo(prog->getProgram(), CL_PROGRAM_BINARY_SIZES, sizeof(size_t)*nsizes, sizes, NULL);
     if (ret != CL_SUCCESS) {
@@ -209,6 +211,7 @@ NAN_METHOD(Program::getInfo)
 
     size_t nbins=0;
     cl_int ret=::clGetProgramInfo(prog->getProgram(), CL_PROGRAM_BINARIES, 0, NULL, &nbins);
+    nbins /= sizeof(size_t);
     char* *binaries=new char*[nbins];
     ret=::clGetProgramInfo(prog->getProgram(), CL_PROGRAM_BINARIES, sizeof(char*)*nbins, binaries, NULL);
     if (ret != CL_SUCCESS) {
@@ -241,7 +244,19 @@ NAN_METHOD(Program::getBuildInfo)
 {
   NanScope();
   Program *prog = ObjectWrap::Unwrap<Program>(args.This());
+  if(args[0]->IsUndefined() || args[0]->IsNull()) {
+    cl_int ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnUndefined();
+  }
+  
   Device *dev = ObjectWrap::Unwrap<Device>(args[0]->ToObject());
+  if(args[1]->IsUndefined() || args[1]->IsNull()) {
+    cl_int ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnUndefined();
+  }
+
   cl_program_info param_name = args[1]->Uint32Value();
 
   switch (param_name) {
@@ -378,11 +393,53 @@ NAN_METHOD(Program::build)
   }
   //cout<<"[Program::build] #devices: "<<num<<" ptr="<<hex<<devices<<dec<<endl<<flush;
 
+  // check for same device
+  {
+    cl_uint ndevs=0;
+    clGetProgramInfo(prog->getProgram(),CL_PROGRAM_NUM_DEVICES,sizeof(cl_uint),&ndevs,NULL);
+    cl_device_id *d1=new cl_device_id[ndevs];
+    clGetProgramInfo(prog->getProgram(),CL_PROGRAM_DEVICES,sizeof(cl_device_id)*ndevs,d1, NULL);
+
+    int nok=0;
+    for(int i=0;i<num;i++) {
+      for(cl_uint j=0;j<ndevs;j++) {
+        if(devices[i]==d1[j])
+          nok++;
+      }
+    }
+    if(d1) delete[] d1;
+    if(nok != num) {
+      if(devices) delete[] devices;
+      cl_int ret=CL_INVALID_DEVICE;
+      REQ_ERROR_THROW(INVALID_DEVICE);
+      NanReturnUndefined();
+    }
+  }
+
   char *options=NULL;
   if(!args[1]->IsUndefined() && !args[1]->IsNull() && args[1]->IsString()) {
     String::AsciiValue str(args[1]);
     //cout<<"str length: "<<str.length()<<endl;
+
     if(str.length()>0) {
+      options = ::strdup(*str);
+
+      // Mac driver bug: make sure -D is not alone...or crash!
+      char *pch=strtok(options," ");
+      while (pch != NULL) {
+        if(pch && strncmp(pch,"-D",2)==0) {
+          pch = strtok (NULL, " ");
+          if(pch==NULL || *pch=='-') {
+            cl_int ret=CL_INVALID_BUILD_OPTIONS;
+            REQ_ERROR_THROW(INVALID_BUILD_OPTIONS);
+            NanReturnUndefined();
+          }
+        }
+        pch = strtok (NULL, " ");
+      }
+      /////
+
+      free(options);
       options = ::strdup(*str);
     }
   }
