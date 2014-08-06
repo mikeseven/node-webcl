@@ -64,6 +64,8 @@ using namespace std;
     #include <GL/gl.h>
     #include <CL/opencl.h>
     #define strcasecmp _stricmp
+    #define strncasecmp _strnicmp
+    char *strcasestr(const char *s, char *find);
 #else
     #include <GL/gl.h>
     #include <GL/glx.h>
