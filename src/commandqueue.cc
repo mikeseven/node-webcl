@@ -421,6 +421,29 @@ NAN_METHOD(CommandQueue::enqueueTask)
   NanReturnUndefined();
 }
 
+int bufferRectSize(const size_t offset[3], const size_t region[3], size_t row_pitch, size_t slice_pitch, size_t buffer_len) 
+{
+  size_t x= offset[0], y=offset[1], z=offset[2];
+  size_t w=region[0], h=region[1], d=region[2];
+  if(w==0 || h==0 || d==0)
+    return -1;
+
+  if(row_pitch==0) 
+    row_pitch=w;
+  else if (row_pitch<w || row_pitch>=buffer_len)
+    return -1;
+
+  if(slice_pitch==0) 
+    slice_pitch=row_pitch*h;
+  else if (slice_pitch<(row_pitch * h) || slice_pitch>=buffer_len)
+    return -1;
+
+  if((slice_pitch % row_pitch) !=0)
+    return -1;
+
+  return (int)(z * slice_pitch + y * row_pitch + x + (w * h * d));
+}
+
 NAN_METHOD(CommandQueue::enqueueWriteBuffer)
 {
   NanScope();
@@ -555,41 +578,52 @@ NAN_METHOD(CommandQueue::enqueueWriteBufferRect)
 
   uint32_t buffer_row_pitch=args[5]->Uint32Value();
   uint32_t buffer_slice_pitch=args[6]->Uint32Value();
-
-  // to overcome bug in some drivers, like Mac
-  uint32_t buf_row_pitch = buffer_row_pitch==0 ? region[0] : buffer_row_pitch;
-  uint32_t buf_slice_pitch = buffer_slice_pitch==0 ? region[1]*buf_row_pitch : buffer_slice_pitch;
-  size_t buf_offset=buffer_origin[2] * buf_slice_pitch + buffer_origin[1] * buf_row_pitch + buffer_origin[0];
-  size_t buf_size=region[2] * buf_slice_pitch + region[1] * buf_row_pitch + region[0];
-  size_t len=0;
-  clGetMemObjectInfo(mo->getMemory(),CL_MEM_SIZE,sizeof(size_t),&len, NULL);
-  printf("len %lu, buff offset %lu, buff size %lu\n",len,buf_offset,buf_size);
-  
-  // if(len<(buf_size+buf_offset)) {
-  //   cl_int ret=CL_INVALID_VALUE;
-  //   REQ_ERROR_THROW(INVALID_VALUE);
-  //   NanReturnUndefined();
-  // }
-
   uint32_t host_row_pitch=args[7]->Uint32Value();
   uint32_t host_slice_pitch=args[8]->Uint32Value();
 
   void *ptr=NULL;
+  int len=0;
   if(!args[9]->IsUndefined() && !args[9]->IsNull()) {
     if(args[9]->IsArray()) {
       Local<Array> arr=Local<Array>::Cast(args[9]);
       ptr = arr->GetIndexedPropertiesExternalArrayData();
+      len = arr->GetIndexedPropertiesExternalArrayDataLength();
+      ExternalArrayType type=arr->GetIndexedPropertiesExternalArrayDataType();
+      if(type == kExternalShortArray || type==kExternalUnsignedShortArray) len *= 2;
+      else if(type == kExternalIntArray || type==kExternalUnsignedIntArray || type==kExternalFloatArray) len *= 4;
+      else if(type == kExternalDoubleArray) len *= 8;
     }
     else if(args[9]->IsObject()) {
       Local<Object> obj=args[9]->ToObject();
       String::AsciiValue name(obj->GetConstructorName());
-      if(!strcmp("Buffer",*name))
+      if(!strcmp("Buffer",*name)) {
         ptr=Buffer::Data(obj);
-      else
+        len = Buffer::Length(obj);
+      }
+      else {
         ptr = obj->GetIndexedPropertiesExternalArrayData();
+        len = obj->GetIndexedPropertiesExternalArrayDataLength();
+        ExternalArrayType type=obj->GetIndexedPropertiesExternalArrayDataType();
+        if(type == kExternalShortArray || type==kExternalUnsignedShortArray) len *= 2;
+        else if(type == kExternalIntArray || type==kExternalUnsignedIntArray || type==kExternalFloatArray) len *= 4;
+        else if(type == kExternalDoubleArray) len *= 8;
+      }
     }
-    else
-      NanThrowError("Invalid memory object");
+    else {
+      cl_int ret=CL_INVALID_VALUE;
+      REQ_ERROR_THROW(INVALID_VALUE);
+      NanReturnUndefined();
+    }
+  }
+
+  int buf_sz = bufferRectSize(buffer_origin, region, buffer_row_pitch, buffer_slice_pitch, len);
+  int host_sz = bufferRectSize(host_origin, region, host_row_pitch, host_slice_pitch, len);
+  // printf("len %d, buf off %d, host off %d\n",len,buf_sz,host_sz);
+  if (buf_sz < 0 || host_sz < 0 || buf_sz > len || host_sz > len)
+  {
+    cl_int ret = CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnUndefined();
   }
 
   MakeEventWaitList(args[10]);
@@ -769,24 +803,48 @@ NAN_METHOD(CommandQueue::enqueueReadBufferRect)
   uint32_t host_slice_pitch=args[8]->Uint32Value();
 
   void *ptr=NULL;
+  int len=0;
   if(!args[9]->IsUndefined() && !args[9]->IsNull()) {
     if(args[9]->IsArray()) {
       Local<Array> arr=Local<Array>::Cast(args[9]);
       ptr = arr->GetIndexedPropertiesExternalArrayData();
+      len = arr->GetIndexedPropertiesExternalArrayDataLength();
+      ExternalArrayType type=arr->GetIndexedPropertiesExternalArrayDataType();
+      if(type == kExternalShortArray || type==kExternalUnsignedShortArray) len *= 2;
+      else if(type == kExternalIntArray || type==kExternalUnsignedIntArray || type==kExternalFloatArray) len *= 4;
+      else if(type == kExternalDoubleArray) len *= 8;
     }
     else if(args[9]->IsObject()) {
       Local<Object> obj=args[9]->ToObject();
       String::AsciiValue name(obj->GetConstructorName());
-      if(!strcmp("Buffer",*name))
+      if(!strcmp("Buffer",*name)) {
         ptr=Buffer::Data(obj);
-      else
+        len = Buffer::Length(obj);
+      }
+      else {
         ptr = obj->GetIndexedPropertiesExternalArrayData(); 
+        len = obj->GetIndexedPropertiesExternalArrayDataLength();
+        ExternalArrayType type=obj->GetIndexedPropertiesExternalArrayDataType();
+        if(type == kExternalShortArray || type==kExternalUnsignedShortArray) len *= 2;
+        else if(type == kExternalIntArray || type==kExternalUnsignedIntArray || type==kExternalFloatArray) len *= 4;
+        else if(type == kExternalDoubleArray) len *= 8;
+      }
     }
     else {
-      cl_int ret=CL_INVALID_MEM_OBJECT;
-      REQ_ERROR_THROW(INVALID_MEM_OBJECT);
+      cl_int ret=CL_INVALID_VALUE;
+      REQ_ERROR_THROW(INVALID_VALUE);
       NanReturnUndefined();
     }
+  }
+
+  int buf_sz = bufferRectSize(buffer_origin, region, buffer_row_pitch, buffer_slice_pitch, len);
+  int host_sz = bufferRectSize(host_origin, region, host_row_pitch, host_slice_pitch, len);
+  // printf("len %d, buf off %d, host off %d\n",len,buf_sz,host_sz);
+  if (buf_sz < 0 || host_sz < 0 || buf_sz > len || host_sz > len)
+  {
+    cl_int ret = CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnUndefined();
   }
 
   MakeEventWaitList(args[10]);
@@ -811,8 +869,6 @@ NAN_METHOD(CommandQueue::enqueueReadBufferRect)
       no_event ? NULL : &event);
 
   if(events_wait_list) delete[] events_wait_list;
-
-  printf("clEnqueueReadBufferRect ret %d\n",ret);
 
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(INVALID_COMMAND_QUEUE);
@@ -858,6 +914,23 @@ NAN_METHOD(CommandQueue::enqueueCopyBuffer)
   size_t dst_offset = args[3]->Uint32Value();
   size_t size = args[4]->Uint32Value();
 
+  size_t len_s, len_d;
+  clGetMemObjectInfo(mo_src->getMemory(),CL_MEM_SIZE,sizeof(size_t),&len_s,NULL);
+  clGetMemObjectInfo(mo_dst->getMemory(),CL_MEM_SIZE,sizeof(size_t),&len_d,NULL);
+  if(src_offset+size>len_s || dst_offset+size>len_d) {
+    cl_int ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnUndefined();
+  }
+
+  if(mo_src->getMemory() == mo_dst->getMemory() &&
+    (src_offset+size>dst_offset && dst_offset+size>src_offset)
+  ) {
+    cl_int ret=CL_MEM_COPY_OVERLAP;
+    REQ_ERROR_THROW(MEM_COPY_OVERLAP);
+    NanReturnUndefined();    
+  }
+  
   MakeEventWaitList(args[5]);
 
   if(num_evts != num_events_wait_list) {
@@ -935,10 +1008,25 @@ NAN_METHOD(CommandQueue::enqueueCopyBufferRect)
   for(i=0;i<arr->Length();i++)
       region[i]=arr->Get(i)->Uint32Value();
 
+  if(region[0]==0 || region[1]==0 || region[2]==0) {
+    cl_int ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnUndefined();
+  }
+
   size_t src_row_pitch = args[5]->Uint32Value();
   size_t src_slice_pitch = args[6]->Uint32Value();
   size_t dst_row_pitch = args[7]->Uint32Value();
   size_t dst_slice_pitch = args[8]->Uint32Value();
+
+  size_t len_s, len_d;
+  clGetMemObjectInfo(mo_src->getMemory(),CL_MEM_SIZE,sizeof(size_t),&len_s,NULL);
+  clGetMemObjectInfo(mo_dst->getMemory(),CL_MEM_SIZE,sizeof(size_t),&len_d,NULL);
+  if(src_origin[0]+region[0]>len_s || dst_origin[0]+region[0]>len_d) {
+    cl_int ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnUndefined();
+  }
 
   MakeEventWaitList(args[9]);
 
@@ -1013,12 +1101,18 @@ NAN_METHOD(CommandQueue::enqueueWriteImage)
   for(i=0;i<arr->Length();i++)
       region[i]=arr->Get(i)->Uint32Value();
 
+  if(region[0]==0 || region[1]==0 || region[2]==0) {
+      cl_int ret=CL_INVALID_VALUE;
+      REQ_ERROR_THROW(INVALID_VALUE);
+      NanReturnUndefined();    
+  }
+  
   size_t row_pitch = args[4]->Uint32Value();
   size_t slice_pitch = 0; //args[5]->Uint32Value(); // no slice_pitch in WebCL 1.0
 
   void *ptr=NULL;
   size_t len=0;
-  if(!args[5]->IsUndefined()) {
+  if(!args[5]->IsUndefined() && !args[5]->IsNull()) {
     if(args[5]->IsArray()) {
       Local<Array> arr=Local<Array>::Cast(args[5]);
       ptr = arr->GetIndexedPropertiesExternalArrayData();
