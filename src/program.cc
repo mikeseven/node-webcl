@@ -419,20 +419,23 @@ NAN_METHOD(Program::build)
   char *options=NULL;
   if(!args[1]->IsUndefined() && !args[1]->IsNull() && args[1]->IsString()) {
     String::AsciiValue str(args[1]);
-    //cout<<"str length: "<<str.length()<<endl;
+    // cout<<"str length: "<<str.length()<<endl;
 
     if(str.length()>0) {
       options = ::strdup(*str);
+      printf("options: %s\n",options);
 
       // Mac driver bug: make sure -D is not alone...or crash!
       char *pch=strtok(options," ");
       while (pch != NULL) {
         if(pch && strncmp(pch,"-D",2)==0) {
-          pch = strtok (NULL, " ");
-          if(pch==NULL || *pch=='-') {
-            cl_int ret=CL_INVALID_BUILD_OPTIONS;
-            REQ_ERROR_THROW(INVALID_BUILD_OPTIONS);
-            NanReturnUndefined();
+          if(*(pch+3)==' ') { 
+            pch = strtok (NULL, " ");
+            if(pch==NULL || *pch=='-') {
+              cl_int ret=CL_INVALID_BUILD_OPTIONS;
+              REQ_ERROR_THROW(INVALID_BUILD_OPTIONS);
+              NanReturnUndefined();
+            }
           }
         }
         pch = strtok (NULL, " ");

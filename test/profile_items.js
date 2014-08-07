@@ -177,7 +177,7 @@ function main() {
     try {
       queue.enqueueNDRangeKernel(kernel, 1, null, [num_items], null, null, prof_event);
     } catch(ex) {
-      log("Couldn't enqueue the kernel. "+ex);
+      log("Couldn't enqueue the kernel. "+ex.name);
       exit(1);   
     }
 

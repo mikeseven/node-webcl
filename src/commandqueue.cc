@@ -312,11 +312,11 @@ NAN_METHOD(CommandQueue::enqueueNDRangeKernel)
     for(cl_uint i=0;i<num_locals;i++)
       locals[i]=arr->Get(i)->Uint32Value();
   }
-  else {
-    cl_int ret=CL_INVALID_WORK_GROUP_SIZE;
-    REQ_ERROR_THROW(INVALID_WORK_GROUP_SIZE);
-    NanReturnUndefined();    
-  }
+  // else {
+  //   cl_int ret=CL_INVALID_WORK_GROUP_SIZE;
+  //   REQ_ERROR_THROW(INVALID_WORK_GROUP_SIZE);
+  //   NanReturnUndefined();    
+  // }
 
   MakeEventWaitList(args[5]);
 
@@ -1145,7 +1145,7 @@ NAN_METHOD(CommandQueue::enqueueWriteImage)
   //   region[0],region[1],region[2],region[0]*region[1]*region[2],
   //   origin[0],origin[1],origin[2],
   //   row_pitch,slice_pitch);
-  if(len<region[0]*region[1]*region[2]*bpp || 
+  if(len<region[0]*region[1]*region[2] || 
     (row_pitch>0 && ( (row_pitch/bpp)<imgW || ((row_pitch/bpp) % imgW) !=0) ) ||
     origin[0]+region[0]>imgW || origin[1]+region[1]>imgH
   ) {

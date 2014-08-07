@@ -181,6 +181,7 @@ function histogram(image) {
     kernel= program.createKernel("histogram_kernel");
   }
   catch(err) {
+    log('Error: '+err.name)
     log("Error building program. "+program.getBuildInfo(device,webcl.PROGRAM_BUILD_LOG));
     process.exit(-1);
   }
@@ -212,7 +213,7 @@ function histogram(image) {
   queue.finish(); //Finish all the operations
 
   // read histograms
-  var readEvt=[new WebCLEvent(), new WebCLEvent(), new sWebCLEvent()];
+  var readEvt=[new WebCLEvent(), new WebCLEvent(), new WebCLEvent()];
   status = queue.enqueueReadBuffer(intermediateHistR, false, 0, szBytesIntermediateHist, midDeviceBinR, null, readEvt[0]);
   status |= queue.enqueueReadBuffer(intermediateHistG, false, 0, szBytesIntermediateHist, midDeviceBinG, null, readEvt[1]);
   status |= queue.enqueueReadBuffer(intermediateHistB, false, 0, szBytesIntermediateHist, midDeviceBinB, null, readEvt[2]);
