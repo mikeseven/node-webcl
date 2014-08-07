@@ -169,19 +169,20 @@ function histogram(image) {
     process.exit(-1);
   }
 
-  //Create and program from source
-  var program=context.createProgram(histogram_kernel);
-  
-  //Build program
-  program.build(device,"-cl-kernel-arg-info -DBIN_SIZE="+binSize);
-
-  //Create kernel object
   var kernel;
   try {
+    // Create and program from source
+    var program=context.createProgram(histogram_kernel);
+  
+    // Build program
+    program.build(device,"-cl-kernel-arg-info -DBIN_SIZE="+binSize);
+
+    // Create kernel object
     kernel= program.createKernel("histogram_kernel");
   }
   catch(err) {
-    log(program.getBuildInfo(device,webcl.PROGRAM_BUILD_LOG));
+    log("Error building program. "+program.getBuildInfo(device,webcl.PROGRAM_BUILD_LOG));
+    process.exit(-1);
   }
 
   // Set the arguments to our compute kernel
@@ -211,7 +212,7 @@ function histogram(image) {
   queue.finish(); //Finish all the operations
 
   // read histograms
-  var readEvt=[new webcl.WebCLEvent(), new webcl.WebCLEvent(), new webcl.WebCLEvent()];
+  var readEvt=[new WebCLEvent(), new WebCLEvent(), new sWebCLEvent()];
   status = queue.enqueueReadBuffer(intermediateHistR, false, 0, szBytesIntermediateHist, midDeviceBinR, null, readEvt[0]);
   status |= queue.enqueueReadBuffer(intermediateHistG, false, 0, szBytesIntermediateHist, midDeviceBinG, null, readEvt[1]);
   status |= queue.enqueueReadBuffer(intermediateHistB, false, 0, szBytesIntermediateHist, midDeviceBinB, null, readEvt[2]);
