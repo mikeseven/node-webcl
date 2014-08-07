@@ -23,12 +23,14 @@ VectorAdd();
 function select_FP64_device(devices, useGPU) {
   var i,device;
   useGPU = (typeof useGPU === 'undefined') ? true : useGPU; // select GPU by default
-
+  var isAMD=false;
   for(i=0;i<devices.length;i++) {
     var dev=devices[i];
     if(dev.enableExtension('KHR_fp64')) {
       if(!useGPU || dev.getInfo(webcl.DEVICE_TYPE)==webcl.DEVICE_TYPE_GPU) {
         device=dev;
+        if(device.getInfo(webcl.DEVICE_VENDOR).indexOf("Advanced Micro Devices")>=0)
+          isAMD=true;
         break;        
       }
     }
@@ -37,8 +39,8 @@ function select_FP64_device(devices, useGPU) {
     log("Error: can't find a device that supports 64-bit floats");
     return null;
   }
-  log('Using device: '+device.getInfo(webcl.DEVICE_NAME));
-  return device;
+  log('Found fp64 device: '+device.getInfo(webcl.DEVICE_VENDOR)+device.getInfo(webcl.DEVICE_NAME));
+  return [device, isAMD];
 }
 
 function VectorAdd() {
@@ -61,9 +63,12 @@ function VectorAdd() {
 
   // find a device that supports fp64
   // Note: Intel integrated GPU HD 4000 doesn't support fp64
-  device=select_FP64_device(devices, useGPU);
-  if(!device)
+  var dev=select_FP64_device(devices, useGPU);
+  if(!dev)
     process.exit(-1);
+
+  device=dev[0];
+  isAMD=dev[1];
 
   // create GPU context for this platform
   var context=webcl.createContext(device);
@@ -72,7 +77,6 @@ function VectorAdd() {
   queue=context.createCommandQueue();
   
   kernelSourceCode = [
-// "#pragma OPENCL EXTENSION cl_khr_fp64 : enable                               ",
 "__kernel void vadd(__global double *a, __global double *b, __global double *c, uint iNumElements) ",
 "{                                                                           ",
 "    size_t i =  get_global_id(0);                                           ",
@@ -80,6 +84,11 @@ function VectorAdd() {
 "    c[i] = a[i] + b[i];                                                     ",
 "}                                                                           "
 ].join("\n");
+
+  if(isAMD) 
+    kernelSourceCode = "#pragma OPENCL EXTENSION cl_amd_fp64 : enable\n" + kernelSourceCode;
+  else
+    kernelSourceCode = "#pragma OPENCL EXTENSION cl_khr_fp64 : enable\n" + kernelSourceCode;
 
   //Create and program from source
   program=context.createProgram(kernelSourceCode);
