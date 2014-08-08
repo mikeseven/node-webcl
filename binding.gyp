@@ -8,6 +8,7 @@
       ],
       'sources': [
         'src/bindings.cc',
+        'src/cl_checks.cc',
         'src/commandqueue.cc',
         'src/context.cc',
         'src/device.cc',

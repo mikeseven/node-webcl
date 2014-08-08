@@ -31,6 +31,7 @@
 #include "memoryobject.h"
 #include "event.h"
 #include "kernel.h"
+#include "cl_checks.h"
 #include <vector>
 #include <node_buffer.h>
 #include <cstring> // for memcpy
@@ -303,20 +304,12 @@ NAN_METHOD(CommandQueue::enqueueNDRangeKernel)
   if(!args[4]->IsUndefined() && !args[4]->IsNull()) {
     Local<Array> arr = Local<Array>::Cast(args[4]);
     num_locals=arr->Length();
-    if(num_locals == 0) {
-      cl_int ret=CL_INVALID_WORK_GROUP_SIZE;
-      REQ_ERROR_THROW(INVALID_WORK_GROUP_SIZE);
-      NanReturnUndefined();    
+    if(num_locals != 0) {
+      locals=new size_t[num_locals];
+      for(cl_uint i=0;i<num_locals;i++)
+        locals[i]=arr->Get(i)->Uint32Value();
     }
-    locals=new size_t[num_locals];
-    for(cl_uint i=0;i<num_locals;i++)
-      locals[i]=arr->Get(i)->Uint32Value();
   }
-  // else {
-  //   cl_int ret=CL_INVALID_WORK_GROUP_SIZE;
-  //   REQ_ERROR_THROW(INVALID_WORK_GROUP_SIZE);
-  //   NanReturnUndefined();    
-  // }
 
   MakeEventWaitList(args[5]);
 
@@ -421,29 +414,6 @@ NAN_METHOD(CommandQueue::enqueueTask)
   NanReturnUndefined();
 }
 
-int bufferRectSize(const size_t offset[3], const size_t region[3], size_t row_pitch, size_t slice_pitch, size_t buffer_len) 
-{
-  size_t x= offset[0], y=offset[1], z=offset[2];
-  size_t w=region[0], h=region[1], d=region[2];
-  if(w==0 || h==0 || d==0)
-    return -1;
-
-  if(row_pitch==0) 
-    row_pitch=w;
-  else if (row_pitch<w || row_pitch>=buffer_len)
-    return -1;
-
-  if(slice_pitch==0) 
-    slice_pitch=row_pitch*h;
-  else if (slice_pitch<(row_pitch * h) || slice_pitch>=buffer_len)
-    return -1;
-
-  if((slice_pitch % row_pitch) !=0)
-    return -1;
-
-  return (int)(z * slice_pitch + y * row_pitch + x + (w * h * d));
-}
-
 NAN_METHOD(CommandQueue::enqueueWriteBuffer)
 {
   NanScope();
@@ -466,40 +436,18 @@ NAN_METHOD(CommandQueue::enqueueWriteBuffer)
   uint32_t size = args[3]->Uint32Value();
 
   void *ptr=NULL;
-  size_t len=0;
-  if(!args[4]->IsUndefined() && !args[4]->IsNull()) {
-    if(args[4]->IsArray()) {
-      Local<Array> arr=Local<Array>::Cast(args[4]);
-      ptr = arr->GetIndexedPropertiesExternalArrayData();
-      len = arr->GetIndexedPropertiesExternalArrayDataLength();
-      ExternalArrayType type=arr->GetIndexedPropertiesExternalArrayDataType();
-      if(type == kExternalShortArray || type==kExternalUnsignedShortArray) len *= 2;
-      else if(type == kExternalIntArray || type==kExternalUnsignedIntArray || type==kExternalFloatArray) len *= 4;
-      else if(type == kExternalDoubleArray) len *= 8;
-    }
-    else if(args[4]->IsObject()) {
-      Local<Object> obj=args[4]->ToObject();
-      String::AsciiValue name(obj->GetConstructorName());
-      if(!strcmp("Buffer",*name)) {
-        ptr=Buffer::Data(obj);
-        len=Buffer::Length(obj);
-      }
-      else {
-        ptr = obj->GetIndexedPropertiesExternalArrayData();
-        len = obj->GetIndexedPropertiesExternalArrayDataLength();
-        ExternalArrayType type=obj->GetIndexedPropertiesExternalArrayDataType();
-        if(type == kExternalShortArray || type==kExternalUnsignedShortArray) len *= 2;
-        else if(type == kExternalIntArray || type==kExternalUnsignedIntArray || type==kExternalFloatArray) len *= 4;
-        else if(type == kExternalDoubleArray) len *= 8;
-      }
-    }
-    else
-      NanThrowError("Invalid memory object");
+  int len=0;
+  if(args[4]->IsUndefined() || args[4]->IsNull()) {
+    cl_int ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnUndefined();
   }
+  else
+    getPtrAndLen(args[4],ptr,len);
 
   // to overcome bug in some drivers, like Mac
   // printf("len %lu, offset %d, size %d\n",len,offset,size);
-  if(len<(size+offset)) {
+  if(len< (int)(size+offset)) {
     cl_int ret=CL_INVALID_VALUE;
     REQ_ERROR_THROW(INVALID_VALUE);
     NanReturnUndefined();
@@ -583,38 +531,13 @@ NAN_METHOD(CommandQueue::enqueueWriteBufferRect)
 
   void *ptr=NULL;
   int len=0;
-  if(!args[9]->IsUndefined() && !args[9]->IsNull()) {
-    if(args[9]->IsArray()) {
-      Local<Array> arr=Local<Array>::Cast(args[9]);
-      ptr = arr->GetIndexedPropertiesExternalArrayData();
-      len = arr->GetIndexedPropertiesExternalArrayDataLength();
-      ExternalArrayType type=arr->GetIndexedPropertiesExternalArrayDataType();
-      if(type == kExternalShortArray || type==kExternalUnsignedShortArray) len *= 2;
-      else if(type == kExternalIntArray || type==kExternalUnsignedIntArray || type==kExternalFloatArray) len *= 4;
-      else if(type == kExternalDoubleArray) len *= 8;
-    }
-    else if(args[9]->IsObject()) {
-      Local<Object> obj=args[9]->ToObject();
-      String::AsciiValue name(obj->GetConstructorName());
-      if(!strcmp("Buffer",*name)) {
-        ptr=Buffer::Data(obj);
-        len = Buffer::Length(obj);
-      }
-      else {
-        ptr = obj->GetIndexedPropertiesExternalArrayData();
-        len = obj->GetIndexedPropertiesExternalArrayDataLength();
-        ExternalArrayType type=obj->GetIndexedPropertiesExternalArrayDataType();
-        if(type == kExternalShortArray || type==kExternalUnsignedShortArray) len *= 2;
-        else if(type == kExternalIntArray || type==kExternalUnsignedIntArray || type==kExternalFloatArray) len *= 4;
-        else if(type == kExternalDoubleArray) len *= 8;
-      }
-    }
-    else {
-      cl_int ret=CL_INVALID_VALUE;
-      REQ_ERROR_THROW(INVALID_VALUE);
-      NanReturnUndefined();
-    }
+  if(args[9]->IsUndefined() || args[9]->IsNull()) {
+    cl_int ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnUndefined();
   }
+  else
+    getPtrAndLen(args[9],ptr,len);
 
   int buf_sz = bufferRectSize(buffer_origin, region, buffer_row_pitch, buffer_slice_pitch, len);
   int host_sz = bufferRectSize(host_origin, region, host_row_pitch, host_slice_pitch, len);
@@ -693,34 +616,17 @@ NAN_METHOD(CommandQueue::enqueueReadBuffer)
   uint32_t size=args[3]->Uint32Value();
 
   void *ptr=NULL;
-  size_t len=0;
-  if(!args[4]->IsUndefined() && !args[4]->IsNull()) {
-    if(args[4]->IsArray()) {
-      Local<Array> arr=Local<Array>::Cast(args[4]);
-      ptr = arr->GetIndexedPropertiesExternalArrayData();
-      len = arr->GetIndexedPropertiesExternalArrayDataLength();
-    }
-    else if(args[4]->IsObject()) {
-      Local<Object> obj=args[4]->ToObject();
-      String::AsciiValue name(obj->GetConstructorName());
-      if(!strcmp("Buffer",*name)) {
-        ptr=Buffer::Data(obj);
-        len = Buffer::Length(obj);
-      }
-      else {
-        ptr = obj->GetIndexedPropertiesExternalArrayData();
-        len = obj->GetIndexedPropertiesExternalArrayDataLength();
-      }
-    }
-    else {
-      cl_int ret=CL_INVALID_MEM_OBJECT;
-      REQ_ERROR_THROW(INVALID_MEM_OBJECT);
-      NanReturnUndefined();
-    }
+  int len=0;
+  if(args[4]->IsUndefined() || args[4]->IsNull()) {
+    cl_int ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnUndefined();
   }
+  else
+    getPtrAndLen(args[4],ptr,len);
 
   // printf("offset %lu, size %lu, len %lu\n",offset,size,len);
-  if(offset>len) {
+  if((int)offset>len) {
       cl_int ret=CL_INVALID_VALUE;
       REQ_ERROR_THROW(INVALID_VALUE);
       NanReturnUndefined();    
@@ -804,38 +710,13 @@ NAN_METHOD(CommandQueue::enqueueReadBufferRect)
 
   void *ptr=NULL;
   int len=0;
-  if(!args[9]->IsUndefined() && !args[9]->IsNull()) {
-    if(args[9]->IsArray()) {
-      Local<Array> arr=Local<Array>::Cast(args[9]);
-      ptr = arr->GetIndexedPropertiesExternalArrayData();
-      len = arr->GetIndexedPropertiesExternalArrayDataLength();
-      ExternalArrayType type=arr->GetIndexedPropertiesExternalArrayDataType();
-      if(type == kExternalShortArray || type==kExternalUnsignedShortArray) len *= 2;
-      else if(type == kExternalIntArray || type==kExternalUnsignedIntArray || type==kExternalFloatArray) len *= 4;
-      else if(type == kExternalDoubleArray) len *= 8;
-    }
-    else if(args[9]->IsObject()) {
-      Local<Object> obj=args[9]->ToObject();
-      String::AsciiValue name(obj->GetConstructorName());
-      if(!strcmp("Buffer",*name)) {
-        ptr=Buffer::Data(obj);
-        len = Buffer::Length(obj);
-      }
-      else {
-        ptr = obj->GetIndexedPropertiesExternalArrayData(); 
-        len = obj->GetIndexedPropertiesExternalArrayDataLength();
-        ExternalArrayType type=obj->GetIndexedPropertiesExternalArrayDataType();
-        if(type == kExternalShortArray || type==kExternalUnsignedShortArray) len *= 2;
-        else if(type == kExternalIntArray || type==kExternalUnsignedIntArray || type==kExternalFloatArray) len *= 4;
-        else if(type == kExternalDoubleArray) len *= 8;
-      }
-    }
-    else {
-      cl_int ret=CL_INVALID_VALUE;
-      REQ_ERROR_THROW(INVALID_VALUE);
-      NanReturnUndefined();
-    }
+  if(args[9]->IsUndefined() || args[9]->IsNull()) {
+    cl_int ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnUndefined();
   }
+  else
+    getPtrAndLen(args[9],ptr,len);
 
   int buf_sz = bufferRectSize(buffer_origin, region, buffer_row_pitch, buffer_slice_pitch, len);
   int host_sz = bufferRectSize(host_origin, region, host_row_pitch, host_slice_pitch, len);
@@ -1111,47 +992,19 @@ NAN_METHOD(CommandQueue::enqueueWriteImage)
   size_t slice_pitch = 0; //args[5]->Uint32Value(); // no slice_pitch in WebCL 1.0
 
   void *ptr=NULL;
-  size_t len=0;
-  if(!args[5]->IsUndefined() && !args[5]->IsNull()) {
-    if(args[5]->IsArray()) {
-      Local<Array> arr=Local<Array>::Cast(args[5]);
-      ptr = arr->GetIndexedPropertiesExternalArrayData();
-      len = arr->GetIndexedPropertiesExternalArrayDataLength();
-    }
-    else if(args[5]->IsObject()) {
-      Local<Object> obj=args[5]->ToObject();
-      String::AsciiValue name(obj->GetConstructorName());
-      if(!strcmp("Buffer",*name)) {
-        ptr=Buffer::Data(obj);
-        len = Buffer::Length(obj);
-      }
-      else {
-        ptr = obj->GetIndexedPropertiesExternalArrayData();
-        len = obj->GetIndexedPropertiesExternalArrayDataLength();
-      }
-    }
-    else {
-      cl_int ret=CL_INVALID_VALUE;
-      REQ_ERROR_THROW(INVALID_VALUE);
-      NanReturnUndefined();
-    }
-  }
-
-  size_t imgW, imgH, bpp;
-  clGetImageInfo(mo->getMemory(),CL_IMAGE_WIDTH,sizeof(size_t),&imgW,NULL);
-  clGetImageInfo(mo->getMemory(),CL_IMAGE_HEIGHT,sizeof(size_t),&imgH,NULL);
-  clGetImageInfo(mo->getMemory(),CL_IMAGE_ELEMENT_SIZE,sizeof(size_t),&bpp,NULL);
-  // printf("image %lu x %lu bpp %lu, len %lu, region %lu %lu %lu = %lu, origin %lu %lu %lu, row_pitch %lu, slice_pitch %lu\n",imgW, imgH, bpp, len,
-  //   region[0],region[1],region[2],region[0]*region[1]*region[2],
-  //   origin[0],origin[1],origin[2],
-  //   row_pitch,slice_pitch);
-  if(len<region[0]*region[1]*region[2] || 
-    (row_pitch>0 && ( (row_pitch/bpp)<imgW || ((row_pitch/bpp) % imgW) !=0) ) ||
-    origin[0]+region[0]>imgW || origin[1]+region[1]>imgH
-  ) {
+  int len=0;
+  if(args[5]->IsUndefined() || args[5]->IsNull()) {
     cl_int ret=CL_INVALID_VALUE;
     REQ_ERROR_THROW(INVALID_VALUE);
     NanReturnUndefined();
+  }
+  else
+    getPtrAndLen(args[5],ptr,len);
+
+  if(imageRectSize(origin,region,row_pitch,slice_pitch,mo->getMemory(),len)<0) {
+    cl_int ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnUndefined();    
   }
 
   MakeEventWaitList(args[6]);
@@ -1229,47 +1082,19 @@ NAN_METHOD(CommandQueue::enqueueReadImage)
   size_t slice_pitch = 0;
 
   void *ptr=NULL;
-  size_t len=0;
-  if(!args[5]->IsUndefined() && !args[5]->IsNull()) {
-    if(args[5]->IsArray()) {
-      Local<Array> arr=Local<Array>::Cast(args[5]);
-      ptr = arr->GetIndexedPropertiesExternalArrayData();
-      len = arr->GetIndexedPropertiesExternalArrayDataLength();
-    }
-    else if(args[5]->IsObject()) {
-      Local<Object> obj=args[5]->ToObject();
-      String::AsciiValue name(obj->GetConstructorName());
-      if(!strcmp("Buffer",*name)) {
-        ptr=Buffer::Data(obj);
-        len = Buffer::Length(obj);
-      }
-      else {
-        ptr = obj->GetIndexedPropertiesExternalArrayData();
-        len = obj->GetIndexedPropertiesExternalArrayDataLength();
-      }
-    }
-    else {
-      cl_int ret=CL_INVALID_VALUE;
-      REQ_ERROR_THROW(INVALID_VALUE);
-      NanReturnUndefined();
-    }
-  }
-
-  size_t imgW, imgH, bpp;
-  clGetImageInfo(mo->getMemory(),CL_IMAGE_WIDTH,sizeof(size_t),&imgW,NULL);
-  clGetImageInfo(mo->getMemory(),CL_IMAGE_HEIGHT,sizeof(size_t),&imgH,NULL);
-  clGetImageInfo(mo->getMemory(),CL_IMAGE_ELEMENT_SIZE,sizeof(size_t),&bpp,NULL);
-  // printf("image %lu x %lu bpp %lu, len %lu, region %lu %lu %lu = %lu, row_pitch %lu, slice_pitch %lu\n",imgW, imgH, bpp, len,
-  //   region[0],region[1],region[2],region[0]*region[1]*region[2],
-  //     row_pitch,slice_pitch);
-
-  if(len<region[0]*region[1]*region[2]*bpp || 
-    (row_pitch>0 && ( (row_pitch/bpp)<imgW || ((row_pitch/bpp) % imgW) !=0) ) ||
-    origin[0]+region[0]>imgW || origin[1]+region[1]>imgH
-  ) {
+  int len=0;
+  if(args[5]->IsUndefined() || args[5]->IsNull()) {
     cl_int ret=CL_INVALID_VALUE;
     REQ_ERROR_THROW(INVALID_VALUE);
     NanReturnUndefined();
+  }
+  else
+    getPtrAndLen(args[5],ptr,len);
+
+  if(imageRectSize(origin,region,row_pitch,slice_pitch,mo->getMemory(),len)<0) {
+    cl_int ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnUndefined();    
   }
 
   MakeEventWaitList(args[6]);
@@ -1347,17 +1172,28 @@ NAN_METHOD(CommandQueue::enqueueCopyImage)
   for(i=0;i<arr->Length();i++)
       region[i]=arr->Get(i)->Uint32Value();
 
-  size_t imgW_s, imgH_s, imgW_d, imgH_d;
-  clGetImageInfo(mo_src->getMemory(),CL_IMAGE_WIDTH,sizeof(size_t),&imgW_s,NULL);
-  clGetImageInfo(mo_src->getMemory(),CL_IMAGE_HEIGHT,sizeof(size_t),&imgH_s,NULL);
-  clGetImageInfo(mo_dst->getMemory(),CL_IMAGE_WIDTH,sizeof(size_t),&imgW_d,NULL);
-  clGetImageInfo(mo_dst->getMemory(),CL_IMAGE_HEIGHT,sizeof(size_t),&imgH_d,NULL);
-  if(src_origin[0]+region[0]>imgW_s || src_origin[1]+region[1]>imgH_s || 
-      dst_origin[0]+region[0]>imgW_d || dst_origin[1]+region[1]>imgH_d) 
-  {
+  // size_t imgW_s, imgH_s, imgW_d, imgH_d;
+  // clGetImageInfo(mo_src->getMemory(),CL_IMAGE_WIDTH,sizeof(size_t),&imgW_s,NULL);
+  // clGetImageInfo(mo_src->getMemory(),CL_IMAGE_HEIGHT,sizeof(size_t),&imgH_s,NULL);
+  // clGetImageInfo(mo_dst->getMemory(),CL_IMAGE_WIDTH,sizeof(size_t),&imgW_d,NULL);
+  // clGetImageInfo(mo_dst->getMemory(),CL_IMAGE_HEIGHT,sizeof(size_t),&imgH_d,NULL);
+  // if(src_origin[0]+region[0]>imgW_s || src_origin[1]+region[1]>imgH_s || 
+  //     dst_origin[0]+region[0]>imgW_d || dst_origin[1]+region[1]>imgH_d) 
+  // {
+  //   cl_int ret=CL_INVALID_VALUE;
+  //   REQ_ERROR_THROW(INVALID_VALUE);
+  //   NanReturnUndefined();
+  // }
+
+  if(imageRectSize(src_origin,region,0,0,mo_src->getMemory(),-1)<0) {
     cl_int ret=CL_INVALID_VALUE;
     REQ_ERROR_THROW(INVALID_VALUE);
-    NanReturnUndefined();
+    NanReturnUndefined();    
+  }
+  if(imageRectSize(dst_origin,region,0,0,mo_dst->getMemory(),-1)<0) {
+    cl_int ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnUndefined();    
   }
 
   MakeEventWaitList(args[5]);

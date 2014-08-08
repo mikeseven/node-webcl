@@ -85,7 +85,6 @@ process.on('exit',function() {
 //   cl.releaseAll(-1);
 // });
 
-
 //////////////////////////////
 // WebCL object
 //////////////////////////////
@@ -115,17 +114,22 @@ cl.enableExtension = function (name) {
 }
 
 var _createContext = cl.createContext;
-cl.createContext = function (arg1, arg2) {
+cl.createContext = function (arg1, arg2, arg3) {
   if (!(typeof arg1 === 'number' || checkObjectType(arg1, 'WebCLPlatform') || checkObjectType(arg1, 'WebCLDevice') || 
-          typeof arg1 === 'object' || arguments.length==0) 
+          typeof arg1 === 'object' || arguments.length==0 ||
+          typeof arg3 === 'number') 
     ) {
     throw new TypeError('Expected createContext(optional CLenum deviceType = WebCL.DEVICE_TYPE_DEFAULT)\n'
       +'or createContext(WebCLPlatform platform, optional CLenum deviceType = WebCL.DEVICE_TYPE_DEFAULT)\n'
       +'or createContext(WebCLDevice device)\n'
-      +'or createContext(WebCLDevice[] devices)');
+      +'or createContext(WebCLDevice[] devices)\n'
+      +'or createContext(WebGLRenderingContext gl, optional CLenum deviceType = WebCL.DEVICE_TYPE_DEFAULT);\n'
+      +'or createContext(WebGLRenderingContext gl, WebCLPlatform platform, optional CLenum deviceType = WebCL.DEVICE_TYPE_DEFAULT);\n'
+      +'or createContext(WebGLRenderingContext gl, WebCLDevice device);\n'
+      +'or createContext(WebGLRenderingContext gl, sequence<WebCLDevice> devices);');
   }
 
-  var ctx = _createContext(arg1, arg2);
+  var ctx = _createContext(arg1, arg2, arg3);
 
   return ctx;
 }
@@ -487,7 +491,7 @@ cl.WebCLCommandQueue.prototype.finish=function (callback) {
 
 cl.WebCLCommandQueue.prototype.enqueueAcquireGLObjects=function (mem_objects, event_list, event) {
   if(!cl.WebCLDevice.prototype.enable_extensions.KHR_gl_sharing.enabled) {
-    throw new Error('WEBCL_EXTENSION_NOT_ENABLED');
+    throw new WebCLException('WEBCL_EXTENSION_NOT_ENABLED');
   }
   if (!(arguments.length >= 1 && 
       typeof mem_objects === 'object' && 
@@ -501,8 +505,8 @@ cl.WebCLCommandQueue.prototype.enqueueAcquireGLObjects=function (mem_objects, ev
 
 cl.WebCLCommandQueue.prototype.enqueueReleaseGLObjects=function (mem_objects, event_list, event) {
   if(!cl.WebCLDevice.prototype.enable_extensions.KHR_gl_sharing.enabled) {
-    throw new Error('WEBCL_EXTENSION_NOT_ENABLED');
-  }
+    throw new WebCLException('WEBCL_EXTENSION_NOT_ENABLED');
+   }
   if (!(arguments.length >= 1 && 
       typeof mem_objects === 'object' && 
       (event_list==null || typeof event_list==='undefined' || typeof event_list === 'object') &&
@@ -667,8 +671,8 @@ cl.WebCLContext.prototype.getSupportedImageFormats=function (flags, image_type) 
 
 cl.WebCLContext.prototype.createFromGLBuffer=function (flags, buffer) {
   if(!cl.WebCLDevice.prototype.enable_extensions.KHR_gl_sharing.enabled) {
-    throw new Error('WEBCL_EXTENSION_NOT_ENABLED');
-  }
+    throw new WebCLException('WEBCL_EXTENSION_NOT_ENABLED');
+   }
   if (!(arguments.length === 2 && typeof flags === 'number' && typeof buffer ==='object')) {
     throw new TypeError('Expected WebCLContext.createFromGLBuffer(CLenum flags, WebGLBuffer buffer)');
   }
@@ -677,8 +681,8 @@ cl.WebCLContext.prototype.createFromGLBuffer=function (flags, buffer) {
 
 cl.WebCLContext.prototype.createFromGLRenderbuffer=function (flags, buffer) {
   if(!cl.WebCLDevice.prototype.enable_extensions.KHR_gl_sharing.enabled) {
-    throw new Error('WEBCL_EXTENSION_NOT_ENABLED');
-  }
+    throw new WebCLException('WEBCL_EXTENSION_NOT_ENABLED');
+   }
   if (!(arguments.length === 2 && typeof flags === 'number' && typeof buffer ==='object')) {
     throw new TypeError('Expected WebCLContext.createFromGLRenderbuffer(CLenum flags, WebGLRenderbuffer buffer)');
   }
@@ -687,8 +691,8 @@ cl.WebCLContext.prototype.createFromGLRenderbuffer=function (flags, buffer) {
 
 cl.WebCLContext.prototype.createFromGLTexture=function (flags, texture_target, miplevel, texture) {
   if(!cl.WebCLDevice.prototype.enable_extensions.KHR_gl_sharing.enabled) {
-    throw new Error('WEBCL_EXTENSION_NOT_ENABLED');
-  }
+    throw new WebCLException('WEBCL_EXTENSION_NOT_ENABLED');
+   }
   if (!(arguments.length === 4 && typeof flags === 'number' && 
       typeof texture_target ==='number' &&
       typeof miplevel ==='number' &&
@@ -701,16 +705,16 @@ cl.WebCLContext.prototype.createFromGLTexture=function (flags, texture_target, m
 
 cl.WebCLContext.prototype.getGLContextInfo=function () {
   if(!cl.WebCLDevice.prototype.enable_extensions.KHR_gl_sharing.enabled) {
-    throw new Error('WEBCL_EXTENSION_NOT_ENABLED');
-  }
-  return this._getGLContextInfo();
+    throw new WebCLException('WEBCL_EXTENSION_NOT_ENABLED');
+   }
+  return new WebCLRenderingContext(this._getGLContextInfo());
 }
 
 cl.WebCLContext.prototype.getGLContext=function () {
   if(!cl.WebCLDevice.prototype.enable_extensions.KHR_gl_sharing.enabled) {
-    throw new Error('WEBCL_EXTENSION_NOT_ENABLED');
-  }
-  return this._getGLContext();
+    throw new WebCLException('WEBCL_EXTENSION_NOT_ENABLED');
+   }
+  return new WebGLRenderingContext(this._getGLContext());
 }
 
 //////////////////////////////
@@ -838,8 +842,8 @@ cl.WebCLMemoryObject.prototype.getInfo=function (param_name) {
 
 cl.WebCLMemoryObject.prototype.getGLObjectInfo=function () {
   if(!cl.WebCLDevice.prototype.enable_extensions.KHR_gl_sharing.enabled) {
-    throw new Error('WEBCL_EXTENSION_NOT_ENABLED');
-  }
+    throw new WebCLException('WEBCL_EXTENSION_NOT_ENABLED');
+   }
   return this._getGLObjectInfo(); // returns a WebGLObjectInfo dictionary
 }
 
@@ -860,8 +864,8 @@ cl.WebCLBuffer.prototype.getInfo=function (param_name) {
 
 cl.WebCLBuffer.prototype.getGLObjectInfo=function () {
   if(!cl.WebCLDevice.prototype.enable_extensions.KHR_gl_sharing.enabled) {
-    throw new Error('WEBCL_EXTENSION_NOT_ENABLED');
-  }
+    throw new WebCLException('WEBCL_EXTENSION_NOT_ENABLED');
+   }
   return this._getGLObjectInfo(); // returns a WebGLObjectInfo dictionary
 }
 
@@ -886,8 +890,8 @@ cl.WebCLImage.prototype.getInfo=function () {
 
 cl.WebCLImage.prototype.getGLObjectInfo=function () {
   if(!cl.WebCLDevice.prototype.enable_extensions.KHR_gl_sharing.enabled) {
-    throw new Error('WEBCL_EXTENSION_NOT_ENABLED');
-  }
+    throw new WebCLException('WEBCL_EXTENSION_NOT_ENABLED');
+   }
   return this._getGLObjectInfo(); // returns a WebGLObjectInfo dictionary
 }
 

@@ -72,7 +72,7 @@ private:
   static v8::Persistent<v8::FunctionTemplate> constructor_template;
 
   cl_context context;
-  v8::Handle<v8::Object> webgl_context_;
+  v8::Persistent<v8::Object> webgl_context_;
 
 private:
   DISABLE_COPY(Context)

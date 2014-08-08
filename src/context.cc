@@ -75,6 +75,7 @@ void Context::Init(Handle<Object> target)
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getSupportedImageFormats", getSupportedImageFormats);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_release", release);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_releaseAll", releaseAll);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_getGLContext", getGLContext);
 
   target->Set(NanSymbol("WebCLContext"), ctor->GetFunction());
   constructor_template.MakeWeak(NULL, ContextCB);
@@ -754,6 +755,12 @@ NAN_METHOD(Context::getGLContext)
   NanScope();
   Context *context = ObjectWrap::Unwrap<Context>(args.This());
 
+  if(context->webgl_context_.IsEmpty()) {
+    ThrowException(NanObjectWrapHandle(WebCLException::New("WEBCL_EXTENSION_NOT_ENABLED", ErrorDesc(WEBCL_EXTENSION_NOT_ENABLED), WEBCL_EXTENSION_NOT_ENABLED)));
+    NanReturnUndefined();
+  }
+
+  // TODO this must returns the WebGLRenderingContext object used to create CLGL context
   NanReturnValue(context->webgl_context_);
 }
 
@@ -866,7 +873,8 @@ Context *Context::New(cl_context cw, Handle<Object> webgl_context)
 
   Context *context = ObjectWrap::Unwrap<Context>(obj);
   context->context = cw;
-  context->webgl_context_ = webgl_context->ToObject();
+  if(!webgl_context.IsEmpty())
+    NanAssignPersistent(v8::Object, context->webgl_context_, webgl_context);
 
   return context;
 }

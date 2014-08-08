@@ -79,6 +79,9 @@ using namespace std;
   #define CL_DEVICES_FOR_GL_CONTEXT_KHR 0x2007 
 #endif
 
+// TODO value not defined in spec
+#define WEBCL_EXTENSION_NOT_ENABLED 0x8000
+
 namespace {
 #define JS_STR(...) v8::String::New(__VA_ARGS__)
 #define JS_INT(val) v8::Integer::New(val)

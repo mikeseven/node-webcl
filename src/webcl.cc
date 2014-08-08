@@ -200,6 +200,7 @@ NAN_METHOD(createContext) {
   cl_context cw=NULL;
   vector<cl_device_id> devices;
   vector<cl_context_properties> properties;
+  Local<Object> glRenderingContext;
 
   // Case 1: WebCLContext createContext(optional CLenum deviceType = WebCL.DEVICE_TYPE_DEFAULT);
   if(args[0]->IsUndefined() || args[0]->IsNumber()) {
@@ -340,11 +341,18 @@ NAN_METHOD(createContext) {
 
           // [MBS] what if CL device doesn't provide CLGL?
 
+          cl_uint deviceType=(args[1]->IsUndefined() ? CL_DEVICE_TYPE_DEFAULT : args[1]->Uint32Value());
+          if(deviceType!=CL_DEVICE_TYPE_ALL && deviceType>CL_DEVICE_TYPE_CUSTOM) {
+            cl_int ret=CL_INVALID_DEVICE_TYPE;
+            REQ_ERROR_THROW(INVALID_DEVICE_TYPE);
+            NanReturnNull();
+          }
+
           // terminate properties array
           properties.push_back(0);
 
           cw = ::clCreateContextFromType(properties.size() ? &properties.front() : NULL,
-                                          (args[0]->IsUndefined() ? CL_DEVICE_TYPE_DEFAULT : args[0]->Uint32Value()),
+                                          deviceType,
                                           NULL, NULL, // no callback
                                           &ret);
 
@@ -358,13 +366,20 @@ NAN_METHOD(createContext) {
 
             if(!strcmp(*astr,"WebCLPlatform")) {
               // case 5.2: WebCLContext createContext(WebGLRenderingContext gl, WebCLPlatform platform, optional CLenum deviceType);
+              cl_uint deviceType=(args[2]->IsUndefined() ? CL_DEVICE_TYPE_DEFAULT : args[2]->Uint32Value());
+              if(deviceType!=CL_DEVICE_TYPE_ALL && deviceType>CL_DEVICE_TYPE_CUSTOM) {
+                cl_int ret=CL_INVALID_DEVICE_TYPE;
+                REQ_ERROR_THROW(INVALID_DEVICE_TYPE);
+                NanReturnNull();
+              }
+
               Platform *platform=ObjectWrap::Unwrap<Platform>(obj);
               properties.push_back(CL_CONTEXT_PLATFORM);
               properties.push_back((cl_context_properties) platform->getPlatformId());
               properties.push_back(0);
 
               cw = ::clCreateContextFromType(&properties.front(),
-                                            (args[2]->IsUndefined() ? CL_DEVICE_TYPE_DEFAULT : args[2]->Uint32Value()),
+                                            deviceType,
                                             NULL, NULL, // no callback
                                             &ret);
 
@@ -386,6 +401,9 @@ NAN_METHOD(createContext) {
                                      1, &device,
                                      NULL, NULL, // no callback
                                      &ret);
+     // String::AsciiValue str(args[0]->ToObject()->GetConstructorName());
+     // printf("GL object: %s hasGLTexture %d\n",*str,args[0]->ToObject()->HasOwnProperty(JS_STR("WebGLTexture")));
+              glRenderingContext=Local<Object>(args[0]->ToObject());
             }
             else {
               ret=CL_INVALID_VALUE;
@@ -479,7 +497,7 @@ NAN_METHOD(createContext) {
     return NanThrowError("UNKNOWN ERROR");
   }
 
-  NanReturnValue(NanObjectWrapHandle(Context::New(cw)));
+  NanReturnValue(NanObjectWrapHandle(Context::New(cw, glRenderingContext)));
 }
 
 class WaitForEventsWorker : public NanAsyncWorker {

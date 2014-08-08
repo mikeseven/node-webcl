@@ -67,6 +67,7 @@ const char* ErrorDesc(cl_int err)
     case CL_INVALID_COMPILER_OPTIONS:           return "Invalid compiler options";
     case CL_INVALID_LINKER_OPTIONS:             return "Invalid linker options";
     case CL_INVALID_DEVICE_PARTITION_COUNT:     return "Invalid device partition count";
+    case WEBCL_EXTENSION_NOT_ENABLED:           return "KHR_gl_sharing extension not enabled";
   }
   return "Unknown";
 }
@@ -92,7 +93,7 @@ void WebCLException::Init(Handle<Object> target)
   target->Set(NanSymbol("WebCLException"), ctor->GetFunction());
 }
 
-WebCLException::WebCLException(Handle<Object> wrapper)
+WebCLException::WebCLException(Handle<Object> wrapper) : name_(NULL), desc_(NULL),code_(0)
 {
   _type=CLObjType::Exception;
 }
@@ -100,13 +101,17 @@ WebCLException::WebCLException(Handle<Object> wrapper)
 NAN_GETTER(WebCLException::GetName) {
   NanScope();
   WebCLException *ex = ObjectWrap::Unwrap<WebCLException>(args.This());
-  NanReturnValue(JS_STR(ex->name_));
+  if(ex->name_)
+    NanReturnValue(JS_STR(ex->name_));
+  NanReturnNull();
 }
 
 NAN_GETTER(WebCLException::GetDescription) {
   NanScope();
   WebCLException *ex = ObjectWrap::Unwrap<WebCLException>(args.This());
-  NanReturnValue(JS_STR(ex->desc_));
+  if(ex->desc_)
+    NanReturnValue(JS_STR(ex->desc_));
+  NanReturnNull();
 }
 
 NAN_GETTER(WebCLException::GetCode) {
