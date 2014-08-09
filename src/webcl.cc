@@ -267,7 +267,7 @@ NAN_METHOD(createContext) {
 
         // check if device has gl_sharing extension enabled and update properties accordingly
         if(d->hasGLSharingEnabled()) {
-          printf("Device has GL sharing enabled\n");
+          // printf("Device has GL sharing enabled\n");
 
 #if defined (__APPLE__)
           CGLContextObj kCGLContext = CGLGetCurrentContext();
@@ -355,7 +355,6 @@ NAN_METHOD(createContext) {
                                           deviceType,
                                           NULL, NULL, // no callback
                                           &ret);
-
         }
         else {
           Local<Object> obj=args[1]->ToObject();

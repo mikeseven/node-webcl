@@ -32,6 +32,7 @@
 #include "memoryobject.h"
 #include "program.h"
 #include "sampler.h"
+#include "cl_checks.h"
 
 #include <node_buffer.h>
 #include <vector>
@@ -672,13 +673,31 @@ NAN_METHOD(Context::createUserEvent)
 NAN_METHOD(Context::createFromGLBuffer)
 {
   NanScope();
+  int ret;
   Context *context = ObjectWrap::Unwrap<Context>(args.This());
   cl_mem_flags flags = args[0]->Uint32Value();
+  if(!args[1]->IsNumber()) {
+    ret=CL_INVALID_GL_OBJECT;
+    REQ_ERROR_THROW(INVALID_GL_OBJECT);
+    NanReturnNull();
+  }
+
   cl_GLuint bufobj = args[1]->Uint32Value();
   #ifdef LOGGING
   cout<<"createFromGLBuffer flags="<<hex<<flags<<dec<<", bufobj="<<bufobj<<endl;
   #endif
-  int ret;
+
+  if(!validateMemFlags(flags)) {
+    ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnNull();
+  }
+
+  if(context->webgl_context_.IsEmpty()) {
+    ret=CL_INVALID_CONTEXT;
+    REQ_ERROR_THROW(INVALID_CONTEXT);
+    NanReturnNull();    
+  }
 
   cl_mem clmem = ::clCreateFromGLBuffer(context->getContext(),flags,bufobj,&ret);
   #ifdef LOGGING
@@ -703,8 +722,26 @@ NAN_METHOD(Context::createFromGLTexture)
   cl_mem_flags flags = args[0]->Uint32Value();
   cl_GLenum target = args[1]->Uint32Value();
   cl_GLint miplevel = args[2]->Uint32Value();
-  cl_GLuint texture = args[3]->Uint32Value();
   int ret;
+  if(!args[3]->IsNumber()) {
+    ret=CL_INVALID_GL_OBJECT;
+    REQ_ERROR_THROW(INVALID_GL_OBJECT);
+    NanReturnNull();
+  }
+  cl_GLuint texture = args[3]->Uint32Value();
+
+  if(context->webgl_context_.IsEmpty()) {
+    ret=CL_INVALID_CONTEXT;
+    REQ_ERROR_THROW(INVALID_CONTEXT);
+    NanReturnNull();    
+  }
+
+  if(miplevel<0) {
+    ret=CL_INVALID_MIP_LEVEL;
+    REQ_ERROR_THROW(INVALID_MIP_LEVEL);
+    NanReturnNull();        
+  }
+
   cl_mem clmem;
 #ifdef CL_VERSION_1_2
   clmem = ::clCreateFromGLTexture(context->getContext(),flags,target,miplevel,texture,&ret);
@@ -734,6 +771,11 @@ NAN_METHOD(Context::createFromGLRenderbuffer)
   cl_mem_flags flags = args[0]->Uint32Value();
   cl_GLuint renderbuffer = args[1]->Uint32Value();
   int ret;
+  if(context->webgl_context_.IsEmpty()) {
+    ret=CL_INVALID_CONTEXT;
+    REQ_ERROR_THROW(INVALID_CONTEXT);
+    NanReturnNull();    
+  }
   cl_mem clmem = ::clCreateFromGLRenderbuffer(context->getContext(),flags,renderbuffer, &ret);
 
   if (ret != CL_SUCCESS) {

@@ -506,7 +506,7 @@ cl.WebCLCommandQueue.prototype.enqueueAcquireGLObjects=function (mem_objects, ev
 cl.WebCLCommandQueue.prototype.enqueueReleaseGLObjects=function (mem_objects, event_list, event) {
   if(!cl.WebCLDevice.prototype.enable_extensions.KHR_gl_sharing.enabled) {
     throw new WebCLException('WEBCL_EXTENSION_NOT_ENABLED');
-   }
+  }
   if (!(arguments.length >= 1 && 
       typeof mem_objects === 'object' && 
       (event_list==null || typeof event_list==='undefined' || typeof event_list === 'object') &&
@@ -843,8 +843,11 @@ cl.WebCLMemoryObject.prototype.getInfo=function (param_name) {
 cl.WebCLMemoryObject.prototype.getGLObjectInfo=function () {
   if(!cl.WebCLDevice.prototype.enable_extensions.KHR_gl_sharing.enabled) {
     throw new WebCLException('WEBCL_EXTENSION_NOT_ENABLED');
-   }
-  return this._getGLObjectInfo(); // returns a WebGLObjectInfo dictionary
+  }
+  var info=this._getGLObjectInfo(); // returns a WebGLObjectInfo dictionary
+  if(info && info.glObject)
+    info.glObject=new WebGLBuffer(info.glObject);
+  return info;
 }
 
 //////////////////////////////
@@ -865,8 +868,11 @@ cl.WebCLBuffer.prototype.getInfo=function (param_name) {
 cl.WebCLBuffer.prototype.getGLObjectInfo=function () {
   if(!cl.WebCLDevice.prototype.enable_extensions.KHR_gl_sharing.enabled) {
     throw new WebCLException('WEBCL_EXTENSION_NOT_ENABLED');
-   }
-  return this._getGLObjectInfo(); // returns a WebGLObjectInfo dictionary
+  }
+  var info=this._getGLObjectInfo(); // returns a WebGLObjectInfo dictionary
+  if(info && info.glObject)
+    info.glObject=new WebGLBuffer(info.glObject);
+  return info;
 }
 
 cl.WebCLBuffer.prototype.createSubBuffer=function (flags, origin, sizeInBytes) {
@@ -891,8 +897,11 @@ cl.WebCLImage.prototype.getInfo=function () {
 cl.WebCLImage.prototype.getGLObjectInfo=function () {
   if(!cl.WebCLDevice.prototype.enable_extensions.KHR_gl_sharing.enabled) {
     throw new WebCLException('WEBCL_EXTENSION_NOT_ENABLED');
-   }
-  return this._getGLObjectInfo(); // returns a WebGLObjectInfo dictionary
+  }
+  var info=this._getGLObjectInfo(); // returns a WebGLObjectInfo dictionary
+  if(info && info.glObject)
+    info.glObject=new WebGLTexture(info.glObject);
+  return info;
 }
 
 cl.WebCLImage.prototype.getGLTextureInfo=function (param_name) {
