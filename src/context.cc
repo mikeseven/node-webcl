@@ -407,6 +407,15 @@ NAN_METHOD(Context::createCommandQueue)
   }
 
   // printf("Using device %p\n",device);
+  int hasOutOfOrderExec=false;
+  clGetDeviceInfo(device,CL_DEVICE_QUEUE_PROPERTIES,sizeof(int),&hasOutOfOrderExec,NULL);
+
+  if((properties & CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE) && !hasOutOfOrderExec) {
+    // some drivers silently accept the flag even if they don't support the feature
+    ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnNull();
+  }
 
   // printf("context = %p device=%p properties %llu\n",context->getContext(),device,properties);
   cw = ::clCreateCommandQueue(ctx, device, properties, &ret);

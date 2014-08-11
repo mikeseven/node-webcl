@@ -32,7 +32,7 @@
     "test": "test"
   },
   "scripts": {
-    "install": "node-gyp rebuild"
+    "install": "node-gyp rebuild --msvs_version=2013"
   },
   "dependencies": {
     "node-webgl": ">=0.4.2",
