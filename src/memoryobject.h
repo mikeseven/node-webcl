@@ -72,10 +72,14 @@ public:
   static NAN_METHOD(release);
   static NAN_METHOD(createSubBuffer);
 
+  bool isSubBuffer() const { return isSubBuffer_; }
+
 private:
   WebCLBuffer(v8::Handle<v8::Object> wrapper);
 
   static v8::Persistent<v8::FunctionTemplate> constructor_template;
+
+  bool isSubBuffer_;
 
 private:
   DISABLE_COPY(WebCLBuffer)

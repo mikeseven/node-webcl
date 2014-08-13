@@ -290,7 +290,7 @@ void WebCLBuffer::Init(Handle<Object> target)
   constructor_template.MakeWeak(NULL, MemoryObjectCB);
 }
 
-WebCLBuffer::WebCLBuffer(Handle<Object> wrapper) : MemoryObject(wrapper)
+WebCLBuffer::WebCLBuffer(Handle<Object> wrapper) : MemoryObject(wrapper),isSubBuffer_(false)
 {
 }
 
@@ -319,14 +319,37 @@ NAN_METHOD(WebCLBuffer::createSubBuffer)
 {
   NanScope();
   WebCLBuffer *mo = ObjectWrap::Unwrap<WebCLBuffer>(args.This());
+  cl_int ret=CL_SUCCESS;
+
+  // can'treate subbuffer from a subbuffer
+  if(mo->isSubBuffer()) {
+    ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnNull();    
+  }
+
   cl_mem_flags flags = args[0]->Uint32Value();
+
+  // can't create subbuffer with different flags than parent buffer
+  cl_mem_flags pflags;
+  clGetMemObjectInfo(mo->getMemory(),CL_MEM_FLAGS,sizeof(cl_mem_flags),&pflags,NULL);
+  if((pflags & CL_MEM_READ_ONLY) && (flags & (CL_MEM_WRITE_ONLY | CL_MEM_READ_WRITE)) ||
+     (pflags & CL_MEM_WRITE_ONLY) && (flags & (CL_MEM_READ_WRITE | CL_MEM_READ_ONLY))
+  ) {
+    ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnNull();        
+  }
 
   cl_buffer_region region;
   region.origin = args[1]->Uint32Value();
   region.size = args[2]->Uint32Value();
 
-  cl_int ret=CL_SUCCESS;
-
+  if(region.origin>=region.size) {
+    ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnNull();
+  }
   // bug on Mac to avoid core dump
   cl_mem parent=NULL;
   ::clGetMemObjectInfo(mo->getMemory(),CL_MEM_ASSOCIATED_MEMOBJECT,sizeof(cl_mem),&parent,NULL);
@@ -352,7 +375,10 @@ NAN_METHOD(WebCLBuffer::createSubBuffer)
     return NanThrowError("UNKNOWN ERROR");
   }
 
-  NanReturnValue(NanObjectWrapHandle(WebCLBuffer::New(sub_buffer, mo)));
+  WebCLBuffer *newsub=WebCLBuffer::New(sub_buffer, mo);
+  newsub->isSubBuffer_=true;
+
+  NanReturnValue(NanObjectWrapHandle(newsub));
 }
 
 NAN_METHOD(WebCLBuffer::New)
