@@ -55,6 +55,7 @@ public:
   static NAN_METHOD(createFromGLTexture);
   static NAN_METHOD(createFromGLRenderbuffer);
   static NAN_METHOD(release);
+  static NAN_METHOD(retain);
   static NAN_METHOD(releaseAll);
 
 #ifdef HAS_clGetContextInfo

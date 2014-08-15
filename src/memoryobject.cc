@@ -134,7 +134,7 @@ NAN_METHOD(MemoryObject::getInfo)
       return NanThrowError("UNKNOWN ERROR");
     }
 
-    NanReturnValue(Integer::NewFromUnsigned(param_value));
+    NanReturnValue(Integer::NewFromUnsigned((uint32_t)param_value));
   }
   case CL_MEM_SIZE:
   case CL_MEM_OFFSET: {
@@ -200,7 +200,7 @@ NAN_METHOD(MemoryObject::getInfo)
       return NanThrowError("UNKNOWN ERROR");
     }
     size_t nbytes = *(size_t*)param_value;
-    NanReturnValue(NanNewBufferHandle(param_value, nbytes));
+    NanReturnValue(NanNewBufferHandle(param_value, (int)nbytes));
   }
   default: {
     cl_int ret=CL_INVALID_VALUE;
@@ -477,7 +477,7 @@ NAN_METHOD(WebCLImage::getInfo)
 
   WebCLImageDescriptor* obj = WebCLImageDescriptor::New(
     param_value.image_channel_order,param_value.image_channel_data_type,
-    w,h,d,
+    (int)w,(int)h,(int)d,
     rp,sp
   );
   NanReturnValue(NanObjectWrapHandle(obj));

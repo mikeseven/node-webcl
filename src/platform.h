@@ -48,8 +48,8 @@ public:
 
   static NAN_METHOD(enableExtension);
   bool hasGLSharingEnabled() const { return (enableExtensions & GL_SHARING); }
-  bool hasFP16Enabled() const { return (enableExtensions & FP16); }
-  bool hasFP64Enabled() const { return (enableExtensions & FP64); }
+  bool hasFP16Enabled() const { return (enableExtensions & FP16)==FP16; }
+  bool hasFP64Enabled() const { return (enableExtensions & FP64)==FP64; }
 
 private:
   Platform(v8::Handle<v8::Object> wrapper);

@@ -64,6 +64,7 @@ void Program::Init(Handle<Object> target)
   NODE_SET_PROTOTYPE_METHOD(ctor, "_createKernel", createKernel);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_createKernelsInProgram", createKernelsInProgram);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_release", release);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_retain", retain);
 
   target->Set(NanSymbol("WebCLProgram"), ctor->GetFunction());
   constructor_template.MakeWeak(NULL, ProgramCB);
@@ -102,6 +103,16 @@ NAN_METHOD(Program::release)
   Program *prog = ObjectWrap::Unwrap<Program>(args.This());
   
   prog->Destructor();
+  
+  NanReturnUndefined();
+}
+
+NAN_METHOD(Program::retain)
+{
+  NanScope();
+  Program *prog = ObjectWrap::Unwrap<Program>(args.This());
+  
+  clRetainProgram(prog->getProgram());
   
   NanReturnUndefined();
 }
@@ -158,8 +169,8 @@ NAN_METHOD(Program::getInfo)
       REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
-    Local<Array> deviceArray = Array::New(num_devices);
-    for (size_t i=0; i<num_devices; i++) {
+    Local<Array> deviceArray = Array::New((int)num_devices);
+    for (int i=0; i<(int)num_devices; i++) {
       cl_device_id d = devices[i];
       WebCLObject *obj=findCLObj((void*)d, CLObjType::Device);
       if(obj) 
@@ -199,8 +210,8 @@ NAN_METHOD(Program::getInfo)
       REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
-    Local<Array> sizesArray = Array::New(nsizes);
-    for (size_t i=0; i<nsizes; i++) {
+    Local<Array> sizesArray = Array::New((int)nsizes);
+    for (int i=0; i<(int)nsizes; i++) {
       sizesArray->Set(i, JS_INT(sizes[i]));
     }
     delete[] sizes;
@@ -325,12 +336,21 @@ class ProgramWorker : public NanAsyncWorker {
   void HandleOKCallback () {
     NanScope();
 
-    Local<Value> argv[]={
+    if(baton_->data.IsEmpty()) {
+      printf("Calling callback with 1 arg\n");
+      Local<Value> argv[] = { 
         JS_INT(baton_->error)
-    };
-
-    // printf("[build] callback JS\n");
-    callback->Call(1, argv);
+      };
+      callback->Call(1, argv);
+    }
+    else {
+      printf("Calling callback with 2 args\n");
+      Local<Value> argv[] = {
+        JS_INT(baton_->error),
+        NanPersistentToLocal(baton_->data)     // user's message
+      };
+      callback->Call(2, argv);
+    }
   }
 
   private:
@@ -357,7 +377,7 @@ void Program::callback (cl_program program, void *user_data)
     delete[] devices;
   }
 
-  // printf("[build] calling async JS cb\n");
+  printf("[build] calling async JS cb\n");
   NanAsyncQueueWorker(new ProgramWorker(baton));
 }
 
@@ -448,10 +468,14 @@ NAN_METHOD(Program::build)
   }
 
   Baton *baton=NULL;
-  if(args.Length()==3 && !args[2]->IsUndefined() && args[2]->IsFunction()) {
+  if(args.Length()>=3 && !args[2]->IsUndefined() && args[2]->IsFunction()) {
 
     baton=new Baton();
     baton->callback=new NanCallback(args[2].As<Function>());
+    if(!args[3]->IsNull() && !args[3]->IsUndefined()) {
+      printf("Adding user data to callback baton\n");
+      NanAssignPersistent(v8::Value, baton->data, args[3]);
+    }
   }
 
   // printf("Build program with baton %p\n",baton);
@@ -491,6 +515,7 @@ NAN_METHOD(Program::createKernel)
 
   cl_int ret = CL_SUCCESS;
   cl_kernel kw = ::clCreateKernel(prog->getProgram(), (const char*) *astr, &ret);
+  printf("createKernel %p ret %d\n",kw,ret);
 
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(INVALID_PROGRAM);

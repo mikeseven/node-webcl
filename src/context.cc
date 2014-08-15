@@ -75,6 +75,7 @@ void Context::Init(Handle<Object> target)
   NODE_SET_PROTOTYPE_METHOD(ctor, "_createFromGLRenderbuffer", createFromGLRenderbuffer);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getSupportedImageFormats", getSupportedImageFormats);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_release", release);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_retain", retain);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_releaseAll", releaseAll);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getGLContext", getGLContext);
 
@@ -119,6 +120,14 @@ NAN_METHOD(Context::release)
   Context *context = ObjectWrap::Unwrap<Context>(args.This());
   context->Destructor();
 
+  NanReturnUndefined();
+}
+
+NAN_METHOD(Context::retain)
+{
+  NanScope();
+  Context *context = ObjectWrap::Unwrap<Context>(args.This());
+  clRetainContext(context->getContext());
   NanReturnUndefined();
 }
 
@@ -696,7 +705,7 @@ NAN_METHOD(Context::createFromGLBuffer)
   cout<<"createFromGLBuffer flags="<<hex<<flags<<dec<<", bufobj="<<bufobj<<endl;
   #endif
 
-  if(!validateMemFlags(flags)) {
+  if(!validateMemFlags((int)flags)) {
     ret=CL_INVALID_VALUE;
     REQ_ERROR_THROW(INVALID_VALUE);
     NanReturnNull();
@@ -924,6 +933,7 @@ Context *Context::New(cl_context cw, Handle<Object> webgl_context)
 
   Context *context = ObjectWrap::Unwrap<Context>(obj);
   context->context = cw;
+  registerCLObj(cw, context);
   if(!webgl_context.IsEmpty())
     NanAssignPersistent(v8::Object, context->webgl_context_, webgl_context);
 

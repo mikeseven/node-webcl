@@ -146,8 +146,10 @@ NAN_METHOD(Kernel::getInfo)
       WebCLObject *obj=findCLObj((void*)param_value, CLObjType::Context);
       if(obj) 
         NanReturnValue(NanObjectWrapHandle(obj));
-      else
+      else {
+        printf("Creating new context\n");
         NanReturnValue(NanObjectWrapHandle(Context::New(param_value)));
+      }
     }
     NanReturnUndefined();
   }
@@ -165,8 +167,10 @@ NAN_METHOD(Kernel::getInfo)
       WebCLObject *obj=findCLObj((void*)p, CLObjType::Program);
       if(obj) 
         NanReturnValue(NanObjectWrapHandle(obj));
-      else
+      else {
+        printf("Creating new program\n");
         NanReturnValue(NanObjectWrapHandle(Program::New(p, NULL)));
+      }
     }
     NanReturnUndefined();
   }

@@ -162,7 +162,7 @@ NAN_METHOD(Device::getInfo)
       REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
-    NanReturnValue(Integer::NewFromUnsigned(param_value));
+    NanReturnValue(Integer::NewFromUnsigned((int)param_value));
   }
   break;
   case CL_DEVICE_QUEUE_PROPERTIES: {
@@ -175,7 +175,7 @@ NAN_METHOD(Device::getInfo)
       REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
-    NanReturnValue(Integer::NewFromUnsigned(param_value));
+    NanReturnValue(Integer::NewFromUnsigned((int)param_value));
   }
   break;
   case CL_DEVICE_HALF_FP_CONFIG:
@@ -190,7 +190,7 @@ NAN_METHOD(Device::getInfo)
       REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
-    NanReturnValue(Integer::NewFromUnsigned(param_value));
+    NanReturnValue(Integer::NewFromUnsigned((int)param_value));
   }
   break;
   case CL_DEVICE_MAX_WORK_ITEM_SIZES: {
@@ -245,7 +245,7 @@ NAN_METHOD(Device::getInfo)
       return NanThrowError("UNKNOWN ERROR");
     }
     // keeping as Integer vs Boolean so comparisons with cl.TRUE/cl.FALSE work
-    NanReturnValue(JS_BOOL(param_value));
+    NanReturnValue(JS_BOOL((int)param_value));
   }
   break;
   // cl_uint params
@@ -338,7 +338,7 @@ NAN_METHOD(Device::getInfo)
     }
     // FIXME: handle 64 bit size_t somehow
     // assume for these params it will fit in an int
-    NanReturnValue(Integer::New(param_value));
+    NanReturnValue(Integer::New((int)param_value));
   }
   break;
   default: {

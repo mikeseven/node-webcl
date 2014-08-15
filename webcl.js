@@ -591,6 +591,10 @@ cl.WebCLContext.prototype.release=function () {
   return this._release();
 }
 
+cl.WebCLContext.prototype.retain=function () {
+  return this._retain();
+}
+
 cl.WebCLContext.prototype.releaseAll=function () {
   return this._releaseAll();
 }
@@ -988,6 +992,10 @@ cl.WebCLProgram.prototype.release=function () {
   return this._release();
 }
 
+cl.WebCLProgram.prototype.retain=function () {
+  return this._retain();
+}
+
 cl.WebCLProgram.prototype.getInfo=function (param_name) {
   if (!(arguments.length === 1 && typeof param_name === 'number')) {
     throw new TypeError('Expected WebCLProgram.getInfo(CLenum param_name)');
@@ -1003,16 +1011,16 @@ cl.WebCLProgram.prototype.getBuildInfo=function (device, param_name) {
   return this._getBuildInfo(device, param_name);
 }
 
-cl.WebCLProgram.prototype.build=function (devices, options, callback) {
+cl.WebCLProgram.prototype.build=function (devices, options, callback, user_data) {
   if ( !(arguments.length==0) && 
     !(arguments.length == 1 && (typeof devices === 'object' || devices==null)) &&
     !(arguments.length >= 2 && (typeof devices === 'object' || devices==null) && 
       (options==null || typeof options==='undefined' || typeof options === 'string') &&
       (callback==null || typeof callback === 'undefined' || typeof callback === 'function')
   )) {
-    throw new TypeError('Expected WebCLProgram.build(WebCLDevice[] devices, String options, function callback)');
+    throw new TypeError('Expected WebCLProgram.build(WebCLDevice[] devices, String build_options, optional function callback, optional user_data)');
   }
-  return this._build(devices, options, callback);
+  return this._build(devices, options, callback, user_data);
 }
 
 cl.WebCLProgram.prototype.createKernel=function (name) {

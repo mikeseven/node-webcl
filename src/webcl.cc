@@ -124,9 +124,9 @@ WebCLObject* findCLObj(void *clid, CLObjType::CLObjType type) {
 void AtExit(void* arg) {
   atExit=true;
 
-#ifdef LOGGING
+// #ifdef LOGGING
   printf("  # objects allocated: %lu\n",clobjs.size()); fflush(stdout);
-#endif
+// #endif
 
   if(clobjs.size() != 0) {
     

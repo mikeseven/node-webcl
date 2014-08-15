@@ -129,7 +129,7 @@ NAN_METHOD(Sampler::getInfo)
       REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
-    NanReturnValue(JS_BOOL(param_value));
+    NanReturnValue(JS_BOOL((int)param_value));
   }
   case CL_SAMPLER_CONTEXT:{
     cl_context param_value=0;

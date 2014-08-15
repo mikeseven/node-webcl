@@ -48,6 +48,7 @@ public:
   static NAN_METHOD(createKernel);
   static NAN_METHOD(createKernelsInProgram);
   static NAN_METHOD(release);
+  static NAN_METHOD(retain);
 
   cl_program getProgram() const { return program; };
   virtual bool operator==(void *clObj) { return ((cl_program)clObj)==program; }

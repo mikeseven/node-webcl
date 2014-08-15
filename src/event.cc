@@ -265,8 +265,6 @@ class EventWorker : public NanAsyncWorker {
         NanPersistentToLocal(baton_->parent),  // event
         NanPersistentToLocal(baton_->data)     // user's message
       };
-
-      // printf("[async event] callback JS\n");
       callback->Call(2, argv);
     }
   }

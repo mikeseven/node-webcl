@@ -112,7 +112,7 @@ void getPtrAndLen(const Local<Value> value, void* &ptr, int &len)
       String::AsciiValue name(obj->GetConstructorName());
       if(!strcmp("Buffer",*name)) {
         ptr=node::Buffer::Data(obj);
-        len=node::Buffer::Length(obj);
+        len=(int) node::Buffer::Length(obj);
       }
       else {
         ptr = obj->GetIndexedPropertiesExternalArrayData();

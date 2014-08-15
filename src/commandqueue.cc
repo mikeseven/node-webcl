@@ -197,6 +197,7 @@ NAN_METHOD(CommandQueue::getInfo)
     }
     if(ctx) {
       WebCLObject *obj=findCLObj((void*)ctx, CLObjType::Context);
+      printf("[CQ.getInfo(CONTEXT)] %p\n",obj);
       if(obj) 
         NanReturnValue(NanObjectWrapHandle(obj));
       else
@@ -236,7 +237,7 @@ NAN_METHOD(CommandQueue::getInfo)
       REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
-    NanReturnValue(JS_INT(param_value));
+    NanReturnValue(JS_INT((int)param_value));
   }
   default: {
     cl_int ret=CL_INVALID_VALUE;
