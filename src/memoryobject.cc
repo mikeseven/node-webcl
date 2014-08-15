@@ -333,8 +333,8 @@ NAN_METHOD(WebCLBuffer::createSubBuffer)
   // can't create subbuffer with different flags than parent buffer
   cl_mem_flags pflags;
   clGetMemObjectInfo(mo->getMemory(),CL_MEM_FLAGS,sizeof(cl_mem_flags),&pflags,NULL);
-  if((pflags & CL_MEM_READ_ONLY) && (flags & (CL_MEM_WRITE_ONLY | CL_MEM_READ_WRITE)) ||
-     (pflags & CL_MEM_WRITE_ONLY) && (flags & (CL_MEM_READ_WRITE | CL_MEM_READ_ONLY))
+  if(((pflags & CL_MEM_READ_ONLY) && (flags & (CL_MEM_WRITE_ONLY | CL_MEM_READ_WRITE))) ||
+     ((pflags & CL_MEM_WRITE_ONLY) && (flags & (CL_MEM_READ_WRITE | CL_MEM_READ_ONLY)))
   ) {
     ret=CL_INVALID_VALUE;
     REQ_ERROR_THROW(INVALID_VALUE);
