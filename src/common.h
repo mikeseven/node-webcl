@@ -32,6 +32,8 @@
 #include "nan.h"
 #include <string>
 #include <list>
+#include <set>
+#include <map>
 #ifdef LOGGING
 #include <iostream>
 #endif
@@ -187,27 +189,9 @@ public:
   CLObjType::CLObjType getType() const { return _type; }
   const char* getCLObjName() const { return _type<CLObjType::MAX_WEBCL_TYPES ? CLObjType::CLObjName[_type] : '\0'; }
 
-  // int addRef() {
-  //   ++_ref;
-  //   if(_parent)
-  //     _parent->addRef();
-
-  //   return _ref;
-  // }
-
-  // int unRef() {
-  //   --_ref;
-  //   if(_parent)
-  //     _parent->unRef();
-  //   return _ref;
-  // }
-
-  // int getCount() const { return _ref; }
-
 protected:
-  WebCLObject() : _type(CLObjType::None),_parent(NULL) /*,_ref(0),_shared(false)*/ {
-    // addRef();
-  }
+  WebCLObject() : _type(CLObjType::None),_parent(NULL)
+  {}
 
   virtual ~WebCLObject() {
     // printf("%s is being destroyed\n",getCLObjName());
@@ -225,26 +209,159 @@ public:
 
   void setParent(WebCLObject *parent) {
     _parent=parent;
-    // if(_parent) {
-    //   _parent->_children.push_back(this);
-    //   _parent->addRef();
-    // }
   }
   
   WebCLObject *getParent() const { return _parent; }
   
-  // std::list<WebCLObject*> getChildren() { return _children; }
-
 protected:
   CLObjType::CLObjType _type;
   WebCLObject *_parent;
-  // std::list<WebCLObject*> _children;
-  // int _ref;
-  // bool _shared;
 
 private:
   DISABLE_COPY(WebCLObject)
 };
+
+template <typename T> class Destroyer
+{
+public:
+  Destroyer(T * what)
+  {
+    this->ptr = what;
+  }
+
+  void destroy()
+  {
+  #ifdef LOGGING
+    printf("Destroying %s\n",ptr->getCLObjName());
+  #endif
+    // delete ptr;
+    ptr->Destructor();
+  }
+
+protected:
+  T *ptr;
+};
+
+template <typename T> class AutoDestroy
+{
+public:
+  static void Add(T * what)
+  {
+    Instance()->add(what);
+  }
+
+  static void Remove(T * what)
+  {
+    Instance()->remove(what);
+  }
+
+  static T* Find(void * what)
+  {
+    return Instance()->find(what);
+  }
+
+  static int Size()
+  {
+    return Instance()->size();
+  }
+
+  virtual ~AutoDestroy()
+  {
+    clear();
+  }
+
+  void clear()
+  {
+    typename std::set<T *>::iterator i;
+    for (i = autoDestroy.begin(); i != autoDestroy.end(); i++)
+    {
+      Destroyer<T> destroyer(*i);
+      destroyer.destroy();
+    }
+    references.clear();
+    autoDestroy.clear();
+  }
+
+  static AutoDestroy * Instance()
+  {
+    static AutoDestroy instance;
+    return &instance;
+  }
+protected:
+  std::map<T *, int> references;
+  std::set<T *> autoDestroy;
+
+  void add(T * what)
+  {
+    //if it doesn't exist yet, add it.
+    if (autoDestroy.count(what) < 1)
+    {
+      //insert into auto destroy list
+      autoDestroy.insert(what);
+
+      //set reference to 1
+      references[what] = 1;
+
+      //return because references is already 1
+      return;
+    }
+
+    //increment reference
+    references[what]++;
+  }
+
+  void remove(T * what)
+  {
+    //if it doesn't exist, return
+    if (autoDestroy.count(what) < 1)
+      return;
+
+    //decrement references, and if there aren't any, remove from list.
+    if (--references[what] <= 0)
+    {
+      autoDestroy.erase(what);
+      references.erase(what);
+    }
+  }
+
+  T* find(void * what)
+  {
+    typename std::set<T *>::iterator i;
+    for (i = autoDestroy.begin(); i != autoDestroy.end(); i++)
+    {
+      WebCLObject *obj = *i;
+      if(*obj == what)
+        return obj;
+    }
+    return NULL;
+  }
+
+  int size() const
+  {
+    return references.size();
+  }
+};
+
+/* Helper functions to make things dead simple */
+template<typename T> void autoDestroy(T * what)
+{
+  AutoDestroy<T>::Add(what);
+}
+
+template<typename T> void cancelAutoDestroy(T * what)
+{
+  AutoDestroy<T>::Remove(what);
+}
+
+template<typename T> T* findAutoDestroy(void * what)
+{
+  return AutoDestroy<T>::Find(what);
+}
+
+template<typename T> int sizeAutoDestroy()
+{
+  return AutoDestroy<T>::Size();
+}
 
 } // namespace webcl
 

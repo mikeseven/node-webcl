@@ -76,9 +76,9 @@ Program::Program(Handle<Object> wrapper) : program(0)
 }
 
 Program::~Program() {
-#ifdef LOGGING
+// #ifdef LOGGING
   printf("In ~Program\n");
-#endif
+// #endif
   // Destructor();
 }
 
@@ -337,14 +337,18 @@ class ProgramWorker : public NanAsyncWorker {
     NanScope();
 
     if(baton_->data.IsEmpty()) {
+#ifdef LOGGING
       printf("Calling callback with 1 arg\n");
+#endif
       Local<Value> argv[] = { 
         JS_INT(baton_->error)
       };
       callback->Call(1, argv);
     }
     else {
+#ifdef LOGGING
       printf("Calling callback with 2 args\n");
+#endif
       Local<Value> argv[] = {
         JS_INT(baton_->error),
         NanPersistentToLocal(baton_->data)     // user's message
@@ -377,7 +381,9 @@ void Program::callback (cl_program program, void *user_data)
     delete[] devices;
   }
 
+#ifdef LOGGING
   printf("[build] calling async JS cb\n");
+#endif
   NanAsyncQueueWorker(new ProgramWorker(baton));
 }
 
@@ -473,7 +479,9 @@ NAN_METHOD(Program::build)
     baton=new Baton();
     baton->callback=new NanCallback(args[2].As<Function>());
     if(!args[3]->IsNull() && !args[3]->IsUndefined()) {
+#ifdef LOGGING
       printf("Adding user data to callback baton\n");
+#endif
       NanAssignPersistent(v8::Value, baton->data, args[3]);
     }
   }

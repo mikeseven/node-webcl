@@ -44,112 +44,26 @@ using namespace std;
 namespace webcl {
 
 static bool atExit=false;
-static vector<WebCLObject*> clobjs;
-
 void registerCLObj(void *clid, WebCLObject* obj) {
-  if(!obj) return;
-
-#ifdef LOGGING
-  printf("Adding CLObject %p %s (%d), clobjs size %lu\n", clid, obj->getCLObjName(),obj->getType(),clobjs.size()); fflush(stdout);
-#endif
-  clobjs.push_back(obj);
+  if(obj)
+    autoDestroy<WebCLObject>(obj);
 }
 
 void unregisterCLObj(WebCLObject *obj) {
-  if(atExit || !obj) return;
-
-#ifdef LOGGING
-  printf("Removing WebCLObject %s %p, size %lu\n", obj->getCLObjName(),obj, clobjs.size()); fflush(stdout);
-#endif
-  for(vector<WebCLObject*>::iterator it=clobjs.begin();it!=clobjs.end();++it) {
-    if((*it) == obj) {
-      clobjs.erase(it);
-      break;
-    }
-  }
-  // obj->unRef();
-  // if(obj->getParent()) {
-  //   list<WebCLObject*> children=obj->getParent()->getChildren();
-  //   children.erase(std::remove(children.begin(), children.end(), obj), children.end());
-  //   // for(list<WebCLObject*>::iterator it=children.begin();it!=children.end();++it)
-  //   //   if(*it == obj) {
-  //   //     children.erase(it);
-  //   //     break;
-  //   //   }
-  // }
+  if(!atExit && obj) // if atExit, this avoids a call to unregisterCLObj while ~AutoDestroy() executes
+    cancelAutoDestroy<WebCLObject>(obj);
 }
 
-/**
- * Finds the WebCL objet already associated with an OpenCL object
- */
 WebCLObject* findCLObj(void *clid, CLObjType::CLObjType type) {
-  if(!clid) return NULL;
-
-#ifdef LOGGING
-  printf("Finding CL id %p amongst %lu WebCL objs\n",clid,clobjs.size());
-#endif
-  for(vector<WebCLObject*>::iterator it=clobjs.begin();it != clobjs.end();++it) {
-    WebCLObject *obj = *it;
-#ifdef LOGGING
-    printf("  obj %p type %d %s\n",obj,obj->getType(),obj->getCLObjName());
-#endif
-    if(obj->getType() == type && *obj == clid)
-      return obj;
-  }
-
-  return NULL;
+  return clid ? findAutoDestroy<WebCLObject>(clid) : NULL;
 }
-
-// void dumpChildren(WebCLObject *root, int spc =0) {
-//   for(int i=0;i<spc;i++) printf(" ");
-// #ifdef LOGGING
-//   printf("%s count %d\n",root->getCLObjName(),root->getCount());
-// #endif
-
-//   list<WebCLObject*> children=root->getChildren();
-//   for(list<WebCLObject*>::iterator it=children.begin(); it!=children.end();++it) {
-//     dumpChildren(*it,spc+2);
-//   }
-// }
-
-// void destroyChildren(WebCLObject *root, int spc =0) {
-//   for(list<WebCLObject*>::iterator it=root->84dren().begin(); it!=root->getChildren().end();++it) {
-//     destroyChildren(*it,spc+2);
-//   }
-//   root->Destructor();
-//   for(int i=0;i<spc;i++) printf(" ");
-//   printf("%s count %d\n",root->getCLObjName(),root->getCount());
-// }
 
 void AtExit(void* arg) {
   atExit=true;
 
-// #ifdef LOGGING
-  printf("  # objects allocated: %lu\n",clobjs.size()); fflush(stdout);
-// #endif
-
-  if(clobjs.size() != 0) {
-    
 #ifdef LOGGING
-    // for(vector<WebCLObject*>::iterator it=clobjs.begin();it!=clobjs.end();++it)
-    //   dumpChildren(*it);
-
-    printf("\n=== Destroying all %lu WebCL objects ===\n", clobjs.size());
+  printf("  # objects allocated: %d\n",AutoDestroy<WebCLObject>::Size()); fflush(stdout);
 #endif
-
-    for(vector<WebCLObject*>::reverse_iterator it=clobjs.rbegin(); it!=clobjs.rend();++it) {
-      WebCLObject *obj=*it;
-      if(obj->getType() >= CLObjType::Context) {
-#ifdef LOGGING
-        // printf("Disposing %s %p, count %d\n",obj->getCLObjName(),obj,obj->getCount());
-        printf("Disposing %s %p\n",obj->getCLObjName(),obj);
-#endif
-        obj->Destructor();
-      }
-    }
-
-    clobjs.clear();
-  }
 
   while(!v8::V8::IdleNotification()); // force GC
 }
