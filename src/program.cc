@@ -76,9 +76,9 @@ Program::Program(Handle<Object> wrapper) : program(0)
 }
 
 Program::~Program() {
-// #ifdef LOGGING
+#ifdef LOGGING
   printf("In ~Program\n");
-// #endif
+#endif
   // Destructor();
 }
 
@@ -523,7 +523,6 @@ NAN_METHOD(Program::createKernel)
 
   cl_int ret = CL_SUCCESS;
   cl_kernel kw = ::clCreateKernel(prog->getProgram(), (const char*) *astr, &ret);
-  printf("createKernel %p ret %d\n",kw,ret);
 
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(INVALID_PROGRAM);

@@ -78,7 +78,7 @@ global.WebCLImageDescriptor=cl.WebCLImageDescriptor;
 
 // make sure all OpenCL resources are released at node exit
 process.on('exit',function() {
-  cl.releaseAll();
+  cl.releaseAll(1);
 });
   
 // process.on('SIGINT', function () { 
@@ -144,8 +144,8 @@ cl.waitForEvents = function (events, callback) {
 }
 
 var _releaseAll = cl.releaseAll;
-cl.releaseAll = function () {
-  return _releaseAll();
+cl.releaseAll = function (atExit) {
+  return _releaseAll(atExit);
 }
 
 //////////////////////////////

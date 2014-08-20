@@ -194,7 +194,9 @@ protected:
   {}
 
   virtual ~WebCLObject() {
-    // printf("%s is being destroyed\n",getCLObjName());
+#ifdef LOGGING
+    printf("%s %p is being destroyed\n",getCLObjName(),this);
+#endif
     unregisterCLObj(this);
   }
 
@@ -231,8 +233,9 @@ public:
 
   void destroy()
   {
+    if(!ptr) return;
   #ifdef LOGGING
-    printf("Destroying %s\n",ptr->getCLObjName());
+    printf("[Destroyer] %s\n",ptr->getCLObjName());
   #endif
     // delete ptr;
     ptr->Destructor();
@@ -275,6 +278,9 @@ public:
     typename std::set<T *>::iterator i;
     for (i = autoDestroy.begin(); i != autoDestroy.end(); i++)
     {
+      #ifdef LOGGING
+      printf("[~AutoDestroy] %s %p, refs %d\n",(*i)->getCLObjName(),*i,references[*i]);
+      #endif
       Destroyer<T> destroyer(*i);
       destroyer.destroy();
     }
@@ -300,18 +306,23 @@ protected:
       autoDestroy.insert(what);
 
       //set reference to 1
-      references[what] = 1;
-
-      //return because references is already 1
-      return;
+      references[what] = 0;
     }
 
     //increment reference
     references[what]++;
+
+#ifdef LOGGING
+    printf("Adding %p refCount %d\n",what,references[what]);
+#endif
   }
 
   void remove(T * what)
   {
+ #ifdef LOGGING
+    printf("Removing %p refCount %d\n",what,references[what]);
+ #endif
+
     //if it doesn't exist, return
     if (autoDestroy.count(what) < 1)
       return;
