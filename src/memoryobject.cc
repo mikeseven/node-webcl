@@ -33,7 +33,7 @@ using namespace node;
 
 namespace webcl {
 
-Persistent<FunctionTemplate> MemoryObject::constructor_template;
+Persistent<FunctionTemplate> MemoryObject::constructor;
 
 void MemoryObject::Init(Handle<Object> exports)
 {
@@ -41,7 +41,7 @@ void MemoryObject::Init(Handle<Object> exports)
 
   // constructor
   Local<FunctionTemplate> ctor = FunctionTemplate::New(MemoryObject::New);
-  NanAssignPersistent(FunctionTemplate, constructor_template, ctor);
+  NanAssignPersistent(FunctionTemplate, constructor, ctor);
   ctor->InstanceTemplate()->SetInternalFieldCount(1);
   ctor->SetClassName(NanSymbol("WebCLMemoryObject"));
 
@@ -245,7 +245,7 @@ MemoryObject *MemoryObject::New(cl_mem mw)
   NanScope();
 
   Local<Value> arg = Integer::NewFromUnsigned(0);
-  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor_template);
+  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor);
   Local<Object> obj = constructorHandle->GetFunction()->NewInstance(1, &arg);
 
   MemoryObject *memobj = ObjectWrap::Unwrap<MemoryObject>(obj);
@@ -259,7 +259,7 @@ MemoryObject *MemoryObject::New(cl_mem mw)
 // WebCLBuffer
 ///////////////////////////////////////////////////////////////////////////////
 
-Persistent<FunctionTemplate> WebCLBuffer::constructor_template;
+Persistent<FunctionTemplate> WebCLBuffer::constructor;
 
 void WebCLBuffer::Init(Handle<Object> exports)
 {
@@ -267,7 +267,7 @@ void WebCLBuffer::Init(Handle<Object> exports)
 
   // constructor
   Local<FunctionTemplate> ctor = FunctionTemplate::New(WebCLBuffer::New);
-  NanAssignPersistent(FunctionTemplate, constructor_template, ctor);
+  NanAssignPersistent(FunctionTemplate, constructor, ctor);
   ctor->InstanceTemplate()->SetInternalFieldCount(1);
   ctor->SetClassName(NanSymbol("WebCLBuffer"));
 
@@ -384,7 +384,7 @@ WebCLBuffer *WebCLBuffer::New(cl_mem mw, WebCLObject *parent)
   NanScope();
 
   Local<Value> arg = Integer::NewFromUnsigned(0);
-  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor_template);
+  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor);
   Local<Object> obj = constructorHandle->GetFunction()->NewInstance(1, &arg);
 
   WebCLBuffer *memobj = ObjectWrap::Unwrap<WebCLBuffer>(obj);
@@ -399,7 +399,7 @@ WebCLBuffer *WebCLBuffer::New(cl_mem mw, WebCLObject *parent)
 // WebCLImage
 ///////////////////////////////////////////////////////////////////////////////
 
-Persistent<FunctionTemplate> WebCLImage::constructor_template;
+Persistent<FunctionTemplate> WebCLImage::constructor;
 
 void WebCLImage::Init(Handle<Object> exports)
 {
@@ -407,7 +407,7 @@ void WebCLImage::Init(Handle<Object> exports)
 
   // constructor
   Local<FunctionTemplate> ctor = FunctionTemplate::New(WebCLImage::New);
-  NanAssignPersistent(FunctionTemplate, constructor_template, ctor);
+  NanAssignPersistent(FunctionTemplate, constructor, ctor);
   ctor->InstanceTemplate()->SetInternalFieldCount(1);
   ctor->SetClassName(NanSymbol("WebCLImage"));
 
@@ -512,7 +512,7 @@ WebCLImage *WebCLImage::New(cl_mem mw, WebCLObject *parent)
   NanScope();
 
   Local<Value> arg = Integer::NewFromUnsigned(0);
-  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor_template);
+  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor);
   Local<Object> obj = constructorHandle->GetFunction()->NewInstance(1, &arg);
  
   WebCLImage *memobj = ObjectWrap::Unwrap<WebCLImage>(obj);
@@ -526,7 +526,7 @@ WebCLImage *WebCLImage::New(cl_mem mw, WebCLObject *parent)
 ///////////////////////////////////////////////////////////////////////////////
 // WebCLImageDescriptor
 ///////////////////////////////////////////////////////////////////////////////
-Persistent<FunctionTemplate> WebCLImageDescriptor::constructor_template;
+Persistent<FunctionTemplate> WebCLImageDescriptor::constructor;
 
 void WebCLImageDescriptor::Init(Handle<Object> exports)
 {
@@ -534,7 +534,7 @@ void WebCLImageDescriptor::Init(Handle<Object> exports)
 
   // constructor
   Local<FunctionTemplate> ctor = FunctionTemplate::New(WebCLImageDescriptor::New);
-  NanAssignPersistent(FunctionTemplate, constructor_template, ctor);
+  NanAssignPersistent(FunctionTemplate, constructor, ctor);
   ctor->InstanceTemplate()->SetInternalFieldCount(1);
   ctor->SetClassName(NanSymbol("WebCLImageDescriptor"));
 
@@ -622,7 +622,7 @@ WebCLImageDescriptor *WebCLImageDescriptor::New(int order, int type, int w, int 
   NanScope();
 
   Local<Value> arg = Integer::NewFromUnsigned(0);
-  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor_template);
+  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor);
   Local<Object> obj = constructorHandle->GetFunction()->NewInstance(1, &arg);
  
   WebCLImageDescriptor *desc = ObjectWrap::Unwrap<WebCLImageDescriptor>(obj);

@@ -81,7 +81,7 @@ namespace webcl {
     NanReturnUndefined();\
   }
 
-Persistent<FunctionTemplate> CommandQueue::constructor_template;
+Persistent<FunctionTemplate> CommandQueue::constructor;
 
 void CommandQueue::Init(Handle<Object> exports)
 {
@@ -89,7 +89,7 @@ void CommandQueue::Init(Handle<Object> exports)
 
   // constructor
   Local<FunctionTemplate> ctor = FunctionTemplate::New(CommandQueue::New);
-  NanAssignPersistent(FunctionTemplate, constructor_template, ctor);
+  NanAssignPersistent(FunctionTemplate, constructor, ctor);
   ctor->InstanceTemplate()->SetInternalFieldCount(1);
   ctor->SetClassName(NanSymbol("WebCLCommandQueue"));
 
@@ -1962,7 +1962,7 @@ CommandQueue *CommandQueue::New(cl_command_queue cw, WebCLObject *parent)
   NanScope();
 
   Local<Value> arg = Integer::NewFromUnsigned(0);
-  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor_template);
+  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor);
   Local<Object> obj = constructorHandle->GetFunction()->NewInstance(1, &arg);
 
   CommandQueue *commandqueue = ObjectWrap::Unwrap<CommandQueue>(obj);

@@ -49,7 +49,7 @@ public:
   virtual bool operator==(void *clObj) { return ((cl_mem)clObj)==memory; }
 
 private:
-  static v8::Persistent<v8::FunctionTemplate> constructor_template;
+  static v8::Persistent<v8::FunctionTemplate> constructor;
 
 protected:
   MemoryObject(v8::Handle<v8::Object> wrapper);
@@ -77,7 +77,7 @@ public:
 private:
   WebCLBuffer(v8::Handle<v8::Object> wrapper);
 
-  static v8::Persistent<v8::FunctionTemplate> constructor_template;
+  static v8::Persistent<v8::FunctionTemplate> constructor;
 
   bool isSubBuffer_;
 
@@ -99,7 +99,7 @@ public:
 private:
   WebCLImage(v8::Handle<v8::Object> wrapper);
 
-  static v8::Persistent<v8::FunctionTemplate> constructor_template;
+  static v8::Persistent<v8::FunctionTemplate> constructor;
 
 private:
   DISABLE_COPY(WebCLImage)
@@ -123,7 +123,7 @@ public:
 private:
   WebCLImageDescriptor(v8::Handle<v8::Object> wrapper);
 
-  static v8::Persistent<v8::FunctionTemplate> constructor_template;
+  static v8::Persistent<v8::FunctionTemplate> constructor;
 
   int channelOrder, channelType;
   int width, height, depth;

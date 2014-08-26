@@ -34,7 +34,7 @@ using namespace std;
 using namespace webcl;
 
 namespace webcl {
-Persistent<FunctionTemplate> Device::constructor_template;
+Persistent<FunctionTemplate> Device::constructor;
 
 void Device::Init(Handle<Object> exports)
 {
@@ -42,7 +42,7 @@ void Device::Init(Handle<Object> exports)
 
   // constructor
   Local<FunctionTemplate> ctor = FunctionTemplate::New(Device::New);
-  NanAssignPersistent(FunctionTemplate, constructor_template, ctor);
+  NanAssignPersistent(FunctionTemplate, constructor, ctor);
   ctor->InstanceTemplate()->SetInternalFieldCount(1);
   ctor->SetClassName(NanSymbol("WebCLDevice"));
 
@@ -426,7 +426,7 @@ Device *Device::New(cl_device_id dw)
   NanScope();
 
   Local<Value> arg = Integer::NewFromUnsigned(0);
-  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor_template);
+  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor);
   Local<Object> obj = constructorHandle->GetFunction()->NewInstance(1, &arg);
 
   Device *device = ObjectWrap::Unwrap<Device>(obj);

@@ -34,7 +34,7 @@ using namespace std;
 
 namespace webcl {
 
-Persistent<FunctionTemplate> Platform::constructor_template;
+Persistent<FunctionTemplate> Platform::constructor;
 
 void Platform::Init(Handle<Object> exports)
 {
@@ -42,7 +42,7 @@ void Platform::Init(Handle<Object> exports)
 
   // constructor
   Local<FunctionTemplate> ctor = FunctionTemplate::New(Platform::New);
-  NanAssignPersistent(FunctionTemplate, constructor_template, ctor);
+  NanAssignPersistent(FunctionTemplate, constructor, ctor);
   ctor->InstanceTemplate()->SetInternalFieldCount(1);
   ctor->SetClassName(NanSymbol("WebCLPlatform"));
 
@@ -210,7 +210,7 @@ Platform *Platform::New(cl_platform_id pid)
   NanScope();
 
   Local<Value> arg = Integer::NewFromUnsigned(0);
-  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor_template);
+  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor);
   Local<Object> obj = constructorHandle->GetFunction()->NewInstance(1, &arg);
 
   Platform *platform = ObjectWrap::Unwrap<Platform>(obj);

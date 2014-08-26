@@ -37,7 +37,7 @@ using namespace v8;
 
 namespace webcl {
 
-Persistent<FunctionTemplate> Program::constructor_template;
+Persistent<FunctionTemplate> Program::constructor;
 
 void Program::Init(Handle<Object> exports)
 {
@@ -45,7 +45,7 @@ void Program::Init(Handle<Object> exports)
 
   // constructor
   Local<FunctionTemplate> ctor = FunctionTemplate::New(Program::New);
-  NanAssignPersistent(FunctionTemplate, constructor_template, ctor);
+  NanAssignPersistent(FunctionTemplate, constructor, ctor);
   ctor->InstanceTemplate()->SetInternalFieldCount(1);
   ctor->SetClassName(NanSymbol("WebCLProgram"));
 
@@ -585,7 +585,7 @@ Program *Program::New(cl_program pw, WebCLObject *parent)
   NanScope();
 
   Local<Value> arg = Integer::NewFromUnsigned(0);
-  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor_template);
+  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor);
   Local<Object> obj = constructorHandle->GetFunction()->NewInstance(1, &arg);
 
   Program *p = ObjectWrap::Unwrap<Program>(obj);

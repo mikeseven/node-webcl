@@ -55,7 +55,7 @@ private:
   Kernel(v8::Handle<v8::Object> wrapper);
   ~Kernel();
   
-  static v8::Persistent<v8::FunctionTemplate> constructor_template;
+  static v8::Persistent<v8::FunctionTemplate> constructor;
 
   cl_kernel kernel;
 

@@ -38,7 +38,7 @@ using namespace v8;
 
 namespace webcl {
 
-Persistent<FunctionTemplate> Kernel::constructor_template;
+Persistent<FunctionTemplate> Kernel::constructor;
 
 void Kernel::Init(Handle<Object> exports)
 {
@@ -46,7 +46,7 @@ void Kernel::Init(Handle<Object> exports)
 
   // constructor
   Local<FunctionTemplate> ctor = FunctionTemplate::New(Kernel::New);
-  NanAssignPersistent(FunctionTemplate, constructor_template, ctor);
+  NanAssignPersistent(FunctionTemplate, constructor, ctor);
   ctor->InstanceTemplate()->SetInternalFieldCount(1);
   ctor->SetClassName(NanSymbol("WebCLKernel"));
 
@@ -485,7 +485,7 @@ Kernel *Kernel::New(cl_kernel kw, WebCLObject *parent)
   NanScope();
 
   Local<Value> arg = Integer::NewFromUnsigned(0);
-  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor_template);
+  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor);
   Local<Object> obj = constructorHandle->GetFunction()->NewInstance(1, &arg);
 
   Kernel *kernel = ObjectWrap::Unwrap<Kernel>(obj);

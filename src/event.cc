@@ -33,7 +33,7 @@ using namespace v8;
 
 namespace webcl {
 
-Persistent<FunctionTemplate> Event::constructor_template;
+Persistent<FunctionTemplate> Event::constructor;
 
 void Event::Init(Handle<Object> exports)
 {
@@ -41,7 +41,7 @@ void Event::Init(Handle<Object> exports)
 
   // constructor
   Local<FunctionTemplate> ctor = FunctionTemplate::New(Event::New);
-  NanAssignPersistent(FunctionTemplate, constructor_template, ctor);
+  NanAssignPersistent(FunctionTemplate, constructor, ctor);
   ctor->InstanceTemplate()->SetInternalFieldCount(1);
   ctor->SetClassName(JS_STR("WebCLEvent"));
 
@@ -319,7 +319,7 @@ Event *Event::New(cl_event ew, WebCLObject *parent)
   NanScope();
 
   Local<Value> arg = Integer::NewFromUnsigned(0);
-  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor_template);
+  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor);
   Local<Object> obj = constructorHandle->GetFunction()->NewInstance(1, &arg);
 
   Event *e = ObjectWrap::Unwrap<Event>(obj);
@@ -335,7 +335,7 @@ Event *Event::New(cl_event ew, WebCLObject *parent)
  * UserEvent
  *
  ********************************************/
-Persistent<FunctionTemplate> UserEvent::constructor_template;
+Persistent<FunctionTemplate> UserEvent::constructor;
 
 void UserEvent::Init(Handle<Object> exports)
 {
@@ -343,7 +343,7 @@ void UserEvent::Init(Handle<Object> exports)
 
   // constructor
   Local<FunctionTemplate> ctor = FunctionTemplate::New(UserEvent::New);
-  NanAssignPersistent(FunctionTemplate, constructor_template, ctor);
+  NanAssignPersistent(FunctionTemplate, constructor, ctor);
   ctor->InstanceTemplate()->SetInternalFieldCount(1);
   ctor->SetClassName(JS_STR("WebCLUserEvent"));
 
@@ -430,7 +430,7 @@ UserEvent *UserEvent::New(cl_event ew, WebCLObject *parent)
   NanScope();
 
   Local<Value> arg = Integer::NewFromUnsigned(0);
-  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor_template);
+  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor);
   Local<Object> obj = constructorHandle->GetFunction()->NewInstance(1, &arg);
 
   UserEvent *e = ObjectWrap::Unwrap<UserEvent>(obj);

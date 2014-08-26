@@ -59,7 +59,7 @@ private:
   
   static void callback (cl_program program, void *user_data);
 
-  static v8::Persistent<v8::FunctionTemplate> constructor_template;
+  static v8::Persistent<v8::FunctionTemplate> constructor;
 
   cl_program program;
 

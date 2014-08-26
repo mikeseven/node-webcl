@@ -90,7 +90,7 @@ private:
   CommandQueue(v8::Handle<v8::Object> wrapper);
   ~CommandQueue();
   
-  static v8::Persistent<v8::FunctionTemplate> constructor_template;
+  static v8::Persistent<v8::FunctionTemplate> constructor;
 
   cl_command_queue command_queue;
 

@@ -53,7 +53,7 @@ public:
 private:
   Device(v8::Handle<v8::Object> wrapper);
 
-  static v8::Persistent<v8::FunctionTemplate> constructor_template;
+  static v8::Persistent<v8::FunctionTemplate> constructor;
 
   cl_device_id device_id;
 
