@@ -40,15 +40,7 @@ namespace webcl {
 
 Persistent<FunctionTemplate> Kernel::constructor_template;
 
-void KernelCB(Persistent<Value> value, void *param) {
-#ifdef LOGGING
-  String::AsciiValue str(value->ToObject()->GetConstructorName());
-  printf("%s weak ref cb\n", *str);
-#endif
-  value.Dispose();
-}
-
-void Kernel::Init(Handle<Object> target)
+void Kernel::Init(Handle<Object> exports)
 {
   NanScope();
 
@@ -65,8 +57,7 @@ void Kernel::Init(Handle<Object> target)
   NODE_SET_PROTOTYPE_METHOD(ctor, "_setArg", setArg);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_release", release);
 
-  target->Set(NanSymbol("WebCLKernel"), ctor->GetFunction());
-  constructor_template.MakeWeak(NULL, KernelCB);
+  exports->Set(NanSymbol("WebCLKernel"), ctor->GetFunction());
 }
 
 Kernel::Kernel(Handle<Object> wrapper) : kernel(0)

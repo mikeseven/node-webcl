@@ -37,7 +37,7 @@ class CommandQueue : public WebCLObject
 public:
   void Destructor();
 
-  static void Init(v8::Handle<v8::Object> target);
+  static void Init(v8::Handle<v8::Object> exports);
 
   static CommandQueue *New(cl_command_queue cw, WebCLObject *parent);
   static NAN_METHOD(New);

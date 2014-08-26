@@ -4,7 +4,7 @@
       'target_name': 'webcl',
       'defines': [
         'VERSION=0.9.0',
-        # 'LOGGING'
+        'LOGGING'
       ],
       'sources': [
         'src/bindings.cc',
@@ -31,8 +31,8 @@
             ['CXX', '/usr/bin/clang++'],
           ],
           "xcode_settings": {
-#              'OTHER_CPLUSPLUSFLAGS' : ['-std=c++11','-stdlib=libc++'],
-#              'OTHER_LDFLAGS': ['-stdlib=libc++'],
+             'OTHER_CPLUSPLUSFLAGS' : ['-std=c++11','-stdlib=libc++'],
+             'OTHER_LDFLAGS': ['-stdlib=libc++'],
               'MACOSX_DEPLOYMENT_TARGET': '10.7'
           },
           'libraries': ['-framework OpenGL', '-framework OpenCL']

@@ -37,7 +37,7 @@ class Context : public WebCLObject
 public:
   void Destructor();
 
-  static void Init(v8::Handle<v8::Object> target);
+  static void Init(v8::Handle<v8::Object> exports);
 
   static Context *New(cl_context cw);
   static Context *New(cl_context cw, v8::Handle<v8::Object> webgl_context);

@@ -37,7 +37,7 @@ class Kernel : public WebCLObject
 public:
   void Destructor();
 
-  static void Init(v8::Handle<v8::Object> target);
+  static void Init(v8::Handle<v8::Object> exports);
 
   static Kernel *New(cl_kernel kw, WebCLObject *parent);
   static NAN_METHOD(New);

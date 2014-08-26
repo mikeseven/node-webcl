@@ -58,12 +58,19 @@ WebCLObject* findCLObj(void *clid, CLObjType::CLObjType type) {
   return clid ? findAutoDestroy<WebCLObject>(clid) : NULL;
 }
 
-void AtExit(void *arg) {
+void onExit() {
 #ifdef LOGGING
   printf("**** AtExit %d ****\n",atExit);
   printf("  # objects allocated: %d\n",AutoDestroy<WebCLObject>::Size()); fflush(stdout);
 #endif
 
+  // if(atExit == 0)
+  atExit=1;
+  AutoDestroy<WebCLObject>::Instance()->clear();
+
+#ifdef LOGGING
+  printf("**** GC running ****\n");
+#endif
   while(!v8::V8::IdleNotification()); // force GC
 }
 
@@ -100,7 +107,7 @@ NAN_METHOD(getPlatforms) {
 NAN_METHOD(releaseAll) {
   NanScope();
   atExit = args[0]->IntegerValue();
-  AtExit(NULL);
+  onExit();
 
   NanReturnUndefined();
 }

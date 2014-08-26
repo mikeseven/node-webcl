@@ -36,7 +36,7 @@ namespace webcl {
 
 Persistent<FunctionTemplate> Platform::constructor_template;
 
-void Platform::Init(Handle<Object> target)
+void Platform::Init(Handle<Object> exports)
 {
   NanScope();
 
@@ -52,7 +52,7 @@ void Platform::Init(Handle<Object> target)
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getSupportedExtensions", getSupportedExtensions);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_enableExtension", enableExtension);
 
-  target->Set(NanSymbol("WebCLPlatform"), ctor->GetFunction());
+  exports->Set(NanSymbol("WebCLPlatform"), ctor->GetFunction());
 }
 
 Platform::Platform(Handle<Object> wrapper) : platform_id(0), enableExtensions(NONE), availableExtensions(NONE)
@@ -210,7 +210,6 @@ Platform *Platform::New(cl_platform_id pid)
   NanScope();
 
   Local<Value> arg = Integer::NewFromUnsigned(0);
-  // Local<Object> obj = constructor_template->GetFunction()->NewInstance(1, &arg);
   Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor_template);
   Local<Object> obj = constructorHandle->GetFunction()->NewInstance(1, &arg);
 

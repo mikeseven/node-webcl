@@ -36,7 +36,7 @@ using namespace webcl;
 namespace webcl {
 Persistent<FunctionTemplate> Device::constructor_template;
 
-void Device::Init(Handle<Object> target)
+void Device::Init(Handle<Object> exports)
 {
   NanScope();
 
@@ -51,7 +51,7 @@ void Device::Init(Handle<Object> target)
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getSupportedExtensions", getSupportedExtensions);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_enableExtension", enableExtension);
 
-  target->Set(NanSymbol("WebCLDevice"), ctor->GetFunction());
+  exports->Set(NanSymbol("WebCLDevice"), ctor->GetFunction());
 }
 
 Device::Device(Handle<Object> wrapper) : device_id(0), enableExtensions(NONE), availableExtensions(NONE)

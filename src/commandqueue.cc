@@ -83,15 +83,7 @@ namespace webcl {
 
 Persistent<FunctionTemplate> CommandQueue::constructor_template;
 
-void CommandQueueCB(Persistent<Value> value, void *param) {
-#ifdef LOGGING
-  String::AsciiValue str(value->ToObject()->GetConstructorName());
-  printf("%s weak ref cb\n", *str);
-#endif
-  value.Dispose();
-}
-
-void CommandQueue::Init(Handle<Object> target)
+void CommandQueue::Init(Handle<Object> exports)
 {
   NanScope();
 
@@ -128,8 +120,7 @@ void CommandQueue::Init(Handle<Object> target)
   NODE_SET_PROTOTYPE_METHOD(ctor, "_enqueueReleaseGLObjects", enqueueReleaseGLObjects);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_release", release);
 
-  target->Set(NanSymbol("WebCLCommandQueue"), ctor->GetFunction());
-  constructor_template.MakeWeak(NULL, CommandQueueCB);
+  exports->Set(NanSymbol("WebCLCommandQueue"), ctor->GetFunction());
 }
 
 CommandQueue::CommandQueue(Handle<Object> wrapper) : command_queue(0)

@@ -9,7 +9,7 @@ class WebCLException : public WebCLObject
 {
 
 public:
-  static void Init(v8::Handle<v8::Object> target);
+  static void Init(v8::Handle<v8::Object> exports);
 
   static WebCLException *New(const char *name, const char *desc, const int code);
 

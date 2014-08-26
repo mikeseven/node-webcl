@@ -35,7 +35,7 @@ class Platform : public WebCLObject
 {
 
 public:
-  static void Init(v8::Handle<v8::Object> target);
+  static void Init(v8::Handle<v8::Object> exports);
 
   static Platform *New(cl_platform_id pid);
   static NAN_METHOD(New);

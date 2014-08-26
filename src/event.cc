@@ -35,15 +35,7 @@ namespace webcl {
 
 Persistent<FunctionTemplate> Event::constructor_template;
 
-void EventCB(Persistent<Value> value, void *param) {
-#ifdef LOGGING
-  String::AsciiValue str(value->ToObject()->GetConstructorName());
-  printf("%s weak ref cb\n", *str);
-#endif
-  value.Dispose();
-}
-
-void Event::Init(Handle<Object> target)
+void Event::Init(Handle<Object> exports)
 {
   NanScope();
 
@@ -62,8 +54,7 @@ void Event::Init(Handle<Object> target)
   Local<ObjectTemplate> proto = ctor->PrototypeTemplate();
   proto->SetAccessor(JS_STR("status"), GetStatus, NULL);
   
-  target->Set(JS_STR("WebCLEvent"), ctor->GetFunction());
-  constructor_template.MakeWeak(NULL, EventCB);
+  exports->Set(JS_STR("WebCLEvent"), ctor->GetFunction());
 }
 
 Event::Event(Handle<Object> wrapper) : /*callback(NULL),*/ event(0), status(0)
@@ -346,15 +337,7 @@ Event *Event::New(cl_event ew, WebCLObject *parent)
  ********************************************/
 Persistent<FunctionTemplate> UserEvent::constructor_template;
 
-void UserEventCB(Persistent<Value> value, void *param) {
-#ifdef LOGGING
-  String::AsciiValue str(value->ToObject()->GetConstructorName());
-  printf("%s weak ref cb\n", *str);
-#endif
-  value.Dispose();
-}
-
-void UserEvent::Init(Handle<Object> target)
+void UserEvent::Init(Handle<Object> exports)
 {
   NanScope();
 
@@ -374,8 +357,7 @@ void UserEvent::Init(Handle<Object> target)
   Local<ObjectTemplate> proto = ctor->PrototypeTemplate();
   proto->SetAccessor(JS_STR("status"), GetStatus, NULL);
 
-  target->Set(JS_STR("WebCLUserEvent"), ctor->GetFunction());
-  constructor_template.MakeWeak(NULL, UserEventCB);
+  exports->Set(JS_STR("WebCLUserEvent"), ctor->GetFunction());
 }
 
 UserEvent::UserEvent(Handle<Object> wrapper) : Event(wrapper)

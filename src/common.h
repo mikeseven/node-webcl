@@ -34,6 +34,7 @@
 #include <list>
 #include <set>
 #include <map>
+#include <memory>
 #ifdef LOGGING
 #include <iostream>
 #endif
@@ -150,7 +151,7 @@ struct Baton {
 class WebCLObject;
 void registerCLObj(void *clid, WebCLObject* obj);
 void unregisterCLObj(WebCLObject* obj);
-void AtExit(void* arg);
+void onExit();
 
 namespace CLObjType {
 enum CLObjType {
@@ -186,18 +187,18 @@ WebCLObject* findCLObj(void* clid, CLObjType::CLObjType type);
 
 class WebCLObject : public node::ObjectWrap {
 public:
-  CLObjType::CLObjType getType() const { return _type; }
-  const char* getCLObjName() const { return _type<CLObjType::MAX_WEBCL_TYPES ? CLObjType::CLObjName[_type] : '\0'; }
+  inline CLObjType::CLObjType getType() const { return _type; }
+  inline const char* getCLObjName() const { return _type<CLObjType::MAX_WEBCL_TYPES ? CLObjType::CLObjName[_type] : "\0"; }
 
 protected:
-  WebCLObject() : _type(CLObjType::None),_parent(NULL)
+  WebCLObject() : _type(CLObjType::None)
   {}
 
   virtual ~WebCLObject() {
 #ifdef LOGGING
-    printf("%s %p is being destroyed\n",getCLObjName(),this);
+    printf("[~WebCLObject] %s %p is being destroyed\n",getCLObjName(),this);
 #endif
-    unregisterCLObj(this);
+    // unregisterCLObj(this);
   }
 
 public:
@@ -209,15 +210,15 @@ public:
 
   virtual bool operator==(void *clid) { return false; }
 
-  void setParent(WebCLObject *parent) {
+  inline void setParent(WebCLObject* parent) {
     _parent=parent;
   }
   
-  WebCLObject *getParent() const { return _parent; }
+  inline WebCLObject* getParent() const { return _parent; }
   
 protected:
   CLObjType::CLObjType _type;
-  WebCLObject *_parent;
+  WebCLObject* _parent;
 
 private:
   DISABLE_COPY(WebCLObject)
@@ -231,7 +232,7 @@ public:
     this->ptr = what;
   }
 
-  void destroy()
+  inline void destroy()
   {
     if(!ptr) return;
   #ifdef LOGGING
@@ -281,8 +282,9 @@ public:
       #ifdef LOGGING
       printf("[~AutoDestroy] %s %p, refs %d\n",(*i)->getCLObjName(),*i,references[*i]);
       #endif
-      Destroyer<T> destroyer(*i);
-      destroyer.destroy();
+      // Destroyer<T> destroyer(*i);
+      // destroyer.destroy();
+      (*i)->Destructor();
     }
     references.clear();
     autoDestroy.clear();

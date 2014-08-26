@@ -41,10 +41,10 @@
 
 using namespace v8;
 
-#define JS_CL_CONSTANT(name) target->Set(JS_STR( #name ), JS_INT(CL_ ## name))
+#define JS_CL_CONSTANT(name) exports->Set(JS_STR( #name ), JS_INT(CL_ ## name))
 
-#define NODE_DEFINE_CONSTANT_VALUE(target, name, value)                   \
-  (target)->Set(NanSymbol(name),                         \
+#define NODE_DEFINE_CONSTANT_VALUE(exports, name, value)                   \
+  (exports)->Set(NanSymbol(name),                         \
                 v8::Integer::New(value),                               \
                 static_cast<v8::PropertyAttribute>(v8::ReadOnly|v8::DontDelete))
 
@@ -106,40 +106,40 @@ char *strcasestr(const char *s, char *find) {
 
 extern "C" {
 
-void init(Handle<Object> target)
+void init(Handle<Object> exports)
 {
   // node::AtExit(webcl::AtExit);
 
   /**
    * Platform-dependent byte sizes
    */
-  NODE_DEFINE_CONSTANT_VALUE(target, "size_CHAR", sizeof(char));
-  NODE_DEFINE_CONSTANT_VALUE(target, "size_SHORT", sizeof(short));
-  NODE_DEFINE_CONSTANT_VALUE(target, "size_INT", sizeof(int));
-  NODE_DEFINE_CONSTANT_VALUE(target, "size_LONG", sizeof(long));
-  NODE_DEFINE_CONSTANT_VALUE(target, "size_FLOAT", sizeof(float));
-  NODE_DEFINE_CONSTANT_VALUE(target, "size_DOUBLE", sizeof(double));
-  NODE_DEFINE_CONSTANT_VALUE(target, "size_HALF", sizeof(float) >> 1);
+  NODE_DEFINE_CONSTANT_VALUE(exports, "size_CHAR", sizeof(char));
+  NODE_DEFINE_CONSTANT_VALUE(exports, "size_SHORT", sizeof(short));
+  NODE_DEFINE_CONSTANT_VALUE(exports, "size_INT", sizeof(int));
+  NODE_DEFINE_CONSTANT_VALUE(exports, "size_LONG", sizeof(long));
+  NODE_DEFINE_CONSTANT_VALUE(exports, "size_FLOAT", sizeof(float));
+  NODE_DEFINE_CONSTANT_VALUE(exports, "size_DOUBLE", sizeof(double));
+  NODE_DEFINE_CONSTANT_VALUE(exports, "size_HALF", sizeof(float) >> 1);
 
-  NODE_SET_METHOD(target, "getPlatforms", webcl::getPlatforms);
-  NODE_SET_METHOD(target, "createContext", webcl::createContext);
-  NODE_SET_METHOD(target, "waitForEvents", webcl::waitForEvents);
-  NODE_SET_METHOD(target, "releaseAll", webcl::releaseAll);
+  NODE_SET_METHOD(exports, "getPlatforms", webcl::getPlatforms);
+  NODE_SET_METHOD(exports, "createContext", webcl::createContext);
+  NODE_SET_METHOD(exports, "waitForEvents", webcl::waitForEvents);
+  NODE_SET_METHOD(exports, "releaseAll", webcl::releaseAll);
 
-  webcl::CommandQueue::Init(target);
-  webcl::Context::Init(target);
-  webcl::Device::Init(target);
-  webcl::Event::Init(target);
-  webcl::UserEvent::Init(target);
-  webcl::Kernel::Init(target);
-  webcl::MemoryObject::Init(target);
-  webcl::WebCLBuffer::Init(target);
-  webcl::WebCLImage::Init(target);
-  webcl::WebCLImageDescriptor::Init(target);
-  webcl::Platform::Init(target);
-  webcl::Program::Init(target);
-  webcl::Sampler::Init(target);
-  webcl::WebCLException::Init(target);
+  webcl::CommandQueue::Init(exports);
+  webcl::Context::Init(exports);
+  webcl::Device::Init(exports);
+  webcl::Event::Init(exports);
+  webcl::UserEvent::Init(exports);
+  webcl::Kernel::Init(exports);
+  webcl::MemoryObject::Init(exports);
+  webcl::WebCLBuffer::Init(exports);
+  webcl::WebCLImage::Init(exports);
+  webcl::WebCLImageDescriptor::Init(exports);
+  webcl::Platform::Init(exports);
+  webcl::Program::Init(exports);
+  webcl::Sampler::Init(exports);
+  webcl::WebCLException::Init(exports);
 
   // OpenCL 1.1 constants
 
@@ -699,7 +699,7 @@ void init(Handle<Object> target)
   /* cl_device_partition_property_ext list terminators */
   JS_CL_CONSTANT(PROPERTIES_LIST_END_EXT);
   JS_CL_CONSTANT(PARTITION_BY_COUNTS_LIST_END_EXT);
-  target->Set(JS_STR( "PARTITION_BY_NAMES_LIST_END_EXT" ), JS_NUM((double)CL_PARTITION_BY_NAMES_LIST_END_EXT));
+  exports->Set(JS_STR( "PARTITION_BY_NAMES_LIST_END_EXT" ), JS_NUM((double)CL_PARTITION_BY_NAMES_LIST_END_EXT));
 
   /*********************************
   * cl_amd_device_attribute_query *

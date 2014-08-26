@@ -35,7 +35,7 @@ class Device : public WebCLObject
 {
 
 public:
-  static void Init(v8::Handle<v8::Object> target);
+  static void Init(v8::Handle<v8::Object> exports);
 
   static Device *New(cl_device_id did);
   static NAN_METHOD(New);

@@ -39,15 +39,7 @@ namespace webcl {
 
 Persistent<FunctionTemplate> Program::constructor_template;
 
-void ProgramCB(Persistent<Value> value, void *param) {
-#ifdef LOGGING
-  String::AsciiValue str(value->ToObject()->GetConstructorName());
-  printf("%s weak ref cb\n", *str);
-#endif
-  value.Dispose();
-}
-
-void Program::Init(Handle<Object> target)
+void Program::Init(Handle<Object> exports)
 {
   NanScope();
 
@@ -66,8 +58,7 @@ void Program::Init(Handle<Object> target)
   NODE_SET_PROTOTYPE_METHOD(ctor, "_release", release);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_retain", retain);
 
-  target->Set(NanSymbol("WebCLProgram"), ctor->GetFunction());
-  constructor_template.MakeWeak(NULL, ProgramCB);
+  exports->Set(NanSymbol("WebCLProgram"), ctor->GetFunction());
 }
 
 Program::Program(Handle<Object> wrapper) : program(0)
@@ -449,7 +440,7 @@ NAN_METHOD(Program::build)
 
     if(str.length()>0) {
       options = ::strdup(*str);
-      printf("options: %s\n",options);
+      // printf("options: %s\n",options);
 
       // Mac driver bug: make sure -D is not alone...or crash!
       char *pch=strtok(options," ");
@@ -523,6 +514,7 @@ NAN_METHOD(Program::createKernel)
 
   cl_int ret = CL_SUCCESS;
   cl_kernel kw = ::clCreateKernel(prog->getProgram(), (const char*) *astr, &ret);
+  // printf("createKernel %p ret %d\n",kw,ret);
 
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(INVALID_PROGRAM);

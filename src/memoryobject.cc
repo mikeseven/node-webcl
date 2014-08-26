@@ -35,15 +35,7 @@ namespace webcl {
 
 Persistent<FunctionTemplate> MemoryObject::constructor_template;
 
-void MemoryObjectCB(Persistent<Value> value, void *param) {
-#ifdef LOGGING
-  String::AsciiValue str(value->ToObject()->GetConstructorName());
-  printf("%s weak ref cb\n", *str);
-#endif
-  value.Dispose();
-}
-
-void MemoryObject::Init(Handle<Object> target)
+void MemoryObject::Init(Handle<Object> exports)
 {
   NanScope();
 
@@ -58,8 +50,7 @@ void MemoryObject::Init(Handle<Object> target)
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getGLObjectInfo", getGLObjectInfo);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_release", release);
 
-  target->Set(NanSymbol("WebCLMemoryObject"), ctor->GetFunction());
-  constructor_template.MakeWeak(NULL, MemoryObjectCB);
+  exports->Set(NanSymbol("WebCLMemoryObject"), ctor->GetFunction());
 }
 
 MemoryObject::MemoryObject(Handle<Object> wrapper) : memory(0)
@@ -270,7 +261,7 @@ MemoryObject *MemoryObject::New(cl_mem mw)
 
 Persistent<FunctionTemplate> WebCLBuffer::constructor_template;
 
-void WebCLBuffer::Init(Handle<Object> target)
+void WebCLBuffer::Init(Handle<Object> exports)
 {
   NanScope();
 
@@ -286,8 +277,7 @@ void WebCLBuffer::Init(Handle<Object> target)
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getGLObjectInfo", getGLObjectInfo);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_release", release);
 
-  target->Set(NanSymbol("WebCLBuffer"), ctor->GetFunction());
-  constructor_template.MakeWeak(NULL, MemoryObjectCB);
+  exports->Set(NanSymbol("WebCLBuffer"), ctor->GetFunction());
 }
 
 WebCLBuffer::WebCLBuffer(Handle<Object> wrapper) : MemoryObject(wrapper),isSubBuffer_(false)
@@ -411,7 +401,7 @@ WebCLBuffer *WebCLBuffer::New(cl_mem mw, WebCLObject *parent)
 
 Persistent<FunctionTemplate> WebCLImage::constructor_template;
 
-void WebCLImage::Init(Handle<Object> target)
+void WebCLImage::Init(Handle<Object> exports)
 {
   NanScope();
 
@@ -427,8 +417,7 @@ void WebCLImage::Init(Handle<Object> target)
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getGLTextureInfo", getGLTextureInfo);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_release", release);
 
-  target->Set(NanSymbol("WebCLImage"), ctor->GetFunction());
-  constructor_template.MakeWeak(NULL, MemoryObjectCB);
+  exports->Set(NanSymbol("WebCLImage"), ctor->GetFunction());
 }
 
 WebCLImage::WebCLImage(Handle<Object> wrapper) : MemoryObject(wrapper)
@@ -539,7 +528,7 @@ WebCLImage *WebCLImage::New(cl_mem mw, WebCLObject *parent)
 ///////////////////////////////////////////////////////////////////////////////
 Persistent<FunctionTemplate> WebCLImageDescriptor::constructor_template;
 
-void WebCLImageDescriptor::Init(Handle<Object> target)
+void WebCLImageDescriptor::Init(Handle<Object> exports)
 {
   NanScope();
 
@@ -559,7 +548,7 @@ void WebCLImageDescriptor::Init(Handle<Object> target)
   proto->SetAccessor(JS_STR("rowPitch"), WebCLImageDescriptor::getRowPitch);
   proto->SetAccessor(JS_STR("slicePitch"), WebCLImageDescriptor::getSlicePitch);
 
-  target->Set(NanSymbol("WebCLImageDescriptor"), ctor->GetFunction());
+  exports->Set(NanSymbol("WebCLImageDescriptor"), ctor->GetFunction());
 }
 
 WebCLImageDescriptor::WebCLImageDescriptor(Handle<Object> wrapper) : 

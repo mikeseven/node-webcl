@@ -35,15 +35,7 @@ namespace webcl {
 
 Persistent<FunctionTemplate> Sampler::constructor_template;
 
-void SamplerCB(Persistent<Value> value, void *param) {
-#ifdef LOGGING
-  String::AsciiValue str(value->ToObject()->GetConstructorName());
-  printf("%s weak ref cb\n", *str);
-#endif
-  value.Dispose();
-}
-
-void Sampler::Init(Handle<Object> target)
+void Sampler::Init(Handle<Object> exports)
 {
   NanScope();
 
@@ -57,8 +49,7 @@ void Sampler::Init(Handle<Object> target)
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getInfo", getInfo);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_release", release);
 
-  target->Set(NanSymbol("WebCLSampler"), ctor->GetFunction());
-  constructor_template.MakeWeak(NULL, SamplerCB);
+  exports->Set(NanSymbol("WebCLSampler"), ctor->GetFunction());
 }
 
 Sampler::Sampler(Handle<Object> wrapper) : sampler(0)

@@ -37,7 +37,7 @@ class Sampler : public WebCLObject
 public:
   void Destructor();
 
-  static void Init(v8::Handle<v8::Object> target);
+  static void Init(v8::Handle<v8::Object> exports);
 
   static Sampler *New(cl_sampler sw, WebCLObject *parent);
   static NAN_METHOD(New);

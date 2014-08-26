@@ -37,7 +37,7 @@ class Event : public WebCLObject
 public:
   void Destructor();
 
-  static void Init(v8::Handle<v8::Object> target);
+  static void Init(v8::Handle<v8::Object> exports);
 
   static Event *New(cl_event ew, WebCLObject *parent);
 
@@ -78,7 +78,7 @@ class UserEvent : public Event
 {
 
 public:
-  static void Init(v8::Handle<v8::Object> target);
+  static void Init(v8::Handle<v8::Object> exports);
 
   static UserEvent *New(cl_event ew, WebCLObject *parent);
 

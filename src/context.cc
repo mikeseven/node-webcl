@@ -44,15 +44,7 @@ namespace webcl {
 
 Persistent<FunctionTemplate> Context::constructor_template;
 
-void ContextCB(Persistent<Value> value, void *param) {
-#ifdef LOGGING
-  String::AsciiValue str(value->ToObject()->GetConstructorName());
-  printf("%s weak ref cb\n", *str);
-#endif
-  value.Dispose();
-}
-
-void Context::Init(Handle<Object> target)
+void Context::Init(Handle<Object> exports)
 {
   NanScope();
 
@@ -79,8 +71,7 @@ void Context::Init(Handle<Object> target)
   NODE_SET_PROTOTYPE_METHOD(ctor, "_releaseAll", releaseAll);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getGLContext", getGLContext);
 
-  target->Set(NanSymbol("WebCLContext"), ctor->GetFunction());
-  constructor_template.MakeWeak(NULL, ContextCB);
+  exports->Set(NanSymbol("WebCLContext"), ctor->GetFunction());
 }
 
 Context::Context(Handle<Object> wrapper) : context(0)

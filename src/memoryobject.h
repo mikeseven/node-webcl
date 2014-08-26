@@ -37,7 +37,7 @@ class MemoryObject : public WebCLObject
 public:
   virtual void Destructor();
 
-  static void Init(v8::Handle<v8::Object> target);
+  static void Init(v8::Handle<v8::Object> exports);
 
   static MemoryObject *New(cl_mem mw);
   static NAN_METHOD(New);
@@ -63,7 +63,7 @@ private:
 
 class WebCLBuffer : public MemoryObject {
 public:
-  static void Init(v8::Handle<v8::Object> target);
+  static void Init(v8::Handle<v8::Object> exports);
 
   static WebCLBuffer *New(cl_mem mw, WebCLObject *parent);
   static NAN_METHOD(New);
@@ -87,7 +87,7 @@ private:
 
 class WebCLImage : public MemoryObject {
 public:
-  static void Init(v8::Handle<v8::Object> target);
+  static void Init(v8::Handle<v8::Object> exports);
 
   static WebCLImage *New(cl_mem mw, WebCLObject *parent);
   static NAN_METHOD(New);
@@ -108,7 +108,7 @@ private:
 class WebCLImageDescriptor : public WebCLObject
 {
 public:
-  static void Init(v8::Handle<v8::Object> target);
+  static void Init(v8::Handle<v8::Object> exports);
 
   static WebCLImageDescriptor* New(int order=0, int type=0, int w=0, int h=0, int d=0, int rp=0, int sp=0);
   static NAN_METHOD(New);

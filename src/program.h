@@ -37,7 +37,7 @@ class Program : public WebCLObject
 public:
   void Destructor();
 
-  static void Init(v8::Handle<v8::Object> target);
+  static void Init(v8::Handle<v8::Object> exports);
 
   static Program *New(cl_program pw, WebCLObject *parent);
   static NAN_METHOD(New);

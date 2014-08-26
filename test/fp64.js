@@ -16,7 +16,7 @@ if (webcl == undefined) {
 
 // options
 BUFFER_SIZE=4096;
-useGPU=false;
+useGPU=true;
 
 VectorAdd();
 

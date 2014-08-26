@@ -74,7 +74,7 @@ const char* ErrorDesc(cl_int err)
 
 Persistent<FunctionTemplate> WebCLException::constructor_template;
 
-void WebCLException::Init(Handle<Object> target)
+void WebCLException::Init(Handle<Object> exports)
 {
   NanScope();
 
@@ -90,7 +90,7 @@ void WebCLException::Init(Handle<Object> target)
   proto->SetAccessor(JS_STR("description"), GetDescription, NULL);
   proto->SetAccessor(JS_STR("code"), GetCode, NULL);
 
-  target->Set(NanSymbol("WebCLException"), ctor->GetFunction());
+  exports->Set(NanSymbol("WebCLException"), ctor->GetFunction());
 }
 
 WebCLException::WebCLException(Handle<Object> wrapper) : name_(NULL), desc_(NULL),code_(0)
