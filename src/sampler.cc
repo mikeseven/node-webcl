@@ -172,7 +172,6 @@ Sampler *Sampler::New(cl_sampler sw, WebCLObject *parent)
 
   Sampler *sampler = ObjectWrap::Unwrap<Sampler>(obj);
   sampler->sampler = sw;
-  sampler->setParent(parent);
   registerCLObj(sw, sampler);
 
   return sampler;

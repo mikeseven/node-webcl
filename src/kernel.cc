@@ -490,7 +490,6 @@ Kernel *Kernel::New(cl_kernel kw, WebCLObject *parent)
 
   Kernel *kernel = ObjectWrap::Unwrap<Kernel>(obj);
   kernel->kernel = kw;
-  kernel->setParent(parent);
   registerCLObj(kw, kernel);
 
   return kernel;

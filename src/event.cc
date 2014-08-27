@@ -324,7 +324,6 @@ Event *Event::New(cl_event ew, WebCLObject *parent)
 
   Event *e = ObjectWrap::Unwrap<Event>(obj);
   e->event = ew;
-  e->setParent(parent);
   registerCLObj(ew, e);
 
   return e;
@@ -435,7 +434,6 @@ UserEvent *UserEvent::New(cl_event ew, WebCLObject *parent)
 
   UserEvent *e = ObjectWrap::Unwrap<UserEvent>(obj);
   e->event = ew;
-  e->setParent(parent);
   registerCLObj(ew, e);
 
   return e;

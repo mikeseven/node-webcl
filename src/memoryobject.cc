@@ -389,7 +389,6 @@ WebCLBuffer *WebCLBuffer::New(cl_mem mw, WebCLObject *parent)
 
   WebCLBuffer *memobj = ObjectWrap::Unwrap<WebCLBuffer>(obj);
   memobj->memory = mw;
-  memobj->setParent(parent);
   registerCLObj(mw, memobj);
 
   return memobj;
@@ -517,7 +516,6 @@ WebCLImage *WebCLImage::New(cl_mem mw, WebCLObject *parent)
  
   WebCLImage *memobj = ObjectWrap::Unwrap<WebCLImage>(obj);
   memobj->memory = mw;
-  memobj->setParent(parent);
   registerCLObj(mw, memobj);
 
   return memobj;

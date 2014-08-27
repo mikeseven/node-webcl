@@ -45,28 +45,29 @@ namespace webcl {
 
 static bool atExit=false;
 void registerCLObj(void *clid, WebCLObject* obj) {
-  if(obj)
-    autoDestroy<WebCLObject>(obj);
+  if(!clid || !obj) return;
+  Manager::instance()->add(&NanObjectWrapHandle(obj), clid);
 }
 
 void unregisterCLObj(WebCLObject *obj) {
-  if(!atExit && obj) // if atExit, this avoids a call to unregisterCLObj while ~AutoDestroy() executes
-    cancelAutoDestroy<WebCLObject>(obj);
+  if(atExit || !obj) return;
+  Manager::instance()->remove(&NanObjectWrapHandle(obj));
 }
 
 WebCLObject* findCLObj(void *clid, CLObjType::CLObjType type) {
-  return clid ? findAutoDestroy<WebCLObject>(clid) : NULL;
+  if(!clid) return nullptr;
+  Persistent<Object>* p=Manager::instance()->find(clid);
+
+  return p ? ObjectWrap::Unwrap<WebCLObject>(*p) : nullptr;
 }
 
 void onExit() {
 #ifdef LOGGING
-  printf("**** AtExit %d ****\n",atExit);
-  printf("  # objects allocated: %d\n",AutoDestroy<WebCLObject>::Size()); fflush(stdout);
+  printf("**** onExit %d ****\n",atExit);
 #endif
 
-  // if(atExit == 0)
-  atExit=1;
-  AutoDestroy<WebCLObject>::Instance()->clear();
+  Manager::instance()->stats();
+  Manager::instance()->clear();
 
 #ifdef LOGGING
   printf("**** GC running ****\n");

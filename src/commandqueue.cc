@@ -1967,7 +1967,6 @@ CommandQueue *CommandQueue::New(cl_command_queue cw, WebCLObject *parent)
 
   CommandQueue *commandqueue = ObjectWrap::Unwrap<CommandQueue>(obj);
   commandqueue->command_queue = cw;
-  commandqueue->setParent(parent);
   registerCLObj(cw, commandqueue);
 
   return commandqueue;

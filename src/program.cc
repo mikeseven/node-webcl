@@ -590,7 +590,6 @@ Program *Program::New(cl_program pw, WebCLObject *parent)
 
   Program *p = ObjectWrap::Unwrap<Program>(obj);
   p->program = pw;
-  p->setParent(parent);
   registerCLObj(pw, p);
  
   return p;

@@ -148,11 +148,6 @@ struct Baton {
     }
 };
 
-class WebCLObject;
-void registerCLObj(void *clid, WebCLObject* obj);
-void unregisterCLObj(WebCLObject* obj);
-void onExit();
-
 namespace CLObjType {
 enum CLObjType {
   None=0,
@@ -183,201 +178,51 @@ static const char* CLObjName[] = {
 };
 }
 
+class WebCLObject;
+void registerCLObj(void *clid, WebCLObject* obj);
+void unregisterCLObj(WebCLObject* obj);
 WebCLObject* findCLObj(void* clid, CLObjType::CLObjType type);
+void onExit();
 
 class WebCLObject : public node::ObjectWrap {
 public:
   inline CLObjType::CLObjType getType() const { return _type; }
-  inline const char* getCLObjName() const { return _type<CLObjType::MAX_WEBCL_TYPES ? CLObjType::CLObjName[_type] : "\0"; }
+
+  inline const char* getCLObjName() const { 
+    return _type<CLObjType::MAX_WEBCL_TYPES ? CLObjType::CLObjName[_type] : "\0"; 
+  }
 
 protected:
   WebCLObject() : _type(CLObjType::None)
   {}
 
   virtual ~WebCLObject() {
-#ifdef LOGGING
+  #ifdef LOGGING
     printf("[~WebCLObject] %s %p is being destroyed\n",getCLObjName(),this);
-#endif
-    // unregisterCLObj(this);
+  #endif
+    Destructor();
+    unregisterCLObj(this);
   }
 
 public:
   virtual void Destructor() { 
-#ifdef LOGGING
+  #ifdef LOGGING
     printf("In WebCLObject::Destructor for %s\n",getCLObjName()); 
-#endif
+  #endif
   }
 
   virtual bool operator==(void *clid) { return false; }
-
-  inline void setParent(WebCLObject* parent) {
-    _parent=parent;
-  }
-  
-  inline WebCLObject* getParent() const { return _parent; }
   
 protected:
   CLObjType::CLObjType _type;
-  WebCLObject* _parent;
 
 private:
   DISABLE_COPY(WebCLObject)
 };
 
-template <typename T> class Destroyer
-{
-public:
-  Destroyer(T * what)
-  {
-    this->ptr = what;
-  }
-
-  inline void destroy()
-  {
-    if(!ptr) return;
-  #ifdef LOGGING
-    printf("[Destroyer] %s\n",ptr->getCLObjName());
-  #endif
-    // delete ptr;
-    ptr->Destructor();
-  }
-
-protected:
-  T *ptr;
-};
-
-template <typename T> class AutoDestroy
-{
-public:
-  static void Add(T * what)
-  {
-    Instance()->add(what);
-  }
-
-  static void Remove(T * what)
-  {
-    Instance()->remove(what);
-  }
-
-  static T* Find(void * what)
-  {
-    return Instance()->find(what);
-  }
-
-  static int Size()
-  {
-    return Instance()->size();
-  }
-
-  virtual ~AutoDestroy()
-  {
-    clear();
-  }
-
-  void clear()
-  {
-    typename std::set<T *>::iterator i;
-    for (i = autoDestroy.begin(); i != autoDestroy.end(); i++)
-    {
-      #ifdef LOGGING
-      printf("[~AutoDestroy] %s %p, refs %d\n",(*i)->getCLObjName(),*i,references[*i]);
-      #endif
-      // Destroyer<T> destroyer(*i);
-      // destroyer.destroy();
-      (*i)->Destructor();
-    }
-    references.clear();
-    autoDestroy.clear();
-  }
-
-  static AutoDestroy * Instance()
-  {
-    static AutoDestroy instance;
-    return &instance;
-  }
-protected:
-  std::map<T *, int> references;
-  std::set<T *> autoDestroy;
-
-  void add(T * what)
-  {
-    //if it doesn't exist yet, add it.
-    if (autoDestroy.count(what) < 1)
-    {
-      //insert into auto destroy list
-      autoDestroy.insert(what);
-
-      //set reference to 1
-      references[what] = 0;
-    }
-
-    //increment reference
-    references[what]++;
-
-#ifdef LOGGING
-    printf("Adding %p refCount %d\n",what,references[what]);
-#endif
-  }
-
-  void remove(T * what)
-  {
- #ifdef LOGGING
-    printf("Removing %p refCount %d\n",what,references[what]);
- #endif
-
-    //if it doesn't exist, return
-    if (autoDestroy.count(what) < 1)
-      return;
-
-    //decrement references, and if there aren't any, remove from list.
-    if (--references[what] <= 0)
-    {
-      autoDestroy.erase(what);
-      references.erase(what);
-    }
-  }
-
-  T* find(void * what)
-  {
-    typename std::set<T *>::iterator i;
-    for (i = autoDestroy.begin(); i != autoDestroy.end(); i++)
-    {
-      WebCLObject *obj = *i;
-      if(*obj == what)
-        return obj;
-    }
-    return NULL;
-  }
-
-  int size() const
-  {
-    return references.size();
-  }
-};
-
-/* Helper functions to make things dead simple */
-template<typename T> void autoDestroy(T * what)
-{
-  AutoDestroy<T>::Add(what);
-}
-
-template<typename T> void cancelAutoDestroy(T * what)
-{
-  AutoDestroy<T>::Remove(what);
-}
-
-template<typename T> T* findAutoDestroy(void * what)
-{
-  return AutoDestroy<T>::Find(what);
-}
-
-template<typename T> int sizeAutoDestroy()
-{
-  return AutoDestroy<T>::Size();
-}
-
 } // namespace webcl
 
 #include "exceptions.h"
+#include "manager.h"
 
 #endif
