@@ -44,7 +44,7 @@ using namespace v8;
 #define JS_CL_CONSTANT(name) exports->Set(JS_STR( #name ), JS_INT(CL_ ## name))
 
 #define NODE_DEFINE_CONSTANT_VALUE(exports, name, value)                   \
-  (exports)->Set(NanSymbol(name),                         \
+  (exports)->Set(NanNew<v8::String>(name),                         \
                 v8::Integer::New(value),                               \
                 static_cast<v8::PropertyAttribute>(v8::ReadOnly|v8::DontDelete))
 
@@ -83,7 +83,7 @@ using namespace v8;
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
- */ 
+ */
 char *strcasestr(const char *s, char *find) {
   char c, sc;
   size_t len;
@@ -361,7 +361,7 @@ void init(Handle<Object> exports)
 #ifdef CL_VERSION_1_2
   JS_CL_CONSTANT(CONTEXT_INTEROP_USER_SYNC);
 #endif
- 
+
 #ifdef CL_VERSION_1_2
   /* cl_device_partition_property */
   JS_CL_CONSTANT(DEVICE_PARTITION_EQUALLY);
@@ -450,7 +450,7 @@ void init(Handle<Object> exports)
   JS_CL_CONSTANT(MEM_TYPE);
   JS_CL_CONSTANT(MEM_FLAGS);
   JS_CL_CONSTANT(MEM_SIZE);
-  JS_CL_CONSTANT(MEM_HOST_PTR); 
+  JS_CL_CONSTANT(MEM_HOST_PTR);
   JS_CL_CONSTANT(MEM_MAP_COUNT);
   JS_CL_CONSTANT(MEM_REFERENCE_COUNT);
   JS_CL_CONSTANT(MEM_CONTEXT);

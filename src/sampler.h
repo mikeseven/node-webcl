@@ -50,8 +50,8 @@ public:
 private:
   Sampler(v8::Handle<v8::Object> wrapper);
   ~Sampler();
-  
-  static v8::Persistent<v8::FunctionTemplate> constructor;
+
+  static v8::Persistent<v8::Function> constructor;
 
   cl_sampler sampler;
 

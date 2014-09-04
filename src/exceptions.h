@@ -17,11 +17,11 @@ public:
   static NAN_GETTER(GetName);
   static NAN_GETTER(GetDescription);
   static NAN_GETTER(GetCode);
-  
+
 protected:
   WebCLException(v8::Handle<v8::Object> wrapper);
 
-  static v8::Persistent<v8::FunctionTemplate> constructor;
+  static v8::Persistent<v8::Function> constructor;
 
   const char *name_;
   const char *desc_;

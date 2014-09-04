@@ -33,7 +33,7 @@ using namespace v8;
 
 namespace webcl {
 
-Persistent<FunctionTemplate> Event::constructor;
+Persistent<Function> Event::constructor;
 
 void Event::Init(Handle<Object> exports)
 {
@@ -41,7 +41,6 @@ void Event::Init(Handle<Object> exports)
 
   // constructor
   Local<FunctionTemplate> ctor = FunctionTemplate::New(Event::New);
-  NanAssignPersistent(FunctionTemplate, constructor, ctor);
   ctor->InstanceTemplate()->SetInternalFieldCount(1);
   ctor->SetClassName(JS_STR("WebCLEvent"));
 
@@ -53,7 +52,8 @@ void Event::Init(Handle<Object> exports)
 
   Local<ObjectTemplate> proto = ctor->PrototypeTemplate();
   proto->SetAccessor(JS_STR("status"), GetStatus, NULL);
-  
+
+  NanAssignPersistent<Function>(constructor, ctor->GetFunction());
   exports->Set(JS_STR("WebCLEvent"), ctor->GetFunction());
 }
 
@@ -92,12 +92,12 @@ NAN_METHOD(Event::release)
 #ifdef LOGGING
   printf("  In Event::release %p\n",e->event);
 #endif
-  
+
   // [mbs] hack that allows some time for ref count in CL driver to propagate (???)
   while(!v8::V8::IdleNotification()); // force GC
 
   e->Destructor();
-  
+
   NanReturnUndefined();
 }
 
@@ -123,7 +123,7 @@ NAN_METHOD(Event::getInfo)
     }
     if(ctx) {
       WebCLObject *obj=findCLObj((void*)ctx, CLObjType::Context);
-      if(obj) 
+      if(obj)
         NanReturnValue(NanObjectWrapHandle(obj));
       else
         NanReturnValue(NanObjectWrapHandle(Context::New(ctx)));
@@ -142,7 +142,7 @@ NAN_METHOD(Event::getInfo)
     }
     if(q) {
       WebCLObject *obj=findCLObj((void*)q, CLObjType::CommandQueue);
-      if(obj) 
+      if(obj)
         NanReturnValue(NanObjectWrapHandle(obj));
       else
         NanReturnValue(NanObjectWrapHandle(CommandQueue::New(q, NULL)));
@@ -242,19 +242,19 @@ class EventWorker : public NanAsyncWorker {
     // printf("[async event] in HandleOKCallback\n");
 
     // sets event status
-    Local<Object> p = NanPersistentToLocal(baton_->parent);
+    Local<Object> p = NanNew(baton_->parent);
     Event *e = ObjectWrap::Unwrap<Event>(p);
     e->setStatus(baton_->error);
 
     // // must return passed data
     if(baton_->data.IsEmpty()) {
-      Local<Value> argv[] = { NanPersistentToLocal(baton_->parent) };
+      Local<Value> argv[] = { NanNew(baton_->parent) };
       callback->Call(1, argv);
     }
     else {
       Local<Value> argv[] = {
-        NanPersistentToLocal(baton_->parent),  // event
-        NanPersistentToLocal(baton_->data)     // user's message
+        NanNew(baton_->parent),  // event
+        NanNew(baton_->data)     // user's message
       };
       callback->Call(2, argv);
     }
@@ -281,9 +281,9 @@ NAN_METHOD(Event::setCallback)
   cl_int command_exec_callback_type = args[0]->Int32Value();
 
   Baton *baton=new Baton();
-  if(!args[2]->IsNull() && !args[2]->IsUndefined()) 
-    NanAssignPersistent(v8::Value, baton->data, args[2]);
-  NanAssignPersistent(v8::Object, baton->parent, NanObjectWrapHandle(e));
+  if(!args[2]->IsNull() && !args[2]->IsUndefined())
+    NanAssignPersistent(baton->data, args[2]);
+  NanAssignPersistent(baton->parent, NanObjectWrapHandle(e));
   baton->callback=new NanCallback(args[1].As<Function>());
 
   // printf("SetEventCallback event=%p for callback %p\n",e->getEvent(), baton->callback);
@@ -318,9 +318,8 @@ Event *Event::New(cl_event ew, WebCLObject *parent)
 {
   NanScope();
 
-  Local<Value> arg = Integer::NewFromUnsigned(0);
-  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor);
-  Local<Object> obj = constructorHandle->GetFunction()->NewInstance(1, &arg);
+  Local<Function> cons = NanNew<Function>(constructor);
+  Local<Object> obj = cons->NewInstance();
 
   Event *e = ObjectWrap::Unwrap<Event>(obj);
   e->event = ew;
@@ -334,7 +333,7 @@ Event *Event::New(cl_event ew, WebCLObject *parent)
  * UserEvent
  *
  ********************************************/
-Persistent<FunctionTemplate> UserEvent::constructor;
+Persistent<Function> UserEvent::constructor;
 
 void UserEvent::Init(Handle<Object> exports)
 {
@@ -342,7 +341,6 @@ void UserEvent::Init(Handle<Object> exports)
 
   // constructor
   Local<FunctionTemplate> ctor = FunctionTemplate::New(UserEvent::New);
-  NanAssignPersistent(FunctionTemplate, constructor, ctor);
   ctor->InstanceTemplate()->SetInternalFieldCount(1);
   ctor->SetClassName(JS_STR("WebCLUserEvent"));
 
@@ -356,6 +354,7 @@ void UserEvent::Init(Handle<Object> exports)
   Local<ObjectTemplate> proto = ctor->PrototypeTemplate();
   proto->SetAccessor(JS_STR("status"), GetStatus, NULL);
 
+  NanAssignPersistent<Function>(constructor, ctor->GetFunction());
   exports->Set(JS_STR("WebCLUserEvent"), ctor->GetFunction());
 }
 
@@ -392,7 +391,7 @@ NAN_METHOD(UserEvent::setStatus)
   int status = args[0]->Int32Value();
 
   cl_int ret=::clSetUserEventStatus(e->getEvent(),status);
-  
+
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(INVALID_EVENT);
     REQ_ERROR_THROW(INVALID_VALUE);
@@ -409,7 +408,7 @@ NAN_METHOD(UserEvent::setStatus)
 
 NAN_METHOD(UserEvent::setCallback)
 {
-  return Event::setCallback(args); 
+  return Event::setCallback(args);
 }
 
 NAN_GETTER(UserEvent::GetStatus) {
@@ -428,9 +427,8 @@ UserEvent *UserEvent::New(cl_event ew, WebCLObject *parent)
 {
   NanScope();
 
-  Local<Value> arg = Integer::NewFromUnsigned(0);
-  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor);
-  Local<Object> obj = constructorHandle->GetFunction()->NewInstance(1, &arg);
+  Local<Function> cons = NanNew<Function>(constructor);
+  Local<Object> obj = cons->NewInstance();
 
   UserEvent *e = ObjectWrap::Unwrap<UserEvent>(obj);
   e->event = ew;

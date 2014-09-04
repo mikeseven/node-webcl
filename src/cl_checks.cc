@@ -10,19 +10,19 @@ namespace webcl {
 /* number of bytes in the specified rectangle buffer.
  * @return -1 if error
  */
-int bufferRectSize(const size_t offset[3], const size_t region[3], size_t row_pitch, size_t slice_pitch, size_t buffer_len) 
+int bufferRectSize(const size_t offset[3], const size_t region[3], size_t row_pitch, size_t slice_pitch, size_t buffer_len)
 {
   size_t x= offset[0], y=offset[1], z=offset[2];
   size_t w=region[0], h=region[1], d=region[2];
   if(w==0 || h==0 || d==0)
     return -1;
 
-  if(row_pitch==0) 
+  if(row_pitch==0)
     row_pitch=w;
   else if (row_pitch<w || row_pitch>=buffer_len)
     return -1;
 
-  if(slice_pitch==0) 
+  if(slice_pitch==0)
     slice_pitch=row_pitch*h;
   else if (slice_pitch<(row_pitch * h) || slice_pitch>=buffer_len)
     return -1;
@@ -48,12 +48,19 @@ int imageRectSize(const size_t origin[3], const size_t region[3], size_t row_pit
   cl_int ret = clGetImageInfo(img,CL_IMAGE_WIDTH,sizeof(size_t),&imgW,NULL);
   ret |= clGetImageInfo(img,CL_IMAGE_HEIGHT,sizeof(size_t),&imgH,NULL);
   ret |= clGetImageInfo(img,CL_IMAGE_ELEMENT_SIZE,sizeof(size_t),&bpp,NULL);
+  // printf("[imageRectSize] image %lu x %lu x %lu\n",imgW, imgH, bpp);
+
   if(ret!=CL_SUCCESS)
     return -1;
 
+  // printf("[imageRectSize] buffer_len %d, origin %lu %lu %lu, region %lu %lu %lu, pitch %lu %lu\n",
+    // buffer_len,
+    // origin[0],origin[1],origin[2],
+    // w,h,d,
+    // row_pitch,slice_pitch);
   if(buffer_len>=0 && buffer_len < (int)(region[0]*region[1]*region[2]*bpp))
     return -1;
-  
+
   if(origin[0]+region[0]>imgW || origin[1]+region[1]>imgH)
     return -1;
 
@@ -77,7 +84,7 @@ int imageRectSize(const size_t origin[3], const size_t region[3], size_t row_pit
  * @return number of bytes per elements in a TypedArray
  * @return -1 if wrong type
  */
-int getTypedArrayBytes(ExternalArrayType type) 
+int getTypedArrayBytes(ExternalArrayType type)
 {
   switch(type) {
     case kExternalByteArray:
@@ -97,7 +104,7 @@ int getTypedArrayBytes(ExternalArrayType type)
   return -1;
 }
 
-void getPtrAndLen(const Local<Value> value, void* &ptr, int &len) 
+void getPtrAndLen(const Local<Value> value, void* &ptr, int &len)
 {
 	ptr=NULL;
 	len=0;
@@ -117,13 +124,16 @@ void getPtrAndLen(const Local<Value> value, void* &ptr, int &len)
       else {
         ptr = obj->GetIndexedPropertiesExternalArrayData();
         len = obj->GetIndexedPropertiesExternalArrayDataLength() * getTypedArrayBytes(obj->GetIndexedPropertiesExternalArrayDataType());
+        // printf("TypedArray %d elements, %d bytes/element\n",
+          // obj->GetIndexedPropertiesExternalArrayDataLength(),
+          // getTypedArrayBytes(obj->GetIndexedPropertiesExternalArrayDataType()));
       }
     }
   }
 }
 
-/** 
- * @return number of channels in the specified cl_channel_order 
+/**
+ * @return number of channels in the specified cl_channel_order
  * @return -1 if error
  */
 int getChannelCount(const int channelOrder)

@@ -34,17 +34,16 @@ using namespace std;
 
 namespace webcl {
 
-Persistent<FunctionTemplate> Platform::constructor;
+Persistent<Function> Platform::constructor;
 
 void Platform::Init(Handle<Object> exports)
 {
   NanScope();
 
   // constructor
-  Local<FunctionTemplate> ctor = FunctionTemplate::New(Platform::New);
-  NanAssignPersistent(FunctionTemplate, constructor, ctor);
+  Local<FunctionTemplate> ctor = NanNew<FunctionTemplate>(New);
   ctor->InstanceTemplate()->SetInternalFieldCount(1);
-  ctor->SetClassName(NanSymbol("WebCLPlatform"));
+  ctor->SetClassName(NanNew<String>("WebCLPlatform"));
 
   // prototype
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getInfo", getInfo);
@@ -52,7 +51,8 @@ void Platform::Init(Handle<Object> exports)
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getSupportedExtensions", getSupportedExtensions);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_enableExtension", enableExtension);
 
-  exports->Set(NanSymbol("WebCLPlatform"), ctor->GetFunction());
+  NanAssignPersistent<Function>(constructor, ctor->GetFunction());
+  exports->Set(JS_STR("WebCLPlatform"), ctor->GetFunction());
 }
 
 Platform::Platform(Handle<Object> wrapper) : platform_id(0), enableExtensions(NONE), availableExtensions(NONE)
@@ -209,9 +209,8 @@ Platform *Platform::New(cl_platform_id pid)
 
   NanScope();
 
-  Local<Value> arg = Integer::NewFromUnsigned(0);
-  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor);
-  Local<Object> obj = constructorHandle->GetFunction()->NewInstance(1, &arg);
+  Local<Function> cons = NanNew<Function>(constructor);
+  Local<Object> obj = cons->NewInstance();
 
   Platform *platform = ObjectWrap::Unwrap<Platform>(obj);
   platform->platform_id = pid;

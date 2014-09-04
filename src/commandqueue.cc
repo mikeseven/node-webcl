@@ -81,7 +81,7 @@ namespace webcl {
     NanReturnUndefined();\
   }
 
-Persistent<FunctionTemplate> CommandQueue::constructor;
+Persistent<Function> CommandQueue::constructor;
 
 void CommandQueue::Init(Handle<Object> exports)
 {
@@ -89,9 +89,8 @@ void CommandQueue::Init(Handle<Object> exports)
 
   // constructor
   Local<FunctionTemplate> ctor = FunctionTemplate::New(CommandQueue::New);
-  NanAssignPersistent(FunctionTemplate, constructor, ctor);
   ctor->InstanceTemplate()->SetInternalFieldCount(1);
-  ctor->SetClassName(NanSymbol("WebCLCommandQueue"));
+  ctor->SetClassName(NanNew<String>("WebCLCommandQueue"));
 
   // prototype
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getInfo", getInfo);
@@ -120,7 +119,8 @@ void CommandQueue::Init(Handle<Object> exports)
   NODE_SET_PROTOTYPE_METHOD(ctor, "_enqueueReleaseGLObjects", enqueueReleaseGLObjects);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_release", release);
 
-  exports->Set(NanSymbol("WebCLCommandQueue"), ctor->GetFunction());
+  NanAssignPersistent<Function>(constructor, ctor->GetFunction());
+  exports->Set(NanNew<String>("WebCLCommandQueue"), ctor->GetFunction());
 }
 
 CommandQueue::CommandQueue(Handle<Object> wrapper) : command_queue(0)
@@ -154,7 +154,7 @@ NAN_METHOD(CommandQueue::release)
 {
   NanScope();
   CommandQueue *cq = ObjectWrap::Unwrap<CommandQueue>(args.This());
-  
+
   // Flush first
   cl_int ret = ::clFlush(cq->getCommandQueue());
 
@@ -164,7 +164,7 @@ NAN_METHOD(CommandQueue::release)
     REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
     return NanThrowError("UNKNOWN ERROR");
   }
-  
+
   cq->Destructor();
   NanReturnUndefined();
 }
@@ -189,7 +189,7 @@ NAN_METHOD(CommandQueue::getInfo)
     if(ctx) {
       WebCLObject *obj=findCLObj((void*)ctx, CLObjType::Context);
       printf("[CQ.getInfo(CONTEXT)] %p\n",obj);
-      if(obj) 
+      if(obj)
         NanReturnValue(NanObjectWrapHandle(obj));
       else
         NanReturnValue(NanObjectWrapHandle(Context::New(ctx)));
@@ -210,7 +210,7 @@ NAN_METHOD(CommandQueue::getInfo)
     if(dev) {
       WebCLObject *obj=findCLObj((void*)dev, CLObjType::Device);
 
-      if(obj) 
+      if(obj)
         NanReturnValue(NanObjectWrapHandle(obj));
       else
         NanReturnValue(NanObjectWrapHandle(Device::New(dev)));
@@ -279,7 +279,7 @@ NAN_METHOD(CommandQueue::enqueueNDRangeKernel)
     if(num_globals == 0) {
       cl_int ret=CL_INVALID_GLOBAL_WORK_SIZE;
       REQ_ERROR_THROW(INVALID_GLOBAL_WORK_SIZE);
-      NanReturnUndefined();    
+      NanReturnUndefined();
     }
     globals=new size_t[num_globals];
     for(cl_uint i=0;i<num_globals;i++)
@@ -288,7 +288,7 @@ NAN_METHOD(CommandQueue::enqueueNDRangeKernel)
   else {
     cl_int ret=CL_INVALID_GLOBAL_WORK_SIZE;
     REQ_ERROR_THROW(INVALID_GLOBAL_WORK_SIZE);
-    NanReturnUndefined();    
+    NanReturnUndefined();
   }
 
   size_t *locals=NULL;
@@ -621,7 +621,7 @@ NAN_METHOD(CommandQueue::enqueueReadBuffer)
   if((int)offset>len) {
       cl_int ret=CL_INVALID_VALUE;
       REQ_ERROR_THROW(INVALID_VALUE);
-      NanReturnUndefined();    
+      NanReturnUndefined();
   }
 
   MakeEventWaitList(args[5]);
@@ -801,9 +801,9 @@ NAN_METHOD(CommandQueue::enqueueCopyBuffer)
   ) {
     cl_int ret=CL_MEM_COPY_OVERLAP;
     REQ_ERROR_THROW(MEM_COPY_OVERLAP);
-    NanReturnUndefined();    
+    NanReturnUndefined();
   }
-  
+
   MakeEventWaitList(args[5]);
 
   if(num_evts != num_events_wait_list) {
@@ -977,9 +977,9 @@ NAN_METHOD(CommandQueue::enqueueWriteImage)
   if(region[0]==0 || region[1]==0 || region[2]==0) {
       cl_int ret=CL_INVALID_VALUE;
       REQ_ERROR_THROW(INVALID_VALUE);
-      NanReturnUndefined();    
+      NanReturnUndefined();
   }
-  
+
   size_t row_pitch = args[4]->Uint32Value();
   size_t slice_pitch = 0; //args[5]->Uint32Value(); // no slice_pitch in WebCL 1.0
 
@@ -996,7 +996,7 @@ NAN_METHOD(CommandQueue::enqueueWriteImage)
   if(imageRectSize(origin,region,row_pitch,slice_pitch,mo->getMemory(),len)<0) {
     cl_int ret=CL_INVALID_VALUE;
     REQ_ERROR_THROW(INVALID_VALUE);
-    NanReturnUndefined();    
+    NanReturnUndefined();
   }
 
   MakeEventWaitList(args[6]);
@@ -1086,7 +1086,7 @@ NAN_METHOD(CommandQueue::enqueueReadImage)
   if(imageRectSize(origin,region,row_pitch,slice_pitch,mo->getMemory(),len)<0) {
     cl_int ret=CL_INVALID_VALUE;
     REQ_ERROR_THROW(INVALID_VALUE);
-    NanReturnUndefined();    
+    NanReturnUndefined();
   }
 
   MakeEventWaitList(args[6]);
@@ -1099,7 +1099,7 @@ NAN_METHOD(CommandQueue::enqueueReadImage)
       cq->getCommandQueue(), mo->getMemory(), blocking_read,
       origin,
       region,
-      row_pitch, slice_pitch, 
+      row_pitch, slice_pitch,
       ptr,
       num_events_wait_list,
       events_wait_list,
@@ -1131,7 +1131,7 @@ NAN_METHOD(CommandQueue::enqueueReadImage)
 }
 
 NAN_METHOD(CommandQueue::enqueueCopyImage)
-{   
+{
   NanScope();
   CommandQueue *cq = ObjectWrap::Unwrap<CommandQueue>(args.This());
   MemoryObject *mo_src = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
@@ -1169,8 +1169,8 @@ NAN_METHOD(CommandQueue::enqueueCopyImage)
   // clGetImageInfo(mo_src->getMemory(),CL_IMAGE_HEIGHT,sizeof(size_t),&imgH_s,NULL);
   // clGetImageInfo(mo_dst->getMemory(),CL_IMAGE_WIDTH,sizeof(size_t),&imgW_d,NULL);
   // clGetImageInfo(mo_dst->getMemory(),CL_IMAGE_HEIGHT,sizeof(size_t),&imgH_d,NULL);
-  // if(src_origin[0]+region[0]>imgW_s || src_origin[1]+region[1]>imgH_s || 
-  //     dst_origin[0]+region[0]>imgW_d || dst_origin[1]+region[1]>imgH_d) 
+  // if(src_origin[0]+region[0]>imgW_s || src_origin[1]+region[1]>imgH_s ||
+  //     dst_origin[0]+region[0]>imgW_d || dst_origin[1]+region[1]>imgH_d)
   // {
   //   cl_int ret=CL_INVALID_VALUE;
   //   REQ_ERROR_THROW(INVALID_VALUE);
@@ -1180,12 +1180,12 @@ NAN_METHOD(CommandQueue::enqueueCopyImage)
   if(imageRectSize(src_origin,region,0,0,mo_src->getMemory(),-1)<0) {
     cl_int ret=CL_INVALID_VALUE;
     REQ_ERROR_THROW(INVALID_VALUE);
-    NanReturnUndefined();    
+    NanReturnUndefined();
   }
   if(imageRectSize(dst_origin,region,0,0,mo_dst->getMemory(),-1)<0) {
     cl_int ret=CL_INVALID_VALUE;
     REQ_ERROR_THROW(INVALID_VALUE);
-    NanReturnUndefined();    
+    NanReturnUndefined();
   }
 
   MakeEventWaitList(args[5]);
@@ -1264,8 +1264,8 @@ NAN_METHOD(CommandQueue::enqueueCopyImageToBuffer)
   clGetImageInfo(mo_src->getMemory(),CL_IMAGE_HEIGHT,sizeof(size_t),&imgH,NULL);
   clGetImageInfo(mo_src->getMemory(),CL_IMAGE_ELEMENT_SIZE,sizeof(size_t),&bpp,NULL);
   clGetMemObjectInfo(mo_dst->getMemory(),CL_MEM_SIZE,sizeof(size_t),&sz,NULL);
-  if(src_origin[0]+region[0]>imgW || src_origin[1]+region[1]>imgH || 
-     region[0]*region[1]*bpp>sz) 
+  if(src_origin[0]+region[0]>imgW || src_origin[1]+region[1]>imgH ||
+     region[0]*region[1]*bpp>sz)
   {
     cl_int ret=CL_INVALID_VALUE;
     REQ_ERROR_THROW(INVALID_VALUE);
@@ -1347,10 +1347,10 @@ NAN_METHOD(CommandQueue::enqueueCopyBufferToImage)
   clGetImageInfo(mo_dst->getMemory(),CL_IMAGE_ELEMENT_SIZE,sizeof(size_t),&bpp,NULL);
   clGetMemObjectInfo(mo_src->getMemory(),CL_MEM_SIZE,sizeof(size_t),&sz,NULL);
   // printf("region %lu %lu, img %lu x %lu x %lu, offset %lu, bufsz %lu\n",region[0],region[1],imgW,imgH,bpp,src_offset,sz);
-  if(region[0]>imgW || region[1]>imgH || 
+  if(region[0]>imgW || region[1]>imgH ||
      src_offset+region[0]*region[1]*bpp>sz ||
-     dst_origin[0]>imgW || dst_origin[1]>imgH 
-  ) 
+     dst_origin[0]>imgW || dst_origin[1]>imgH
+  )
   {
     cl_int ret=CL_INVALID_VALUE;
     REQ_ERROR_THROW(INVALID_VALUE);
@@ -1961,9 +1961,8 @@ CommandQueue *CommandQueue::New(cl_command_queue cw, WebCLObject *parent)
 
   NanScope();
 
-  Local<Value> arg = Integer::NewFromUnsigned(0);
-  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor);
-  Local<Object> obj = constructorHandle->GetFunction()->NewInstance(1, &arg);
+  Local<Function> cons = NanNew<Function>(constructor);
+  Local<Object> obj = cons->NewInstance();
 
   CommandQueue *commandqueue = ObjectWrap::Unwrap<CommandQueue>(obj);
   commandqueue->command_queue = cw;

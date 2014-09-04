@@ -38,7 +38,7 @@ using namespace v8;
 
 namespace webcl {
 
-Persistent<FunctionTemplate> Kernel::constructor;
+Persistent<Function> Kernel::constructor;
 
 void Kernel::Init(Handle<Object> exports)
 {
@@ -46,9 +46,8 @@ void Kernel::Init(Handle<Object> exports)
 
   // constructor
   Local<FunctionTemplate> ctor = FunctionTemplate::New(Kernel::New);
-  NanAssignPersistent(FunctionTemplate, constructor, ctor);
   ctor->InstanceTemplate()->SetInternalFieldCount(1);
-  ctor->SetClassName(NanSymbol("WebCLKernel"));
+  ctor->SetClassName(NanNew<String>("WebCLKernel"));
 
   // prototype
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getInfo", getInfo);
@@ -57,7 +56,8 @@ void Kernel::Init(Handle<Object> exports)
   NODE_SET_PROTOTYPE_METHOD(ctor, "_setArg", setArg);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_release", release);
 
-  exports->Set(NanSymbol("WebCLKernel"), ctor->GetFunction());
+  NanAssignPersistent<Function>(constructor, ctor->GetFunction());
+  exports->Set(NanNew<String>("WebCLKernel"), ctor->GetFunction());
 }
 
 Kernel::Kernel(Handle<Object> wrapper) : kernel(0)
@@ -91,9 +91,9 @@ NAN_METHOD(Kernel::release)
 {
   NanScope();
   Kernel *kernel = ObjectWrap::Unwrap<Kernel>(args.This());
-  
+
   kernel->Destructor();
-  
+
   NanReturnUndefined();
 }
 
@@ -135,7 +135,7 @@ NAN_METHOD(Kernel::getInfo)
     }
     if(param_value) {
       WebCLObject *obj=findCLObj((void*)param_value, CLObjType::Context);
-      if(obj) 
+      if(obj)
         NanReturnValue(NanObjectWrapHandle(obj));
       else {
         printf("Creating new context\n");
@@ -156,7 +156,7 @@ NAN_METHOD(Kernel::getInfo)
     }
     if(p) {
       WebCLObject *obj=findCLObj((void*)p, CLObjType::Program);
-      if(obj) 
+      if(obj)
         NanReturnValue(NanObjectWrapHandle(obj));
       else {
         printf("Creating new program\n");
@@ -198,15 +198,15 @@ NAN_METHOD(Kernel::getArgInfo)
   cl_kernel_arg_access_qualifier accessQualifier;
   cl_kernel_arg_type_qualifier typeQualifier;
 
-  cl_int ret = ::clGetKernelArgInfo(kernel->getKernel(), index, 
-                                    CL_KERNEL_ARG_ADDRESS_QUALIFIER, 
+  cl_int ret = ::clGetKernelArgInfo(kernel->getKernel(), index,
+                                    CL_KERNEL_ARG_ADDRESS_QUALIFIER,
                                     sizeof(cl_kernel_arg_address_qualifier), &addressQualifier, NULL);
 
-  ret |= ::clGetKernelArgInfo(kernel->getKernel(), index, 
-                              CL_KERNEL_ARG_ACCESS_QUALIFIER, 
+  ret |= ::clGetKernelArgInfo(kernel->getKernel(), index,
+                              CL_KERNEL_ARG_ACCESS_QUALIFIER,
                               sizeof(cl_kernel_arg_access_qualifier), &accessQualifier, NULL);
-  ret |= ::clGetKernelArgInfo(kernel->getKernel(), index, 
-                              CL_KERNEL_ARG_TYPE_QUALIFIER, 
+  ret |= ::clGetKernelArgInfo(kernel->getKernel(), index,
+                              CL_KERNEL_ARG_TYPE_QUALIFIER,
                               sizeof(cl_kernel_arg_type_qualifier), &typeQualifier, NULL);
 
   char name[256], typeName[256];
@@ -262,12 +262,12 @@ NAN_METHOD(Kernel::getWorkGroupInfo)
     if(num_devices>1) {
       ret = CL_INVALID_DEVICE;
       REQ_ERROR_THROW(INVALID_DEVICE);
-      NanReturnUndefined();      
+      NanReturnUndefined();
     }
     cl_device_id d=NULL;
-    ret |= ::clGetProgramInfo(p, CL_PROGRAM_DEVICES, sizeof(cl_device_id), &d, NULL);  
+    ret |= ::clGetProgramInfo(p, CL_PROGRAM_DEVICES, sizeof(cl_device_id), &d, NULL);
     if(ret == CL_SUCCESS) {
-      device=static_cast<Device*>(findCLObj((void*)d, CLObjType::Device)); 
+      device=static_cast<Device*>(findCLObj((void*)d, CLObjType::Device));
     }
     else {
       ret = CL_INVALID_DEVICE;
@@ -345,7 +345,7 @@ static const TypeInfo types[]={
   { "short", 5, 2 }, { "ushort", 6, 2 },
   { "int", 3, 4 }, { "uint", 4, 4 },
   { "long", 4, 4 }, { "ulong", 5, 4 },
-  { "float", 5, 4 }, { "double", 6, 8 }, 
+  { "float", 5, 4 }, { "double", 6, 8 },
   { "half", 4, 2 },
 };
 static const int nTypes=sizeof(types)/sizeof(TypeInfo);
@@ -425,15 +425,15 @@ NAN_METHOD(Kernel::setArg)
           }
         }
       }
-    
+
       if(len == 1) {
         // handle __local params
         // printf("[setArg] index %d has 1 value\n",arg_index);
         cl_kernel_arg_address_qualifier addr=0;
-        ret = ::clGetKernelArgInfo(k, arg_index, CL_KERNEL_ARG_ADDRESS_QUALIFIER, 
+        ret = ::clGetKernelArgInfo(k, arg_index, CL_KERNEL_ARG_ADDRESS_QUALIFIER,
                               sizeof(cl_kernel_arg_address_qualifier), &addr, NULL);
         if(addr == CL_KERNEL_ARG_ADDRESS_LOCAL) {
-          // printf("  index %d size: %d\n",arg_index,*((cl_int*) host_ptr));          
+          // printf("  index %d size: %d\n",arg_index,*((cl_int*) host_ptr));
           ret = ::clSetKernelArg(k, arg_index, *((cl_int*) host_ptr), NULL);
           // printf("[setArg __local] ret = %d\n",ret);
         }
@@ -447,12 +447,12 @@ NAN_METHOD(Kernel::setArg)
         // printf("ret2= %d\n",ret);
       }
    }
-    else 
+    else
       return NanThrowTypeError("Invalid object for arg 1");
   }
-  else 
+  else
     return NanThrowTypeError("Invalid object for arg 1");
- 
+
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(INVALID_KERNEL);
     REQ_ERROR_THROW(INVALID_ARG_INDEX);
@@ -484,9 +484,8 @@ Kernel *Kernel::New(cl_kernel kw, WebCLObject *parent)
 
   NanScope();
 
-  Local<Value> arg = Integer::NewFromUnsigned(0);
-  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor);
-  Local<Object> obj = constructorHandle->GetFunction()->NewInstance(1, &arg);
+  Local<Function> cons = NanNew<Function>(constructor);
+  Local<Object> obj = cons->NewInstance();
 
   Kernel *kernel = ObjectWrap::Unwrap<Kernel>(obj);
   kernel->kernel = kw;

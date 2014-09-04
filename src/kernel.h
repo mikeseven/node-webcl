@@ -48,14 +48,14 @@ public:
   static NAN_METHOD(release);
 
   cl_kernel getKernel() const { return kernel; };
-  
+
   virtual bool operator==(void *clObj) { return ((cl_kernel)clObj)==kernel; }
 
 private:
   Kernel(v8::Handle<v8::Object> wrapper);
   ~Kernel();
-  
-  static v8::Persistent<v8::FunctionTemplate> constructor;
+
+  static v8::Persistent<v8::Function> constructor;
 
   cl_kernel kernel;
 

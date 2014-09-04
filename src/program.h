@@ -56,10 +56,10 @@ public:
 private:
   Program(v8::Handle<v8::Object> wrapper);
   ~Program();
-  
+
   static void callback (cl_program program, void *user_data);
 
-  static v8::Persistent<v8::FunctionTemplate> constructor;
+  static v8::Persistent<v8::Function> constructor;
 
   cl_program program;
 

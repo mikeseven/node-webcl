@@ -65,7 +65,7 @@ protected:
   // static void After_cb(uv_async_t* handle, int status);
   // NanCallback *callback;
 
-  static v8::Persistent<v8::FunctionTemplate> constructor;
+  static v8::Persistent<v8::Function> constructor;
 
   cl_event event;
   cl_int status;
@@ -95,8 +95,8 @@ public:
 private:
   UserEvent(v8::Handle<v8::Object> wrapper);
   ~UserEvent();
-  
-  static v8::Persistent<v8::FunctionTemplate> constructor;
+
+  static v8::Persistent<v8::Function> constructor;
 
 private:
   DISABLE_COPY(UserEvent)

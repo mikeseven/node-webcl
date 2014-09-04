@@ -76,21 +76,21 @@ using namespace std;
 #endif
 
 #ifndef CL_CURRENT_DEVICE_FOR_GL_CONTEXT_KHR
-  #define CL_CURRENT_DEVICE_FOR_GL_CONTEXT_KHR 0x2006 
+  #define CL_CURRENT_DEVICE_FOR_GL_CONTEXT_KHR 0x2006
 #endif
 #ifndef CL_DEVICES_FOR_GL_CONTEXT_KHR
-  #define CL_DEVICES_FOR_GL_CONTEXT_KHR 0x2007 
+  #define CL_DEVICES_FOR_GL_CONTEXT_KHR 0x2007
 #endif
 
 // TODO value not defined in spec
 #define WEBCL_EXTENSION_NOT_ENABLED 0x8000
 
 namespace {
-#define JS_STR(...) v8::String::New(__VA_ARGS__)
-#define JS_INT(val) v8::Integer::New(val)
-#define JS_NUM(val) v8::Number::New(val)
-#define JS_BOOL(val) v8::Boolean::New(val)
-#define JS_RETHROW(tc) v8::Local<v8::Value>::New(tc.Exception());
+#define JS_STR(...) NanNew<v8::String>(__VA_ARGS__)
+#define JS_INT(val) NanNew<v8::Integer>(val)
+#define JS_NUM(val) NanNew<v8::Number>(val)
+#define JS_BOOL(val) NanNew<v8::Boolean>(val)
+#define JS_RETHROW(tc) NanNew<v8::Local<v8::Value> >(tc.Exception());
 
 #define REQ_ARGS(N)                                                     \
   if (args.Length() < (N))                                              \
@@ -116,7 +116,7 @@ namespace {
 #define REQ_ERROR_THROW(error) if (ret == CL_##error) return ThrowException(NanObjectWrapHandle(WebCLException::New(#error, ErrorDesc(CL_##error), CL_##error)));
 
 #define DESTROY_WEBCL_OBJECT(obj)	\
-  obj->Destructor();			
+  obj->Destructor();
 
 #define DISABLE_COPY(ClassName) \
   ClassName( const ClassName& other ); /* non construction-copyable */ \
@@ -188,8 +188,8 @@ class WebCLObject : public node::ObjectWrap {
 public:
   inline CLObjType::CLObjType getType() const { return _type; }
 
-  inline const char* getCLObjName() const { 
-    return _type<CLObjType::MAX_WEBCL_TYPES ? CLObjType::CLObjName[_type] : "\0"; 
+  inline const char* getCLObjName() const {
+    return _type<CLObjType::MAX_WEBCL_TYPES ? CLObjType::CLObjName[_type] : "\0";
   }
 
 protected:
@@ -205,14 +205,14 @@ protected:
   }
 
 public:
-  virtual void Destructor() { 
+  virtual void Destructor() {
   #ifdef LOGGING
-    printf("In WebCLObject::Destructor for %s\n",getCLObjName()); 
+    printf("In WebCLObject::Destructor for %s\n",getCLObjName());
   #endif
   }
 
   virtual bool operator==(void *clid) { return false; }
-  
+
 protected:
   CLObjType::CLObjType _type;
 

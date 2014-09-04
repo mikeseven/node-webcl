@@ -33,7 +33,7 @@ using namespace node;
 
 namespace webcl {
 
-Persistent<FunctionTemplate> Sampler::constructor;
+Persistent<Function> Sampler::constructor;
 
 void Sampler::Init(Handle<Object> exports)
 {
@@ -41,15 +41,15 @@ void Sampler::Init(Handle<Object> exports)
 
   // constructor
   Local<FunctionTemplate> ctor = FunctionTemplate::New(Sampler::New);
-  NanAssignPersistent(FunctionTemplate, constructor, ctor);
   ctor->InstanceTemplate()->SetInternalFieldCount(1);
-  ctor->SetClassName(NanSymbol("WebCLSampler"));
+  ctor->SetClassName(NanNew<String>("WebCLSampler"));
 
   // prototype
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getInfo", getInfo);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_release", release);
 
-  exports->Set(NanSymbol("WebCLSampler"), ctor->GetFunction());
+  NanAssignPersistent<Function>(constructor, ctor->GetFunction());
+  exports->Set(NanNew<String>("WebCLSampler"), ctor->GetFunction());
 }
 
 Sampler::Sampler(Handle<Object> wrapper) : sampler(0)
@@ -83,9 +83,9 @@ NAN_METHOD(Sampler::release)
 {
   NanScope();
   Sampler *sampler = ObjectWrap::Unwrap<Sampler>(args.This());
-  
+
   sampler->Destructor();
-  
+
   NanReturnUndefined();
 }
 
@@ -134,7 +134,7 @@ NAN_METHOD(Sampler::getInfo)
     }
     if(param_value) {
       WebCLObject *obj=findCLObj((void*)param_value, CLObjType::Context);
-      if(obj) 
+      if(obj)
         NanReturnValue(NanObjectWrapHandle(obj));
       else
         NanReturnValue(NanObjectWrapHandle(Context::New(param_value)));
@@ -166,9 +166,8 @@ Sampler *Sampler::New(cl_sampler sw, WebCLObject *parent)
 
   NanScope();
 
-  Local<Value> arg = Integer::NewFromUnsigned(0);
-  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor);
-  Local<Object> obj = constructorHandle->GetFunction()->NewInstance(1, &arg);
+  Local<Function> cons = NanNew<Function>(constructor);
+  Local<Object> obj = cons->NewInstance();
 
   Sampler *sampler = ObjectWrap::Unwrap<Sampler>(obj);
   sampler->sampler = sw;

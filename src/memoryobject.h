@@ -44,17 +44,17 @@ public:
   static NAN_METHOD(getInfo);
   static NAN_METHOD(getGLObjectInfo);
   static NAN_METHOD(release);
-  
+
   cl_mem getMemory() const { return memory; };
   virtual bool operator==(void *clObj) { return ((cl_mem)clObj)==memory; }
 
 private:
-  static v8::Persistent<v8::FunctionTemplate> constructor;
+  static v8::Persistent<v8::Function> constructor;
 
 protected:
   MemoryObject(v8::Handle<v8::Object> wrapper);
   ~MemoryObject();
-  
+
   cl_mem memory;
 
 private:
@@ -77,7 +77,7 @@ public:
 private:
   WebCLBuffer(v8::Handle<v8::Object> wrapper);
 
-  static v8::Persistent<v8::FunctionTemplate> constructor;
+  static v8::Persistent<v8::Function> constructor;
 
   bool isSubBuffer_;
 
@@ -91,7 +91,7 @@ public:
 
   static WebCLImage *New(cl_mem mw, WebCLObject *parent);
   static NAN_METHOD(New);
-  static NAN_METHOD(release);  
+  static NAN_METHOD(release);
   static NAN_METHOD(getInfo);
   static NAN_METHOD(getGLObjectInfo);
   static NAN_METHOD(getGLTextureInfo);
@@ -99,7 +99,7 @@ public:
 private:
   WebCLImage(v8::Handle<v8::Object> wrapper);
 
-  static v8::Persistent<v8::FunctionTemplate> constructor;
+  static v8::Persistent<v8::Function> constructor;
 
 private:
   DISABLE_COPY(WebCLImage)
@@ -123,7 +123,7 @@ public:
 private:
   WebCLImageDescriptor(v8::Handle<v8::Object> wrapper);
 
-  static v8::Persistent<v8::FunctionTemplate> constructor;
+  static v8::Persistent<v8::Function> constructor;
 
   int channelOrder, channelType;
   int width, height, depth;

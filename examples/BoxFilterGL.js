@@ -101,9 +101,9 @@ function initialize(device_type) {
 
   // Warmup call to assure OpenCL driver is awake
   resetKernelArgs(image.width, image.height, iRadius, fScale);
-  
+
   BoxFilterGPU(image, ComputePBO, iRadius, fScale);
-  
+
   ComputeCommands.finish();
 
   return webcl.SUCCESS;
@@ -115,7 +115,7 @@ function initialize(device_type) {
 
 function configure_shared_data(image_width, image_height) {
   log('configure shared data');
-  
+
   // set up data parameter
   var num_texels = image_width * image_height;
   var num_values = num_texels * 4;
@@ -163,13 +163,13 @@ function init_textures(width, height) {
 
 function init_buffers() {
   log('  create buffers');
-  var VertexPos = [ -1, -1, 
-                    1, -1, 
-                    1, 1, 
+  var VertexPos = [ -1, -1,
+                    1, -1,
+                    1, 1,
                     -1, 1 ];
-  var TexCoords = [ 0, 0, 
-                    1, 0, 
-                    1, 1, 
+  var TexCoords = [ 0, 0,
+                    1, 0,
+                    1, 1,
                     0, 1 ];
 
   VertexPosBuffer = gl.createBuffer();
@@ -187,13 +187,13 @@ function init_buffers() {
 
 function compile_shader(gl, id) {
   var shaders = {
-    "shader-vs" : [ 
+    "shader-vs" : [
         "attribute vec3 aCoords;",
-        "attribute vec2 aTexCoords;", 
+        "attribute vec2 aTexCoords;",
         "varying vec2 vTexCoords;",
-        "void main(void) {", 
+        "void main(void) {",
         "    gl_Position = vec4(aCoords, 1.0);",
-        "    vTexCoords = aTexCoords;", 
+        "    vTexCoords = aTexCoords;",
         "}" ].join("\n"),
     "shader-fs" : [
          "#ifdef GL_ES",
@@ -275,7 +275,7 @@ function init_shaders() {
 
   shaderProgram.textureCoordAttribute = gl.getAttribLocation(shaderProgram, "aTexCoords");
   gl.enableVertexAttribArray(shaderProgram.textureCoordAttribute);
-  
+
   shaderProgram.samplerUniform = gl.getUniformLocation(shaderProgram, "uSampler");
 }
 
@@ -363,7 +363,7 @@ function init_cl(device_type) {
   }
 
   // Report the device vendor and device name
-  // 
+  //
   var vendor_name = ComputeDeviceId.getInfo(webcl.DEVICE_VENDOR);
   var device_name = ComputeDeviceId.getInfo(webcl.DEVICE_NAME);
 
@@ -436,25 +436,19 @@ function init_cl_kernels() {
 }
 
 function resetKernelArgs(image_width, image_height, r, scale) {
-  log('Reset kernel args to image ' + image_width + "x" + image_height + " r="
-      + r + " scale=" + scale);
+  // log('Reset kernel args to image ' + image_width + "x" + image_height + " r="
+  //     + r + " scale=" + scale);
 
   // set the kernel args
-  var aints=new Int32Array(3);
-  aints[0]=image_width;
-  aints[1]=image_height;
-  aints[2]=r;
-  var afloats=new Float32Array(1);
-  afloats[0]=scale;
   try {
     // Set the Argument values for the row kernel
     ckBoxRowsTex.setArg(0, ComputeTexture);
     ckBoxRowsTex.setArg(1, ComputeBufTemp);
     ckBoxRowsTex.setArg(2, RowSampler);
-    ckBoxRowsTex.setArg(3, aints);
-    ckBoxRowsTex.setArg(4, aints.subarray(1));
-    ckBoxRowsTex.setArg(5, aints.subarray(2));
-    ckBoxRowsTex.setArg(6, afloats);
+    ckBoxRowsTex.setArg(3, new Int32Array([image_width]));
+    ckBoxRowsTex.setArg(4, new Int32Array([image_height]));
+    ckBoxRowsTex.setArg(5, new Int32Array([r]));
+    ckBoxRowsTex.setArg(6, new Float32Array([scale]));
   } catch (err) {
     alert("Failed to set row kernel args! " + err);
     return -10;
@@ -464,10 +458,10 @@ function resetKernelArgs(image_width, image_height, r, scale) {
     // Set the Argument values for the column kernel
     ckBoxColumns.setArg(0, ComputeBufTemp);
     ckBoxColumns.setArg(1, ComputePBO);
-    ckBoxColumns.setArg(2, aints);
-    ckBoxColumns.setArg(3, aints.subarray(1));
-    ckBoxColumns.setArg(4, aints.subarray(2));
-    ckBoxColumns.setArg(5, afloats);
+    ckBoxColumns.setArg(2, new Int32Array([image_width]));
+    ckBoxColumns.setArg(3, new Int32Array([image_height]));
+    ckBoxColumns.setArg(4, new Int32Array([r]));
+    ckBoxColumns.setArg(5, new Float32Array([scale]));
   } catch (err) {
     alert("Failed to set column kernel args! " + err);
     return -10;
@@ -478,7 +472,7 @@ function resetKernelArgs(image_width, image_height, r, scale) {
   MaxWorkGroupSize = ckBoxRowsTex.getWorkGroupInfo(ComputeDeviceId,
       webcl.KERNEL_WORK_GROUP_SIZE);
 
-  log("  MaxWorkGroupSize: " + MaxWorkGroupSize);
+  // log("  MaxWorkGroupSize: " + MaxWorkGroupSize);
   return webcl.SUCCESS;
 }
 
@@ -489,7 +483,7 @@ function init_cl_buffers() {
   var InputFormat= {
     channelOrder : webcl.RGBA,
     channelType : webcl.UNSIGNED_INT8,
-    width : image.width, 
+    width : image.width,
     height : image.height,
     rowPitch : image.pitch
   };
@@ -578,7 +572,7 @@ function reshape(evt) {
 }
 
 function keydown(evt) {
-  log('process key: ' + evt.which);
+  // log('process key: ' + evt.which);
   var oldr = iRadius;
 
   switch (evt.which) {
@@ -617,7 +611,7 @@ function execute_kernel() {
   // Release buffer
   ComputeCommands.enqueueReleaseGLObjects(ComputePBO);
   ComputeCommands.finish();
-  
+
   // Update the texture from the pbo
   gl.bindTexture(gl.TEXTURE_2D, TextureId);
   gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, pbo);
@@ -641,6 +635,7 @@ function BoxFilterGPU(image, cmOutputBuffer, r, scale) {
       TexRegion, 0, image);
   }
   catch(ex) {
+    log("Error enqueuing image")
     log(ex.name)
     log(ex.stack)
   }
@@ -670,13 +665,13 @@ function BoxFilterGPU(image, cmOutputBuffer, r, scale) {
 function main() {
   // loading image
   image = new Image();
-  image.onload=function() { 
+  image.onload=function() {
     console.log("Loaded image: " + image.src);
-    log("Image Width = " + image.width + ", Height = " + image.height + ", bpp = 32");
+    log("Image Width = " + image.width + ", Height = " + image.height + ", bpp = "+image.pitch);
     image.szBuffBytes = image.height * image.pitch;
     Width=image.width;
     Height=image.height;
-    
+
     // init window
     if(initialize(use_gpu)==webcl.SUCCESS) {
       function update() {

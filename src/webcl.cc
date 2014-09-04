@@ -46,12 +46,12 @@ namespace webcl {
 static bool atExit=false;
 void registerCLObj(void *clid, WebCLObject* obj) {
   if(!clid || !obj) return;
-  Manager::instance()->add(&NanObjectWrapHandle(obj), clid);
+  Manager::instance()->add(&obj->handle_, clid);
 }
 
 void unregisterCLObj(WebCLObject *obj) {
   if(atExit || !obj) return;
-  Manager::instance()->remove(&NanObjectWrapHandle(obj));
+  Manager::instance()->remove(&obj->handle_);
 }
 
 WebCLObject* findCLObj(void *clid, CLObjType::CLObjType type) {
@@ -216,9 +216,9 @@ NAN_METHOD(createContext) {
                                &ret);
       }
       else if(!strcmp(*astr,"Object") && obj->HasOwnProperty(GLname)) { // Case 5: for CL-GL extension
-        // 5.1 WebCLContext createContext(WebGLRenderingContext gl, optional CLenum deviceType);  
+        // 5.1 WebCLContext createContext(WebGLRenderingContext gl, optional CLenum deviceType);
         // 5.2 WebCLContext createContext(WebGLRenderingContext gl, WebCLPlatform platform, optional CLenum deviceType);
-        // 5.3 WebCLContext createContext(WebGLRenderingContext gl, WebCLDevice device);  
+        // 5.3 WebCLContext createContext(WebGLRenderingContext gl, WebCLDevice device);
         // 5.4 WebCLContext createContext(WebGLRenderingContext gl, sequence<WebCLDevice> devices);
 
 #if defined (__APPLE__)
@@ -449,7 +449,7 @@ class WaitForEventsWorker : public NanAsyncWorker {
   void HandleOKCallback () {
     NanScope();
 
-    Local<Array> eventsArray = Local<Array>::Cast(NanPersistentToLocal(baton_->data));
+    Local<Array> eventsArray = Local<Array>::Cast(NanNew(baton_->data));
     std::vector<cl_event> events;
     for (uint32_t i=0; i<eventsArray->Length(); i++) {
      Event *we=ObjectWrap::Unwrap<Event>(eventsArray->Get(i)->ToObject());
@@ -479,7 +479,7 @@ NAN_METHOD(waitForEvents) {
 
   if(args[1]->IsFunction()) {
       Baton *baton=new Baton();
-      NanAssignPersistent(v8::Value, baton->data, args[0]);
+      NanAssignPersistent(baton->data, args[0]);
       baton->callback=new NanCallback(args[1].As<Function>());
       NanAsyncQueueWorker(new WaitForEventsWorker(baton));
       NanReturnUndefined();

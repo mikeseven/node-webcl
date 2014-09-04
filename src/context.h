@@ -70,7 +70,7 @@ private:
   Context(v8::Handle<v8::Object> wrapper);
   ~Context();
 
-  static v8::Persistent<v8::FunctionTemplate> constructor;
+  static v8::Persistent<v8::Function> constructor;
 
   cl_context context;
   v8::Persistent<v8::Object> webgl_context_;

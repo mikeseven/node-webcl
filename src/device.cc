@@ -34,7 +34,7 @@ using namespace std;
 using namespace webcl;
 
 namespace webcl {
-Persistent<FunctionTemplate> Device::constructor;
+Persistent<Function> Device::constructor;
 
 void Device::Init(Handle<Object> exports)
 {
@@ -42,16 +42,16 @@ void Device::Init(Handle<Object> exports)
 
   // constructor
   Local<FunctionTemplate> ctor = FunctionTemplate::New(Device::New);
-  NanAssignPersistent(FunctionTemplate, constructor, ctor);
   ctor->InstanceTemplate()->SetInternalFieldCount(1);
-  ctor->SetClassName(NanSymbol("WebCLDevice"));
+  ctor->SetClassName(NanNew<String>("WebCLDevice"));
 
   // prototype
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getInfo", getInfo);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getSupportedExtensions", getSupportedExtensions);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_enableExtension", enableExtension);
 
-  exports->Set(NanSymbol("WebCLDevice"), ctor->GetFunction());
+  NanAssignPersistent<Function>(constructor, ctor->GetFunction());
+  exports->Set(NanNew<String>("WebCLDevice"), ctor->GetFunction());
 }
 
 Device::Device(Handle<Object> wrapper) : device_id(0), enableExtensions(NONE), availableExtensions(NONE)
@@ -274,8 +274,8 @@ NAN_METHOD(Device::getInfo)
   case CL_DEVICE_PREFERRED_VECTOR_WIDTH_FLOAT:
   case CL_DEVICE_PREFERRED_VECTOR_WIDTH_DOUBLE:
   case CL_DEVICE_PREFERRED_VECTOR_WIDTH_HALF:
-  case CL_DEVICE_VENDOR_ID: 
-  
+  case CL_DEVICE_VENDOR_ID:
+
   // OpenCL 1.2 constants
   //case CL_DEVICE_REFERENCE_COUNT:
   //case CL_DEVICE_PARTITION_MAX_SUB_DEVICES:
@@ -321,8 +321,8 @@ NAN_METHOD(Device::getInfo)
   case CL_DEVICE_IMAGE3D_MAX_WIDTH:
   case CL_DEVICE_MAX_PARAMETER_SIZE:
   case CL_DEVICE_MAX_WORK_GROUP_SIZE:
-  case CL_DEVICE_PROFILING_TIMER_RESOLUTION: 
-  
+  case CL_DEVICE_PROFILING_TIMER_RESOLUTION:
+
   // OpenCL 1.2 constants
   //case CL_DEVICE_IMAGE_MAX_BUFFER_SIZE:
   //case CL_DEVICE_IMAGE_MAX_ARRAY_SIZE:
@@ -425,9 +425,8 @@ Device *Device::New(cl_device_id dw)
 
   NanScope();
 
-  Local<Value> arg = Integer::NewFromUnsigned(0);
-  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor);
-  Local<Object> obj = constructorHandle->GetFunction()->NewInstance(1, &arg);
+  Local<Function> cons = NanNew<Function>(constructor);
+  Local<Object> obj = cons->NewInstance();
 
   Device *device = ObjectWrap::Unwrap<Device>(obj);
   device->device_id = dw;

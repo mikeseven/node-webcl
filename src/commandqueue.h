@@ -54,7 +54,7 @@ public:
   static NAN_METHOD(enqueueReadBufferRect);
   static NAN_METHOD(enqueueReadImage);
 
-  // Writing: Host -> Buffer, Host -> Image  
+  // Writing: Host -> Buffer, Host -> Image
   static NAN_METHOD(enqueueWriteBuffer);
   static NAN_METHOD(enqueueWriteBufferRect);
   static NAN_METHOD(enqueueWriteImage);
@@ -89,8 +89,8 @@ public:
 private:
   CommandQueue(v8::Handle<v8::Object> wrapper);
   ~CommandQueue();
-  
-  static v8::Persistent<v8::FunctionTemplate> constructor;
+
+  static v8::Persistent<v8::Function> constructor;
 
   cl_command_queue command_queue;
 

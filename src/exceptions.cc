@@ -4,7 +4,7 @@ using namespace v8;
 
 namespace webcl {
 
-const char* ErrorDesc(cl_int err) 
+const char* ErrorDesc(cl_int err)
 {
   switch (err) {
     case CL_SUCCESS:                            return "Success!";
@@ -72,7 +72,7 @@ const char* ErrorDesc(cl_int err)
   return "Unknown";
 }
 
-Persistent<FunctionTemplate> WebCLException::constructor;
+Persistent<Function> WebCLException::constructor;
 
 void WebCLException::Init(Handle<Object> exports)
 {
@@ -80,9 +80,8 @@ void WebCLException::Init(Handle<Object> exports)
 
   // constructor
   Local<FunctionTemplate> ctor = FunctionTemplate::New(WebCLException::New);
-  NanAssignPersistent(FunctionTemplate, constructor, ctor);
   ctor->InstanceTemplate()->SetInternalFieldCount(1);
-  ctor->SetClassName(NanSymbol("WebCLException"));
+  ctor->SetClassName(NanNew<String>("WebCLException"));
 
   // prototype
   Local<ObjectTemplate> proto = ctor->PrototypeTemplate();
@@ -90,7 +89,8 @@ void WebCLException::Init(Handle<Object> exports)
   proto->SetAccessor(JS_STR("description"), GetDescription, NULL);
   proto->SetAccessor(JS_STR("code"), GetCode, NULL);
 
-  exports->Set(NanSymbol("WebCLException"), ctor->GetFunction());
+  NanAssignPersistent<Function>(constructor, ctor->GetFunction());
+  exports->Set(NanNew<String>("WebCLException"), ctor->GetFunction());
 }
 
 WebCLException::WebCLException(Handle<Object> wrapper) : name_(NULL), desc_(NULL),code_(0)
@@ -137,9 +137,8 @@ WebCLException *WebCLException::New(const char *name, const char *desc, const in
 
   NanScope();
 
-  Local<Value> arg = Integer::NewFromUnsigned(0);
-  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor);
-  Local<Object> obj = constructorHandle->GetFunction()->NewInstance(1, &arg);
+ Local<Function> cons = NanNew<Function>(constructor);
+  Local<Object> obj = cons->NewInstance();
 
   WebCLException *ex = ObjectWrap::Unwrap<WebCLException>(obj);
   ex->name_=name;

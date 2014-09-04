@@ -54,7 +54,7 @@ public:
 private:
   Platform(v8::Handle<v8::Object> wrapper);
 
-  static v8::Persistent<v8::FunctionTemplate> constructor;
+  static v8::Persistent<v8::Function> constructor;
 
   cl_platform_id platform_id;
 

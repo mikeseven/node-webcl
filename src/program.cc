@@ -37,7 +37,7 @@ using namespace v8;
 
 namespace webcl {
 
-Persistent<FunctionTemplate> Program::constructor;
+Persistent<Function> Program::constructor;
 
 void Program::Init(Handle<Object> exports)
 {
@@ -45,9 +45,8 @@ void Program::Init(Handle<Object> exports)
 
   // constructor
   Local<FunctionTemplate> ctor = FunctionTemplate::New(Program::New);
-  NanAssignPersistent(FunctionTemplate, constructor, ctor);
   ctor->InstanceTemplate()->SetInternalFieldCount(1);
-  ctor->SetClassName(NanSymbol("WebCLProgram"));
+  ctor->SetClassName(NanNew<String>("WebCLProgram"));
 
   // prototype
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getInfo", getInfo);
@@ -58,7 +57,8 @@ void Program::Init(Handle<Object> exports)
   NODE_SET_PROTOTYPE_METHOD(ctor, "_release", release);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_retain", retain);
 
-  exports->Set(NanSymbol("WebCLProgram"), ctor->GetFunction());
+  NanAssignPersistent<Function>(constructor, ctor->GetFunction());
+  exports->Set(NanNew<String>("WebCLProgram"), ctor->GetFunction());
 }
 
 Program::Program(Handle<Object> wrapper) : program(0)
@@ -92,9 +92,9 @@ NAN_METHOD(Program::release)
 {
   NanScope();
   Program *prog = ObjectWrap::Unwrap<Program>(args.This());
-  
+
   prog->Destructor();
-  
+
   NanReturnUndefined();
 }
 
@@ -102,9 +102,9 @@ NAN_METHOD(Program::retain)
 {
   NanScope();
   Program *prog = ObjectWrap::Unwrap<Program>(args.This());
-  
+
   clRetainProgram(prog->getProgram());
-  
+
   NanReturnUndefined();
 }
 
@@ -140,7 +140,7 @@ NAN_METHOD(Program::getInfo)
     }
     if(value) {
       WebCLObject *obj=findCLObj((void*)value, CLObjType::Context);
-      if(obj) 
+      if(obj)
         NanReturnValue(NanObjectWrapHandle(obj));
       else
         NanReturnValue(NanObjectWrapHandle(Context::New(value)));
@@ -164,7 +164,7 @@ NAN_METHOD(Program::getInfo)
     for (int i=0; i<(int)num_devices; i++) {
       cl_device_id d = devices[i];
       WebCLObject *obj=findCLObj((void*)d, CLObjType::Device);
-      if(obj) 
+      if(obj)
         deviceArray->Set(i, NanObjectWrapHandle(obj));
       else
         deviceArray->Set(i, NanObjectWrapHandle(Device::New(d)));
@@ -251,7 +251,7 @@ NAN_METHOD(Program::getBuildInfo)
     REQ_ERROR_THROW(INVALID_VALUE);
     NanReturnUndefined();
   }
-  
+
   Device *dev = ObjectWrap::Unwrap<Device>(args[0]->ToObject());
   if(args[1]->IsUndefined() || args[1]->IsNull()) {
     cl_int ret=CL_INVALID_VALUE;
@@ -331,7 +331,7 @@ class ProgramWorker : public NanAsyncWorker {
 #ifdef LOGGING
       printf("Calling callback with 1 arg\n");
 #endif
-      Local<Value> argv[] = { 
+      Local<Value> argv[] = {
         JS_INT(baton_->error)
       };
       callback->Call(1, argv);
@@ -342,7 +342,7 @@ class ProgramWorker : public NanAsyncWorker {
 #endif
       Local<Value> argv[] = {
         JS_INT(baton_->error),
-        NanPersistentToLocal(baton_->data)     // user's message
+        NanNew(baton_->data)     // user's message
       };
       callback->Call(2, argv);
     }
@@ -446,7 +446,7 @@ NAN_METHOD(Program::build)
       char *pch=strtok(options," ");
       while (pch != NULL) {
         if(pch && strncmp(pch,"-D",2)==0) {
-          if(*(pch+3)==' ') { 
+          if(*(pch+3)==' ') {
             pch = strtok (NULL, " ");
             if(pch==NULL || *pch=='-') {
               cl_int ret=CL_INVALID_BUILD_OPTIONS;
@@ -473,7 +473,7 @@ NAN_METHOD(Program::build)
 #ifdef LOGGING
       printf("Adding user data to callback baton\n");
 #endif
-      NanAssignPersistent(v8::Value, baton->data, args[3]);
+      NanAssignPersistent(baton->data, args[3]);
     }
   }
 
@@ -584,14 +584,13 @@ Program *Program::New(cl_program pw, WebCLObject *parent)
 {
   NanScope();
 
-  Local<Value> arg = Integer::NewFromUnsigned(0);
-  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor);
-  Local<Object> obj = constructorHandle->GetFunction()->NewInstance(1, &arg);
+  Local<Function> cons = NanNew<Function>(constructor);
+  Local<Object> obj = cons->NewInstance();
 
   Program *p = ObjectWrap::Unwrap<Program>(obj);
   p->program = pw;
   registerCLObj(pw, p);
- 
+
   return p;
 }
 
