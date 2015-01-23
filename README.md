@@ -1,14 +1,14 @@
 Introduction
 ============
 This is an implementation of Khronos [WebCL][WEBCL] specification using NodeJS.
-This implementation solely relies on [OpenCL][OPENCL] 1.1 C headers. 
+This implementation solely relies on [OpenCL][OPENCL] 1.1 C headers.
 
 Dislaimer
 ---------
-While we are close to the WebCL specification, some features in this code may or may not be available in the final specification. As such, this implementation should be considered for 
+While we are close to the WebCL specification, some features in this code may or may not be available in the final specification. As such, this implementation should be considered for
 
 * experimental development of WebCL/WebGL content,
-* experimenting with new constructs that may not be available in browsers, 
+* experimenting with new constructs that may not be available in browsers,
 * coupled with Node.JS awesome capabilities, this software opens the door to non-browser applications (e.g. fast server-side image processing).
 
 This implementation is not secure nor robust, we will update as the standard progresses in these areas. So beware that hacking your GPU may crash your computer; don't blame us!
@@ -18,6 +18,7 @@ License
 node-webcl is distributed under BSD license
 
 Copyright (c) 2011-2012, Motorola Mobility, Inc.
+Copyright (c) 2011-2015, Mikael Bourges-Sevenier
 All rights reserved.
 
 See LICENSES in this distribution for all licenses used in samples from other companies.
@@ -41,8 +42,8 @@ Pre-built binaries are available in submodule deps. Don't forget to do:
 
 	git submodule init
 	git submodule udpate
-	
-if you need these binaries. 
+
+if you need these binaries.
 
 Installation
 ------------
@@ -56,7 +57,7 @@ Make sure GLEW, GLFW, AntTweakBar, and FreeImage libraries are in your path.
 - on Linux use you package manager to install these libraries
 
 
-Now install the usual way: 
+Now install the usual way:
 
 	npm install node-webcl
 
@@ -66,7 +67,7 @@ If you want to use the latest code, retrieve each repo (node-webcl, node-webgl, 
 
 	node-gyp rebuild
 	npm link
-	
+
 
 A crash course on WebCL
 =======================
@@ -102,7 +103,7 @@ So the sequence becomes:
 	* launch CL computation (`queue.enqueueNDRange()`)
 	* release GL objects (`queue.enqueueReleaseGLObjects()`)
 	* ... execute GL commands
-	
+
 References
 ==========
 Specifications
