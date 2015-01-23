@@ -3,7 +3,7 @@
     {
       'target_name': 'webcl',
       'defines': [
-        'VERSION=0.9.1',
+        'VERSION=0.9.2',
         # 'LOGGING'
       ],
       'sources': [

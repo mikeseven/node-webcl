@@ -1,6 +1,6 @@
 {
   "name": "node-webcl",
-  "version": "0.9.1",
+  "version": "0.9.2",
   "description": "A WebCL implementation for desktops with NodeJS",
   "main": "webcl.js",
   "author": "Mikael Bourges-Sevenier <mikeseven@gmail.com>",
