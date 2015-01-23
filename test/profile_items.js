@@ -26,12 +26,12 @@
 
 var nodejs = (typeof window === 'undefined');
 if(nodejs) {
-  WebCL = require('../webcl');
+  webcl = require('../webcl');
   log = console.log;
   exit = process.exit;
 }
 else
-  WebCL = window.webcl;
+  webcl = window.webcl;
 
 function read_complete(status, data) {
   log('in read_complete, status: '+status);
@@ -66,40 +66,40 @@ function main() {
 
   /* Create a device and context */ 
   // Pick platform
-  var platformList=WebCL.getPlatforms();
+  var platformList=webcl.getPlatforms();
   platform=platformList[0];
-  log('found '+platformList.length+' platforms, using platform: '+platform.getInfo(WebCL.PLATFORM_NAME));
+  log('found '+platformList.length+' platforms, using platform: '+platform.getInfo(webcl.PLATFORM_NAME));
   
   //Query the set of devices on this platform
-  var devices = platform.getDevices(WebCL.DEVICE_TYPE_ALL);
+  var devices = platform.getDevices(webcl.DEVICE_TYPE_ALL);
 
   // make sure we use a discrete GPU
   // device=devices[0];
   // for(var i=0;i<devices.length;i++) {
-  //   var vendor=devices[i].getInfo(WebCL.DEVICE_VENDOR);
+  //   var vendor=devices[i].getInfo(webcl.DEVICE_VENDOR);
   //   if(vendor.indexOf('Intel')==-1)
   //     device=devices[i];
   // }
-  // log('found '+devices.length+' devices, using device: '+device.getInfo(WebCL.DEVICE_NAME));
+  // log('found '+devices.length+' devices, using device: '+device.getInfo(webcl.DEVICE_NAME));
 
   // create GPU context for this platform
   var context=null;
   try {
-    //context=WebCL.createContext(device);
+    //context=webcl.createContext(device);
 
-    // context=WebCL.createContext(devices);
+    // context=webcl.createContext(devices);
     // device=devices[0];
 
-    context=WebCL.createContext(platform, WebCL.DEVICE_TYPE_GPU);
-    devices=context.getInfo(WebCL.CONTEXT_DEVICES);
+    context=webcl.createContext(platform, webcl.DEVICE_TYPE_GPU);
+    devices=context.getInfo(webcl.CONTEXT_DEVICES);
     device=devices[0];
     for(var i=0;i<devices.length;i++) {
-      var vendor=devices[i].getInfo(WebCL.DEVICE_VENDOR);
+      var vendor=devices[i].getInfo(webcl.DEVICE_VENDOR);
       // log('found vendor '+vendor+', is Intel? '+vendor.indexOf('Intel'))
       if(vendor.indexOf('Intel')==-1)
         device=devices[i];
     }
-    log('using device: '+device.getInfo(WebCL.DEVICE_NAME));
+    log('using device: '+device.getInfo(webcl.DEVICE_NAME));
   }
   catch(ex) {
     throw new Error("Can't create CL context "+ex);
@@ -133,7 +133,7 @@ function main() {
   } catch(ex) {
     /* Find size of log and print to std output */
     log("Error building program");
-    var info=program.getBuildInfo(devices, WebCL.PROGRAM_BUILD_LOG);
+    var info=program.getBuildInfo(devices, webcl.PROGRAM_BUILD_LOG);
     log(info);
     exit(1);
   }
@@ -147,7 +147,7 @@ function main() {
 
   /* Create a write-only buffer to hold the output data */
   try {
-    data_buffer = context.createBuffer(WebCL.MEM_READ_WRITE | WebCL.MEM_COPY_HOST_PTR, data.byteLength, data);
+    data_buffer = context.createBuffer(webcl.MEM_READ_WRITE | webcl.MEM_COPY_HOST_PTR, data.byteLength, data);
   } catch(ex) {
     log("Couldn't create a buffer. "+ex);
     exit(1);   
@@ -164,7 +164,7 @@ function main() {
 
   /* Create a command queue */
   try {
-    queue = context.createCommandQueue(device, WebCL.QUEUE_PROFILING_ENABLE);
+    queue = context.createCommandQueue(device, webcl.QUEUE_PROFILING_ENABLE);
   } catch(ex) {
     log("Couldn't create a command queue for profiling. "+ex);
   };
@@ -172,20 +172,20 @@ function main() {
   var total_time = 0, time_start, time_end;
   
   for(var i=0;i<NUM_ITERATIONS;i++) {
-    var prof_event=new WebCL.WebCLEvent();
+    var prof_event=new webcl.WebCLEvent();
     /* Enqueue kernel */
     try {
       queue.enqueueNDRangeKernel(kernel, 1, null, [num_items], null, null, prof_event);
     } catch(ex) {
-      log("Couldn't enqueue the kernel. "+ex);
+      log("Couldn't enqueue the kernel. "+ex.name);
       exit(1);   
     }
 
     /* Finish processing the queue and get profiling information */
     queue.finish();
     
-    time_start = prof_event.getProfilingInfo(WebCL.PROFILING_COMMAND_START);
-    time_end = prof_event.getProfilingInfo(WebCL.PROFILING_COMMAND_END);
+    time_start = prof_event.getProfilingInfo(webcl.PROFILING_COMMAND_START);
+    time_end = prof_event.getProfilingInfo(webcl.PROFILING_COMMAND_END);
     //log("time: start="+time_start+" end="+time_end);
     total_time += time_end - time_start;
     prof_event.release();

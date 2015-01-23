@@ -41,49 +41,105 @@
 
 using namespace v8;
 
-#define JS_CL_CONSTANT(name) target->Set(JS_STR( #name ), JS_INT(CL_ ## name))
+#define JS_CL_CONSTANT(name) exports->Set(JS_STR( #name ), JS_INT(CL_ ## name))
 
-#define NODE_DEFINE_CONSTANT_VALUE(target, name, value)                   \
-  (target)->Set(NanSymbol(name),                         \
+#define NODE_DEFINE_CONSTANT_VALUE(exports, name, value)                   \
+  (exports)->Set(NanNew<v8::String>(name),                         \
                 v8::Integer::New(value),                               \
                 static_cast<v8::PropertyAttribute>(v8::ReadOnly|v8::DontDelete))
 
+#ifdef _WIN32
+/*-
+ * Copyright (c) 1990, 1993
+ *  The Regents of the University of California.  All rights reserved.
+ *
+ * This code is derived from software contributed to Berkeley by
+ * Chris Torek.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. All advertising materials mentioning features or use of this software
+ *    must display the following acknowledgement:
+ *  This product includes software developed by the University of
+ *  California, Berkeley and its contributors.
+ * 4. Neither the name of the University nor the names of its contributors
+ *    may be used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
+ */
+char *strcasestr(const char *s, char *find) {
+  char c, sc;
+  size_t len;
+
+  if ((c = *find++) != 0) {
+    c = tolower((unsigned char)c);
+    len = strlen(find);
+
+    do {
+      do {
+        if ((sc = *s++) == 0)
+          return (NULL);
+      } while ((char)tolower((unsigned char)sc) != c);
+    } while (strncasecmp(s, find, len) != 0);
+    s--;
+  }
+  return ((char *)s);
+}
+#endif
 
 extern "C" {
-void init(Handle<Object> target)
+
+void init(Handle<Object> exports)
 {
   // node::AtExit(webcl::AtExit);
 
   /**
    * Platform-dependent byte sizes
    */
-  NODE_DEFINE_CONSTANT_VALUE(target, "size_CHAR", sizeof(char));
-  NODE_DEFINE_CONSTANT_VALUE(target, "size_SHORT", sizeof(short));
-  NODE_DEFINE_CONSTANT_VALUE(target, "size_INT", sizeof(int));
-  NODE_DEFINE_CONSTANT_VALUE(target, "size_LONG", sizeof(long));
-  NODE_DEFINE_CONSTANT_VALUE(target, "size_FLOAT", sizeof(float));
-  NODE_DEFINE_CONSTANT_VALUE(target, "size_DOUBLE", sizeof(double));
-  NODE_DEFINE_CONSTANT_VALUE(target, "size_HALF", sizeof(float) >> 1);
+  NODE_DEFINE_CONSTANT_VALUE(exports, "size_CHAR", sizeof(char));
+  NODE_DEFINE_CONSTANT_VALUE(exports, "size_SHORT", sizeof(short));
+  NODE_DEFINE_CONSTANT_VALUE(exports, "size_INT", sizeof(int));
+  NODE_DEFINE_CONSTANT_VALUE(exports, "size_LONG", sizeof(long));
+  NODE_DEFINE_CONSTANT_VALUE(exports, "size_FLOAT", sizeof(float));
+  NODE_DEFINE_CONSTANT_VALUE(exports, "size_DOUBLE", sizeof(double));
+  NODE_DEFINE_CONSTANT_VALUE(exports, "size_HALF", sizeof(float) >> 1);
 
-  NODE_SET_METHOD(target, "getPlatforms", webcl::getPlatforms);
-  NODE_SET_METHOD(target, "createContext", webcl::createContext);
-  NODE_SET_METHOD(target, "waitForEvents", webcl::waitForEvents);
-  NODE_SET_METHOD(target, "releaseAll", webcl::releaseAll);
+  NODE_SET_METHOD(exports, "getPlatforms", webcl::getPlatforms);
+  NODE_SET_METHOD(exports, "createContext", webcl::createContext);
+  NODE_SET_METHOD(exports, "waitForEvents", webcl::waitForEvents);
+  NODE_SET_METHOD(exports, "releaseAll", webcl::releaseAll);
 
-  webcl::CommandQueue::Init(target);
-  webcl::Context::Init(target);
-  webcl::Device::Init(target);
-  webcl::Event::Init(target);
-  webcl::UserEvent::Init(target);
-  webcl::Kernel::Init(target);
-  webcl::MemoryObject::Init(target);
-  webcl::WebCLBuffer::Init(target);
-  webcl::WebCLImage::Init(target);
-  webcl::WebCLImageDescriptor::Init(target);
-  webcl::Platform::Init(target);
-  webcl::Program::Init(target);
-  webcl::Sampler::Init(target);
-  webcl::WebCLException::Init(target);
+  webcl::CommandQueue::Init(exports);
+  webcl::Context::Init(exports);
+  webcl::Device::Init(exports);
+  webcl::Event::Init(exports);
+  webcl::UserEvent::Init(exports);
+  webcl::Kernel::Init(exports);
+  webcl::MemoryObject::Init(exports);
+  webcl::WebCLBuffer::Init(exports);
+  webcl::WebCLImage::Init(exports);
+  webcl::WebCLImageDescriptor::Init(exports);
+  webcl::Platform::Init(exports);
+  webcl::Program::Init(exports);
+  webcl::Sampler::Init(exports);
+  webcl::WebCLException::Init(exports);
 
   // OpenCL 1.1 constants
 
@@ -143,7 +199,7 @@ void init(Handle<Object> target)
   JS_CL_CONSTANT(INVALID_OPERATION);
   JS_CL_CONSTANT(INVALID_GL_OBJECT);
   JS_CL_CONSTANT(INVALID_BUFFER_SIZE);
-  // JS_CL_CONSTANT(INVALID_MIP_LEVEL);
+  JS_CL_CONSTANT(INVALID_MIP_LEVEL);
   JS_CL_CONSTANT(INVALID_GLOBAL_WORK_SIZE);
   JS_CL_CONSTANT(INVALID_PROPERTY);
 #ifdef CL_VERSION_1_2
@@ -295,7 +351,7 @@ void init(Handle<Object> target)
   JS_CL_CONSTANT(QUEUE_PROFILING_ENABLE);
 
   /* cl_context_info  */
-  // JS_CL_CONSTANT(CONTEXT_REFERENCE_COUNT);
+  JS_CL_CONSTANT(CONTEXT_REFERENCE_COUNT);
   JS_CL_CONSTANT(CONTEXT_DEVICES);
   JS_CL_CONSTANT(CONTEXT_PROPERTIES);
   JS_CL_CONSTANT(CONTEXT_NUM_DEVICES);
@@ -305,7 +361,7 @@ void init(Handle<Object> target)
 #ifdef CL_VERSION_1_2
   JS_CL_CONSTANT(CONTEXT_INTEROP_USER_SYNC);
 #endif
- 
+
 #ifdef CL_VERSION_1_2
   /* cl_device_partition_property */
   JS_CL_CONSTANT(DEVICE_PARTITION_EQUALLY);
@@ -325,7 +381,7 @@ void init(Handle<Object> target)
   /* cl_command_queue_info */
   JS_CL_CONSTANT(QUEUE_CONTEXT);
   JS_CL_CONSTANT(QUEUE_DEVICE);
-  // JS_CL_CONSTANT(QUEUE_REFERENCE_COUNT);
+  JS_CL_CONSTANT(QUEUE_REFERENCE_COUNT);
   JS_CL_CONSTANT(QUEUE_PROPERTIES);
 
   /* cl_mem_flags - bitfield */
@@ -394,9 +450,9 @@ void init(Handle<Object> target)
   JS_CL_CONSTANT(MEM_TYPE);
   JS_CL_CONSTANT(MEM_FLAGS);
   JS_CL_CONSTANT(MEM_SIZE);
-  JS_CL_CONSTANT(MEM_HOST_PTR); 
-  // JS_CL_CONSTANT(MEM_MAP_COUNT);
-  // JS_CL_CONSTANT(MEM_REFERENCE_COUNT);
+  JS_CL_CONSTANT(MEM_HOST_PTR);
+  JS_CL_CONSTANT(MEM_MAP_COUNT);
+  JS_CL_CONSTANT(MEM_REFERENCE_COUNT);
   JS_CL_CONSTANT(MEM_CONTEXT);
   JS_CL_CONSTANT(MEM_ASSOCIATED_MEMOBJECT);
   JS_CL_CONSTANT(MEM_OFFSET);
@@ -428,7 +484,7 @@ void init(Handle<Object> target)
   JS_CL_CONSTANT(FILTER_LINEAR);
 
   /* cl_sampler_info */
-  // JS_CL_CONSTANT(SAMPLER_REFERENCE_COUNT);
+  JS_CL_CONSTANT(SAMPLER_REFERENCE_COUNT);
   JS_CL_CONSTANT(SAMPLER_CONTEXT);
   JS_CL_CONSTANT(SAMPLER_NORMALIZED_COORDS);
   JS_CL_CONSTANT(SAMPLER_ADDRESSING_MODE);
@@ -442,7 +498,7 @@ void init(Handle<Object> target)
 #endif
 
   /* cl_program_info */
-  // JS_CL_CONSTANT(PROGRAM_REFERENCE_COUNT);
+  JS_CL_CONSTANT(PROGRAM_REFERENCE_COUNT);
   JS_CL_CONSTANT(PROGRAM_CONTEXT);
   JS_CL_CONSTANT(PROGRAM_NUM_DEVICES);
   JS_CL_CONSTANT(PROGRAM_DEVICES);
@@ -479,7 +535,7 @@ void init(Handle<Object> target)
   /* cl_kernel_info */
   JS_CL_CONSTANT(KERNEL_FUNCTION_NAME);
   JS_CL_CONSTANT(KERNEL_NUM_ARGS);
-  // JS_CL_CONSTANT(KERNEL_REFERENCE_COUNT);
+  JS_CL_CONSTANT(KERNEL_REFERENCE_COUNT);
   JS_CL_CONSTANT(KERNEL_CONTEXT);
   JS_CL_CONSTANT(KERNEL_PROGRAM);
 #ifdef CL_VERSION_1_2
@@ -526,7 +582,7 @@ void init(Handle<Object> target)
   /* cl_event_info  */
   JS_CL_CONSTANT(EVENT_COMMAND_QUEUE);
   JS_CL_CONSTANT(EVENT_COMMAND_TYPE);
-  // JS_CL_CONSTANT(EVENT_REFERENCE_COUNT);
+  JS_CL_CONSTANT(EVENT_REFERENCE_COUNT);
   JS_CL_CONSTANT(EVENT_COMMAND_EXECUTION_STATUS);
   JS_CL_CONSTANT(EVENT_CONTEXT);
 
@@ -643,7 +699,7 @@ void init(Handle<Object> target)
   /* cl_device_partition_property_ext list terminators */
   JS_CL_CONSTANT(PROPERTIES_LIST_END_EXT);
   JS_CL_CONSTANT(PARTITION_BY_COUNTS_LIST_END_EXT);
-  target->Set(JS_STR( "PARTITION_BY_NAMES_LIST_END_EXT" ), JS_NUM((double)CL_PARTITION_BY_NAMES_LIST_END_EXT));
+  exports->Set(JS_STR( "PARTITION_BY_NAMES_LIST_END_EXT" ), JS_NUM((double)CL_PARTITION_BY_NAMES_LIST_END_EXT));
 
   /*********************************
   * cl_amd_device_attribute_query *

@@ -37,7 +37,7 @@ class Context : public WebCLObject
 public:
   void Destructor();
 
-  static void Init(v8::Handle<v8::Object> target);
+  static void Init(v8::Handle<v8::Object> exports);
 
   static Context *New(cl_context cw);
   static Context *New(cl_context cw, v8::Handle<v8::Object> webgl_context);
@@ -55,6 +55,7 @@ public:
   static NAN_METHOD(createFromGLTexture);
   static NAN_METHOD(createFromGLRenderbuffer);
   static NAN_METHOD(release);
+  static NAN_METHOD(retain);
   static NAN_METHOD(releaseAll);
 
 #ifdef HAS_clGetContextInfo
@@ -63,15 +64,19 @@ public:
   static NAN_METHOD(getGLContext);
 
   cl_context getContext() const { return context; };
-  virtual bool isEqual(void *clObj) { return ((cl_context)clObj)==context; }
+  virtual bool operator==(void *clObj) { return ((cl_context)clObj)==context; }
 
 private:
   Context(v8::Handle<v8::Object> wrapper);
+  ~Context();
 
-  static v8::Persistent<v8::FunctionTemplate> constructor_template;
+  static v8::Persistent<v8::Function> constructor;
 
   cl_context context;
-  v8::Handle<v8::Object> webgl_context_;
+  v8::Persistent<v8::Object> webgl_context_;
+
+private:
+  DISABLE_COPY(Context)
 };
 
 } // namespace

@@ -37,50 +37,61 @@ class MemoryObject : public WebCLObject
 public:
   virtual void Destructor();
 
-  static void Init(v8::Handle<v8::Object> target);
+  static void Init(v8::Handle<v8::Object> exports);
 
   static MemoryObject *New(cl_mem mw);
   static NAN_METHOD(New);
   static NAN_METHOD(getInfo);
   static NAN_METHOD(getGLObjectInfo);
   static NAN_METHOD(release);
-  
+
   cl_mem getMemory() const { return memory; };
-  virtual bool isEqual(void *clObj) { return ((cl_mem)clObj)==memory; }
+  virtual bool operator==(void *clObj) { return ((cl_mem)clObj)==memory; }
 
 private:
-  static v8::Persistent<v8::FunctionTemplate> constructor_template;
+  static v8::Persistent<v8::Function> constructor;
 
 protected:
   MemoryObject(v8::Handle<v8::Object> wrapper);
+  ~MemoryObject();
 
   cl_mem memory;
+
+private:
+  DISABLE_COPY(MemoryObject)
 };
 
 class WebCLBuffer : public MemoryObject {
 public:
-  static void Init(v8::Handle<v8::Object> target);
+  static void Init(v8::Handle<v8::Object> exports);
 
-  static WebCLBuffer *New(cl_mem mw);
+  static WebCLBuffer *New(cl_mem mw, WebCLObject *parent);
   static NAN_METHOD(New);
   static NAN_METHOD(getInfo);
   static NAN_METHOD(getGLObjectInfo);
   static NAN_METHOD(release);
   static NAN_METHOD(createSubBuffer);
 
+  bool isSubBuffer() const { return isSubBuffer_; }
+
 private:
   WebCLBuffer(v8::Handle<v8::Object> wrapper);
 
-  static v8::Persistent<v8::FunctionTemplate> constructor_template;
+  static v8::Persistent<v8::Function> constructor;
+
+  bool isSubBuffer_;
+
+private:
+  DISABLE_COPY(WebCLBuffer)
 };
 
 class WebCLImage : public MemoryObject {
 public:
-  static void Init(v8::Handle<v8::Object> target);
+  static void Init(v8::Handle<v8::Object> exports);
 
-  static WebCLImage *New(cl_mem mw);
+  static WebCLImage *New(cl_mem mw, WebCLObject *parent);
   static NAN_METHOD(New);
-  static NAN_METHOD(release);  
+  static NAN_METHOD(release);
   static NAN_METHOD(getInfo);
   static NAN_METHOD(getGLObjectInfo);
   static NAN_METHOD(getGLTextureInfo);
@@ -88,13 +99,16 @@ public:
 private:
   WebCLImage(v8::Handle<v8::Object> wrapper);
 
-  static v8::Persistent<v8::FunctionTemplate> constructor_template;
+  static v8::Persistent<v8::Function> constructor;
+
+private:
+  DISABLE_COPY(WebCLImage)
 };
 
 class WebCLImageDescriptor : public WebCLObject
 {
 public:
-  static void Init(v8::Handle<v8::Object> target);
+  static void Init(v8::Handle<v8::Object> exports);
 
   static WebCLImageDescriptor* New(int order=0, int type=0, int w=0, int h=0, int d=0, int rp=0, int sp=0);
   static NAN_METHOD(New);
@@ -109,11 +123,14 @@ public:
 private:
   WebCLImageDescriptor(v8::Handle<v8::Object> wrapper);
 
-  static v8::Persistent<v8::FunctionTemplate> constructor_template;
+  static v8::Persistent<v8::Function> constructor;
 
   int channelOrder, channelType;
   int width, height, depth;
   int rowPitch, slicePitch;
+
+private:
+  DISABLE_COPY(WebCLImageDescriptor)
 };
 
 } // namespace

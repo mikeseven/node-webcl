@@ -37,9 +37,9 @@ class Program : public WebCLObject
 public:
   void Destructor();
 
-  static void Init(v8::Handle<v8::Object> target);
+  static void Init(v8::Handle<v8::Object> exports);
 
-  static Program *New(cl_program pw);
+  static Program *New(cl_program pw, WebCLObject *parent);
   static NAN_METHOD(New);
 
   static NAN_METHOD(getInfo);
@@ -48,18 +48,23 @@ public:
   static NAN_METHOD(createKernel);
   static NAN_METHOD(createKernelsInProgram);
   static NAN_METHOD(release);
+  static NAN_METHOD(retain);
 
   cl_program getProgram() const { return program; };
-  virtual bool isEqual(void *clObj) { return ((cl_program)clObj)==program; }
+  virtual bool operator==(void *clObj) { return ((cl_program)clObj)==program; }
 
 private:
   Program(v8::Handle<v8::Object> wrapper);
+  ~Program();
 
   static void callback (cl_program program, void *user_data);
 
-  static v8::Persistent<v8::FunctionTemplate> constructor_template;
+  static v8::Persistent<v8::Function> constructor;
 
   cl_program program;
+
+private:
+  DISABLE_COPY(Program)
 };
 
 } // namespace

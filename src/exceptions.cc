@@ -4,7 +4,7 @@ using namespace v8;
 
 namespace webcl {
 
-const char* ErrorDesc(cl_int err) 
+const char* ErrorDesc(cl_int err)
 {
   switch (err) {
     case CL_SUCCESS:                            return "Success!";
@@ -67,21 +67,21 @@ const char* ErrorDesc(cl_int err)
     case CL_INVALID_COMPILER_OPTIONS:           return "Invalid compiler options";
     case CL_INVALID_LINKER_OPTIONS:             return "Invalid linker options";
     case CL_INVALID_DEVICE_PARTITION_COUNT:     return "Invalid device partition count";
+    case WEBCL_EXTENSION_NOT_ENABLED:           return "KHR_gl_sharing extension not enabled";
   }
   return "Unknown";
 }
 
-Persistent<FunctionTemplate> WebCLException::constructor_template;
+Persistent<Function> WebCLException::constructor;
 
-void WebCLException::Init(Handle<Object> target)
+void WebCLException::Init(Handle<Object> exports)
 {
   NanScope();
 
   // constructor
   Local<FunctionTemplate> ctor = FunctionTemplate::New(WebCLException::New);
-  NanAssignPersistent(FunctionTemplate, constructor_template, ctor);
   ctor->InstanceTemplate()->SetInternalFieldCount(1);
-  ctor->SetClassName(NanSymbol("WebCLException"));
+  ctor->SetClassName(NanNew<String>("WebCLException"));
 
   // prototype
   Local<ObjectTemplate> proto = ctor->PrototypeTemplate();
@@ -89,10 +89,11 @@ void WebCLException::Init(Handle<Object> target)
   proto->SetAccessor(JS_STR("description"), GetDescription, NULL);
   proto->SetAccessor(JS_STR("code"), GetCode, NULL);
 
-  target->Set(NanSymbol("WebCLException"), ctor->GetFunction());
+  NanAssignPersistent<Function>(constructor, ctor->GetFunction());
+  exports->Set(NanNew<String>("WebCLException"), ctor->GetFunction());
 }
 
-WebCLException::WebCLException(Handle<Object> wrapper)
+WebCLException::WebCLException(Handle<Object> wrapper) : name_(NULL), desc_(NULL),code_(0)
 {
   _type=CLObjType::Exception;
 }
@@ -100,13 +101,17 @@ WebCLException::WebCLException(Handle<Object> wrapper)
 NAN_GETTER(WebCLException::GetName) {
   NanScope();
   WebCLException *ex = ObjectWrap::Unwrap<WebCLException>(args.This());
-  NanReturnValue(JS_STR(ex->name_));
+  if(ex->name_)
+    NanReturnValue(JS_STR(ex->name_));
+  NanReturnNull();
 }
 
 NAN_GETTER(WebCLException::GetDescription) {
   NanScope();
   WebCLException *ex = ObjectWrap::Unwrap<WebCLException>(args.This());
-  NanReturnValue(JS_STR(ex->desc_));
+  if(ex->desc_)
+    NanReturnValue(JS_STR(ex->desc_));
+  NanReturnNull();
 }
 
 NAN_GETTER(WebCLException::GetCode) {
@@ -132,9 +137,8 @@ WebCLException *WebCLException::New(const char *name, const char *desc, const in
 
   NanScope();
 
-  Local<Value> arg = Integer::NewFromUnsigned(0);
-  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor_template);
-  Local<Object> obj = constructorHandle->GetFunction()->NewInstance(1, &arg);
+ Local<Function> cons = NanNew<Function>(constructor);
+  Local<Object> obj = cons->NewInstance();
 
   WebCLException *ex = ObjectWrap::Unwrap<WebCLException>(obj);
   ex->name_=name;

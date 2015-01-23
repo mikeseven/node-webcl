@@ -37,17 +37,16 @@ using namespace v8;
 
 namespace webcl {
 
-Persistent<FunctionTemplate> Program::constructor_template;
+Persistent<Function> Program::constructor;
 
-void Program::Init(Handle<Object> target)
+void Program::Init(Handle<Object> exports)
 {
   NanScope();
 
   // constructor
   Local<FunctionTemplate> ctor = FunctionTemplate::New(Program::New);
-  NanAssignPersistent(FunctionTemplate, constructor_template, ctor);
   ctor->InstanceTemplate()->SetInternalFieldCount(1);
-  ctor->SetClassName(NanSymbol("WebCLProgram"));
+  ctor->SetClassName(NanNew<String>("WebCLProgram"));
 
   // prototype
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getInfo", getInfo);
@@ -56,8 +55,10 @@ void Program::Init(Handle<Object> target)
   NODE_SET_PROTOTYPE_METHOD(ctor, "_createKernel", createKernel);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_createKernelsInProgram", createKernelsInProgram);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_release", release);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_retain", retain);
 
-  target->Set(NanSymbol("WebCLProgram"), ctor->GetFunction());
+  NanAssignPersistent<Function>(constructor, ctor->GetFunction());
+  exports->Set(NanNew<String>("WebCLProgram"), ctor->GetFunction());
 }
 
 Program::Program(Handle<Object> wrapper) : program(0)
@@ -65,21 +66,45 @@ Program::Program(Handle<Object> wrapper) : program(0)
   _type=CLObjType::Program;
 }
 
+Program::~Program() {
+#ifdef LOGGING
+  printf("In ~Program\n");
+#endif
+  // Destructor();
+}
+
 void Program::Destructor() {
-  #ifdef LOGGING
-  cout<<"  Destroying CL program"<<endl;
-  #endif
-  if(program) ::clReleaseProgram(program);
-  program=0;
+  if(program) {
+    cl_uint count;
+    ::clGetProgramInfo(program,CL_PROGRAM_REFERENCE_COUNT,sizeof(cl_uint),&count,NULL);
+#ifdef LOGGING
+    cout<<"  Destroying Program, CLrefCount is: "<<count<<endl;
+#endif
+    ::clReleaseProgram(program);
+    if(count==1) {
+      unregisterCLObj(this);
+      program=0;
+    }
+  }
 }
 
 NAN_METHOD(Program::release)
 {
   NanScope();
   Program *prog = ObjectWrap::Unwrap<Program>(args.This());
-  
-  DESTROY_WEBCL_OBJECT(prog);
-  
+
+  prog->Destructor();
+
+  NanReturnUndefined();
+}
+
+NAN_METHOD(Program::retain)
+{
+  NanScope();
+  Program *prog = ObjectWrap::Unwrap<Program>(args.This());
+
+  clRetainProgram(prog->getProgram());
+
   NanReturnUndefined();
 }
 
@@ -114,11 +139,9 @@ NAN_METHOD(Program::getInfo)
       return NanThrowError("UNKNOWN ERROR");
     }
     if(value) {
-      WebCLObject *obj=findCLObj((void*)value);
-      if(obj) {
-        //::clRetainContext(value);
+      WebCLObject *obj=findCLObj((void*)value, CLObjType::Context);
+      if(obj)
         NanReturnValue(NanObjectWrapHandle(obj));
-      }
       else
         NanReturnValue(NanObjectWrapHandle(Context::New(value)));
     }
@@ -127,6 +150,7 @@ NAN_METHOD(Program::getInfo)
   case CL_PROGRAM_DEVICES: {
     size_t num_devices=0;
     cl_int ret=::clGetProgramInfo(prog->getProgram(), CL_PROGRAM_DEVICES, 0, NULL, &num_devices);
+    num_devices /= sizeof(cl_device_id);
     cl_device_id *devices=new cl_device_id[num_devices];
     ret=::clGetProgramInfo(prog->getProgram(), CL_PROGRAM_DEVICES, sizeof(cl_device_id)*num_devices, devices, NULL);
     if (ret != CL_SUCCESS) {
@@ -136,14 +160,12 @@ NAN_METHOD(Program::getInfo)
       REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
-    Local<Array> deviceArray = Array::New(num_devices);
-    for (size_t i=0; i<num_devices; i++) {
+    Local<Array> deviceArray = Array::New((int)num_devices);
+    for (int i=0; i<(int)num_devices; i++) {
       cl_device_id d = devices[i];
-      WebCLObject *obj=findCLObj((void*)d);
-      if(obj) {
-        //::clRetainDevice(d);
+      WebCLObject *obj=findCLObj((void*)d, CLObjType::Device);
+      if(obj)
         deviceArray->Set(i, NanObjectWrapHandle(obj));
-      }
       else
         deviceArray->Set(i, NanObjectWrapHandle(Device::New(d)));
     }
@@ -169,6 +191,7 @@ NAN_METHOD(Program::getInfo)
   case CL_PROGRAM_BINARY_SIZES: {
     size_t nsizes=0;
     cl_int ret=::clGetProgramInfo(prog->getProgram(), CL_PROGRAM_BINARY_SIZES, 0, NULL, &nsizes);
+    nsizes /= sizeof(size_t);
     size_t *sizes=new size_t[nsizes];
     ret=::clGetProgramInfo(prog->getProgram(), CL_PROGRAM_BINARY_SIZES, sizeof(size_t)*nsizes, sizes, NULL);
     if (ret != CL_SUCCESS) {
@@ -178,8 +201,8 @@ NAN_METHOD(Program::getInfo)
       REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
-    Local<Array> sizesArray = Array::New(nsizes);
-    for (size_t i=0; i<nsizes; i++) {
+    Local<Array> sizesArray = Array::New((int)nsizes);
+    for (int i=0; i<(int)nsizes; i++) {
       sizesArray->Set(i, JS_INT(sizes[i]));
     }
     delete[] sizes;
@@ -190,6 +213,7 @@ NAN_METHOD(Program::getInfo)
 
     size_t nbins=0;
     cl_int ret=::clGetProgramInfo(prog->getProgram(), CL_PROGRAM_BINARIES, 0, NULL, &nbins);
+    nbins /= sizeof(size_t);
     char* *binaries=new char*[nbins];
     ret=::clGetProgramInfo(prog->getProgram(), CL_PROGRAM_BINARIES, sizeof(char*)*nbins, binaries, NULL);
     if (ret != CL_SUCCESS) {
@@ -210,8 +234,11 @@ NAN_METHOD(Program::getInfo)
     delete[] binaries;
     NanReturnUndefined();
   }
-  default:
-    return NanThrowError("UNKNOWN param_name");
+  default: {
+    cl_int ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnUndefined();
+  }
   }
 }
 
@@ -219,7 +246,19 @@ NAN_METHOD(Program::getBuildInfo)
 {
   NanScope();
   Program *prog = ObjectWrap::Unwrap<Program>(args.This());
+  if(args[0]->IsUndefined() || args[0]->IsNull()) {
+    cl_int ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnUndefined();
+  }
+
   Device *dev = ObjectWrap::Unwrap<Device>(args[0]->ToObject());
+  if(args[1]->IsUndefined() || args[1]->IsNull()) {
+    cl_int ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnUndefined();
+  }
+
   cl_program_info param_name = args[1]->Uint32Value();
 
   switch (param_name) {
@@ -288,12 +327,25 @@ class ProgramWorker : public NanAsyncWorker {
   void HandleOKCallback () {
     NanScope();
 
-    Local<Value> argv[]={
+    if(baton_->data.IsEmpty()) {
+#ifdef LOGGING
+      printf("Calling callback with 1 arg\n");
+#endif
+      Local<Value> argv[] = {
         JS_INT(baton_->error)
-    };
-
-    // printf("[build] callback JS\n");
-    callback->Call(1, argv);
+      };
+      callback->Call(1, argv);
+    }
+    else {
+#ifdef LOGGING
+      printf("Calling callback with 2 args\n");
+#endif
+      Local<Value> argv[] = {
+        JS_INT(baton_->error),
+        NanNew(baton_->data)     // user's message
+      };
+      callback->Call(2, argv);
+    }
   }
 
   private:
@@ -320,7 +372,9 @@ void Program::callback (cl_program program, void *user_data)
     delete[] devices;
   }
 
-  // printf("[build] calling async JS cb\n");
+#ifdef LOGGING
+  printf("[build] calling async JS cb\n");
+#endif
   NanAsyncQueueWorker(new ProgramWorker(baton));
 }
 
@@ -328,6 +382,10 @@ NAN_METHOD(Program::build)
 {
   NanScope();
   Program *prog = ObjectWrap::Unwrap<Program>(args.This());
+  if(!prog->getProgram()) {
+    cl_int ret=CL_INVALID_PROGRAM;
+    REQ_ERROR_THROW(INVALID_PROGRAM);
+  }
 
   cl_device_id *devices=NULL;
   int num=0;
@@ -352,20 +410,71 @@ NAN_METHOD(Program::build)
   }
   //cout<<"[Program::build] #devices: "<<num<<" ptr="<<hex<<devices<<dec<<endl<<flush;
 
+  // check for same device
+  {
+    cl_uint ndevs=0;
+    clGetProgramInfo(prog->getProgram(),CL_PROGRAM_NUM_DEVICES,sizeof(cl_uint),&ndevs,NULL);
+    cl_device_id *d1=new cl_device_id[ndevs];
+    clGetProgramInfo(prog->getProgram(),CL_PROGRAM_DEVICES,sizeof(cl_device_id)*ndevs,d1, NULL);
+
+    int nok=0;
+    for(int i=0;i<num;i++) {
+      for(cl_uint j=0;j<ndevs;j++) {
+        if(devices[i]==d1[j])
+          nok++;
+      }
+    }
+    if(d1) delete[] d1;
+    if(nok != num) {
+      if(devices) delete[] devices;
+      cl_int ret=CL_INVALID_DEVICE;
+      REQ_ERROR_THROW(INVALID_DEVICE);
+      NanReturnUndefined();
+    }
+  }
+
   char *options=NULL;
   if(!args[1]->IsUndefined() && !args[1]->IsNull() && args[1]->IsString()) {
     String::AsciiValue str(args[1]);
-    //cout<<"str length: "<<str.length()<<endl;
+    // cout<<"str length: "<<str.length()<<endl;
+
     if(str.length()>0) {
+      options = ::strdup(*str);
+      // printf("options: %s\n",options);
+
+      // Mac driver bug: make sure -D is not alone...or crash!
+      char *pch=strtok(options," ");
+      while (pch != NULL) {
+        if(pch && strncmp(pch,"-D",2)==0) {
+          if(*(pch+3)==' ') {
+            pch = strtok (NULL, " ");
+            if(pch==NULL || *pch=='-') {
+              cl_int ret=CL_INVALID_BUILD_OPTIONS;
+              REQ_ERROR_THROW(INVALID_BUILD_OPTIONS);
+              NanReturnUndefined();
+            }
+          }
+        }
+        pch = strtok (NULL, " ");
+      }
+      /////
+
+      free(options);
       options = ::strdup(*str);
     }
   }
 
   Baton *baton=NULL;
-  if(args.Length()==3 && !args[2]->IsUndefined() && args[2]->IsFunction()) {
+  if(args.Length()>=3 && !args[2]->IsUndefined() && args[2]->IsFunction()) {
 
     baton=new Baton();
     baton->callback=new NanCallback(args[2].As<Function>());
+    if(!args[3]->IsNull() && !args[3]->IsUndefined()) {
+#ifdef LOGGING
+      printf("Adding user data to callback baton\n");
+#endif
+      NanAssignPersistent(baton->data, args[3]);
+    }
   }
 
   // printf("Build program with baton %p\n",baton);
@@ -405,6 +514,7 @@ NAN_METHOD(Program::createKernel)
 
   cl_int ret = CL_SUCCESS;
   cl_kernel kw = ::clCreateKernel(prog->getProgram(), (const char*) *astr, &ret);
+  // printf("createKernel %p ret %d\n",kw,ret);
 
   if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(INVALID_PROGRAM);
@@ -417,7 +527,7 @@ NAN_METHOD(Program::createKernel)
     return NanThrowError("UNKNOWN ERROR");
   }
 
-  NanReturnValue(NanObjectWrapHandle(Kernel::New(kw)));
+  NanReturnValue(NanObjectWrapHandle(Kernel::New(kw, prog)));
 }
 
 NAN_METHOD(Program::createKernelsInProgram)
@@ -451,7 +561,7 @@ NAN_METHOD(Program::createKernelsInProgram)
   Local<Array> jsKernels=Array::New(num_kernels);
 
   for(cl_uint i=0;i<num_kernels;i++) {
-    jsKernels->Set(i, NanObjectWrapHandle( Kernel::New( kernels[i] ) ) );
+    jsKernels->Set(i, NanObjectWrapHandle( Kernel::New( kernels[i], prog ) ) );
   }
 
   delete[] kernels;
@@ -464,43 +574,24 @@ NAN_METHOD(Program::New)
     return NanThrowTypeError("Constructor cannot be called as a function.");
 
   NanScope();
-  /*Context *context = ObjectWrap::Unwrap<Context>(args[0]->ToObject());
-
-  Local<String> str = args[1]->ToString();
-  String::AsciiValue astr(str);
-  cl::Program::Sources sources;
-  std::pair<const char*, ::size_t> source(*astr,astr.length());
-  sources.push_back(source);
-
-  cl_int ret = CL_SUCCESS;
-  cl::Program *pw = new cl::Program(*context->getContext(),sources,&ret);
-  if (ret != CL_SUCCESS) {
-    REQ_ERROR_THROW(INVALID_CONTEXT);
-    REQ_ERROR_THROW(INVALID_VALUE);
-    REQ_ERROR_THROW(OUT_OF_RESOURCES);
-    REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
-    return NanThrowError("UNKNOWN ERROR");
-  }*/
 
   Program *p = new Program(args.This());
-  //p->program=pw;
   p->Wrap(args.This());
-  registerCLObj(p);
   NanReturnValue(args.This());
 }
 
-Program *Program::New(cl_program pw)
+Program *Program::New(cl_program pw, WebCLObject *parent)
 {
   NanScope();
 
-  Local<Value> arg = Integer::NewFromUnsigned(0);
-  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor_template);
-  Local<Object> obj = constructorHandle->GetFunction()->NewInstance(1, &arg);
+  Local<Function> cons = NanNew<Function>(constructor);
+  Local<Object> obj = cons->NewInstance();
 
-  Program *progobj = ObjectWrap::Unwrap<Program>(obj);
-  progobj->program = pw;
+  Program *p = ObjectWrap::Unwrap<Program>(obj);
+  p->program = pw;
+  registerCLObj(pw, p);
 
-  return progobj;
+  return p;
 }
 
 } // namespace

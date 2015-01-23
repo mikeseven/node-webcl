@@ -229,7 +229,7 @@ function Graphics() {
     if(!nodejs) return;
     
     ATB.Init();
-    ATB.Define(" GLOBAL help='WebGL interop with WebCL' "); // Message added to the help bar.
+    ATB.Define(" GLOBAL help='WebGL interop with webcl' "); // Message added to the help bar.
     ATB.WindowSize(canvas.width, canvas.height);
 
     twBar=new ATB.NewBar("clgl");

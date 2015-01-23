@@ -34,24 +34,24 @@ using namespace std;
 using namespace webcl;
 
 namespace webcl {
-Persistent<FunctionTemplate> Device::constructor_template;
+Persistent<Function> Device::constructor;
 
-void Device::Init(Handle<Object> target)
+void Device::Init(Handle<Object> exports)
 {
   NanScope();
 
   // constructor
   Local<FunctionTemplate> ctor = FunctionTemplate::New(Device::New);
-  NanAssignPersistent(FunctionTemplate, constructor_template, ctor);
   ctor->InstanceTemplate()->SetInternalFieldCount(1);
-  ctor->SetClassName(NanSymbol("WebCLDevice"));
+  ctor->SetClassName(NanNew<String>("WebCLDevice"));
 
   // prototype
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getInfo", getInfo);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getSupportedExtensions", getSupportedExtensions);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_enableExtension", enableExtension);
 
-  target->Set(NanSymbol("WebCLDevice"), ctor->GetFunction());
+  NanAssignPersistent<Function>(constructor, ctor->GetFunction());
+  exports->Set(NanNew<String>("WebCLDevice"), ctor->GetFunction());
 }
 
 Device::Device(Handle<Object> wrapper) : device_id(0), enableExtensions(NONE), availableExtensions(NONE)
@@ -100,7 +100,7 @@ NAN_METHOD(Device::getInfo)
       return NanThrowError("UNKNOWN ERROR");
     }
     if(param_value) {
-      WebCLObject *obj=findCLObj((void*)param_value);
+      WebCLObject *obj=findCLObj((void*)param_value, CLObjType::Platform);
       if(obj) {
         NanReturnValue(NanObjectWrapHandle(obj));
       }
@@ -162,7 +162,7 @@ NAN_METHOD(Device::getInfo)
       REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
-    NanReturnValue(Integer::NewFromUnsigned(param_value));
+    NanReturnValue(Integer::NewFromUnsigned((int)param_value));
   }
   break;
   case CL_DEVICE_QUEUE_PROPERTIES: {
@@ -175,7 +175,7 @@ NAN_METHOD(Device::getInfo)
       REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
-    NanReturnValue(Integer::NewFromUnsigned(param_value));
+    NanReturnValue(Integer::NewFromUnsigned((int)param_value));
   }
   break;
   case CL_DEVICE_HALF_FP_CONFIG:
@@ -190,7 +190,7 @@ NAN_METHOD(Device::getInfo)
       REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
-    NanReturnValue(Integer::NewFromUnsigned(param_value));
+    NanReturnValue(Integer::NewFromUnsigned((int)param_value));
   }
   break;
   case CL_DEVICE_MAX_WORK_ITEM_SIZES: {
@@ -245,7 +245,7 @@ NAN_METHOD(Device::getInfo)
       return NanThrowError("UNKNOWN ERROR");
     }
     // keeping as Integer vs Boolean so comparisons with cl.TRUE/cl.FALSE work
-    NanReturnValue(Integer::New(param_value));
+    NanReturnValue(JS_BOOL((int)param_value));
   }
   break;
   // cl_uint params
@@ -274,8 +274,8 @@ NAN_METHOD(Device::getInfo)
   case CL_DEVICE_PREFERRED_VECTOR_WIDTH_FLOAT:
   case CL_DEVICE_PREFERRED_VECTOR_WIDTH_DOUBLE:
   case CL_DEVICE_PREFERRED_VECTOR_WIDTH_HALF:
-  case CL_DEVICE_VENDOR_ID: 
-  
+  case CL_DEVICE_VENDOR_ID:
+
   // OpenCL 1.2 constants
   //case CL_DEVICE_REFERENCE_COUNT:
   //case CL_DEVICE_PARTITION_MAX_SUB_DEVICES:
@@ -321,8 +321,8 @@ NAN_METHOD(Device::getInfo)
   case CL_DEVICE_IMAGE3D_MAX_WIDTH:
   case CL_DEVICE_MAX_PARAMETER_SIZE:
   case CL_DEVICE_MAX_WORK_GROUP_SIZE:
-  case CL_DEVICE_PROFILING_TIMER_RESOLUTION: 
-  
+  case CL_DEVICE_PROFILING_TIMER_RESOLUTION:
+
   // OpenCL 1.2 constants
   //case CL_DEVICE_IMAGE_MAX_BUFFER_SIZE:
   //case CL_DEVICE_IMAGE_MAX_ARRAY_SIZE:
@@ -338,11 +338,13 @@ NAN_METHOD(Device::getInfo)
     }
     // FIXME: handle 64 bit size_t somehow
     // assume for these params it will fit in an int
-    NanReturnValue(Integer::New(param_value));
+    NanReturnValue(Integer::New((int)param_value));
   }
   break;
   default: {
-    return NanThrowError("UNKNOWN PARAM NAME");
+    cl_int ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnUndefined();
   }
   }
   NanReturnUndefined();
@@ -368,17 +370,17 @@ NAN_METHOD(Device::enableExtension)
       return NanThrowError("UNKNOWN ERROR");
     }
 
-    if(strstr(param_value,"gl_sharing"))  { device->availableExtensions |= GL_SHARING; printf("has GL_SHARING\n"); }
-    if(strstr(param_value,"fp16"))  { device->availableExtensions |= FP16; printf("has fp16\n"); }
-    if(strstr(param_value,"fp64"))  { device->availableExtensions |= FP64; printf("has fp64\n"); }
+    if(strcasestr(param_value,"gl_sharing")) device->availableExtensions |= GL_SHARING;
+    if(strcasestr(param_value,"fp16"))       device->availableExtensions |= FP16;
+    if(strcasestr(param_value,"fp64"))       device->availableExtensions |= FP64;
   }
 
   Local<String> name=args[0]->ToString();
   String::AsciiValue astr(name);
   bool ret=false;
-  if(strstr(*astr,"gl_sharing") && (device->availableExtensions & GL_SHARING)) { device->enableExtensions |= GL_SHARING; ret=true; }
-  else if(strstr(*astr,"fp16") && (device->availableExtensions & FP16))        { device->enableExtensions |= FP16;; ret=true; }
-  else if(strstr(*astr,"fp64") && (device->availableExtensions & FP64))        { device->enableExtensions |= FP64;; ret=true; }
+  if(strcasestr(*astr,"gl_sharing") && (device->availableExtensions & GL_SHARING)) { device->enableExtensions |= GL_SHARING; ret=true; }
+  else if(strcasestr(*astr,"fp16") && (device->availableExtensions & FP16))        { device->enableExtensions |= FP16;; ret=true; }
+  else if(strcasestr(*astr,"fp64") && (device->availableExtensions & FP64))        { device->enableExtensions |= FP64;; ret=true; }
 
   NanReturnValue(JS_BOOL(ret));
 }
@@ -414,7 +416,6 @@ NAN_METHOD(Device::New)
   NanScope();
   Device *cl = new Device(args.This());
   cl->Wrap(args.This());
-  registerCLObj(cl);
   NanReturnValue(args.This());
 }
 
@@ -424,12 +425,12 @@ Device *Device::New(cl_device_id dw)
 
   NanScope();
 
-  Local<Value> arg = Integer::NewFromUnsigned(0);
-  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor_template);
-  Local<Object> obj = constructorHandle->GetFunction()->NewInstance(1, &arg);
+  Local<Function> cons = NanNew<Function>(constructor);
+  Local<Object> obj = cons->NewInstance();
 
   Device *device = ObjectWrap::Unwrap<Device>(obj);
   device->device_id = dw;
+  registerCLObj(dw, device);
 
   return device;
 }

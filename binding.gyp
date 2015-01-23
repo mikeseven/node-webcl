@@ -4,10 +4,11 @@
       'target_name': 'webcl',
       'defines': [
         'VERSION=0.9.0',
-#        'LOGGING'
+        # 'LOGGING'
       ],
       'sources': [
         'src/bindings.cc',
+        'src/cl_checks.cc',
         'src/commandqueue.cc',
         'src/context.cc',
         'src/device.cc',
@@ -19,6 +20,7 @@
         'src/program.cc',
         'src/sampler.cc',
         'src/webcl.cc',
+        'src/manager.cc',
       ],
       'include_dirs' : [
         "<!(node -e \"require('nan')\")",
@@ -30,8 +32,8 @@
             ['CXX', '/usr/bin/clang++'],
           ],
           "xcode_settings": {
-#              'OTHER_CPLUSPLUSFLAGS' : ['-std=c++11','-stdlib=libc++'],
-#              'OTHER_LDFLAGS': ['-stdlib=libc++'],
+             'OTHER_CPLUSPLUSFLAGS' : ['-std=c++11','-stdlib=libc++'],
+             'OTHER_LDFLAGS': ['-stdlib=libc++'],
               'MACOSX_DEPLOYMENT_TARGET': '10.7'
           },
           'libraries': ['-framework OpenGL', '-framework OpenCL']
@@ -60,6 +62,14 @@
               'WIN32_LEAN_AND_MEAN',
               'VC_EXTRALEAN',
             ],
+            'msvs_settings' : {
+              'VCCLCompilerTool' : {
+                'AdditionalOptions' : ['/O2','/Oy','/GL','/GF','/Gm-','/EHsc','/MT','/GS','/Gy','/GR-','/Gd']
+              },
+              'VCLinkerTool' : {
+                'AdditionalOptions' : ['/OPT:REF','/OPT:ICF','/LTCG']
+              },
+            },
             'cflags' : [
               '/O2','/Oy','/GL','/GF','/Gm-','/EHsc','/MT','/GS','/Gy','/GR-','/Gd'
             ],

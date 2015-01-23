@@ -31,6 +31,7 @@
 #include "memoryobject.h"
 #include "event.h"
 #include "kernel.h"
+#include "cl_checks.h"
 #include <vector>
 #include <node_buffer.h>
 #include <cstring> // for memcpy
@@ -40,29 +41,56 @@ using namespace node;
 
 namespace webcl {
 #define MakeEventWaitList(arg) \
-    cl_event *events_wait_list=NULL; \
-    cl_uint num_events_wait_list=0; \
-    if(!arg->IsUndefined() && !arg->IsNull()) { \
-      Local<Array> arr = Local<Array>::Cast(arg); \
-      num_events_wait_list=arr->Length(); \
-      if(num_events_wait_list>0) {\
-        events_wait_list=new cl_event[num_events_wait_list]; \
-        for(cl_uint i=0;i<num_events_wait_list;i++) \
-          events_wait_list[i]=ObjectWrap::Unwrap<Event>(arr->Get(i)->ToObject())->getEvent(); \
+  cl_event *events_wait_list=NULL; \
+  cl_uint num_events_wait_list=0, num_evts=0; \
+  if(!arg->IsUndefined() && !arg->IsNull()) { \
+    Local<Array> arr = Local<Array>::Cast(arg); \
+    num_events_wait_list=arr->Length(); \
+    if(num_events_wait_list>0) {\
+      events_wait_list=new cl_event[num_events_wait_list]; \
+      for(cl_uint i=0;i<num_events_wait_list;i++) {\
+        Event *evt=ObjectWrap::Unwrap<Event>(arr->Get(i)->ToObject());\
+        /* check if this event has been deleted already */ \
+        size_t count=0; \
+        if(evt->getEvent()) { \
+          if(evt->getStatus()<0) { /* for bug in Mac driver */ \
+            cl_int ret=CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST; \
+            REQ_ERROR_THROW(EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST); \
+            NanReturnUndefined(); \
+          } \
+          cl_context ctx_ev;\
+          clGetEventInfo(evt->getEvent(),CL_EVENT_CONTEXT,sizeof(cl_context),&ctx_ev,NULL);\
+          if(ctx_ev!=ctx1) {\
+            cl_int ret=CL_INVALID_CONTEXT;\
+            REQ_ERROR_THROW(INVALID_CONTEXT);\
+            NanReturnUndefined();\
+          }\
+          clGetEventInfo(evt->getEvent(),CL_EVENT_REFERENCE_COUNT,sizeof(size_t),&count,NULL);\
+          if(count) {\
+            events_wait_list[num_evts++]=ObjectWrap::Unwrap<Event>(arr->Get(i)->ToObject())->getEvent(); \
+          }\
+        }\
       }\
-    }
+    }\
+  }\
+  if(num_evts != num_events_wait_list) {\
+    if(events_wait_list) delete[] events_wait_list;\
+    events_wait_list=NULL;\
+    cl_int ret=CL_INVALID_EVENT_WAIT_LIST;\
+    REQ_ERROR_THROW(INVALID_EVENT_WAIT_LIST);\
+    NanReturnUndefined();\
+  }
 
-Persistent<FunctionTemplate> CommandQueue::constructor_template;
+Persistent<Function> CommandQueue::constructor;
 
-void CommandQueue::Init(Handle<Object> target)
+void CommandQueue::Init(Handle<Object> exports)
 {
   NanScope();
 
   // constructor
   Local<FunctionTemplate> ctor = FunctionTemplate::New(CommandQueue::New);
-  NanAssignPersistent(FunctionTemplate, constructor_template, ctor);
   ctor->InstanceTemplate()->SetInternalFieldCount(1);
-  ctor->SetClassName(NanSymbol("WebCLCommandQueue"));
+  ctor->SetClassName(NanNew<String>("WebCLCommandQueue"));
 
   // prototype
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getInfo", getInfo);
@@ -91,7 +119,8 @@ void CommandQueue::Init(Handle<Object> target)
   NODE_SET_PROTOTYPE_METHOD(ctor, "_enqueueReleaseGLObjects", enqueueReleaseGLObjects);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_release", release);
 
-  target->Set(NanSymbol("WebCLCommandQueue"), ctor->GetFunction());
+  NanAssignPersistent<Function>(constructor, ctor->GetFunction());
+  exports->Set(NanNew<String>("WebCLCommandQueue"), ctor->GetFunction());
 }
 
 CommandQueue::CommandQueue(Handle<Object> wrapper) : command_queue(0)
@@ -99,26 +128,33 @@ CommandQueue::CommandQueue(Handle<Object> wrapper) : command_queue(0)
   _type=CLObjType::CommandQueue;
 }
 
-void CommandQueue::Destructor() {
+CommandQueue::~CommandQueue() {
 #ifdef LOGGING
-  cout<<"  Destroying CL command queue"<<endl;
+  printf("In ~CommandQueue\n");
 #endif
+  // Destructor();
+}
+
+void CommandQueue::Destructor() {
   if(command_queue) {
-#ifdef LOGGING
     cl_uint count;
     ::clGetCommandQueueInfo(command_queue,CL_QUEUE_REFERENCE_COUNT,sizeof(cl_uint),&count,NULL);
-    cout<<"CommandQueue ref count is: "<<count<<endl;
+#ifdef LOGGING
+    cout<<"  Destroying CommandQueue, CLrefCount is: "<<count<<endl;
 #endif
     ::clReleaseCommandQueue(command_queue);
+    if(count==1) {
+      unregisterCLObj(this);
+      command_queue=0;
     }
-  command_queue=0;
+  }
 }
 
 NAN_METHOD(CommandQueue::release)
 {
   NanScope();
   CommandQueue *cq = ObjectWrap::Unwrap<CommandQueue>(args.This());
-  
+
   // Flush first
   cl_int ret = ::clFlush(cq->getCommandQueue());
 
@@ -128,9 +164,8 @@ NAN_METHOD(CommandQueue::release)
     REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
     return NanThrowError("UNKNOWN ERROR");
   }
-  
-  DESTROY_WEBCL_OBJECT(cq);
-  
+
+  cq->Destructor();
   NanReturnUndefined();
 }
 
@@ -152,11 +187,12 @@ NAN_METHOD(CommandQueue::getInfo)
       return NanThrowError("UNKNOWN ERROR");
     }
     if(ctx) {
-      WebCLObject *obj=findCLObj((void*)ctx);
-      if(obj) {
-        clRetainContext(ctx);
+      WebCLObject *obj=findCLObj((void*)ctx, CLObjType::Context);
+      printf("[CQ.getInfo(CONTEXT)] %p\n",obj);
+      if(obj)
         NanReturnValue(NanObjectWrapHandle(obj));
-      }
+      else
+        NanReturnValue(NanObjectWrapHandle(Context::New(ctx)));
     }
     NanReturnUndefined();
   }
@@ -172,12 +208,12 @@ NAN_METHOD(CommandQueue::getInfo)
     }
 
     if(dev) {
-      WebCLObject *obj=findCLObj((void*)dev);
+      WebCLObject *obj=findCLObj((void*)dev, CLObjType::Device);
 
-      if(obj) {
-        clRetainDevice(dev);
+      if(obj)
         NanReturnValue(NanObjectWrapHandle(obj));
-      }
+      else
+        NanReturnValue(NanObjectWrapHandle(Device::New(dev)));
     }
     NanReturnUndefined();
   }
@@ -192,10 +228,13 @@ NAN_METHOD(CommandQueue::getInfo)
       REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
-    NanReturnValue(JS_INT(param_value));
+    NanReturnValue(JS_INT((int)param_value));
   }
-  default:
-    return NanThrowError("INVALID_VALUE");
+  default: {
+    cl_int ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnUndefined();
+  }
   }
 }
 
@@ -207,6 +246,17 @@ NAN_METHOD(CommandQueue::enqueueNDRangeKernel)
   REQ_ARGS(5);
 
   Kernel *kernel = ObjectWrap::Unwrap<Kernel>(args[0]->ToObject());
+
+  // check for same context (seems to be buggy in Mac driver)
+  cl_context ctx1=0, ctx2=(cl_context) -1;
+  clGetCommandQueueInfo(cq->getCommandQueue(),CL_QUEUE_CONTEXT,sizeof(cl_context),&ctx1, NULL);
+  clGetKernelInfo(kernel->getKernel(),CL_KERNEL_CONTEXT,sizeof(cl_context),&ctx2, NULL);
+  if(ctx1 != ctx2) {
+    cl_int ret=CL_INVALID_CONTEXT;
+    REQ_ERROR_THROW(INVALID_CONTEXT);
+    NanReturnUndefined();
+  }
+
   int workDim = args[1]->Uint32Value();
 
   size_t *offsets=NULL;
@@ -226,11 +276,19 @@ NAN_METHOD(CommandQueue::enqueueNDRangeKernel)
   if(!args[3]->IsUndefined() && !args[3]->IsNull()) {
     Local<Array> arr = Local<Array>::Cast(args[3]);
     num_globals=arr->Length();
-    if(num_globals == 0)
-      NanThrowError("# globals must be at least 1");
+    if(num_globals == 0) {
+      cl_int ret=CL_INVALID_GLOBAL_WORK_SIZE;
+      REQ_ERROR_THROW(INVALID_GLOBAL_WORK_SIZE);
+      NanReturnUndefined();
+    }
     globals=new size_t[num_globals];
     for(cl_uint i=0;i<num_globals;i++)
       globals[i]=arr->Get(i)->Uint32Value();
+  }
+  else {
+    cl_int ret=CL_INVALID_GLOBAL_WORK_SIZE;
+    REQ_ERROR_THROW(INVALID_GLOBAL_WORK_SIZE);
+    NanReturnUndefined();
   }
 
   size_t *locals=NULL;
@@ -238,11 +296,11 @@ NAN_METHOD(CommandQueue::enqueueNDRangeKernel)
   if(!args[4]->IsUndefined() && !args[4]->IsNull()) {
     Local<Array> arr = Local<Array>::Cast(args[4]);
     num_locals=arr->Length();
-    if(num_locals == 0)
-      NanThrowError("# locals must be at least 1");
-    locals=new size_t[num_locals];
-    for(cl_uint i=0;i<num_locals;i++)
-      locals[i]=arr->Get(i)->Uint32Value();
+    if(num_locals != 0) {
+      locals=new size_t[num_locals];
+      for(cl_uint i=0;i<num_locals;i++)
+        locals[i]=arr->Get(i)->Uint32Value();
+    }
   }
 
   MakeEventWaitList(args[5]);
@@ -266,7 +324,6 @@ NAN_METHOD(CommandQueue::enqueueNDRangeKernel)
   if(events_wait_list) delete[] events_wait_list;
 
   if (ret != CL_SUCCESS) {
-    printf("[setArg] ret = %d\n",ret);
     REQ_ERROR_THROW(INVALID_PROGRAM_EXECUTABLE);
     REQ_ERROR_THROW(INVALID_COMMAND_QUEUE);
     REQ_ERROR_THROW(INVALID_KERNEL);
@@ -302,6 +359,15 @@ NAN_METHOD(CommandQueue::enqueueTask)
   REQ_ARGS(1);
 
   Kernel *k = ObjectWrap::Unwrap<Kernel>(args[0]->ToObject());
+  // check for same context (seems to be buggy in Mac driver)
+  cl_context ctx1=0, ctx2=(cl_context) -1;
+  clGetCommandQueueInfo(cq->getCommandQueue(),CL_QUEUE_CONTEXT,sizeof(cl_context),&ctx1, NULL);
+  clGetKernelInfo(k->getKernel(),CL_KERNEL_CONTEXT,sizeof(cl_context),&ctx2, NULL);
+  if(ctx1 != ctx2) {
+    cl_int ret=CL_INVALID_CONTEXT;
+    REQ_ERROR_THROW(INVALID_CONTEXT);
+    NanReturnUndefined();
+  }
 
   MakeEventWaitList(args[1]);
 
@@ -346,27 +412,37 @@ NAN_METHOD(CommandQueue::enqueueWriteBuffer)
   CommandQueue *cq = ObjectWrap::Unwrap<CommandQueue>(args.This());
   MemoryObject *mo = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
 
+  // check for same context (seems to be buggy in Mac driver)
+  cl_context ctx1=0, ctx2=(cl_context) -1;
+  clGetCommandQueueInfo(cq->getCommandQueue(),CL_QUEUE_CONTEXT,sizeof(cl_context),&ctx1, NULL);
+  clGetMemObjectInfo(mo->getMemory(),CL_MEM_CONTEXT,sizeof(cl_context),&ctx2, NULL);
+  if(ctx1 != ctx2) {
+    cl_int ret=CL_INVALID_CONTEXT;
+    REQ_ERROR_THROW(INVALID_CONTEXT);
+    NanReturnUndefined();
+  }
+
   cl_bool blocking_write = args[1]->BooleanValue() ? CL_TRUE : CL_FALSE;
 
   uint32_t offset = args[2]->Uint32Value();
   uint32_t size = args[3]->Uint32Value();
 
   void *ptr=NULL;
-  if(!args[4]->IsUndefined()) {
-    if(args[4]->IsArray()) {
-      Local<Array> arr=Local<Array>::Cast(args[4]);
-      ptr = arr->GetIndexedPropertiesExternalArrayData();
-    }
-    else if(args[4]->IsObject()) {
-      Local<Object> obj=args[4]->ToObject();
-      String::AsciiValue name(obj->GetConstructorName());
-      if(!strcmp("Buffer",*name))
-        ptr=Buffer::Data(obj);
-      else
-        ptr = obj->GetIndexedPropertiesExternalArrayData();
-    }
-    else
-      NanThrowError("Invalid memory object");
+  int len=0;
+  if(args[4]->IsUndefined() || args[4]->IsNull()) {
+    cl_int ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnUndefined();
+  }
+  else
+    getPtrAndLen(args[4],ptr,len);
+
+  // to overcome bug in some drivers, like Mac
+  // printf("len %lu, offset %d, size %d\n",len,offset,size);
+  if(len< (int)(size+offset)) {
+    cl_int ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnUndefined();
   }
 
   MakeEventWaitList(args[5]);
@@ -411,6 +487,16 @@ NAN_METHOD(CommandQueue::enqueueWriteBufferRect)
   CommandQueue *cq = ObjectWrap::Unwrap<CommandQueue>(args.This());
   MemoryObject *mo = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
 
+  // check for same context (seems to be buggy in Mac driver)
+  cl_context ctx1=0, ctx2=(cl_context) -1;
+  clGetCommandQueueInfo(cq->getCommandQueue(),CL_QUEUE_CONTEXT,sizeof(cl_context),&ctx1, NULL);
+  clGetMemObjectInfo(mo->getMemory(),CL_MEM_CONTEXT,sizeof(cl_context),&ctx2, NULL);
+  if(ctx1 != ctx2) {
+    cl_int ret=CL_INVALID_CONTEXT;
+    REQ_ERROR_THROW(INVALID_CONTEXT);
+    NanReturnUndefined();
+  }
+
   cl_bool blocking_write = args[1]->BooleanValue() ? CL_TRUE : CL_FALSE;
 
   size_t buffer_origin[3] = {0,0,0};
@@ -436,21 +522,23 @@ NAN_METHOD(CommandQueue::enqueueWriteBufferRect)
   uint32_t host_slice_pitch=args[8]->Uint32Value();
 
   void *ptr=NULL;
-  if(!args[9]->IsUndefined()) {
-    if(args[9]->IsArray()) {
-      Local<Array> arr=Local<Array>::Cast(args[9]);
-      ptr = arr->GetIndexedPropertiesExternalArrayData();
-    }
-    else if(args[9]->IsObject()) {
-      Local<Object> obj=args[9]->ToObject();
-      String::AsciiValue name(obj->GetConstructorName());
-      if(!strcmp("Buffer",*name))
-        ptr=Buffer::Data(obj);
-      else
-        ptr = obj->GetIndexedPropertiesExternalArrayData();
-    }
-    else
-      NanThrowError("Invalid memory object");
+  int len=0;
+  if(args[9]->IsUndefined() || args[9]->IsNull()) {
+    cl_int ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnUndefined();
+  }
+  else
+    getPtrAndLen(args[9],ptr,len);
+
+  int buf_sz = bufferRectSize(buffer_origin, region, buffer_row_pitch, buffer_slice_pitch, len);
+  int host_sz = bufferRectSize(host_origin, region, host_row_pitch, host_slice_pitch, len);
+  // printf("len %d, buf off %d, host off %d\n",len,buf_sz,host_sz);
+  if (buf_sz < 0 || host_sz < 0 || buf_sz > len || host_sz > len)
+  {
+    cl_int ret = CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnUndefined();
   }
 
   MakeEventWaitList(args[10]);
@@ -504,27 +592,36 @@ NAN_METHOD(CommandQueue::enqueueReadBuffer)
   CommandQueue *cq = ObjectWrap::Unwrap<CommandQueue>(args.This());
   MemoryObject *mo = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
 
+  // check for same context (seems to be buggy in Mac driver)
+  cl_context ctx1=0, ctx2=(cl_context) -1;
+  clGetCommandQueueInfo(cq->getCommandQueue(),CL_QUEUE_CONTEXT,sizeof(cl_context),&ctx1, NULL);
+  clGetMemObjectInfo(mo->getMemory(),CL_MEM_CONTEXT,sizeof(cl_context),&ctx2, NULL);
+  if(ctx1 != ctx2) {
+    cl_int ret=CL_INVALID_CONTEXT;
+    REQ_ERROR_THROW(INVALID_CONTEXT);
+    NanReturnUndefined();
+  }
+
   cl_bool blocking_read = args[1]->BooleanValue() ? CL_TRUE : CL_FALSE;
 
   uint32_t offset=args[2]->Uint32Value();
   uint32_t size=args[3]->Uint32Value();
 
   void *ptr=NULL;
-  if(!args[4]->IsUndefined()) {
-    if(args[4]->IsArray()) {
-      Local<Array> arr=Local<Array>::Cast(args[4]);
-      ptr = arr->GetIndexedPropertiesExternalArrayData();
-    }
-    else if(args[4]->IsObject()) {
-      Local<Object> obj=args[4]->ToObject();
-      String::AsciiValue name(obj->GetConstructorName());
-      if(!strcmp("Buffer",*name))
-        ptr=Buffer::Data(obj);
-      else
-        ptr = obj->GetIndexedPropertiesExternalArrayData();
-    }
-    else
-      NanThrowError("Invalid memory object");
+  int len=0;
+  if(args[4]->IsUndefined() || args[4]->IsNull()) {
+    cl_int ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnUndefined();
+  }
+  else
+    getPtrAndLen(args[4],ptr,len);
+
+  // printf("offset %lu, size %lu, len %lu\n",offset,size,len);
+  if((int)offset>len) {
+      cl_int ret=CL_INVALID_VALUE;
+      REQ_ERROR_THROW(INVALID_VALUE);
+      NanReturnUndefined();
   }
 
   MakeEventWaitList(args[5]);
@@ -569,6 +666,16 @@ NAN_METHOD(CommandQueue::enqueueReadBufferRect)
   CommandQueue *cq = ObjectWrap::Unwrap<CommandQueue>(args.This());
   MemoryObject *mo = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
 
+  // check for same context (seems to be buggy in Mac driver)
+  cl_context ctx1=0, ctx2=(cl_context) -1;
+  clGetCommandQueueInfo(cq->getCommandQueue(),CL_QUEUE_CONTEXT,sizeof(cl_context),&ctx1, NULL);
+  clGetMemObjectInfo(mo->getMemory(),CL_MEM_CONTEXT,sizeof(cl_context),&ctx2, NULL);
+  if(ctx1 != ctx2) {
+    cl_int ret=CL_INVALID_CONTEXT;
+    REQ_ERROR_THROW(INVALID_CONTEXT);
+    NanReturnUndefined();
+  }
+
   cl_bool blocking_read = args[1]->BooleanValue() ? CL_TRUE : CL_FALSE;
 
   size_t buffer_origin[3] = {0,0,0};
@@ -594,21 +701,23 @@ NAN_METHOD(CommandQueue::enqueueReadBufferRect)
   uint32_t host_slice_pitch=args[8]->Uint32Value();
 
   void *ptr=NULL;
-  if(!args[9]->IsUndefined()) {
-    if(args[9]->IsArray()) {
-      Local<Array> arr=Local<Array>::Cast(args[9]);
-      ptr = arr->GetIndexedPropertiesExternalArrayData();
-    }
-    else if(args[9]->IsObject()) {
-      Local<Object> obj=args[9]->ToObject();
-      String::AsciiValue name(obj->GetConstructorName());
-      if(!strcmp("Buffer",*name))
-        ptr=Buffer::Data(obj);
-      else
-        ptr = obj->GetIndexedPropertiesExternalArrayData(); 
-    }
-    else
-      NanThrowError("Invalid memory object");
+  int len=0;
+  if(args[9]->IsUndefined() || args[9]->IsNull()) {
+    cl_int ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnUndefined();
+  }
+  else
+    getPtrAndLen(args[9],ptr,len);
+
+  int buf_sz = bufferRectSize(buffer_origin, region, buffer_row_pitch, buffer_slice_pitch, len);
+  int host_sz = bufferRectSize(host_origin, region, host_row_pitch, host_slice_pitch, len);
+  // printf("len %d, buf off %d, host off %d\n",len,buf_sz,host_sz);
+  if (buf_sz < 0 || host_sz < 0 || buf_sz > len || host_sz > len)
+  {
+    cl_int ret = CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnUndefined();
   }
 
   MakeEventWaitList(args[10]);
@@ -650,7 +759,7 @@ NAN_METHOD(CommandQueue::enqueueReadBufferRect)
   }
 
   if(!no_event) {
-    Event *e=ObjectWrap::Unwrap<Event>(args[5]->ToObject());
+    Event *e=ObjectWrap::Unwrap<Event>(args[11]->ToObject());
     e->setEvent(event);
   }
   NanReturnUndefined();
@@ -664,11 +773,46 @@ NAN_METHOD(CommandQueue::enqueueCopyBuffer)
   MemoryObject *mo_src = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
   MemoryObject *mo_dst = ObjectWrap::Unwrap<MemoryObject>(args[1]->ToObject());
 
+  // check for same context (seems to be buggy in Mac driver)
+  cl_context ctx1=0, ctx2=(cl_context) -1;
+  clGetCommandQueueInfo(cq->getCommandQueue(),CL_QUEUE_CONTEXT,sizeof(cl_context),&ctx1, NULL);
+  clGetMemObjectInfo(mo_src->getMemory(),CL_MEM_CONTEXT,sizeof(cl_context),&ctx2, NULL);
+  if(ctx1 != ctx2) {
+    cl_int ret=CL_INVALID_CONTEXT;
+    REQ_ERROR_THROW(INVALID_CONTEXT);
+    NanReturnUndefined();
+  }
+
   size_t src_offset = args[2]->Uint32Value();
   size_t dst_offset = args[3]->Uint32Value();
   size_t size = args[4]->Uint32Value();
 
+  size_t len_s, len_d;
+  clGetMemObjectInfo(mo_src->getMemory(),CL_MEM_SIZE,sizeof(size_t),&len_s,NULL);
+  clGetMemObjectInfo(mo_dst->getMemory(),CL_MEM_SIZE,sizeof(size_t),&len_d,NULL);
+  if(src_offset+size>len_s || dst_offset+size>len_d) {
+    cl_int ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnUndefined();
+  }
+
+  if(mo_src->getMemory() == mo_dst->getMemory() &&
+    (src_offset+size>dst_offset && dst_offset+size>src_offset)
+  ) {
+    cl_int ret=CL_MEM_COPY_OVERLAP;
+    REQ_ERROR_THROW(MEM_COPY_OVERLAP);
+    NanReturnUndefined();
+  }
+
   MakeEventWaitList(args[5]);
+
+  if(num_evts != num_events_wait_list) {
+    delete[] events_wait_list;
+    events_wait_list=NULL;
+    cl_int ret=CL_INVALID_EVENT_WAIT_LIST;
+    REQ_ERROR_THROW(INVALID_EVENT_WAIT_LIST);
+    NanReturnUndefined();
+  }
 
   cl_event event=NULL;
   bool no_event = (args[6]->IsUndefined() || args[6]->IsNull());
@@ -710,6 +854,16 @@ NAN_METHOD(CommandQueue::enqueueCopyBufferRect)
   MemoryObject *mo_src = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
   MemoryObject *mo_dst = ObjectWrap::Unwrap<MemoryObject>(args[1]->ToObject());
 
+  // check for same context (seems to be buggy in Mac driver)
+  cl_context ctx1=0, ctx2=(cl_context) -1;
+  clGetCommandQueueInfo(cq->getCommandQueue(),CL_QUEUE_CONTEXT,sizeof(cl_context),&ctx1, NULL);
+  clGetMemObjectInfo(mo_src->getMemory(),CL_MEM_CONTEXT,sizeof(cl_context),&ctx2, NULL);
+  if(ctx1 != ctx2) {
+    cl_int ret=CL_INVALID_CONTEXT;
+    REQ_ERROR_THROW(INVALID_CONTEXT);
+    NanReturnUndefined();
+  }
+
   size_t src_origin[3] = {0,0,0};
   size_t dst_origin[3] = {0,0,0};
   size_t region[3] = {1,1,1};
@@ -727,10 +881,25 @@ NAN_METHOD(CommandQueue::enqueueCopyBufferRect)
   for(i=0;i<arr->Length();i++)
       region[i]=arr->Get(i)->Uint32Value();
 
+  if(region[0]==0 || region[1]==0 || region[2]==0) {
+    cl_int ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnUndefined();
+  }
+
   size_t src_row_pitch = args[5]->Uint32Value();
   size_t src_slice_pitch = args[6]->Uint32Value();
   size_t dst_row_pitch = args[7]->Uint32Value();
   size_t dst_slice_pitch = args[8]->Uint32Value();
+
+  size_t len_s, len_d;
+  clGetMemObjectInfo(mo_src->getMemory(),CL_MEM_SIZE,sizeof(size_t),&len_s,NULL);
+  clGetMemObjectInfo(mo_dst->getMemory(),CL_MEM_SIZE,sizeof(size_t),&len_d,NULL);
+  if(src_origin[0]+region[0]>len_s || dst_origin[0]+region[0]>len_d) {
+    cl_int ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnUndefined();
+  }
 
   MakeEventWaitList(args[9]);
 
@@ -781,6 +950,16 @@ NAN_METHOD(CommandQueue::enqueueWriteImage)
   CommandQueue *cq = ObjectWrap::Unwrap<CommandQueue>(args.This());
   MemoryObject *mo = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
 
+  // check for same context (seems to be buggy in Mac driver)
+  cl_context ctx1=0, ctx2=(cl_context) -1;
+  clGetCommandQueueInfo(cq->getCommandQueue(),CL_QUEUE_CONTEXT,sizeof(cl_context),&ctx1, NULL);
+  clGetMemObjectInfo(mo->getMemory(),CL_MEM_CONTEXT,sizeof(cl_context),&ctx2, NULL);
+  if(ctx1 != ctx2) {
+    cl_int ret=CL_INVALID_CONTEXT;
+    REQ_ERROR_THROW(INVALID_CONTEXT);
+    NanReturnUndefined();
+  }
+
   cl_bool blocking_write = args[1]->BooleanValue() ? CL_TRUE : CL_FALSE;
 
   size_t origin[3]={0,0,0};
@@ -795,25 +974,29 @@ NAN_METHOD(CommandQueue::enqueueWriteImage)
   for(i=0;i<arr->Length();i++)
       region[i]=arr->Get(i)->Uint32Value();
 
+  if(region[0]==0 || region[1]==0 || region[2]==0) {
+      cl_int ret=CL_INVALID_VALUE;
+      REQ_ERROR_THROW(INVALID_VALUE);
+      NanReturnUndefined();
+  }
+
   size_t row_pitch = args[4]->Uint32Value();
   size_t slice_pitch = 0; //args[5]->Uint32Value(); // no slice_pitch in WebCL 1.0
 
   void *ptr=NULL;
-  if(!args[5]->IsUndefined()) {
-    if(args[5]->IsArray()) {
-      Local<Array> arr=Local<Array>::Cast(args[5]);
-      ptr = arr->GetIndexedPropertiesExternalArrayData();
-    }
-    else if(args[5]->IsObject()) {
-      Local<Object> obj=args[5]->ToObject();
-      String::AsciiValue name(obj->GetConstructorName());
-      if(!strcmp("Buffer",*name))
-        ptr=Buffer::Data(obj);
-      else
-        ptr = obj->GetIndexedPropertiesExternalArrayData();
-    }
-    else
-      NanThrowError("Invalid memory object");
+  int len=0;
+  if(args[5]->IsUndefined() || args[5]->IsNull()) {
+    cl_int ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnUndefined();
+  }
+  else
+    getPtrAndLen(args[5],ptr,len);
+
+  if(imageRectSize(origin,region,row_pitch,slice_pitch,mo->getMemory(),len)<0) {
+    cl_int ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnUndefined();
   }
 
   MakeEventWaitList(args[6]);
@@ -863,6 +1046,16 @@ NAN_METHOD(CommandQueue::enqueueReadImage)
   CommandQueue *cq = ObjectWrap::Unwrap<CommandQueue>(args.This());
   MemoryObject *mo = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
 
+  // check for same context (seems to be buggy in Mac driver)
+  cl_context ctx1=0, ctx2=(cl_context) -1;
+  if(cq->getCommandQueue()) clGetCommandQueueInfo(cq->getCommandQueue(),CL_QUEUE_CONTEXT,sizeof(cl_context),&ctx1, NULL);
+  if(mo->getMemory()) clGetMemObjectInfo(mo->getMemory(),CL_MEM_CONTEXT,sizeof(cl_context),&ctx2, NULL);
+  if(ctx1 != ctx2) {
+    cl_int ret=CL_INVALID_CONTEXT;
+    REQ_ERROR_THROW(INVALID_CONTEXT);
+    NanReturnUndefined();
+  }
+
   cl_bool blocking_read = args[1]->BooleanValue() ? CL_TRUE : CL_FALSE;
 
   size_t origin[3] = {0,0,0};
@@ -881,33 +1074,32 @@ NAN_METHOD(CommandQueue::enqueueReadImage)
   size_t slice_pitch = 0;
 
   void *ptr=NULL;
-  if(!args[5]->IsUndefined()) {
-    if(args[5]->IsArray()) {
-      Local<Array> arr=Local<Array>::Cast(args[5]);
-      ptr = arr->GetIndexedPropertiesExternalArrayData();
-    }
-    else if(args[5]->IsObject()) {
-      Local<Object> obj=args[5]->ToObject();
-      String::AsciiValue name(obj->GetConstructorName());
-      if(!strcmp("Buffer",*name))
-        ptr=Buffer::Data(obj);
-      else
-        ptr = obj->GetIndexedPropertiesExternalArrayData();
-    }
-    else
-      NanThrowError("Invalid memory object");
+  int len=0;
+  if(args[5]->IsUndefined() || args[5]->IsNull()) {
+    cl_int ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnUndefined();
+  }
+  else
+    getPtrAndLen(args[5],ptr,len);
+
+  if(imageRectSize(origin,region,row_pitch,slice_pitch,mo->getMemory(),len)<0) {
+    cl_int ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnUndefined();
   }
 
   MakeEventWaitList(args[6]);
 
   cl_event event;
   bool no_event = (args[7]->IsUndefined() || args[7]->IsNull());
+  // printf("num_events_wait_list %d, events_wait_list %p, no_event %d\n",num_events_wait_list,events_wait_list, no_event);
 
   cl_int ret=::clEnqueueReadImage(
       cq->getCommandQueue(), mo->getMemory(), blocking_read,
       origin,
       region,
-      row_pitch, slice_pitch, 
+      row_pitch, slice_pitch,
       ptr,
       num_events_wait_list,
       events_wait_list,
@@ -932,18 +1124,28 @@ NAN_METHOD(CommandQueue::enqueueReadImage)
   }
 
   if(!no_event) {
-    Event *e=ObjectWrap::Unwrap<Event>(args[8]->ToObject());
+    Event *e=ObjectWrap::Unwrap<Event>(args[7]->ToObject());
     e->setEvent(event);
   }
   NanReturnUndefined();
 }
 
 NAN_METHOD(CommandQueue::enqueueCopyImage)
-{   
+{
   NanScope();
   CommandQueue *cq = ObjectWrap::Unwrap<CommandQueue>(args.This());
   MemoryObject *mo_src = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
   MemoryObject *mo_dst = ObjectWrap::Unwrap<MemoryObject>(args[1]->ToObject());
+
+  // check for same context (seems to be buggy in Mac driver)
+  cl_context ctx1=0, ctx2=(cl_context) -1;
+  clGetCommandQueueInfo(cq->getCommandQueue(),CL_QUEUE_CONTEXT,sizeof(cl_context),&ctx1, NULL);
+  clGetMemObjectInfo(mo_src->getMemory(),CL_MEM_CONTEXT,sizeof(cl_context),&ctx2, NULL);
+  if(ctx1 != ctx2) {
+    cl_int ret=CL_INVALID_CONTEXT;
+    REQ_ERROR_THROW(INVALID_CONTEXT);
+    NanReturnUndefined();
+  }
 
   size_t src_origin[3] = {0,0,0};
   size_t dst_origin[3] = {0,0,0};
@@ -961,6 +1163,30 @@ NAN_METHOD(CommandQueue::enqueueCopyImage)
   arr=Local<Array>::Cast(args[4]);
   for(i=0;i<arr->Length();i++)
       region[i]=arr->Get(i)->Uint32Value();
+
+  // size_t imgW_s, imgH_s, imgW_d, imgH_d;
+  // clGetImageInfo(mo_src->getMemory(),CL_IMAGE_WIDTH,sizeof(size_t),&imgW_s,NULL);
+  // clGetImageInfo(mo_src->getMemory(),CL_IMAGE_HEIGHT,sizeof(size_t),&imgH_s,NULL);
+  // clGetImageInfo(mo_dst->getMemory(),CL_IMAGE_WIDTH,sizeof(size_t),&imgW_d,NULL);
+  // clGetImageInfo(mo_dst->getMemory(),CL_IMAGE_HEIGHT,sizeof(size_t),&imgH_d,NULL);
+  // if(src_origin[0]+region[0]>imgW_s || src_origin[1]+region[1]>imgH_s ||
+  //     dst_origin[0]+region[0]>imgW_d || dst_origin[1]+region[1]>imgH_d)
+  // {
+  //   cl_int ret=CL_INVALID_VALUE;
+  //   REQ_ERROR_THROW(INVALID_VALUE);
+  //   NanReturnUndefined();
+  // }
+
+  if(imageRectSize(src_origin,region,0,0,mo_src->getMemory(),-1)<0) {
+    cl_int ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnUndefined();
+  }
+  if(imageRectSize(dst_origin,region,0,0,mo_dst->getMemory(),-1)<0) {
+    cl_int ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnUndefined();
+  }
 
   MakeEventWaitList(args[5]);
 
@@ -1009,6 +1235,16 @@ NAN_METHOD(CommandQueue::enqueueCopyImageToBuffer)
   MemoryObject *mo_src = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
   MemoryObject *mo_dst = ObjectWrap::Unwrap<MemoryObject>(args[1]->ToObject());
 
+  // check for same context (seems to be buggy in Mac driver)
+  cl_context ctx1=0, ctx2=(cl_context) -1;
+  clGetCommandQueueInfo(cq->getCommandQueue(),CL_QUEUE_CONTEXT,sizeof(cl_context),&ctx1, NULL);
+  clGetMemObjectInfo(mo_src->getMemory(),CL_MEM_CONTEXT,sizeof(cl_context),&ctx2, NULL);
+  if(ctx1 != ctx2) {
+    cl_int ret=CL_INVALID_CONTEXT;
+    REQ_ERROR_THROW(INVALID_CONTEXT);
+    NanReturnUndefined();
+  }
+
   size_t src_origin[3] = {0,0,0};
   size_t region[3] = {1,1,1};
 
@@ -1022,6 +1258,19 @@ NAN_METHOD(CommandQueue::enqueueCopyImageToBuffer)
       region[i]=arr->Get(i)->Uint32Value();
 
   size_t dst_offset = args[4]->Uint32Value();
+
+  size_t imgW, imgH, bpp, sz;
+  clGetImageInfo(mo_src->getMemory(),CL_IMAGE_WIDTH,sizeof(size_t),&imgW,NULL);
+  clGetImageInfo(mo_src->getMemory(),CL_IMAGE_HEIGHT,sizeof(size_t),&imgH,NULL);
+  clGetImageInfo(mo_src->getMemory(),CL_IMAGE_ELEMENT_SIZE,sizeof(size_t),&bpp,NULL);
+  clGetMemObjectInfo(mo_dst->getMemory(),CL_MEM_SIZE,sizeof(size_t),&sz,NULL);
+  if(src_origin[0]+region[0]>imgW || src_origin[1]+region[1]>imgH ||
+     region[0]*region[1]*bpp>sz)
+  {
+    cl_int ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnUndefined();
+  }
 
   MakeEventWaitList(args[5]);
 
@@ -1069,6 +1318,16 @@ NAN_METHOD(CommandQueue::enqueueCopyBufferToImage)
   MemoryObject *mo_src = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
   MemoryObject *mo_dst = ObjectWrap::Unwrap<MemoryObject>(args[1]->ToObject());
 
+  // check for same context (seems to be buggy in Mac driver)
+  cl_context ctx1=0, ctx2=(cl_context) -1;
+  clGetCommandQueueInfo(cq->getCommandQueue(),CL_QUEUE_CONTEXT,sizeof(cl_context),&ctx1, NULL);
+  clGetMemObjectInfo(mo_src->getMemory(),CL_MEM_CONTEXT,sizeof(cl_context),&ctx2, NULL);
+  if(ctx1 != ctx2) {
+    cl_int ret=CL_INVALID_CONTEXT;
+    REQ_ERROR_THROW(INVALID_CONTEXT);
+    NanReturnUndefined();
+  }
+
   size_t src_offset = args[2]->Uint32Value();
   size_t dst_origin[3]={0,0,0};
   size_t region[3]={1,1,1};
@@ -1081,6 +1340,22 @@ NAN_METHOD(CommandQueue::enqueueCopyBufferToImage)
   arr=Local<Array>::Cast(args[4]);
   for(i=0;i<arr->Length();i++)
       region[i]=arr->Get(i)->Uint32Value();
+
+  size_t imgW, imgH, bpp, sz;
+  clGetImageInfo(mo_dst->getMemory(),CL_IMAGE_WIDTH,sizeof(size_t),&imgW,NULL);
+  clGetImageInfo(mo_dst->getMemory(),CL_IMAGE_HEIGHT,sizeof(size_t),&imgH,NULL);
+  clGetImageInfo(mo_dst->getMemory(),CL_IMAGE_ELEMENT_SIZE,sizeof(size_t),&bpp,NULL);
+  clGetMemObjectInfo(mo_src->getMemory(),CL_MEM_SIZE,sizeof(size_t),&sz,NULL);
+  // printf("region %lu %lu, img %lu x %lu x %lu, offset %lu, bufsz %lu\n",region[0],region[1],imgW,imgH,bpp,src_offset,sz);
+  if(region[0]>imgW || region[1]>imgH ||
+     src_offset+region[0]*region[1]*bpp>sz ||
+     dst_origin[0]>imgW || dst_origin[1]>imgH
+  )
+  {
+    cl_int ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnUndefined();
+  }
 
   MakeEventWaitList(args[5]);
 
@@ -1132,6 +1407,17 @@ NAN_METHOD(CommandQueue::enqueueMapBuffer)
 
   // TODO: arg checking
   MemoryObject *mo = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
+
+  // check for same context (seems to be buggy in Mac driver)
+  cl_context ctx1=0, ctx2=(cl_context) -1;
+  clGetCommandQueueInfo(cq->getCommandQueue(),CL_QUEUE_CONTEXT,sizeof(cl_context),&ctx1, NULL);
+  clGetMemObjectInfo(mo->getMemory(),CL_MEM_CONTEXT,sizeof(cl_context),&ctx2, NULL);
+  if(ctx1 != ctx2) {
+    cl_int ret=CL_INVALID_CONTEXT;
+    REQ_ERROR_THROW(INVALID_CONTEXT);
+    NanReturnUndefined();
+  }
+
   cl_bool blocking = args[1]->BooleanValue() ? CL_TRUE : CL_FALSE;
   cl_map_flags flags = args[2]->Uint32Value();
   size_t offset = args[3]->Uint32Value();
@@ -1204,6 +1490,17 @@ NAN_METHOD(CommandQueue::enqueueMapImage)
 
   // TODO: arg checking
   MemoryObject *mo = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
+
+  // check for same context (seems to be buggy in Mac driver)
+  cl_context ctx1=0, ctx2=(cl_context) -1;
+  clGetCommandQueueInfo(cq->getCommandQueue(),CL_QUEUE_CONTEXT,sizeof(cl_context),&ctx1, NULL);
+  clGetMemObjectInfo(mo->getMemory(),CL_MEM_CONTEXT,sizeof(cl_context),&ctx2, NULL);
+  if(ctx1 != ctx2) {
+    cl_int ret=CL_INVALID_CONTEXT;
+    REQ_ERROR_THROW(INVALID_CONTEXT);
+    NanReturnUndefined();
+  }
+
   cl_bool blocking = args[1]->BooleanValue() ? CL_TRUE : CL_FALSE;
   cl_map_flags flags = args[2]->Uint32Value();
 
@@ -1278,6 +1575,17 @@ NAN_METHOD(CommandQueue::enqueueUnmapMemObject)
 
   // TODO: arg checking
   MemoryObject *mo = ObjectWrap::Unwrap<MemoryObject>(args[0]->ToObject());
+
+  // check for same context (seems to be buggy in Mac driver)
+  cl_context ctx1=0, ctx2=(cl_context) -1;
+  clGetCommandQueueInfo(cq->getCommandQueue(),CL_QUEUE_CONTEXT,sizeof(cl_context),&ctx1, NULL);
+  clGetMemObjectInfo(mo->getMemory(),CL_MEM_CONTEXT,sizeof(cl_context),&ctx2, NULL);
+  if(ctx1 != ctx2) {
+    cl_int ret=CL_INVALID_CONTEXT;
+    REQ_ERROR_THROW(INVALID_CONTEXT);
+    NanReturnUndefined();
+  }
+
   Local<Object> buf(args[1]->ToObject());
 
   MakeEventWaitList(args[2]);
@@ -1357,6 +1665,10 @@ NAN_METHOD(CommandQueue::enqueueWaitForEvents)
   NanScope();
   CommandQueue *cq = ObjectWrap::Unwrap<CommandQueue>(args.This());
 
+  // check for same context (seems to be buggy in Mac driver)
+  cl_context ctx1=0;
+  clGetCommandQueueInfo(cq->getCommandQueue(),CL_QUEUE_CONTEXT,sizeof(cl_context),&ctx1, NULL);
+
   MakeEventWaitList(args[0]);
 
   cl_int ret = ::clEnqueueWaitForEvents(
@@ -1384,6 +1696,10 @@ NAN_METHOD(CommandQueue::enqueueBarrier)
 {
   NanScope();
   CommandQueue *cq = ObjectWrap::Unwrap<CommandQueue>(args.This());
+
+  // check for same context (seems to be buggy in Mac driver)
+  cl_context ctx1=0;
+  clGetCommandQueueInfo(cq->getCommandQueue(),CL_QUEUE_CONTEXT,sizeof(cl_context),&ctx1, NULL);
 
   MakeEventWaitList(args[0]);
 
@@ -1434,8 +1750,9 @@ class FinishWorker : public NanAsyncWorker {
   ~FinishWorker() {
     if(baton_) {
       NanScope();
-      if (!baton_->parent.IsEmpty()) NanDisposePersistent(baton_->parent);
       // if (baton_->callback) delete baton_->callback;
+      // if (!baton_->parent.IsEmpty()) NanDisposePersistent(baton_->parent);
+      // if (!baton_->data.IsEmpty()) NanDisposePersistent(baton_->data);
       delete baton_;
     }
   }
@@ -1445,17 +1762,6 @@ class FinishWorker : public NanAsyncWorker {
   // here, so everything we need for input and output
   // should go on `this`.
   void Execute () {
-    // SetErrorMessage("Error");
-    // printf("[async event] execute\n");
-    CommandQueue *cq = ObjectWrap::Unwrap<CommandQueue>(NanPersistentToLocal(baton_->parent));
-
-    cl_int ret = ::clFinish(cq->getCommandQueue());
-    if (ret != CL_SUCCESS) {
-      REQ_ERROR_THROW_NONE(INVALID_COMMAND_QUEUE);
-      REQ_ERROR_THROW_NONE(OUT_OF_RESOURCES);
-      REQ_ERROR_THROW_NONE(OUT_OF_HOST_MEMORY);
-	    return;
-    }
   }
 
   // Executed when the async work is complete
@@ -1464,9 +1770,10 @@ class FinishWorker : public NanAsyncWorker {
   void HandleOKCallback () {
     NanScope();
 
-    // // must return passed data
+     // // must return passed data
     Local<Value> argv[] = {
-      NanPersistentToLocal(baton_->parent),  // event
+      // NanPersistentToLocal(baton_->parent),  // event
+      JS_INT(baton_->error)
     };
 
     // printf("[async event] callback JS\n");
@@ -1482,18 +1789,22 @@ NAN_METHOD(CommandQueue::finish)
 {
   NanScope();
   CommandQueue *cq = ObjectWrap::Unwrap<CommandQueue>(args.This());
+  if(!cq->command_queue) {
+    cl_int ret=CL_INVALID_COMMAND_QUEUE;
+    REQ_ERROR_THROW(INVALID_COMMAND_QUEUE);
+  }
+
+  cl_int ret = ::clFinish(cq->getCommandQueue());
 
   if(args.Length()>0 && args[0]->IsFunction()) {
       Baton *baton=new Baton();
-      NanAssignPersistent(v8::Object, baton->parent, NanObjectWrapHandle(cq));
+      baton->error=ret;
       baton->callback=new NanCallback(args[0].As<Function>());
       NanAsyncQueueWorker(new FinishWorker(baton));
       NanReturnUndefined();
   }
 
-  cl_int ret = ::clFinish(cq->getCommandQueue());
-
-  if (ret != CL_SUCCESS) {
+  else if (ret != CL_SUCCESS) {
     REQ_ERROR_THROW(INVALID_COMMAND_QUEUE);
     REQ_ERROR_THROW(OUT_OF_RESOURCES);
     REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
@@ -1523,6 +1834,10 @@ NAN_METHOD(CommandQueue::enqueueAcquireGLObjects)
 {
   NanScope();
   CommandQueue *cq = ObjectWrap::Unwrap<CommandQueue>(args.This());
+
+  // check for same context (seems to be buggy in Mac driver)
+  cl_context ctx1=0;
+  clGetCommandQueueInfo(cq->getCommandQueue(),CL_QUEUE_CONTEXT,sizeof(cl_context),&ctx1, NULL);
 
   cl_mem *mem_objects=NULL;
   int num_objects=0;
@@ -1579,6 +1894,10 @@ NAN_METHOD(CommandQueue::enqueueReleaseGLObjects)
   NanScope();
   CommandQueue *cq = ObjectWrap::Unwrap<CommandQueue>(args.This());
 
+  // check for same context (seems to be buggy in Mac driver)
+  cl_context ctx1=0;
+  clGetCommandQueueInfo(cq->getCommandQueue(),CL_QUEUE_CONTEXT,sizeof(cl_context),&ctx1, NULL);
+
   cl_mem *mem_objects=NULL;
   int num_objects=0;
   if(args[0]->IsArray()) {
@@ -1634,21 +1953,20 @@ NAN_METHOD(CommandQueue::New)
   NanScope();
   CommandQueue *cq = new CommandQueue(args.This());
   cq->Wrap(args.This());
-  registerCLObj(cq);
   NanReturnValue(args.This());
 }
 
-CommandQueue *CommandQueue::New(cl_command_queue cw)
+CommandQueue *CommandQueue::New(cl_command_queue cw, WebCLObject *parent)
 {
 
   NanScope();
 
-  Local<Value> arg = Integer::NewFromUnsigned(0);
-  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor_template);
-  Local<Object> obj = constructorHandle->GetFunction()->NewInstance(1, &arg);
+  Local<Function> cons = NanNew<Function>(constructor);
+  Local<Object> obj = cons->NewInstance();
 
   CommandQueue *commandqueue = ObjectWrap::Unwrap<CommandQueue>(obj);
   commandqueue->command_queue = cw;
+  registerCLObj(cw, commandqueue);
 
   return commandqueue;
 }

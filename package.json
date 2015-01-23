@@ -17,12 +17,12 @@
   "licenses": [
     {
       "type": "BSD",
-      "url": "https://github.com/Motorola-Mobility/node-webcl/blob/master/LICENSES"
+      "url": "https://github.com/mikeseven/node-webcl/blob/master/LICENSES"
     }
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/Motorola-Mobility/node-webcl"
+    "url": "https://github.com/mikeseven/node-webcl"
   },
   "directories": {
     "src": "src",
@@ -32,12 +32,12 @@
     "test": "test"
   },
   "scripts": {
-    "install": "node-gyp rebuild"
+    "install": "node-gyp rebuild --msvs_version=2013"
   },
   "dependencies": {
     "node-webgl": ">=0.4.2",
     "node-image": ">=0.7.1",
-    "nan": "^0.8.0"
+    "nan": "~1.2.0"
   },
   "devDependencies": {
     "chai": "*",

@@ -1,5 +1,5 @@
 /*
- * Compute contains all WebCL initializations and runtime for our kernel
+ * Compute contains all webcl initializations and runtime for our kernel
  * that update a texture.
  */
 function Compute() {
@@ -7,7 +7,7 @@ function Compute() {
   var /* cl_command_queue */  clQueue;
   var /* cl_program */        clProgram;
   var /* cl_device_id */      clDevice;
-  var /* cl_device_type */    clDeviceType = WebCL.DEVICE_TYPE_GPU;
+  var /* cl_device_type */    clDeviceType = webcl.DEVICE_TYPE_GPU;
   var /* cl_image */          clTexture;
   var /* cl_kernel */         clKernel;
   var max_workgroup_size, max_workitem_sizes, warp_size;
@@ -17,7 +17,7 @@ function Compute() {
   var nodejs = (typeof window === 'undefined');
 
   /*
-   * Initialize WebCL context sharing WebGL context
+   * Initialize webcl context sharing WebGL context
    * 
    * @param gl WebGLContext
    * @param kernel_id the <script> id of the kernel source code
@@ -34,26 +34,26 @@ function Compute() {
     COMPUTE_KERNEL_NAME = kernel_name;
     
     // Pick platform
-    var platformList = WebCL.getPlatforms();
+    var platformList = webcl.getPlatforms();
     var platform = platformList[0];
-    var devices = platform.getDevices(clDeviceType ? WebCL.DEVICE_TYPE_GPU : WebCL.DEVICE_TYPE_DEFAULT);
+    var devices = platform.getDevices(clDeviceType ? webcl.DEVICE_TYPE_GPU : webcl.DEVICE_TYPE_DEFAULT);
     clDevice=devices[0];
 
     // make sure we use a discrete GPU
     for(var i=0;i<devices.length;i++) {
-      var vendor=devices[i].getInfo(WebCL.DEVICE_VENDOR);
+      var vendor=devices[i].getInfo(webcl.DEVICE_VENDOR);
       // log('found vendor '+vendor+', is Intel? '+(vendor.indexOf('Intel')>=0))
       if(vendor.indexOf('Intel')==-1)
         clDevice=devices[i];
     }
-    log('found '+devices.length+' devices, using device: '+clDevice.getInfo(WebCL.DEVICE_NAME));
+    log('found '+devices.length+' devices, using device: '+clDevice.getInfo(webcl.DEVICE_NAME));
 
     if(!clDevice.enableExtension('KHR_gl_sharing'))
       throw new Error("Can NOT use GL sharing");
 
     // create the OpenCL context
     try {
-      clContext = WebCL.createContext(gl, clDevice);
+      clContext = webcl.createContext(gl, clDevice);
     }
     catch(err) {
       throw "Error: Failed to create context! "+err;
@@ -68,22 +68,22 @@ function Compute() {
     }
 
     // Report the device vendor and device name
-    var vendor_name = clDevice.getInfo(WebCL.DEVICE_VENDOR);
-    var device_name = clDevice.getInfo(WebCL.DEVICE_NAME);
+    var vendor_name = clDevice.getInfo(webcl.DEVICE_VENDOR);
+    var device_name = clDevice.getInfo(webcl.DEVICE_NAME);
     log("  Connecting to " + vendor_name + " " + device_name);
 
-    log("    Global mem cache size: " + (clDevice.getInfo(WebCL.DEVICE_GLOBAL_MEM_CACHE_SIZE)/1024) + "kB " );
-    log("    Local mem size       : " + (clDevice.getInfo(WebCL.DEVICE_LOCAL_MEM_SIZE)/1024) + "kB " );
-    log("    Max compute units    : " + clDevice.getInfo(WebCL.DEVICE_MAX_COMPUTE_UNITS));
-    log("    Max work-item sizes  : "+clDevice.getInfo(WebCL.DEVICE_MAX_WORK_ITEM_SIZES));
-    log("    Max work-group size  : "+clDevice.getInfo(WebCL.DEVICE_MAX_WORK_GROUP_SIZE));
+    log("    Global mem cache size: " + (clDevice.getInfo(webcl.DEVICE_GLOBAL_MEM_CACHE_SIZE)/1024) + "kB " );
+    log("    Local mem size       : " + (clDevice.getInfo(webcl.DEVICE_LOCAL_MEM_SIZE)/1024) + "kB " );
+    log("    Max compute units    : " + clDevice.getInfo(webcl.DEVICE_MAX_COMPUTE_UNITS));
+    log("    Max work-item sizes  : "+clDevice.getInfo(webcl.DEVICE_MAX_WORK_ITEM_SIZES));
+    log("    Max work-group size  : "+clDevice.getInfo(webcl.DEVICE_MAX_WORK_GROUP_SIZE));
 
     init_cl_buffers();
     init_cl_kernels();
   }
 
   /*
-   * Initialize WebCL kernels
+   * Initialize webcl kernels
    */
   function init_cl_kernels() {
     log('  setup CL kernel');
@@ -129,7 +129,7 @@ function Compute() {
       clProgram.build(clDevice, '-cl-fast-relaxed-math -cl-mad-enable -DMAC');
     } catch (err) {
       throw "Error: Failed to build program executable!\n"
-          + clProgram.getBuildInfo(clDevice, WebCL.PROGRAM_BUILD_LOG);
+          + clProgram.getBuildInfo(clDevice, webcl.PROGRAM_BUILD_LOG);
     }
 
     // Create the compute kernels from within the program
@@ -141,11 +141,11 @@ function Compute() {
     }
 
     // Get the device intrinsics for executing the kernel on the device
-    max_workgroup_size = clKernel.getWorkGroupInfo(clDevice, WebCL.KERNEL_WORK_GROUP_SIZE);
-    warp_size=clKernel.getWorkGroupInfo(clDevice, WebCL.KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE);
+    max_workgroup_size = clKernel.getWorkGroupInfo(clDevice, webcl.KERNEL_WORK_GROUP_SIZE);
+    warp_size=clKernel.getWorkGroupInfo(clDevice, webcl.KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE);
     log('  max workgroup size: '+max_workgroup_size);
-    log('  local mem used    : '+clKernel.getWorkGroupInfo(clDevice, WebCL.KERNEL_LOCAL_MEM_SIZE)+" bytes");
-    log('  private mem used  : '+clKernel.getWorkGroupInfo(clDevice, WebCL.KERNEL_PRIVATE_MEM_SIZE)+" bytes");
+    log('  local mem used    : '+clKernel.getWorkGroupInfo(clDevice, webcl.KERNEL_LOCAL_MEM_SIZE)+" bytes");
+    log('  private mem used  : '+clKernel.getWorkGroupInfo(clDevice, webcl.KERNEL_PRIVATE_MEM_SIZE)+" bytes");
     log('  warp size         : '+warp_size);
   }
 
@@ -170,7 +170,7 @@ function Compute() {
   }
 
   /*
-   * Initialize WebCL buffers
+   * Initialize webcl buffers
    */
   function init_cl_buffers() {
     //log('  create CL buffers');
@@ -180,7 +180,7 @@ function Compute() {
    * Configure shared data with WebGL i.e. our texture
    * 
    * @param gl WebGLContext
-   * @param glTexture WebGLTexture to share with WebCL
+   * @param glTexture WebGLTexture to share with webcl
    */
   function configure_shared_data(gfx, glTexture) {
     var gl=gfx.gl();
@@ -189,7 +189,7 @@ function Compute() {
     if(clTexture) clTexture.release();
     clTexture = null;
     try {
-      clTexture = clContext.createFromGLTexture(WebCL.MEM_WRITE_ONLY,
+      clTexture = clContext.createFromGLTexture(webcl.MEM_WRITE_ONLY,
           gl.TEXTURE_2D, 0, glTexture);
     } catch (ex) {
       throw "Error: Failed to create CL Texture object. " + ex;

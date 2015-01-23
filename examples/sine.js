@@ -26,7 +26,7 @@
 
 var nodejs = (typeof window === 'undefined');
 if(nodejs) {
-  WebCL = require('../webcl');
+  webcl = require('../webcl');
   clu = require('../lib/clUtils');
   util = require('util');
   fs = require('fs');
@@ -39,14 +39,14 @@ if(nodejs) {
   eval(fs.readFileSync(__dirname + '/glMatrix-0.9.5.min.js', 'utf8'));
 }
 else
-  WebCL = window.webcl;
+  webcl = window.webcl;
 
 requestAnimationFrame = document.requestAnimationFrame;
 
 //First check if the webcl extension is installed at all
-if (WebCL == undefined) {
-  alert("Unfortunately your system does not support WebCL. "
-      + "Make sure that you have the WebCL extension installed.");
+if (webcl == undefined) {
+  alert("Unfortunately your system does not support webcl. "
+      + "Make sure that you have the webcl extension installed.");
   process.exit(-1);
 }
 
@@ -110,24 +110,24 @@ function main() {
   initGL();
 
   // Pick platform
-  var platformList = WebCL.getPlatforms();
+  var platformList = webcl.getPlatforms();
   var platform = platformList[0];
-  var devices = platform.getDevices(WebCL.DEVICE_TYPE_GPU);
+  var devices = platform.getDevices(webcl.DEVICE_TYPE_GPU);
   device=devices[0];
 
   // make sure we use a discrete GPU
   for(var i=0;i<devices.length;i++) {
-    var vendor=devices[i].getInfo(WebCL.DEVICE_VENDOR);
+    var vendor=devices[i].getInfo(webcl.DEVICE_VENDOR);
     // log('found vendor '+vendor+', is Intel? '+(vendor.indexOf('Intel')>=0))
     if(vendor.indexOf('Intel')==-1)
       device=devices[i];
   }
-  log('using device: '+device.getInfo(WebCL.DEVICE_VENDOR).trim()+' '+device.getInfo(WebCL.DEVICE_NAME));
+  log('using device: '+device.getInfo(webcl.DEVICE_VENDOR).trim()+' '+device.getInfo(webcl.DEVICE_NAME));
 
   if(!device.enableExtension('KHR_gl_sharing'))
     throw new Error("Can NOT use GL sharing");
 
-  cxGPUContext = WebCL.createContext(gl, device);
+  cxGPUContext = webcl.createContext(gl, device);
 
   // create a command-queue
   cqCommandQueue = cxGPUContext.createCommandQueue(device, 0);
@@ -142,9 +142,9 @@ function main() {
   } catch (err) {
     log('Error building program: ' + err);
   }
-  log("Build Status: " + cpProgram.getBuildInfo(device, WebCL.PROGRAM_BUILD_STATUS));
-  log("Build Options: " + cpProgram.getBuildInfo(device, WebCL.PROGRAM_BUILD_OPTIONS));
-  log("Build Log: " + cpProgram.getBuildInfo(device, WebCL.PROGRAM_BUILD_LOG));
+  log("Build Status: " + cpProgram.getBuildInfo(device, webcl.PROGRAM_BUILD_STATUS));
+  log("Build Options: " + cpProgram.getBuildInfo(device, webcl.PROGRAM_BUILD_OPTIONS));
+  log("Build Log: " + cpProgram.getBuildInfo(device, webcl.PROGRAM_BUILD_LOG));
 
   // create the kernel
   try {
@@ -309,7 +309,7 @@ function createVBO() {
   gl.bufferData(gl.ARRAY_BUFFER, size, gl.DYNAMIC_DRAW);
 
   // create OpenCL buffer from GL VBO
-  vbo_cl = cxGPUContext.createFromGLBuffer(WebCL.MEM_WRITE_ONLY, vbo);
+  vbo_cl = cxGPUContext.createFromGLBuffer(webcl.MEM_WRITE_ONLY, vbo);
 }
 
 function setMatrixUniforms() {

@@ -26,12 +26,12 @@
 
 var nodejs = (typeof window === 'undefined');
 if(nodejs) {
-  WebCL = require('../webcl');
+  webcl = require('../webcl');
   log = console.log;
   exit = process.exit;
 }
 else
-  WebCL = window.webcl;
+  webcl = window.webcl;
 
 (function main() {
   /* CL objects */
@@ -54,30 +54,30 @@ else
   log('creating context');
   
   // //Pick platform
-  var platformList=WebCL.getPlatforms();
+  var platformList=webcl.getPlatforms();
   platform=platformList[0];
-  log('using platform: '+platform.getInfo(WebCL.PLATFORM_NAME));
+  log('using platform: '+platform.getInfo(webcl.PLATFORM_NAME));
   
   // //Query the set of devices on this platform
-  // var devices = platform.getDevices(WebCL.DEVICE_TYPE_DEFAULT);
+  // var devices = platform.getDevices(webcl.DEVICE_TYPE_DEFAULT);
   // device=devices[0];
-  // log('using device: '+device.getInfo(WebCL.DEVICE_NAME));
+  // log('using device: '+device.getInfo(webcl.DEVICE_NAME));
 
   // // create GPU context for this platform
-  // var context=WebCL.createContext({
+  // var context=webcl.createContext({
   //   devices: device, 
   //   platform: platform
   // });
 
   var context=null;
   try {
-    context=WebCL.createContext(WebCL.DEVICE_TYPE_GPU);
+    context=webcl.createContext(webcl.DEVICE_TYPE_GPU);
   }
   catch(ex) {
     throw new Exception("Can't create CL context");
   }
 
-  var devices=context.getInfo(WebCL.CONTEXT_DEVICES);
+  var devices=context.getInfo(webcl.CONTEXT_DEVICES);
   log("Found "+devices.length+" devices");
   var device=devices[0];
 
@@ -174,7 +174,7 @@ else
     program.build(devices);
   } catch(ex) {
     /* Find size of log and print to std output */
-    var info=program.getBuildInfo(devices[0], WebCL.PROGRAM_BUILD_LOG);
+    var info=program.getBuildInfo(devices[0], webcl.PROGRAM_BUILD_LOG);
     log(info);
     exit(1);
   }
@@ -188,14 +188,14 @@ else
 
   /* Create a write-only buffer to hold the output data */
   try {
-    data_buffer = context.createBuffer(WebCL.MEM_WRITE_ONLY, NUM_ELEMS*Uint32Array.BYTES_PER_ELEMENT);
+    data_buffer = context.createBuffer(webcl.MEM_WRITE_ONLY, NUM_ELEMS*Uint32Array.BYTES_PER_ELEMENT);
   } catch(ex) {
     log("Couldn't create a buffer. "+ex);
     exit(1);   
   }
   
   try {
-    ret_buffer = context.createBuffer(WebCL.MEM_WRITE_ONLY, 1*Uint32Array.BYTES_PER_ELEMENT);
+    ret_buffer = context.createBuffer(webcl.MEM_WRITE_ONLY, 1*Uint32Array.BYTES_PER_ELEMENT);
   } catch(ex) {
     log("Couldn't create a buffer. "+ex);
     exit(1);   

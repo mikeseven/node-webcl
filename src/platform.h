@@ -35,7 +35,7 @@ class Platform : public WebCLObject
 {
 
 public:
-  static void Init(v8::Handle<v8::Object> target);
+  static void Init(v8::Handle<v8::Object> exports);
 
   static Platform *New(cl_platform_id pid);
   static NAN_METHOD(New);
@@ -44,17 +44,17 @@ public:
   static NAN_METHOD(getSupportedExtensions);
 
   cl_platform_id getPlatformId() const { return platform_id; };
-  virtual bool isEqual(void *clObj) { return ((cl_platform_id)clObj)==platform_id; }
+  virtual bool operator==(void *clObj) { return ((cl_platform_id)clObj)==platform_id; }
 
   static NAN_METHOD(enableExtension);
   bool hasGLSharingEnabled() const { return (enableExtensions & GL_SHARING); }
-  bool hasFP16Enabled() const { return (enableExtensions & FP16); }
-  bool hasFP64Enabled() const { return (enableExtensions & FP64); }
+  bool hasFP16Enabled() const { return (enableExtensions & FP16)==FP16; }
+  bool hasFP64Enabled() const { return (enableExtensions & FP64)==FP64; }
 
 private:
   Platform(v8::Handle<v8::Object> wrapper);
 
-  static v8::Persistent<v8::FunctionTemplate> constructor_template;
+  static v8::Persistent<v8::Function> constructor;
 
   cl_platform_id platform_id;
 
@@ -67,6 +67,9 @@ private:
     FP16         = 0x02,
     FP64         = 0x04
   };
+
+private:
+  DISABLE_COPY(Platform)
 };
 
 }

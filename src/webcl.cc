@@ -31,8 +31,9 @@
 #include "event.h"
 #include "commandqueue.h"
 
-#include <set>
+#include <list>
 #include <vector>
+#include <map>
 #include <algorithm>
 #include <cstring>
 
@@ -42,135 +43,36 @@ using namespace std;
 
 namespace webcl {
 
-static vector<WebCLObject*> clobjs;
 static bool atExit=false;
-
-void registerCLObj(WebCLObject* obj) {
-  if(!obj) return;
-
-  #ifdef LOGGING
-  printf("Adding CLObject %p type %d, size %d\n", obj, obj->getType(),clobjs.size()); fflush(stdout);
-  #endif
-  clobjs.push_back(obj);
+void registerCLObj(void *clid, WebCLObject* obj) {
+  if(!clid || !obj) return;
+  Manager::instance()->add(&obj->handle_, clid);
 }
 
-void unregisterCLObj(WebCLObject* obj) {
-  if(/*atExit ||*/ !obj) return;
-
-  #ifdef LOGGING
-  printf("Removing CLObject %p, size %d\n", obj, clobjs.size()); fflush(stdout);
-  #endif
-  // clobjs.erase(obj);
-  for(vector<WebCLObject*>::iterator it = clobjs.begin();it!=clobjs.end();++it) {
-    if(*it == obj) {
-      clobjs.erase(it);
-      return;
-    }
-  }
+void unregisterCLObj(WebCLObject *obj) {
+  if(atExit || !obj) return;
+  Manager::instance()->remove(&obj->handle_);
 }
 
-/**
- * Finds the WebCL objet already associated with an OpenCL object
- */
-WebCLObject* findCLObj(void *clObj) {
-  vector<WebCLObject*>::iterator it = clobjs.begin();
-  while(it != clobjs.end()) {
-    WebCLObject *clo = *it++;
-    if(clo->isEqual(clObj))
-      return clo;
-  }
-  return NULL;
+WebCLObject* findCLObj(void *clid, CLObjType::CLObjType type) {
+  if(!clid) return nullptr;
+  Persistent<Object>* p=Manager::instance()->find(clid);
+
+  return p ? ObjectWrap::Unwrap<WebCLObject>(*p) : nullptr;
 }
 
-void AtExit(void* arg) {
-  atExit=true;
-  // #ifdef LOGGING
-  // {
-  //   cout<<"WebCL AtExit() called"<<endl;
-  //   cout<<"  # objects allocated: "<<clobjs.size()<<endl;
-
-  //   set<WebCLObject*>::iterator it = clobjs.begin();
-  //   while(it != clobjs.end()) {
-  //     WebCLObject *clo = *it++;
-  //     cout<<"  obj type: "<<clo->getType()<<endl;
-  //   }
-  // }
-  // #endif
-
-  // make sure all queues are flushed
-  // vector<WebCLObject*>::iterator it;
-  vector<WebCLObject*>::reverse_iterator it;
-
-  // must kill events first
-  // vector<cl_event> events;
-  // it = clobjs.begin();
-  // while(it != clobjs.end()) {
-  //   WebCLObject *clo = *it;
-  //   ++it;
-  //   if(clo->isEvent()) {
-  //     events.push_back(((Event*)clo)->getEvent());
-  //   }
-  // }
-
-  // if(!arg && events.size()) {
-  //   // normal exit, wait for events to complete and call their callbacks
-  //   // args!=0 for CTRL+C, we don't wait 
-  //   printf("*** waiting for %lu events to complete\n",events.size());
-  //   cl_int ret;
-  //   for(size_t i=0;i<events.size();i++) {
-  //     cl_int status;
-  //     do {
-  //       ret=::clGetEventInfo(events[i],CL_EVENT_COMMAND_EXECUTION_STATUS,sizeof(cl_int),&status,NULL);
-  //       printf("  event %lu, status: %d, ret: %d\n",i,status,ret);
-  //     } while(status!=CL_COMPLETE);
-  //   }
-  // }
-  // events.clear();
-
-////////////////////////////////////////////////////////
-
-  // must kill kernels first
-//   #ifdef LOGGING
-//   cout<<"  # objects allocated: "<<clobjs.size()<<endl; fflush(stdout);
-//   #endif
-//   it = clobjs.begin();
-//   while(it != clobjs.end()) {
-//     WebCLObject *clo = *it;
-//     if(clo->isKernel()) {
-// #ifdef LOGGING
-//       cout<<"  Destroying kernel"<<endl;
-// #endif
-//       clobjs.erase(it++);
-//       clo->Destructor();
-//     }
-//     else
-//       ++it;
-//   }
-
-  #ifdef LOGGING
-  cout<<"  # objects allocated: "<<clobjs.size()<<endl; fflush(stdout);
-  #endif
-  for(it = clobjs.rbegin(); it != clobjs.rend(); ++it) {
-    WebCLObject *clo = *it;
+void onExit() {
 #ifdef LOGGING
-    cout<<"  [AtExit] Destroying ";
-    if(clo->isCommandQueue())   cout<<"CommandQueue";
-    else if(clo->isKernel())    cout<<"Kernel";
-    else if(clo->isEvent())     cout<<"Event";
-    else if(clo->isProgram())   cout<<"Program";
-    else if(clo->isMemoryObject()) cout<<"MemoryObject";
-    else if(clo->isSampler())   cout<<"Sampler";
-    else if(clo->isContext())   cout<<"Context";
-    else if(clo->isPlatform())  cout<<"Platform";
-    else if(clo->isDevice())    cout<<"Device";
-    else
-      printf("UNKNOWN");
-    printf(" %p\n",clo); fflush(stdout);
+  printf("**** onExit %d ****\n",atExit);
 #endif
-    clo->Destructor();
-  }
 
-  clobjs.clear();
+  Manager::instance()->stats();
+  Manager::instance()->clear();
+
+#ifdef LOGGING
+  printf("**** GC running ****\n");
+#endif
+  while(!v8::V8::IdleNotification()); // force GC
 }
 
 NAN_METHOD(getPlatforms) {
@@ -205,10 +107,8 @@ NAN_METHOD(getPlatforms) {
 
 NAN_METHOD(releaseAll) {
   NanScope();
-  // printf("webcl.AtExit()\n");
-
-  AtExit(args[0]->IsUndefined() ? NULL : (void*) args[0]->IntegerValue());
-  atExit=true;
+  atExit = args[0]->IntegerValue();
+  onExit();
 
   NanReturnUndefined();
 }
@@ -219,6 +119,7 @@ NAN_METHOD(createContext) {
   cl_context cw=NULL;
   vector<cl_device_id> devices;
   vector<cl_context_properties> properties;
+  Local<Object> glRenderingContext;
 
   // Case 1: WebCLContext createContext(optional CLenum deviceType = WebCL.DEVICE_TYPE_DEFAULT);
   if(args[0]->IsUndefined() || args[0]->IsNumber()) {
@@ -285,7 +186,7 @@ NAN_METHOD(createContext) {
 
         // check if device has gl_sharing extension enabled and update properties accordingly
         if(d->hasGLSharingEnabled()) {
-          printf("Device has GL sharing enabled\n");
+          // printf("Device has GL sharing enabled\n");
 
 #if defined (__APPLE__)
           CGLContextObj kCGLContext = CGLGetCurrentContext();
@@ -315,9 +216,9 @@ NAN_METHOD(createContext) {
                                &ret);
       }
       else if(!strcmp(*astr,"Object") && obj->HasOwnProperty(GLname)) { // Case 5: for CL-GL extension
-        // 5.1 WebCLContext createContext(WebGLRenderingContext gl, optional CLenum deviceType);  
+        // 5.1 WebCLContext createContext(WebGLRenderingContext gl, optional CLenum deviceType);
         // 5.2 WebCLContext createContext(WebGLRenderingContext gl, WebCLPlatform platform, optional CLenum deviceType);
-        // 5.3 WebCLContext createContext(WebGLRenderingContext gl, WebCLDevice device);  
+        // 5.3 WebCLContext createContext(WebGLRenderingContext gl, WebCLDevice device);
         // 5.4 WebCLContext createContext(WebGLRenderingContext gl, sequence<WebCLDevice> devices);
 
 #if defined (__APPLE__)
@@ -359,14 +260,20 @@ NAN_METHOD(createContext) {
 
           // [MBS] what if CL device doesn't provide CLGL?
 
+          cl_uint deviceType=(args[1]->IsUndefined() ? CL_DEVICE_TYPE_DEFAULT : args[1]->Uint32Value());
+          if(deviceType!=CL_DEVICE_TYPE_ALL && deviceType>CL_DEVICE_TYPE_CUSTOM) {
+            cl_int ret=CL_INVALID_DEVICE_TYPE;
+            REQ_ERROR_THROW(INVALID_DEVICE_TYPE);
+            NanReturnNull();
+          }
+
           // terminate properties array
           properties.push_back(0);
 
           cw = ::clCreateContextFromType(properties.size() ? &properties.front() : NULL,
-                                          (args[0]->IsUndefined() ? CL_DEVICE_TYPE_DEFAULT : args[0]->Uint32Value()),
+                                          deviceType,
                                           NULL, NULL, // no callback
                                           &ret);
-
         }
         else {
           Local<Object> obj=args[1]->ToObject();
@@ -377,13 +284,20 @@ NAN_METHOD(createContext) {
 
             if(!strcmp(*astr,"WebCLPlatform")) {
               // case 5.2: WebCLContext createContext(WebGLRenderingContext gl, WebCLPlatform platform, optional CLenum deviceType);
+              cl_uint deviceType=(args[2]->IsUndefined() ? CL_DEVICE_TYPE_DEFAULT : args[2]->Uint32Value());
+              if(deviceType!=CL_DEVICE_TYPE_ALL && deviceType>CL_DEVICE_TYPE_CUSTOM) {
+                cl_int ret=CL_INVALID_DEVICE_TYPE;
+                REQ_ERROR_THROW(INVALID_DEVICE_TYPE);
+                NanReturnNull();
+              }
+
               Platform *platform=ObjectWrap::Unwrap<Platform>(obj);
               properties.push_back(CL_CONTEXT_PLATFORM);
               properties.push_back((cl_context_properties) platform->getPlatformId());
               properties.push_back(0);
 
               cw = ::clCreateContextFromType(&properties.front(),
-                                            (args[2]->IsUndefined() ? CL_DEVICE_TYPE_DEFAULT : args[2]->Uint32Value()),
+                                            deviceType,
                                             NULL, NULL, // no callback
                                             &ret);
 
@@ -405,13 +319,24 @@ NAN_METHOD(createContext) {
                                      1, &device,
                                      NULL, NULL, // no callback
                                      &ret);
+     // String::AsciiValue str(args[0]->ToObject()->GetConstructorName());
+     // printf("GL object: %s hasGLTexture %d\n",*str,args[0]->ToObject()->HasOwnProperty(JS_STR("WebGLTexture")));
+              glRenderingContext=Local<Object>(args[0]->ToObject());
             }
-            else
-              return NanThrowTypeError("Invalid object in arg 2 of createContext");
+            else {
+              ret=CL_INVALID_VALUE;
+              REQ_ERROR_THROW(INVALID_VALUE);
+              NanReturnNull();
+            }
           }
           else {
             // 5.4 WebCLContext createContext(WebGLRenderingContext gl, sequence<WebCLDevice> devices);
             Local<Array> deviceArray = Local<Array>::Cast(obj);
+            if(deviceArray->Length()==0) {
+              ret=CL_INVALID_VALUE;
+              REQ_ERROR_THROW(INVALID_VALUE);
+              NanReturnNull();
+            }
 
             for (uint32_t i=0; i<deviceArray->Length(); i++) {
               Local<Object> obj = deviceArray->Get(i)->ToObject();
@@ -438,13 +363,20 @@ NAN_METHOD(createContext) {
           }
         }
       }
-      else
-        return NanThrowTypeError("UNKNOWN Object type for arg 1"); 
+      else {
+        ret=CL_INVALID_VALUE;
+        REQ_ERROR_THROW(INVALID_VALUE);
+        NanReturnNull();
+      }
     }
     else {
       // Case 4: WebCLContext createContext(sequence<WebCLDevice> devices);
       Local<Array> deviceArray = Local<Array>::Cast(obj);
-
+      if(deviceArray->Length()==0) {
+        ret=CL_INVALID_VALUE;
+        REQ_ERROR_THROW(INVALID_VALUE);
+        NanReturnNull();
+      }
       for (uint32_t i=0; i<deviceArray->Length(); i++) {
         Local<Object> obj = deviceArray->Get(i)->ToObject();
         Device *d = ObjectWrap::Unwrap<Device>(obj);
@@ -483,7 +415,7 @@ NAN_METHOD(createContext) {
     return NanThrowError("UNKNOWN ERROR");
   }
 
-  NanReturnValue(NanObjectWrapHandle(Context::New(cw)));
+  NanReturnValue(NanObjectWrapHandle(Context::New(cw, glRenderingContext)));
 }
 
 class WaitForEventsWorker : public NanAsyncWorker {
@@ -509,23 +441,6 @@ class WaitForEventsWorker : public NanAsyncWorker {
   void Execute () {
     // SetErrorMessage("Error");
     // printf("[async event] execute\n");
-    Local<Array> eventsArray = Local<Array>::Cast(NanPersistentToLocal(baton_->data));
-    std::vector<cl_event> events;
-    for (uint32_t i=0; i<eventsArray->Length(); i++) {
-     Event *we=ObjectWrap::Unwrap<Event>(eventsArray->Get(i)->ToObject());
-      cl_event e = we->getEvent();
-      events.push_back(e);
-    }
-    cl_int ret = baton_->error = ::clWaitForEvents( (int) events.size(), &events.front());
-    if (ret != CL_SUCCESS) {
-      REQ_ERROR_THROW_NONE(INVALID_VALUE);
-      REQ_ERROR_THROW_NONE(INVALID_CONTEXT);
-      REQ_ERROR_THROW_NONE(INVALID_EVENT);
-      REQ_ERROR_THROW_NONE(EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST);
-      REQ_ERROR_THROW_NONE(OUT_OF_RESOURCES);
-      REQ_ERROR_THROW_NONE(OUT_OF_HOST_MEMORY);
-      return;
-    }
   }
 
   // Executed when the async work is complete
@@ -533,6 +448,15 @@ class WaitForEventsWorker : public NanAsyncWorker {
   // so it is safe to use V8 again
   void HandleOKCallback () {
     NanScope();
+
+    Local<Array> eventsArray = Local<Array>::Cast(NanNew(baton_->data));
+    std::vector<cl_event> events;
+    for (uint32_t i=0; i<eventsArray->Length(); i++) {
+     Event *we=ObjectWrap::Unwrap<Event>(eventsArray->Get(i)->ToObject());
+      cl_event e = we->getEvent();
+      events.push_back(e);
+    }
+    baton_->error = ::clWaitForEvents( (int) events.size(), &events.front());
 
     // must return passed data
     Local<Value> argv[] = {
@@ -555,7 +479,7 @@ NAN_METHOD(waitForEvents) {
 
   if(args[1]->IsFunction()) {
       Baton *baton=new Baton();
-      NanAssignPersistent(v8::Value, baton->data, args[0]);
+      NanAssignPersistent(baton->data, args[0]);
       baton->callback=new NanCallback(args[1].As<Function>());
       NanAsyncQueueWorker(new WaitForEventsWorker(baton));
       NanReturnUndefined();

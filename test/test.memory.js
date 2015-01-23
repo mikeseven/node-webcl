@@ -1,30 +1,6 @@
-// Copyright (c) 2011-2012, Motorola Mobility, Inc.
-// All rights reserved.
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are met:
-//
-//  * Redistributions of source code must retain the above copyright
-//    notice, this list of conditions and the following disclaimer.
-//  * Redistributions in binary form must reproduce the above copyright
-//    notice, this list of conditions and the following disclaimer in the
-//    documentation and/or other materials provided with the distribution.
-//  * Neither the name of the Motorola Mobility, Inc. nor the names of its
-//    contributors may be used to endorse or promote products derived from this
-//    software without specific prior written permission.
-//
-//  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-// ARE DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
-// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-// THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
 var nodejs = (typeof window === 'undefined');
+var assert=require('assert');
+
 if(nodejs) {
   webcl = require('../webcl');
   clu = require('../lib/clUtils');
@@ -42,6 +18,38 @@ if (webcl == undefined) {
 
 VectorAdd();
 
+// kernel callback
+function kernel_complete(event, data) {
+  var status=event.status;
+  log('[JS CB] kernel_complete, status: '+status);
+  if(status<0) 
+    log('Error: '+status);
+  log(data);
+}
+
+// read buffer callback
+function read_complete(event, data) {
+  var status=event.status;
+  log('[JS CB] read_complete, status: '+status);
+  if(status<0) 
+    log('Error: '+status);
+
+  var check = webcl.TRUE;
+  //var str="";
+  for(i=0; i<BUFFER_SIZE; i++) {
+    //str+=data[i]+' ';
+    if(data[i] != i+i*2) {
+      check = webcl.FALSE;
+      break;
+    }  
+  }
+  //log(str);
+  if(check)
+    log("The data has been computed successfully.");
+  else
+    log("The data has NOT been computed successfully.");
+}
+
 function VectorAdd() {
   BUFFER_SIZE=10;
   var A=new Uint32Array(BUFFER_SIZE);
@@ -52,17 +60,20 @@ function VectorAdd() {
     B[i] = i * 2;
   }
 
-  //Pick platform
-  var platformList=webcl.getPlatforms();
-  platform=platformList[0];
-  log('using platform: '+platform.getInfo(webcl.PLATFORM_NAME));
-  
-  //Query the set of devices on this platform
-  devices = platform.getDevices(webcl.DEVICE_TYPE_DEFAULT);
-  log('using device: '+devices[0].getInfo(webcl.DEVICE_NAME));
-
   // create GPU context for this platform
   context=webcl.createContext(webcl.DEVICE_TYPE_DEFAULT);
+
+  // Create command queue
+  try {
+    queue=context.createCommandQueue();
+  }
+  catch(ex) {
+    log(ex);
+    exit(-1);
+  }
+  
+  device = queue.getInfo(webcl.QUEUE_DEVICE);
+  log('using device: '+device.getInfo(webcl.DEVICE_NAME));
 
   kernelSourceCode = [
 "__kernel void vadd(__global int *a, __global int *b, __global int *c, uint iNumElements) ",
@@ -77,7 +88,7 @@ function VectorAdd() {
   program=context.createProgram(kernelSourceCode);
 
   //Build program
-  program.build(devices);
+  program.build(device);
 
   size=BUFFER_SIZE*Uint32Array.BYTES_PER_ELEMENT; // size in bytes
   
@@ -93,17 +104,21 @@ function VectorAdd() {
     kernel= program.createKernel("vadd");
   }
   catch(err) {
-    console.log(program.getBuildInfo(devices[0],webcl.PROGRAM_BUILD_LOG));
+    console.log(program.getBuildInfo(device,webcl.PROGRAM_BUILD_LOG));
   }
-  
+
+  // get a bunch of references
+  var ctx = kernel.getInfo(webcl.KERNEL_CONTEXT);
+  assert(ctx === context);
+
+  var prog=kernel.getInfo(webcl.KERNEL_PROGRAM);
+  assert(prog === program);
+
   // Set kernel args
   kernel.setArg(0, aBuffer);
   kernel.setArg(1, bBuffer);
   kernel.setArg(2, cBuffer);
   kernel.setArg(3, new Uint32Array([BUFFER_SIZE]));
-
-  // Create command queue
-  queue=context.createCommandQueue(devices[0], 0);
 
   // Execute the OpenCL kernel on the list
   var localWS = [5]; // process one list at a time
@@ -116,32 +131,54 @@ function VectorAdd() {
   queue.enqueueWriteBuffer (aBuffer, false, 0, A.length*Uint32Array.BYTES_PER_ELEMENT, A);
   queue.enqueueWriteBuffer (bBuffer, false, 0, B.length*Uint32Array.BYTES_PER_ELEMENT, B);
 
+  // get more references
+  var qctx = queue.getInfo(webcl.QUEUE_CONTEXT);
+  assert(qctx === context);
+  var qdev=queue.getInfo(webcl.QUEUE_DEVICE);
+  assert(qdev === device);
+
   // Execute (enqueue) kernel
   log("using enqueueNDRangeKernel");
+  kernel_event=new webcl.WebCLEvent();
   queue.enqueueNDRangeKernel(kernel, 1, 
       null,
       globalWS,
-      localWS);
+      localWS,
+      null,
+      kernel_event);
+
+  kernel_event.setCallback(webcl.COMPLETE, kernel_complete, "The kernel finished successfully.");
 
   // get results and block while getting them
   var C=new Uint32Array(BUFFER_SIZE);
-  queue.enqueueReadBuffer (cBuffer, true, 0, C.length*Uint32Array.BYTES_PER_ELEMENT, C);
+  read_event=new webcl.WebCLEvent();
+  queue.enqueueReadBuffer (cBuffer, true, 0, C.length*Uint32Array.BYTES_PER_ELEMENT, C, null, read_event);
+  read_event.setCallback(webcl.COMPLETE, read_complete, C);
+
+  // more references
+  var ectx=read_event.getInfo(webcl.EVENT_CONTEXT);
+  assert(ectx === context);
+  var eq=read_event.getInfo(webcl.EVENT_COMMAND_QUEUE);
+  assert(eq === queue);
 
   // print results
   printResults(A,B,C);
 
   // cleanup
+  read_event.release();
+  kernel_event.release();
+  
   // test release each CL object
   // queue.release();
-  // kernel.release();
-  // program.release();
+  kernel.release();
+  program.release();
   // aBuffer.release();
   // bBuffer.release();
   // cBuffer.release();
   // context.release();
 
   // test release all CL objects
-  // webcl.releaseAll();
+  webcl.releaseAll();
 
   // if no manual cleanup specified, webcl.releaseAll() is called at exit of program
 }
