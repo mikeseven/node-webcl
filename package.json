@@ -17,12 +17,12 @@
   "licenses": [
     {
       "type": "BSD",
-      "url": "https://github.com/Motorola-Mobility/node-webcl/blob/master/LICENSES"
+      "url": "https://github.com/mikeseven/node-webcl/blob/master/LICENSES"
     }
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/Motorola-Mobility/node-webcl"
+    "url": "https://github.com/mikeseven/node-webcl"
   },
   "directories": {
     "src": "src",
