@@ -28,7 +28,21 @@
 
 var cl = require('./build/Release/webcl.node');
 
-module.exports = cl;
+module.exports=cl;
+global.webcl=cl;
+global.WebCLPlatform=cl.WebCLPlatform;
+global.WebCLDevice=cl.WebCLDevice;
+global.WebCLContext=cl.WebCLContext;
+global.WebCLCommandQueue=cl.WebCLCommandQueue;
+global.WebCLEvent=cl.WebCLEvent;
+global.WebCLBuffer=cl.WebCLBuffer;
+global.WebCLImage=cl.WebCLImage;
+global.WebCLSampler=cl.WebCLSampler;
+global.WebCLUserEvent=cl.WebCLUserEvent;
+global.WebCLException=cl.WebCLException;
+global.WebCLProgram=cl.WebCLProgram;
+global.WebCLKernel=cl.WebCLKernel;
+global.WebCLImageDescriptor=cl.WebCLImageDescriptor;
 
 // cl.size = {};
 // cl.size.CHAR = cl.size_CHAR;
@@ -64,13 +78,12 @@ module.exports = cl;
 
 // make sure all OpenCL resources are released at node exit
 process.on('exit',function() {
-  cl.releaseAll();
+  cl.releaseAll(1);
 });
-  
-// process.on('SIGINT', function () { 
+
+// process.on('SIGINT', function () {
 //   cl.releaseAll(-1);
 // });
-
 
 //////////////////////////////
 // WebCL object
@@ -101,32 +114,38 @@ cl.enableExtension = function (name) {
 }
 
 var _createContext = cl.createContext;
-cl.createContext = function (arg1, arg2) {
-  if (!(typeof arg1 === 'number' || checkObjectType(arg1, 'WebCLPlatform') || checkObjectType(arg1, 'WebCLDevice') || 
-          typeof arg1 === 'object' || arguments.length==0) 
+cl.createContext = function (arg1, arg2, arg3) {
+  if (!(typeof arg1 === 'number' || checkObjectType(arg1, 'WebCLPlatform') || checkObjectType(arg1, 'WebCLDevice') ||
+          typeof arg1 === 'object' || arguments.length==0 ||
+          typeof arg3 === 'number')
     ) {
     throw new TypeError('Expected createContext(optional CLenum deviceType = WebCL.DEVICE_TYPE_DEFAULT)\n'
       +'or createContext(WebCLPlatform platform, optional CLenum deviceType = WebCL.DEVICE_TYPE_DEFAULT)\n'
       +'or createContext(WebCLDevice device)\n'
-      +'or createContext(WebCLDevice[] devices)');
+      +'or createContext(WebCLDevice[] devices)\n'
+      +'or createContext(WebGLRenderingContext gl, optional CLenum deviceType = WebCL.DEVICE_TYPE_DEFAULT);\n'
+      +'or createContext(WebGLRenderingContext gl, WebCLPlatform platform, optional CLenum deviceType = WebCL.DEVICE_TYPE_DEFAULT);\n'
+      +'or createContext(WebGLRenderingContext gl, WebCLDevice device);\n'
+      +'or createContext(WebGLRenderingContext gl, sequence<WebCLDevice> devices);');
   }
 
-  var ctx = _createContext(arg1, arg2);
+  var ctx = _createContext(arg1, arg2, arg3);
 
   return ctx;
 }
 
 var _waitForEvents = cl.waitForEvents;
 cl.waitForEvents = function (events, callback) {
-  if (!(arguments.length === 1 && typeof events === 'object' )) {
-    throw new TypeError('Expected waitForEvents(WebCLEvent[] events)');
+  if (!(arguments.length >= 1 && typeof events === 'object'  &&
+    (typeof callback === 'undefined' || typeof callback === 'function'))) {
+    throw new TypeError('Expected waitForEvents(WebCLEvent[] events, optional callback)');
   }
   return _waitForEvents(events, callback);
 }
 
 var _releaseAll = cl.releaseAll;
-cl.releaseAll = function () {
-  return _releaseAll();
+cl.releaseAll = function (atExit) {
+  return _releaseAll(atExit);
 }
 
 //////////////////////////////
@@ -145,7 +164,7 @@ cl.WebCLCommandQueue.prototype.getInfo=function (param_name) {
 
 cl.WebCLCommandQueue.prototype.enqueueNDRangeKernel=function (kernel, workDim, offsets, globals, locals, event_list, event) {
   if (!(arguments.length>= 4 && checkObjectType(kernel, 'WebCLKernel') && (typeof workDim === 'number') &&
-      typeof offsets === 'object' && typeof globals === 'object' && 
+      typeof offsets === 'object' && typeof globals === 'object' &&
       (locals==null || typeof locals === 'undefined' || typeof locals === 'object') &&
       (event_list==null || typeof event_list === 'undefined' || typeof event_list === 'object') &&
       (event==null || typeof event === 'undefined' || checkObjectType(event, 'WebCLEvent'))
@@ -199,7 +218,7 @@ cl.WebCLCommandQueue.prototype.enqueueReadBuffer=function (buffer, blocking_read
 cl.WebCLCommandQueue.prototype.enqueueCopyBuffer=function (src_buffer, dst_buffer,
                                                            src_offset, dst_offset, size,
                                                            event_list, event) {
-  if (!(arguments.length >= 5 && 
+  if (!(arguments.length >= 5 &&
       checkObjectType(src_buffer, 'WebCLBuffer') &&
       checkObjectType(dst_buffer, 'WebCLBuffer') &&
       typeof src_offset === 'number' && typeof dst_offset === 'number' && typeof size === 'number' &&
@@ -318,7 +337,7 @@ cl.WebCLCommandQueue.prototype.enqueueWriteImage=function (image, blocking_write
 
 cl.WebCLCommandQueue.prototype.enqueueReadImage=function (image, blocking_read, origin, region, row_pitch,
                                                           ptr, event_list, event) {
-  if (!(arguments.length >= 6 && 
+  if (!(arguments.length >= 6 &&
     checkObjectType(image, 'WebCLImage') &&
     typeof origin === 'object' &&
     typeof region === 'object' &&
@@ -336,7 +355,7 @@ cl.WebCLCommandQueue.prototype.enqueueReadImage=function (image, blocking_read, 
 
 cl.WebCLCommandQueue.prototype.enqueueCopyImage=function (src_image, dst_image, src_origin, dst_origin, region,
                                                           event_list, event) {
-  if (!(arguments.length >= 5 && 
+  if (!(arguments.length >= 5 &&
     checkObjectType(src_image, 'WebCLImage') &&
     checkObjectType(dst_image, 'WebCLImage') &&
     typeof src_origin === 'object' &&
@@ -354,7 +373,7 @@ cl.WebCLCommandQueue.prototype.enqueueCopyImage=function (src_image, dst_image, 
 
 cl.WebCLCommandQueue.prototype.enqueueCopyImageToBuffer=function (src_image, dst_buffer, src_origin, region, dst_offset,
                                                                   event_list, event) {
-  if (!(arguments.length >= 5 && 
+  if (!(arguments.length >= 5 &&
     checkObjectType(src_image, 'WebCLImage') &&
     checkObjectType(dst_buffer, 'WebCLBuffer') &&
     typeof src_origin === 'object' &&
@@ -372,7 +391,7 @@ cl.WebCLCommandQueue.prototype.enqueueCopyImageToBuffer=function (src_image, dst
 
 cl.WebCLCommandQueue.prototype.enqueueCopyBufferToImage=function (src_buffer, dst_image, src_offset, dst_origin,
                                                                   region, event_list, event) {
-  if (!(arguments.length >= 5 && 
+  if (!(arguments.length >= 5 &&
     checkObjectType(src_buffer, 'WebCLBuffer') &&
     checkObjectType(dst_image, 'WebCLImage') &&
     typeof src_offset === 'number' &&
@@ -388,12 +407,12 @@ cl.WebCLCommandQueue.prototype.enqueueCopyBufferToImage=function (src_buffer, ds
 }
 
 cl.WebCLCommandQueue.prototype.enqueueMapBuffer=function (memory_object, blocking, flags, offset, size, event_list, event) {
-  if (!(arguments.length >= 5 && 
+  if (!(arguments.length >= 5 &&
     checkObjectType(memory_object, 'WebCLBuffer') &&
     (typeof blocking === 'boolean' || typeof blocking === 'number') &&
-    typeof flags === 'number' && 
-    typeof offset === 'number' && 
-    typeof size === 'number' && 
+    typeof flags === 'number' &&
+    typeof offset === 'number' &&
+    typeof size === 'number' &&
     (event_list==null || typeof event_list === 'undefined' || typeof event_list === 'object') &&
     (event==null || typeof event === 'undefined' || checkObjectType(event, 'WebCLEvent'))
   )) {
@@ -404,12 +423,12 @@ cl.WebCLCommandQueue.prototype.enqueueMapBuffer=function (memory_object, blockin
 }
 
 cl.WebCLCommandQueue.prototype.enqueueMapImage=function (memory_object, blocking, flags, origin, region, event_list, event) {
-  if (!(arguments.length >= 5 && 
+  if (!(arguments.length >= 5 &&
     checkObjectType(memory_object, 'WebCLImage') &&
     (typeof blocking === 'boolean' || typeof blocking === 'number') &&
-    typeof flags === 'number' && 
-    typeof origin === 'number' && 
-    typeof region === 'object' && 
+    typeof flags === 'number' &&
+    typeof origin === 'number' &&
+    typeof region === 'object' &&
     (event_list==null || typeof event_list === 'undefined' || typeof event_list === 'object') &&
     (event==null || typeof event === 'undefined' || checkObjectType(event, 'WebCLEvent'))
   )) {
@@ -419,9 +438,9 @@ cl.WebCLCommandQueue.prototype.enqueueMapImage=function (memory_object, blocking
 }
 
 cl.WebCLCommandQueue.prototype.enqueueUnmapMemObject=function (memory_object, region, event_list, event) {
-  if (!(arguments.length >= 2 && 
+  if (!(arguments.length >= 2 &&
     (checkObjectType(memory_object, 'WebCLBuffer') || checkObjectType(memory_object, 'WebCLImage')) &&
-    typeof region === 'object' && 
+    typeof region === 'object' &&
     (event_list==null || typeof event_list === 'undefined' || typeof event_list === 'object') &&
     (event==null || typeof event === 'undefined' || checkObjectType(event, 'WebCLEvent'))
   )) {
@@ -438,8 +457,8 @@ cl.WebCLCommandQueue.prototype.enqueueMarker=function (event) {
 }
 
 cl.WebCLCommandQueue.prototype.enqueueWaitForEvents=function (event_wait_list) {
-  if (!(arguments.length >=0 &&       
-      (event_list==null || typeof event_list === 'undefined' || typeof event_list === 'object') )) {
+  if (!(arguments.length >=0 &&
+      (typeof event_list === 'undefined' || event_list==null || typeof event_list === 'object') )) {
     throw new TypeError('Expected WebCLCommandQueue.enqueueWaitForEvents(WebCLEvent[] event_wait_list)');
   }
   return this._enqueueWaitForEvents(event_wait_list);
@@ -463,7 +482,8 @@ cl.WebCLCommandQueue.prototype.flush=function () {
 }
 
 cl.WebCLCommandQueue.prototype.finish=function (callback) {
-  if (!(arguments.length >=0)) {
+  if (!(arguments.length == 0 ||
+    (arguments.length==1 && typeof callback === 'function'))) {
     throw new TypeError('Expected WebCLCommandQueue.finish(optional callback)');
   }
   return this._finish(callback);
@@ -471,10 +491,10 @@ cl.WebCLCommandQueue.prototype.finish=function (callback) {
 
 cl.WebCLCommandQueue.prototype.enqueueAcquireGLObjects=function (mem_objects, event_list, event) {
   if(!cl.WebCLDevice.prototype.enable_extensions.KHR_gl_sharing.enabled) {
-    throw new Error('WEBCL_EXTENSION_NOT_ENABLED');
+    throw new WebCLException('WEBCL_EXTENSION_NOT_ENABLED');
   }
-  if (!(arguments.length >= 1 && 
-      typeof mem_objects === 'object' && 
+  if (!(arguments.length >= 1 &&
+      typeof mem_objects === 'object' &&
       (event_list==null || typeof event_list==='undefined' || typeof event_list === 'object') &&
       (event==null || typeof event === 'undefined' || checkObjectType(event, 'WebCLEvent'))
   )) {
@@ -485,10 +505,10 @@ cl.WebCLCommandQueue.prototype.enqueueAcquireGLObjects=function (mem_objects, ev
 
 cl.WebCLCommandQueue.prototype.enqueueReleaseGLObjects=function (mem_objects, event_list, event) {
   if(!cl.WebCLDevice.prototype.enable_extensions.KHR_gl_sharing.enabled) {
-    throw new Error('WEBCL_EXTENSION_NOT_ENABLED');
+    throw new WebCLException('WEBCL_EXTENSION_NOT_ENABLED');
   }
-  if (!(arguments.length >= 1 && 
-      typeof mem_objects === 'object' && 
+  if (!(arguments.length >= 1 &&
+      typeof mem_objects === 'object' &&
       (event_list==null || typeof event_list==='undefined' || typeof event_list === 'object') &&
       (event==null || typeof event === 'undefined' || checkObjectType(event, 'WebCLEvent'))
   )) {
@@ -571,6 +591,10 @@ cl.WebCLContext.prototype.release=function () {
   return this._release();
 }
 
+cl.WebCLContext.prototype.retain=function () {
+  return this._retain();
+}
+
 cl.WebCLContext.prototype.releaseAll=function () {
   return this._releaseAll();
 }
@@ -583,7 +607,7 @@ cl.WebCLContext.prototype.getInfo=function (param_name) {
 }
 
 cl.WebCLContext.prototype.createProgram=function (sources) {
-  if (!(arguments.length === 1 && typeof sources === 'string')) {
+  if (!(arguments.length === 1 && (sources==null || typeof sources === 'string'))) {
     throw new TypeError('Expected WebCLContext.createProgram(string sources)');
   }
   return this._createProgram(sources);
@@ -598,8 +622,8 @@ cl.WebCLContext.prototype.createProgramWithBinaries=function (devices, binaries)
 }
 
 cl.WebCLContext.prototype.createCommandQueue=function (device, properties) {
-  if (!(arguments.length==0 || 
-      ((arguments.length ==1 && (checkObjectType(device, 'WebCLDevice') || typeof device === 'number'))) || 
+  if (!(arguments.length==0 ||
+      ((arguments.length ==1 && (checkObjectType(device, 'WebCLDevice') || typeof device === 'number'))) ||
       (typeof properties==='undefined' || typeof properties === 'number')
   )) {
     throw new TypeError('Expected WebCLContext.createCommandQueue(optional WebCLDevice device, optional CLenum properties = 0)');
@@ -608,7 +632,7 @@ cl.WebCLContext.prototype.createCommandQueue=function (device, properties) {
 }
 
 cl.WebCLContext.prototype.createBuffer=function (flags, size, host_ptr) {
-  if (!(arguments.length >= 2 && typeof flags === 'number' && typeof size === 'number' && 
+  if (!(arguments.length >= 2 && typeof flags === 'number' && typeof size === 'number' &&
       (host_ptr === null || typeof host_ptr === 'undefined' || typeof host_ptr === 'object') )) {
     throw new TypeError('Expected WebCLContext.createBuffer(CLenum flags, int size, optional ArrayBuffer host_ptr)');
   }
@@ -626,9 +650,9 @@ cl.WebCLContext.prototype.createImage=function (flags, descriptor, host_ptr) {
 }
 
 cl.WebCLContext.prototype.createSampler=function (normalized_coords, addressing_mode, filter_mode) {
-  if (!(arguments.length === 3 && 
-      (typeof normalized_coords === 'number' || typeof normalized_coords === 'boolean') && 
-      typeof addressing_mode === 'number' && 
+  if (!(arguments.length === 3 &&
+      (typeof normalized_coords === 'number' || typeof normalized_coords === 'boolean') &&
+      typeof addressing_mode === 'number' &&
       typeof filter_mode === 'number')) {
     throw new TypeError('Expected WebCLContext.createSampler(bool normalized_coords, CLenum addressing_mode, CLenum filter_mode)');
   }
@@ -651,8 +675,8 @@ cl.WebCLContext.prototype.getSupportedImageFormats=function (flags, image_type) 
 
 cl.WebCLContext.prototype.createFromGLBuffer=function (flags, buffer) {
   if(!cl.WebCLDevice.prototype.enable_extensions.KHR_gl_sharing.enabled) {
-    throw new Error('WEBCL_EXTENSION_NOT_ENABLED');
-  }
+    throw new WebCLException('WEBCL_EXTENSION_NOT_ENABLED');
+   }
   if (!(arguments.length === 2 && typeof flags === 'number' && typeof buffer ==='object')) {
     throw new TypeError('Expected WebCLContext.createFromGLBuffer(CLenum flags, WebGLBuffer buffer)');
   }
@@ -661,8 +685,8 @@ cl.WebCLContext.prototype.createFromGLBuffer=function (flags, buffer) {
 
 cl.WebCLContext.prototype.createFromGLRenderbuffer=function (flags, buffer) {
   if(!cl.WebCLDevice.prototype.enable_extensions.KHR_gl_sharing.enabled) {
-    throw new Error('WEBCL_EXTENSION_NOT_ENABLED');
-  }
+    throw new WebCLException('WEBCL_EXTENSION_NOT_ENABLED');
+   }
   if (!(arguments.length === 2 && typeof flags === 'number' && typeof buffer ==='object')) {
     throw new TypeError('Expected WebCLContext.createFromGLRenderbuffer(CLenum flags, WebGLRenderbuffer buffer)');
   }
@@ -671,12 +695,12 @@ cl.WebCLContext.prototype.createFromGLRenderbuffer=function (flags, buffer) {
 
 cl.WebCLContext.prototype.createFromGLTexture=function (flags, texture_target, miplevel, texture) {
   if(!cl.WebCLDevice.prototype.enable_extensions.KHR_gl_sharing.enabled) {
-    throw new Error('WEBCL_EXTENSION_NOT_ENABLED');
-  }
-  if (!(arguments.length === 4 && typeof flags === 'number' && 
+    throw new WebCLException('WEBCL_EXTENSION_NOT_ENABLED');
+   }
+  if (!(arguments.length === 4 && typeof flags === 'number' &&
       typeof texture_target ==='number' &&
       typeof miplevel ==='number' &&
-      typeof texture ==='object' 
+      typeof texture ==='object'
     )) {
     throw new TypeError('Expected WebCLContext.createFromGLTexture(CLenum flags, GLenum texture_target, GLint miplevel, WebGLTexture2D texture)');
   }
@@ -685,16 +709,16 @@ cl.WebCLContext.prototype.createFromGLTexture=function (flags, texture_target, m
 
 cl.WebCLContext.prototype.getGLContextInfo=function () {
   if(!cl.WebCLDevice.prototype.enable_extensions.KHR_gl_sharing.enabled) {
-    throw new Error('WEBCL_EXTENSION_NOT_ENABLED');
-  }
-  return this._getGLContextInfo();
+    throw new WebCLException('WEBCL_EXTENSION_NOT_ENABLED');
+   }
+  return new WebCLRenderingContext(this._getGLContextInfo());
 }
 
 cl.WebCLContext.prototype.getGLContext=function () {
   if(!cl.WebCLDevice.prototype.enable_extensions.KHR_gl_sharing.enabled) {
-    throw new Error('WEBCL_EXTENSION_NOT_ENABLED');
-  }
-  return this._getGLContext();
+    throw new WebCLException('WEBCL_EXTENSION_NOT_ENABLED');
+   }
+  return new WebGLRenderingContext(this._getGLContext());
 }
 
 //////////////////////////////
@@ -785,14 +809,15 @@ cl.WebCLKernel.prototype.getArgInfo=function (index) {
 }
 
 cl.WebCLKernel.prototype.getWorkGroupInfo=function (device, param_name) {
-  if (!(arguments.length === 2 && checkObjectType(device, 'WebCLDevice') && typeof param_name === 'number')) {
+  if (!(arguments.length === 2 &&
+    (device==null || (checkObjectType(device, 'WebCLDevice') && typeof param_name === 'number')))) {
     throw new TypeError('Expected WebCLKernel.getWorkGroupInfo(WebCLDevice device, CLenum param_name)');
   }
   return this._getWorkGroupInfo(device, param_name);
 }
 
 cl.WebCLKernel.prototype.setArg=function (index, value) {
-  if (!(arguments.length == 2 && typeof index === 'number' && 
+  if (!(arguments.length == 2 && typeof index === 'number' &&
       (typeof value === 'object') )) {
     throw new TypeError('Expected WebCLKernel.setArg(int index, WebCLBuffer | WebCLImage | WebCLSampler | ArrayBufferView value)');
   }
@@ -821,9 +846,12 @@ cl.WebCLMemoryObject.prototype.getInfo=function (param_name) {
 
 cl.WebCLMemoryObject.prototype.getGLObjectInfo=function () {
   if(!cl.WebCLDevice.prototype.enable_extensions.KHR_gl_sharing.enabled) {
-    throw new Error('WEBCL_EXTENSION_NOT_ENABLED');
+    throw new WebCLException('WEBCL_EXTENSION_NOT_ENABLED');
   }
-  return this._getGLObjectInfo(); // returns a WebGLObjectInfo dictionary
+  var info=this._getGLObjectInfo(); // returns a WebGLObjectInfo dictionary
+  if(info && info.glObject)
+    info.glObject=new WebGLBuffer(info.glObject);
+  return info;
 }
 
 //////////////////////////////
@@ -843,9 +871,12 @@ cl.WebCLBuffer.prototype.getInfo=function (param_name) {
 
 cl.WebCLBuffer.prototype.getGLObjectInfo=function () {
   if(!cl.WebCLDevice.prototype.enable_extensions.KHR_gl_sharing.enabled) {
-    throw new Error('WEBCL_EXTENSION_NOT_ENABLED');
+    throw new WebCLException('WEBCL_EXTENSION_NOT_ENABLED');
   }
-  return this._getGLObjectInfo(); // returns a WebGLObjectInfo dictionary
+  var info=this._getGLObjectInfo(); // returns a WebGLObjectInfo dictionary
+  if(info && info.glObject)
+    info.glObject=new WebGLBuffer(info.glObject);
+  return info;
 }
 
 cl.WebCLBuffer.prototype.createSubBuffer=function (flags, origin, sizeInBytes) {
@@ -869,9 +900,12 @@ cl.WebCLImage.prototype.getInfo=function () {
 
 cl.WebCLImage.prototype.getGLObjectInfo=function () {
   if(!cl.WebCLDevice.prototype.enable_extensions.KHR_gl_sharing.enabled) {
-    throw new Error('WEBCL_EXTENSION_NOT_ENABLED');
+    throw new WebCLException('WEBCL_EXTENSION_NOT_ENABLED');
   }
-  return this._getGLObjectInfo(); // returns a WebGLObjectInfo dictionary
+  var info=this._getGLObjectInfo(); // returns a WebGLObjectInfo dictionary
+  if(info && info.glObject)
+    info.glObject=new WebGLTexture(info.glObject);
+  return info;
 }
 
 cl.WebCLImage.prototype.getGLTextureInfo=function (param_name) {
@@ -945,7 +979,7 @@ cl.WebCLPlatform.prototype.enableExtension=function (param_name) {
 }
 
 cl.WebCLPlatform.prototype.getDevices=function (device_type) {
-  if (!(arguments.length === 1 && typeof device_type === 'number')) {
+  if (!(arguments.length == 0 || (arguments.length == 1 && typeof device_type === 'number'))) {
     throw new TypeError('Expected WebCLPlatform.getDevices(CLenum device_type)');
   }
   return this._getDevices(device_type);
@@ -958,6 +992,10 @@ cl.WebCLProgram.prototype.release=function () {
   return this._release();
 }
 
+cl.WebCLProgram.prototype.retain=function () {
+  return this._retain();
+}
+
 cl.WebCLProgram.prototype.getInfo=function (param_name) {
   if (!(arguments.length === 1 && typeof param_name === 'number')) {
     throw new TypeError('Expected WebCLProgram.getInfo(CLenum param_name)');
@@ -966,21 +1004,23 @@ cl.WebCLProgram.prototype.getInfo=function (param_name) {
 }
 
 cl.WebCLProgram.prototype.getBuildInfo=function (device, param_name) {
-  if (!(arguments.length === 2 && checkObjectType(device, 'WebCLDevice') && typeof param_name === 'number')) {
+  if (!(arguments.length === 2 && (typeof device === 'undefined' || checkObjectType(device, 'WebCLDevice')) &&
+    (typeof param_name === 'number' || param_name==null))) {
     throw new TypeError('Expected WebCLProgram.getBuildInfo(WebCLDevice device, CLenum param_name)');
   }
   return this._getBuildInfo(device, param_name);
 }
 
-cl.WebCLProgram.prototype.build=function (devices, options, callback) {
-  if (  !(arguments.length === 1 && typeof devices === 'object') &&
-        !(arguments.length >= 2 && typeof devices === 'object' && 
-            (options==null || typeof options==='undefined' || typeof options === 'string')) &&
-        !(callback==null || typeof callback === 'undefined' || typeof callback === 'function')
-        ) {
-    throw new TypeError('Expected WebCLProgram.build(WebCLDevice[] devices, String options, function callback)');
+cl.WebCLProgram.prototype.build=function (devices, options, callback, user_data) {
+  if ( !(arguments.length==0) &&
+    !(arguments.length == 1 && (typeof devices === 'object' || devices==null)) &&
+    !(arguments.length >= 2 && (typeof devices === 'object' || devices==null) &&
+      (options==null || typeof options==='undefined' || typeof options === 'string') &&
+      (callback==null || typeof callback === 'undefined' || typeof callback === 'function')
+  )) {
+    throw new TypeError('Expected WebCLProgram.build(WebCLDevice[] devices, String build_options, optional function callback, optional user_data)');
   }
-  return this._build(devices, options, callback);
+  return this._build(devices, options, callback, user_data);
 }
 
 cl.WebCLProgram.prototype.createKernel=function (name) {

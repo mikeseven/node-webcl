@@ -14,7 +14,7 @@ function WebCLException(name, code, msg) {
 }
 require('util').inherits(WebCLException, Error);
 
-console.error(new WebCLException('CL_INVALID_ARG', 12345, "WebCL Exception"))
+console.error(new WebCLException('CL_INVALID_ARG', 12345, "webcl Exception"))
 
 var platforms=cl.getPlatforms();
 var platform = platforms[0];

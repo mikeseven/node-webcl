@@ -34,17 +34,16 @@ using namespace std;
 
 namespace webcl {
 
-Persistent<FunctionTemplate> Platform::constructor_template;
+Persistent<Function> Platform::constructor;
 
-void Platform::Init(Handle<Object> target)
+void Platform::Init(Handle<Object> exports)
 {
   NanScope();
 
   // constructor
-  Local<FunctionTemplate> ctor = FunctionTemplate::New(Platform::New);
-  NanAssignPersistent(FunctionTemplate, constructor_template, ctor);
+  Local<FunctionTemplate> ctor = NanNew<FunctionTemplate>(New);
   ctor->InstanceTemplate()->SetInternalFieldCount(1);
-  ctor->SetClassName(NanSymbol("WebCLPlatform"));
+  ctor->SetClassName(NanNew<String>("WebCLPlatform"));
 
   // prototype
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getInfo", getInfo);
@@ -52,7 +51,8 @@ void Platform::Init(Handle<Object> target)
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getSupportedExtensions", getSupportedExtensions);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_enableExtension", enableExtension);
 
-  target->Set(NanSymbol("WebCLPlatform"), ctor->GetFunction());
+  NanAssignPersistent<Function>(constructor, ctor->GetFunction());
+  exports->Set(JS_STR("WebCLPlatform"), ctor->GetFunction());
 }
 
 Platform::Platform(Handle<Object> wrapper) : platform_id(0), enableExtensions(NONE), availableExtensions(NONE)
@@ -65,7 +65,9 @@ NAN_METHOD(Platform::getDevices)
   NanScope();
 
   Platform *platform = ObjectWrap::Unwrap<Platform>(args.This());
-  cl_device_type type = args[0]->Uint32Value();
+  cl_device_type type = CL_DEVICE_TYPE_ALL;
+  if(!args[0]->IsUndefined() && !args[0]->IsNull())
+    type=args[0]->Uint32Value();
 
   cl_uint n = 0;
   cl_int ret = ::clGetDeviceIDs(platform->platform_id, type, 0, NULL, &n);
@@ -101,7 +103,7 @@ NAN_METHOD(Platform::getDevices)
     ::clGetDeviceInfo(ids[i],CL_DEVICE_NAME,sizeof(name),name,NULL);
     cout<<"Found device: "<<ids[i]<<" "<<name<<endl;
     #endif
-    WebCLObject *obj=findCLObj((void*)ids[i]);
+    WebCLObject *obj=findCLObj((void*)ids[i], CLObjType::Device);
     if(obj)
       deviceArray->Set(i, NanObjectWrapHandle(obj));
     else
@@ -157,8 +159,12 @@ NAN_METHOD(Platform::enableExtension)
 {
   NanScope();
   Platform *platform = ObjectWrap::Unwrap<Platform>(args.This());
-  if(!args[0]->IsString())
-    return NanThrowTypeError("invalid extension name");
+
+  if(!args[0]->IsString()) {
+    cl_int ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_PLATFORM);
+    NanReturnValue(JS_BOOL(false));
+  }
 
   if(platform->availableExtensions==0x00) {
     char param_value[1024];
@@ -172,17 +178,17 @@ NAN_METHOD(Platform::enableExtension)
       return NanThrowError("UNKNOWN ERROR");
     }
 
-    if(!strcasecmp(param_value,"gl_sharing")) platform->availableExtensions |= GL_SHARING;
-    if(!strcasecmp(param_value,"fp16"))       platform->availableExtensions |= FP16;
-    if(!strcasecmp(param_value,"fp64"))       platform->availableExtensions |= FP64;
+    if(strcasestr(param_value,"gl_sharing")) platform->availableExtensions |= GL_SHARING;
+    if(strcasestr(param_value,"fp16"))       platform->availableExtensions |= FP16;
+    if(strcasestr(param_value,"fp64"))       platform->availableExtensions |= FP64;
   }
 
   Local<String> name=args[0]->ToString();
   String::AsciiValue astr(name);
   bool ret=false;
-  if(!strcasecmp(*astr,"gl_sharing") && (platform->availableExtensions & GL_SHARING)) { platform->enableExtensions |= GL_SHARING; ret = true; }
-  else if(!strcasecmp(*astr,"fp16") && (platform->availableExtensions & FP16))        { platform->enableExtensions |= FP16; ret = true; }
-  else if(!strcasecmp(*astr,"fp64") && (platform->availableExtensions & FP64))        { platform->enableExtensions |= FP64; ret = true; }
+  if(strcasestr(*astr,"gl_sharing") && (platform->availableExtensions & GL_SHARING)) { platform->enableExtensions |= GL_SHARING; ret = true; }
+  else if(strcasestr(*astr,"fp16") && (platform->availableExtensions & FP16))        { platform->enableExtensions |= FP16; ret = true; }
+  else if(strcasestr(*astr,"fp64") && (platform->availableExtensions & FP64))        { platform->enableExtensions |= FP64; ret = true; }
 
   NanReturnValue(JS_BOOL(ret));
 }
@@ -195,7 +201,6 @@ NAN_METHOD(Platform::New)
   NanScope();
   Platform *cl = new Platform(args.This());
   cl->Wrap(args.This());
-  registerCLObj(cl);
   NanReturnValue(args.This());
 }
 
@@ -204,13 +209,12 @@ Platform *Platform::New(cl_platform_id pid)
 
   NanScope();
 
-  Local<Value> arg = Integer::NewFromUnsigned(0);
-  // Local<Object> obj = constructor_template->GetFunction()->NewInstance(1, &arg);
-  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor_template);
-  Local<Object> obj = constructorHandle->GetFunction()->NewInstance(1, &arg);
+  Local<Function> cons = NanNew<Function>(constructor);
+  Local<Object> obj = cons->NewInstance();
 
   Platform *platform = ObjectWrap::Unwrap<Platform>(obj);
   platform->platform_id = pid;
+  registerCLObj(pid, platform);
 
   return platform;
 }

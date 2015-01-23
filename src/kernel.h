@@ -37,9 +37,9 @@ class Kernel : public WebCLObject
 public:
   void Destructor();
 
-  static void Init(v8::Handle<v8::Object> target);
+  static void Init(v8::Handle<v8::Object> exports);
 
-  static Kernel *New(cl_kernel kw);
+  static Kernel *New(cl_kernel kw, WebCLObject *parent);
   static NAN_METHOD(New);
   static NAN_METHOD(getInfo);
   static NAN_METHOD(getWorkGroupInfo);
@@ -48,15 +48,19 @@ public:
   static NAN_METHOD(release);
 
   cl_kernel getKernel() const { return kernel; };
-  
-  virtual bool isEqual(void *clObj) { return ((cl_kernel)clObj)==kernel; }
+
+  virtual bool operator==(void *clObj) { return ((cl_kernel)clObj)==kernel; }
 
 private:
   Kernel(v8::Handle<v8::Object> wrapper);
+  ~Kernel();
 
-  static v8::Persistent<v8::FunctionTemplate> constructor_template;
+  static v8::Persistent<v8::Function> constructor;
 
   cl_kernel kernel;
+
+private:
+  DISABLE_COPY(Kernel)
 };
 
 } // namespace

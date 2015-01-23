@@ -32,6 +32,7 @@
 #include "memoryobject.h"
 #include "program.h"
 #include "sampler.h"
+#include "cl_checks.h"
 
 #include <node_buffer.h>
 #include <vector>
@@ -41,17 +42,16 @@ using namespace v8;
 
 namespace webcl {
 
-Persistent<FunctionTemplate> Context::constructor_template;
+Persistent<Function> Context::constructor;
 
-void Context::Init(Handle<Object> target)
+void Context::Init(Handle<Object> exports)
 {
   NanScope();
 
   // constructor
   Local<FunctionTemplate> ctor = FunctionTemplate::New(Context::New);
-  NanAssignPersistent(FunctionTemplate, constructor_template, ctor);
   ctor->InstanceTemplate()->SetInternalFieldCount(1);
-  ctor->SetClassName(NanSymbol("WebCLContext"));
+  ctor->SetClassName(NanNew<String>("WebCLContext"));
 
   // prototype
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getInfo", getInfo);
@@ -66,9 +66,12 @@ void Context::Init(Handle<Object> target)
   NODE_SET_PROTOTYPE_METHOD(ctor, "_createFromGLRenderbuffer", createFromGLRenderbuffer);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getSupportedImageFormats", getSupportedImageFormats);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_release", release);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_retain", retain);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_releaseAll", releaseAll);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "_getGLContext", getGLContext);
 
-  target->Set(NanSymbol("WebCLContext"), ctor->GetFunction());
+  NanAssignPersistent<Function>(constructor, ctor->GetFunction());
+  exports->Set(NanNew<String>("WebCLContext"), ctor->GetFunction());
 }
 
 Context::Context(Handle<Object> wrapper) : context(0)
@@ -76,23 +79,46 @@ Context::Context(Handle<Object> wrapper) : context(0)
   _type=CLObjType::Context;
 }
 
+Context::~Context() {
+#ifdef LOGGING
+  printf("In ~Context\n");
+#endif
+}
+
 void Context::Destructor()
 {
-  #ifdef LOGGING
-  cout<<"  Destroying CL context"<<endl;
-  #endif
-  if(context) ::clReleaseContext(context);
-  context=0;
+  if(context) {
+
+    cl_uint count;
+    ::clGetContextInfo(context,CL_CONTEXT_REFERENCE_COUNT,sizeof(cl_uint),&count,NULL);
+#ifdef LOGGING
+    printf("  Destroying Context, CLrefCount is: %d\n",count);
+#endif
+    ::clReleaseContext(context);
+    if(count==1) {
+      unregisterCLObj(this);
+      context=0;
+    }
+  }
 }
 
 NAN_METHOD(Context::release)
 {
-  printf("Context::release delete all objects in context and release context\n");
+#ifdef LOGGING
+  printf("[Context::release]\n");
+#endif
   NanScope();
   Context *context = ObjectWrap::Unwrap<Context>(args.This());
-  
-  DESTROY_WEBCL_OBJECT(context);
-  
+  context->Destructor();
+
+  NanReturnUndefined();
+}
+
+NAN_METHOD(Context::retain)
+{
+  NanScope();
+  Context *context = ObjectWrap::Unwrap<Context>(args.This());
+  clRetainContext(context->getContext());
   NanReturnUndefined();
 }
 
@@ -101,10 +127,12 @@ NAN_METHOD(Context::releaseAll)
   NanScope();
   Context *context = ObjectWrap::Unwrap<Context>(args.This());
 
-  printf("[Context::releaseAll]\n");  
+#ifdef LOGGING
+  printf("[Context::releaseAll]\n");
+#endif
   AtExit(NULL);
-  DESTROY_WEBCL_OBJECT(context);
-  
+  context->Destructor();
+
   NanReturnUndefined();
 }
 
@@ -147,12 +175,10 @@ NAN_METHOD(Context::getInfo)
     Local<Array> arr = Array::New((int)n);
     for(uint32_t i=0;i<n;i++) {
       if(devices[i]) {
-        WebCLObject *obj=findCLObj((void*)devices[i]);
+        WebCLObject *obj=findCLObj((void*)devices[i], CLObjType::Device);
 
-        if(obj) {
-          //::clRetainDevice(devices[i]);
+        if(obj)
           arr->Set(i,NanObjectWrapHandle(obj));
-        }
         else
           arr->Set(i,NanObjectWrapHandle(Device::New(devices[i])));
       }
@@ -181,8 +207,11 @@ NAN_METHOD(Context::getInfo)
 	delete[] ctx;
     NanReturnValue(arr);
   }
-  default:
-    return NanThrowError("UNKNOWN param_name");
+  default: {
+    cl_int ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnUndefined();
+  }
   }
 }
 
@@ -192,6 +221,12 @@ NAN_METHOD(Context::createProgram)
   Context *context = ObjectWrap::Unwrap<Context>(args.This());
   cl_program pw=NULL;
   cl_int ret = CL_SUCCESS;
+
+  if(args[0]->IsNull() || args[0]->IsUndefined()) {
+    ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnUndefined();
+  }
 
   // either we pass a code (string) or binary buffers
   if(args[0]->IsString()) {
@@ -209,7 +244,7 @@ NAN_METHOD(Context::createProgram)
       REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
       return NanThrowError("UNKNOWN ERROR");
     }
-    NanReturnValue(NanObjectWrapHandle(Program::New(pw)));
+    NanReturnValue(NanObjectWrapHandle(Program::New(pw, context)));
   }
   else if(args[0]->IsArray()){
     Local<Array> devArray = Local<Array>::Cast(args[0]);
@@ -248,7 +283,7 @@ NAN_METHOD(Context::createProgram)
     }
 
     // TODO should we return binaryStatus?
-    NanReturnValue(NanObjectWrapHandle(Program::New(pw)));
+    NanReturnValue(NanObjectWrapHandle(Program::New(pw, context)));
   }
 
   NanReturnUndefined();
@@ -306,7 +341,7 @@ NAN_METHOD(Context::createCommandQueue)
     }
     else
       device = ObjectWrap::Unwrap<Device>(args[0]->ToObject())->getDevice();
-    
+
   }
   else {
     // find a device automatically that support properties in that context
@@ -350,7 +385,7 @@ NAN_METHOD(Context::createCommandQueue)
 
     for(size_t j=0;j<nDevices && !device_found;j++) {
       cl_command_queue_properties device_q_props=0;
-      ret = ::clGetDeviceInfo(devices[j], CL_DEVICE_QUEUE_PROPERTIES, sizeof(cl_command_queue_properties), 
+      ret = ::clGetDeviceInfo(devices[j], CL_DEVICE_QUEUE_PROPERTIES, sizeof(cl_command_queue_properties),
                               &device_q_props, NULL);
       // printf("Device %d, Qproperties %d, ret=%d\n",j,device_q_props,ret);
 
@@ -372,6 +407,15 @@ NAN_METHOD(Context::createCommandQueue)
   }
 
   // printf("Using device %p\n",device);
+  int hasOutOfOrderExec=false;
+  clGetDeviceInfo(device,CL_DEVICE_QUEUE_PROPERTIES,sizeof(int),&hasOutOfOrderExec,NULL);
+
+  if((properties & CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE) && !hasOutOfOrderExec) {
+    // some drivers silently accept the flag even if they don't support the feature
+    ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnNull();
+  }
 
   // printf("context = %p device=%p properties %llu\n",context->getContext(),device,properties);
   cw = ::clCreateCommandQueue(ctx, device, properties, &ret);
@@ -387,7 +431,7 @@ NAN_METHOD(Context::createCommandQueue)
     return NanThrowError("UNKNOWN ERROR");
   }
 
-  NanReturnValue(NanObjectWrapHandle(CommandQueue::New(cw)));
+  NanReturnValue(NanObjectWrapHandle(CommandQueue::New(cw, context)));
 }
 
 NAN_METHOD(Context::createBuffer)
@@ -406,7 +450,7 @@ NAN_METHOD(Context::createBuffer)
     else if(args[2]->IsObject()) {
       Local<Object> obj=args[2]->ToObject();
       String::AsciiValue name(obj->GetConstructorName());
-      if(!strcmp("Buffer",*name)) 
+      if(!strcmp("Buffer",*name))
         host_ptr=Buffer::Data(obj);
       else {
         // TypedArray
@@ -434,7 +478,7 @@ NAN_METHOD(Context::createBuffer)
     return NanThrowError("UNKNOWN ERROR");
   }
 
-  NanReturnValue(NanObjectWrapHandle(WebCLBuffer::New(mw)));
+  NanReturnValue(NanObjectWrapHandle(WebCLBuffer::New(mw, context)));
 }
 
 NAN_METHOD(Context::createImage)
@@ -496,7 +540,7 @@ NAN_METHOD(Context::createImage)
   // printf("size %d x %d, rowPitch %d, host ptr: %p\n",width,height,row_pitch, host_ptr);
 
   mw = ::clCreateImage(
-              context->getContext(), flags, 
+              context->getContext(), flags,
               &image_format, &desc,
               host_ptr, &ret);
 #endif
@@ -520,7 +564,7 @@ NAN_METHOD(Context::createImage)
     return NanThrowError("UNKNOWN ERROR");
   }
 
-  NanReturnValue(NanObjectWrapHandle(WebCLImage::New(mw)));
+  NanReturnValue(NanObjectWrapHandle(WebCLImage::New(mw, context)));
 }
 
 NAN_METHOD(Context::createSampler)
@@ -530,6 +574,11 @@ NAN_METHOD(Context::createSampler)
   cl_bool normalized_coords = args[0]->BooleanValue() ? CL_TRUE : CL_FALSE;
   cl_addressing_mode addressing_mode = args[1]->Uint32Value();
   cl_filter_mode filter_mode = args[2]->Uint32Value();
+
+  if(!context->getContext()) {
+    cl_int ret=CL_INVALID_CONTEXT;
+    REQ_ERROR_THROW(INVALID_CONTEXT);
+  }
 
   cl_int ret=CL_SUCCESS;
   cl_sampler sw = ::clCreateSampler(
@@ -547,7 +596,7 @@ NAN_METHOD(Context::createSampler)
     return NanThrowError("UNKNOWN ERROR");
   }
 
-  NanReturnValue(NanObjectWrapHandle(Sampler::New(sw)));
+  NanReturnValue(NanObjectWrapHandle(Sampler::New(sw, context)));
 }
 
 NAN_METHOD(Context::getSupportedImageFormats)
@@ -557,8 +606,15 @@ NAN_METHOD(Context::getSupportedImageFormats)
   cl_mem_flags flags = args[0]->IsUndefined() ? CL_MEM_READ_WRITE : args[0]->Uint32Value();
   cl_mem_object_type image_type = (args[0]->IsUndefined() || args[1]->IsUndefined()) ? CL_MEM_OBJECT_IMAGE2D : args[1]->Uint32Value();
   cl_uint numEntries=0;
+  cl_int ret = CL_SUCCESS;
 
-  cl_int ret = ::clGetSupportedImageFormats(
+  if(flags > (CL_MEM_HOST_NO_ACCESS<<1)) {
+    ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnNull();
+  }
+
+  ret = ::clGetSupportedImageFormats(
              context->getContext(),
              flags,
              image_type,
@@ -620,19 +676,37 @@ NAN_METHOD(Context::createUserEvent)
     return NanThrowError("UNKNOWN ERROR");
   }
 
-  NanReturnValue(NanObjectWrapHandle(UserEvent::New(ew)));
+  NanReturnValue(NanObjectWrapHandle(UserEvent::New(ew, context)));
 }
 
 NAN_METHOD(Context::createFromGLBuffer)
 {
   NanScope();
+  int ret;
   Context *context = ObjectWrap::Unwrap<Context>(args.This());
   cl_mem_flags flags = args[0]->Uint32Value();
+  if(!args[1]->IsNumber()) {
+    ret=CL_INVALID_GL_OBJECT;
+    REQ_ERROR_THROW(INVALID_GL_OBJECT);
+    NanReturnNull();
+  }
+
   cl_GLuint bufobj = args[1]->Uint32Value();
   #ifdef LOGGING
   cout<<"createFromGLBuffer flags="<<hex<<flags<<dec<<", bufobj="<<bufobj<<endl;
   #endif
-  int ret;
+
+  if(!validateMemFlags((int)flags)) {
+    ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnNull();
+  }
+
+  if(context->webgl_context_.IsEmpty()) {
+    ret=CL_INVALID_CONTEXT;
+    REQ_ERROR_THROW(INVALID_CONTEXT);
+    NanReturnNull();
+  }
 
   cl_mem clmem = ::clCreateFromGLBuffer(context->getContext(),flags,bufobj,&ret);
   #ifdef LOGGING
@@ -647,7 +721,7 @@ NAN_METHOD(Context::createFromGLBuffer)
     return NanThrowError("UNKNOWN ERROR");
   }
 
-  NanReturnValue(NanObjectWrapHandle(WebCLBuffer::New(clmem)));
+  NanReturnValue(NanObjectWrapHandle(WebCLBuffer::New(clmem, context)));
 }
 
 NAN_METHOD(Context::createFromGLTexture)
@@ -657,8 +731,26 @@ NAN_METHOD(Context::createFromGLTexture)
   cl_mem_flags flags = args[0]->Uint32Value();
   cl_GLenum target = args[1]->Uint32Value();
   cl_GLint miplevel = args[2]->Uint32Value();
-  cl_GLuint texture = args[3]->Uint32Value();
   int ret;
+  if(!args[3]->IsNumber()) {
+    ret=CL_INVALID_GL_OBJECT;
+    REQ_ERROR_THROW(INVALID_GL_OBJECT);
+    NanReturnNull();
+  }
+  cl_GLuint texture = args[3]->Uint32Value();
+
+  if(context->webgl_context_.IsEmpty()) {
+    ret=CL_INVALID_CONTEXT;
+    REQ_ERROR_THROW(INVALID_CONTEXT);
+    NanReturnNull();
+  }
+
+  if(miplevel<0) {
+    ret=CL_INVALID_MIP_LEVEL;
+    REQ_ERROR_THROW(INVALID_MIP_LEVEL);
+    NanReturnNull();
+  }
+
   cl_mem clmem;
 #ifdef CL_VERSION_1_2
   clmem = ::clCreateFromGLTexture(context->getContext(),flags,target,miplevel,texture,&ret);
@@ -678,7 +770,7 @@ NAN_METHOD(Context::createFromGLTexture)
     return NanThrowError("UNKNOWN ERROR");
   }
 
-  NanReturnValue(NanObjectWrapHandle(WebCLImage::New(clmem)));
+  NanReturnValue(NanObjectWrapHandle(WebCLImage::New(clmem, context)));
 }
 
 NAN_METHOD(Context::createFromGLRenderbuffer)
@@ -688,6 +780,11 @@ NAN_METHOD(Context::createFromGLRenderbuffer)
   cl_mem_flags flags = args[0]->Uint32Value();
   cl_GLuint renderbuffer = args[1]->Uint32Value();
   int ret;
+  if(context->webgl_context_.IsEmpty()) {
+    ret=CL_INVALID_CONTEXT;
+    REQ_ERROR_THROW(INVALID_CONTEXT);
+    NanReturnNull();
+  }
   cl_mem clmem = ::clCreateFromGLRenderbuffer(context->getContext(),flags,renderbuffer, &ret);
 
   if (ret != CL_SUCCESS) {
@@ -701,7 +798,7 @@ NAN_METHOD(Context::createFromGLRenderbuffer)
     return NanThrowError("UNKNOWN ERROR");
   }
 
-  NanReturnValue(NanObjectWrapHandle(WebCLBuffer::New(clmem)));
+  NanReturnValue(NanObjectWrapHandle(WebCLBuffer::New(clmem, context)));
 }
 
 NAN_METHOD(Context::getGLContext)
@@ -709,6 +806,12 @@ NAN_METHOD(Context::getGLContext)
   NanScope();
   Context *context = ObjectWrap::Unwrap<Context>(args.This());
 
+  if(context->webgl_context_.IsEmpty()) {
+    ThrowException(NanObjectWrapHandle(WebCLException::New("WEBCL_EXTENSION_NOT_ENABLED", ErrorDesc(WEBCL_EXTENSION_NOT_ENABLED), WEBCL_EXTENSION_NOT_ENABLED)));
+    NanReturnUndefined();
+  }
+
+  // TODO this must returns the WebGLRenderingContext object used to create CLGL context
   NanReturnValue(context->webgl_context_);
 }
 
@@ -754,7 +857,7 @@ NAN_METHOD(Context::getGLContextInfo)
   if(numDevicesCL>0) {
     devicesCL=new cl_device_id[numDevicesCL];
 #ifdef __APPLE__
-    ret = clGetGLContextInfoAPPLE(ctx, properties,CL_DEVICES_FOR_GL_CONTEXT_KHR, numDevicesCL, devicesCL, NULL);  
+    ret = clGetGLContextInfoAPPLE(ctx, properties,CL_DEVICES_FOR_GL_CONTEXT_KHR, numDevicesCL, devicesCL, NULL);
 #else
 	ret = clGetGLContextInfoKHR(properties, CL_DEVICES_FOR_GL_CONTEXT_KHR, numDevicesCL, devicesCL, NULL);
 #endif
@@ -768,7 +871,7 @@ NAN_METHOD(Context::getGLContextInfo)
     REQ_ERROR_THROW(INVALID_VALUE);
     REQ_ERROR_THROW(OUT_OF_RESOURCES);
     REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
-    return NanThrowError("UNKNOWN ERROR");   
+    return NanThrowError("UNKNOWN ERROR");
   }
 
   Local<Array> arr = Array::New(numDevicesCL);
@@ -791,7 +894,6 @@ NAN_METHOD(Context::New)
   NanScope();
   Context *ctx = new Context(args.This());
   ctx->Wrap(args.This());
-  registerCLObj(ctx);
   NanReturnValue(args.This());
 }
 
@@ -800,12 +902,12 @@ Context *Context::New(cl_context cw)
 
   NanScope();
 
-  Local<Value> arg = Integer::NewFromUnsigned(0);
-  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor_template);
-  Local<Object> obj = constructorHandle->GetFunction()->NewInstance(1, &arg);
+  Local<Function> cons = NanNew<Function>(constructor);
+  Local<Object> obj = cons->NewInstance();
 
   Context *context = ObjectWrap::Unwrap<Context>(obj);
   context->context = cw;
+  registerCLObj(cw, context);
 
   return context;
 }
@@ -815,13 +917,14 @@ Context *Context::New(cl_context cw, Handle<Object> webgl_context)
 
   NanScope();
 
-  Local<Value> arg = Integer::NewFromUnsigned(0);
-  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor_template);
-  Local<Object> obj = constructorHandle->GetFunction()->NewInstance(1, &arg);
+  Local<Function> cons = NanNew<Function>(constructor);
+  Local<Object> obj = cons->NewInstance();
 
   Context *context = ObjectWrap::Unwrap<Context>(obj);
   context->context = cw;
-  context->webgl_context_ = webgl_context->ToObject();
+  registerCLObj(cw, context);
+  if(!webgl_context.IsEmpty())
+    NanAssignPersistent(context->webgl_context_, webgl_context);
 
   return context;
 }

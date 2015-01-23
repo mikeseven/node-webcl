@@ -37,9 +37,9 @@ class CommandQueue : public WebCLObject
 public:
   void Destructor();
 
-  static void Init(v8::Handle<v8::Object> target);
+  static void Init(v8::Handle<v8::Object> exports);
 
-  static CommandQueue *New(cl_command_queue cw);
+  static CommandQueue *New(cl_command_queue cw, WebCLObject *parent);
   static NAN_METHOD(New);
 
   // Copying: Buffer <-> Buffer, Image <-> Image, Buffer <-> Image
@@ -54,7 +54,7 @@ public:
   static NAN_METHOD(enqueueReadBufferRect);
   static NAN_METHOD(enqueueReadImage);
 
-  // Writing: Host -> Buffer, Host -> Image  
+  // Writing: Host -> Buffer, Host -> Image
   static NAN_METHOD(enqueueWriteBuffer);
   static NAN_METHOD(enqueueWriteBufferRect);
   static NAN_METHOD(enqueueWriteImage);
@@ -84,14 +84,18 @@ public:
   static NAN_METHOD(enqueueReleaseGLObjects);
 
   cl_command_queue getCommandQueue() const { return command_queue; };
-  virtual bool isEqual(void *clObj) { return ((cl_command_queue)clObj)==command_queue; }
+  virtual bool operator==(void *clObj) { return ((cl_command_queue)clObj)==command_queue; }
 
 private:
   CommandQueue(v8::Handle<v8::Object> wrapper);
+  ~CommandQueue();
 
-  static v8::Persistent<v8::FunctionTemplate> constructor_template;
+  static v8::Persistent<v8::Function> constructor;
 
   cl_command_queue command_queue;
+
+private:
+  DISABLE_COPY(CommandQueue)
 };
 
 } // namespace

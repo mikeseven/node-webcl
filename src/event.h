@@ -37,9 +37,9 @@ class Event : public WebCLObject
 public:
   void Destructor();
 
-  static void Init(v8::Handle<v8::Object> target);
+  static void Init(v8::Handle<v8::Object> exports);
 
-  static Event *New(cl_event ew);
+  static Event *New(cl_event ew, WebCLObject *parent);
 
   static NAN_METHOD(New);
 
@@ -53,29 +53,34 @@ public:
 
   static NAN_GETTER(GetStatus);
   void setStatus(int s) { status = s; }
-  virtual bool isEqual(void *clObj) { return ((cl_event)clObj)==event; }
+  cl_int getStatus() { return status; }
+  virtual bool operator==(void *clObj) { return ((cl_event)clObj)==event; }
 
 protected:
   Event(v8::Handle<v8::Object> wrapper);
+  ~Event();
 
   // called by clSetEventCallback
   static void CL_CALLBACK callback (cl_event event, cl_int event_command_exec_status, void *user_data);
   // static void After_cb(uv_async_t* handle, int status);
   // NanCallback *callback;
 
-  static v8::Persistent<v8::FunctionTemplate> constructor_template;
+  static v8::Persistent<v8::Function> constructor;
 
   cl_event event;
   cl_int status;
+
+private:
+  DISABLE_COPY(Event)
 };
 
 class UserEvent : public Event
 {
 
 public:
-  static void Init(v8::Handle<v8::Object> target);
+  static void Init(v8::Handle<v8::Object> exports);
 
-  static UserEvent *New(cl_event ew);
+  static UserEvent *New(cl_event ew, WebCLObject *parent);
 
   static NAN_METHOD(New);
 
@@ -89,8 +94,12 @@ public:
 
 private:
   UserEvent(v8::Handle<v8::Object> wrapper);
+  ~UserEvent();
 
-  static v8::Persistent<v8::FunctionTemplate> constructor_template;
+  static v8::Persistent<v8::Function> constructor;
+
+private:
+  DISABLE_COPY(UserEvent)
 };
 
 } // namespace

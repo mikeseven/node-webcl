@@ -26,12 +26,12 @@
 
 var nodejs = (typeof window === 'undefined');
 if(nodejs) {
-  WebCL = require('../webcl');
+  webcl = require('../webcl');
   log = console.log;
   exit = process.exit;
 }
 else
-  WebCL = window.webcl;
+  webcl = window.webcl;
 
 // kernel callback
 function kernel_complete(event, data) {
@@ -49,12 +49,12 @@ function read_complete(event, data) {
   if(status<0) 
     log('Error: '+status);
 
-  var check = WebCL.TRUE;
+  var check = webcl.TRUE;
   //var str="";
   for(i=0; i<4096; i++) {
     //str+=data[i]+' ';
     if(data[i] != 5.0) {
-      check = WebCL.FALSE;
+      check = webcl.FALSE;
       break;
     }  
   }
@@ -80,17 +80,17 @@ function read_complete(event, data) {
   log('creating context');
   
   //Pick platform
-  var platformList=WebCL.getPlatforms();
+  var platformList=webcl.getPlatforms();
   platform=platformList[0];
-  log('using platform: '+platform.getInfo(WebCL.PLATFORM_NAME));
+  log('using platform: '+platform.getInfo(webcl.PLATFORM_NAME));
 
   //Query the set of devices on this platform
-  var devices = platform.getDevices(WebCL.DEVICE_TYPE_GPU);
+  var devices = platform.getDevices(webcl.DEVICE_TYPE_GPU);
   device=devices[0];
-  log('using device: '+device.getInfo(WebCL.DEVICE_NAME));
+  log('using device: '+device.getInfo(webcl.DEVICE_NAME));
 
   // create GPU context for this platform
-  var context=WebCL.createContext(device ,'Error occured in context', function(err,data){
+  var context=webcl.createContext(device ,'Error occured in context', function(err,data){
     log(data+" : "+err);
     exit(1);
   });
@@ -119,7 +119,7 @@ function read_complete(event, data) {
   } catch(ex) {
     /* Find size of log and print to std output */
     log('build program error');
-    var info=program.getBuildInfo(device, WebCL.PROGRAM_BUILD_LOG);
+    var info=program.getBuildInfo(device, webcl.PROGRAM_BUILD_LOG);
     log(info);
     exit(1);
   }
@@ -135,7 +135,7 @@ function read_complete(event, data) {
   /* Create a write-only buffer to hold the output data */
   log('create output buffer');
   try {
-    data_buffer = context.createBuffer(WebCL.MEM_WRITE_ONLY, 4096*4);
+    data_buffer = context.createBuffer(webcl.MEM_WRITE_ONLY, 4096*4);
   } catch(ex) {
     log("Couldn't create a buffer. "+ex);
     exit(1);   
@@ -162,7 +162,7 @@ function read_complete(event, data) {
   /* Enqueue kernel */
   log('enqueue task');
   try {
-    kernel_event=new WebCL.WebCLEvent();
+    kernel_event=new webcl.WebCLEvent();
     queue.enqueueTask(kernel , null, kernel_event);
   } catch(ex) {
     log("Couldn't enqueue the kernel. "+ex);
@@ -172,7 +172,7 @@ function read_complete(event, data) {
   /* Read the buffer */
   var data=new Float32Array(4096);
   try {
-    read_event=new WebCL.WebCLEvent();
+    read_event=new webcl.WebCLEvent();
     queue.enqueueReadBuffer(data_buffer, false, 0, 4096*4, data, [], read_event);
   } catch(ex) {
     log("Couldn't read the buffer. "+ex);
@@ -181,8 +181,8 @@ function read_complete(event, data) {
 
   /* Set event handling routines */
   log('set event callbacks');
-  kernel_event.setCallback(WebCL.COMPLETE, kernel_complete, "The kernel finished successfully.");
-  read_event.setCallback(WebCL.COMPLETE, read_complete, data);
+  kernel_event.setCallback(webcl.COMPLETE, kernel_complete, "The kernel finished successfully.");
+  read_event.setCallback(webcl.COMPLETE, read_complete, data);
 
   // test 1: queue should finish with event completed
   // log('q finish');
@@ -191,7 +191,7 @@ function read_complete(event, data) {
   // test 2: wait for all events to complete
   log('Wait for events to complete');
   var event_list=[kernel_event, read_event];
-  WebCL.waitForEvents(event_list);
+  webcl.waitForEvents(event_list);
   
   // test 3: spin on all event completions
   // log('  spinning on event completion');
@@ -199,8 +199,8 @@ function read_complete(event, data) {
   // for(var i=0;i<event_list.length;i++) {
   //   var ev = event_list[i];
   //   while(1) {
-  //     var ret=ev.getInfo(WebCL.EVENT_COMMAND_EXECUTION_STATUS);
-  //     if(ret == WebCL.COMPLETE)
+  //     var ret=ev.getInfo(webcl.EVENT_COMMAND_EXECUTION_STATUS);
+  //     if(ret == webcl.COMPLETE)
   //       break;
   //   }
   // }

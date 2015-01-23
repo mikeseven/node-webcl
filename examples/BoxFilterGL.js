@@ -26,7 +26,7 @@
 
 var nodejs = (typeof window === 'undefined');
 if(nodejs) {
-  WebCL = require('../webcl');
+  webcl = require('../webcl');
   clu = require('../lib/clUtils');
   util = require('util');
   fs = require('fs');
@@ -37,7 +37,7 @@ if(nodejs) {
   alert = console.log;
 }
 else
-  WebCL = window.webcl;
+  webcl = window.webcl;
 
 requestAnimationFrame = document.requestAnimationFrame;
 
@@ -90,7 +90,7 @@ function initialize(device_type) {
   document.addEventListener('keydown', keydown);
 
   var err = init_gl(canvas);
-  if (err != WebCL.SUCCESS)
+  if (err != webcl.SUCCESS)
     return err;
 
   err = init_cl(device_type);
@@ -101,12 +101,12 @@ function initialize(device_type) {
 
   // Warmup call to assure OpenCL driver is awake
   resetKernelArgs(image.width, image.height, iRadius, fScale);
-  
+
   BoxFilterGPU(image, ComputePBO, iRadius, fScale);
-  
+
   ComputeCommands.finish();
 
-  return WebCL.SUCCESS;
+  return webcl.SUCCESS;
 }
 
 // /////////////////////////////////////////////////////////////////////
@@ -115,7 +115,7 @@ function initialize(device_type) {
 
 function configure_shared_data(image_width, image_height) {
   log('configure shared data');
-  
+
   // set up data parameter
   var num_texels = image_width * image_height;
   var num_values = num_texels * 4;
@@ -135,7 +135,7 @@ function configure_shared_data(image_width, image_height) {
   gl.bindBuffer(gl.ARRAY_BUFFER, null);
 
   // Create OpenCL representation of OpenGL PBO
-  ComputePBO = ComputeContext.createFromGLBuffer(WebCL.MEM_WRITE_ONLY, pbo);
+  ComputePBO = ComputeContext.createFromGLBuffer(webcl.MEM_WRITE_ONLY, pbo);
   if (!ComputePBO) {
     alert("Error: Failed to create CL PBO buffer");
     return -1;
@@ -163,13 +163,13 @@ function init_textures(width, height) {
 
 function init_buffers() {
   log('  create buffers');
-  var VertexPos = [ -1, -1, 
-                    1, -1, 
-                    1, 1, 
+  var VertexPos = [ -1, -1,
+                    1, -1,
+                    1, 1,
                     -1, 1 ];
-  var TexCoords = [ 0, 0, 
-                    1, 0, 
-                    1, 1, 
+  var TexCoords = [ 0, 0,
+                    1, 0,
+                    1, 1,
                     0, 1 ];
 
   VertexPosBuffer = gl.createBuffer();
@@ -187,13 +187,13 @@ function init_buffers() {
 
 function compile_shader(gl, id) {
   var shaders = {
-    "shader-vs" : [ 
+    "shader-vs" : [
         "attribute vec3 aCoords;",
-        "attribute vec2 aTexCoords;", 
+        "attribute vec2 aTexCoords;",
         "varying vec2 vTexCoords;",
-        "void main(void) {", 
+        "void main(void) {",
         "    gl_Position = vec4(aCoords, 1.0);",
-        "    vTexCoords = aTexCoords;", 
+        "    vTexCoords = aTexCoords;",
         "}" ].join("\n"),
     "shader-fs" : [
          "#ifdef GL_ES",
@@ -275,7 +275,7 @@ function init_shaders() {
 
   shaderProgram.textureCoordAttribute = gl.getAttribLocation(shaderProgram, "aTexCoords");
   gl.enableVertexAttribArray(shaderProgram.textureCoordAttribute);
-  
+
   shaderProgram.samplerUniform = gl.getUniformLocation(shaderProgram, "uSampler");
 }
 
@@ -296,7 +296,7 @@ function init_gl(canvas) {
   init_shaders();
   init_textures(image.width, image.height);
 
-  return WebCL.SUCCESS;
+  return webcl.SUCCESS;
 }
 
 function renderTexture() {
@@ -332,25 +332,25 @@ function init_cl(device_type) {
   log('init CL');
 
   // Pick platform
-  var platformList = WebCL.getPlatforms();
+  var platformList = webcl.getPlatforms();
   var platform = platformList[0];
-  var devices = platform.getDevices(device_type ? WebCL.DEVICE_TYPE_GPU : WebCL.DEVICE_TYPE_DEFAULT);
+  var devices = platform.getDevices(device_type ? webcl.DEVICE_TYPE_GPU : webcl.DEVICE_TYPE_DEFAULT);
   ComputeDeviceId=devices[0];
 
   // make sure we use a discrete GPU
   for(var i=0;i<devices.length;i++) {
-    var vendor=devices[i].getInfo(WebCL.DEVICE_VENDOR);
+    var vendor=devices[i].getInfo(webcl.DEVICE_VENDOR);
     // log('found vendor '+vendor+', is Intel? '+(vendor.indexOf('Intel')>=0))
     if(vendor.indexOf('Intel')==-1)
       ComputeDeviceId=devices[i];
   }
-  log('found '+devices.length+' devices, using device: '+ComputeDeviceId.getInfo(WebCL.DEVICE_NAME));
+  log('found '+devices.length+' devices, using device: '+ComputeDeviceId.getInfo(webcl.DEVICE_NAME));
 
   if(!ComputeDeviceId.enableExtension('KHR_gl_sharing'))
     throw new Error("Can NOT use GL sharing");
 
   // create the OpenCL context
-  ComputeContext = WebCL.createContext(gl, ComputeDeviceId);
+  ComputeContext = webcl.createContext(gl, ComputeDeviceId);
   if(!ComputeContext)
     throw new Error("Can NOT create context");
 
@@ -363,30 +363,30 @@ function init_cl(device_type) {
   }
 
   // Report the device vendor and device name
-  // 
-  var vendor_name = ComputeDeviceId.getInfo(WebCL.DEVICE_VENDOR);
-  var device_name = ComputeDeviceId.getInfo(WebCL.DEVICE_NAME);
+  //
+  var vendor_name = ComputeDeviceId.getInfo(webcl.DEVICE_VENDOR);
+  var device_name = ComputeDeviceId.getInfo(webcl.DEVICE_NAME);
 
   log("Connecting to " + vendor_name + " " + device_name);
 
-  if (!ComputeDeviceId.getInfo(WebCL.DEVICE_IMAGE_SUPPORT)) {
+  if (!ComputeDeviceId.getInfo(webcl.DEVICE_IMAGE_SUPPORT)) {
     log("Application requires images: Images not supported on this device.");
-    return WebCL.IMAGE_FORMAT_NOT_SUPPORTED;
+    return webcl.IMAGE_FORMAT_NOT_SUPPORTED;
   }
 
   err = init_cl_buffers();
-  if (err != WebCL.SUCCESS) {
+  if (err != webcl.SUCCESS) {
     log("Failed to create compute result! Error " + err);
     return err;
   }
 
   err = init_cl_kernels();
-  if (err != WebCL.SUCCESS) {
+  if (err != webcl.SUCCESS) {
     log("Failed to setup compute kernel! Error " + err);
     return err;
   }
 
-  return WebCL.SUCCESS;
+  return webcl.SUCCESS;
 }
 
 function init_cl_kernels() {
@@ -416,7 +416,7 @@ function init_cl_kernels() {
   } catch (err) {
     log('Error building program: ' + err);
     alert("Error: Failed to build program executable!\n"
-        + ComputeProgram.getBuildInfo(ComputeDeviceId, WebCL.PROGRAM_BUILD_LOG));
+        + ComputeProgram.getBuildInfo(ComputeDeviceId, webcl.PROGRAM_BUILD_LOG));
     return -1;
   }
 
@@ -432,29 +432,23 @@ function init_cl_kernels() {
     alert("Error: Failed to create compute column kernel!");
     return -1;
   }
-  return WebCL.SUCCESS;
+  return webcl.SUCCESS;
 }
 
 function resetKernelArgs(image_width, image_height, r, scale) {
-  log('Reset kernel args to image ' + image_width + "x" + image_height + " r="
-      + r + " scale=" + scale);
+  // log('Reset kernel args to image ' + image_width + "x" + image_height + " r="
+  //     + r + " scale=" + scale);
 
   // set the kernel args
-  var aints=new Int32Array(3);
-  aints[0]=image_width;
-  aints[1]=image_height;
-  aints[2]=r;
-  var afloats=new Float32Array(1);
-  afloats[0]=scale;
   try {
     // Set the Argument values for the row kernel
     ckBoxRowsTex.setArg(0, ComputeTexture);
     ckBoxRowsTex.setArg(1, ComputeBufTemp);
     ckBoxRowsTex.setArg(2, RowSampler);
-    ckBoxRowsTex.setArg(3, aints);
-    ckBoxRowsTex.setArg(4, aints.subarray(1));
-    ckBoxRowsTex.setArg(5, aints.subarray(2));
-    ckBoxRowsTex.setArg(6, afloats);
+    ckBoxRowsTex.setArg(3, new Int32Array([image_width]));
+    ckBoxRowsTex.setArg(4, new Int32Array([image_height]));
+    ckBoxRowsTex.setArg(5, new Int32Array([r]));
+    ckBoxRowsTex.setArg(6, new Float32Array([scale]));
   } catch (err) {
     alert("Failed to set row kernel args! " + err);
     return -10;
@@ -464,10 +458,10 @@ function resetKernelArgs(image_width, image_height, r, scale) {
     // Set the Argument values for the column kernel
     ckBoxColumns.setArg(0, ComputeBufTemp);
     ckBoxColumns.setArg(1, ComputePBO);
-    ckBoxColumns.setArg(2, aints);
-    ckBoxColumns.setArg(3, aints.subarray(1));
-    ckBoxColumns.setArg(4, aints.subarray(2));
-    ckBoxColumns.setArg(5, afloats);
+    ckBoxColumns.setArg(2, new Int32Array([image_width]));
+    ckBoxColumns.setArg(3, new Int32Array([image_height]));
+    ckBoxColumns.setArg(4, new Int32Array([r]));
+    ckBoxColumns.setArg(5, new Float32Array([scale]));
   } catch (err) {
     alert("Failed to set column kernel args! " + err);
     return -10;
@@ -476,10 +470,10 @@ function resetKernelArgs(image_width, image_height, r, scale) {
   // Get the maximum work group size for executing the kernel on the device
   //
   MaxWorkGroupSize = ckBoxRowsTex.getWorkGroupInfo(ComputeDeviceId,
-      WebCL.KERNEL_WORK_GROUP_SIZE);
+      webcl.KERNEL_WORK_GROUP_SIZE);
 
-  log("  MaxWorkGroupSize: " + MaxWorkGroupSize);
-  return WebCL.SUCCESS;
+  // log("  MaxWorkGroupSize: " + MaxWorkGroupSize);
+  return webcl.SUCCESS;
 }
 
 function init_cl_buffers() {
@@ -487,32 +481,32 @@ function init_cl_buffers() {
 
   // 2D Image (Texture) on device
   var InputFormat= {
-    channelOrder : WebCL.RGBA,
-    channelType : WebCL.UNSIGNED_INT8,
-    width : image.width, 
+    channelOrder : webcl.RGBA,
+    channelType : webcl.UNSIGNED_INT8,
+    width : image.width,
     height : image.height,
     rowPitch : image.pitch
   };
-  ComputeTexture = ComputeContext.createImage(WebCL.MEM_READ_ONLY | WebCL.MEM_USE_HOST_PTR, InputFormat, image);
+  ComputeTexture = ComputeContext.createImage(webcl.MEM_READ_ONLY | webcl.MEM_USE_HOST_PTR, InputFormat, image);
   if (!ComputeTexture) {
     alert("Error: Failed to create a Image2D on device");
     return -1;
   }
 
-  RowSampler = ComputeContext.createSampler(false, WebCL.ADDRESS_CLAMP, WebCL.FILTER_NEAREST);
+  RowSampler = ComputeContext.createSampler(false, webcl.ADDRESS_CLAMP, webcl.FILTER_NEAREST);
   if (!RowSampler) {
     alert("Error: Failed to create a row sampler");
     return -1;
   }
 
   // Allocate the OpenCL intermediate and result buffer memory objects on the device GMEM
-  ComputeBufTemp = ComputeContext.createBuffer(WebCL.MEM_READ_WRITE, image.szBuffBytes);
+  ComputeBufTemp = ComputeContext.createBuffer(webcl.MEM_READ_WRITE, image.szBuffBytes);
   if (!ComputeBufTemp) {
     alert("Error: Failed to create temporary buffer");
     return -1;
   }
 
-  return WebCL.SUCCESS;
+  return webcl.SUCCESS;
 }
 
 function cleanup() {
@@ -568,7 +562,7 @@ function display(timestamp) {
   //var uiEndTime = new Date().getTime();
   //ReportStats(uiStartTime, uiEndTime);
   //DrawText(TextOffset[0], TextOffset[1], 1, (Animated == 0) ? "Press space to animate" : " ");
-  return WebCL.SUCCESS;
+  return webcl.SUCCESS;
 }
 
 function reshape(evt) {
@@ -578,7 +572,7 @@ function reshape(evt) {
 }
 
 function keydown(evt) {
-  log('process key: ' + evt.which);
+  // log('process key: ' + evt.which);
   var oldr = iRadius;
 
   switch (evt.which) {
@@ -617,7 +611,7 @@ function execute_kernel() {
   // Release buffer
   ComputeCommands.enqueueReleaseGLObjects(ComputePBO);
   ComputeCommands.finish();
-  
+
   // Update the texture from the pbo
   gl.bindTexture(gl.TEXTURE_2D, TextureId);
   gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, pbo);
@@ -626,7 +620,7 @@ function execute_kernel() {
   gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, null);
   gl.bindTexture(gl.TEXTURE_2D, null);
 
-  return WebCL.SUCCESS;
+  return webcl.SUCCESS;
 }
 
 function BoxFilterGPU(image, cmOutputBuffer, r, scale) {
@@ -636,9 +630,15 @@ function BoxFilterGPU(image, cmOutputBuffer, r, scale) {
   // 2D Image (Texture)
   var TexOrigin = [ 0, 0, 0 ]; // Offset of input texture origin relative to host image
   var TexRegion = [ image.width, image.height, 1 ]; // Size of texture region to operate on
-  ComputeCommands.enqueueWriteImage(ComputeTexture, WebCL.TRUE, TexOrigin,
-      TexRegion, 0, 0, image);
-
+  try {
+    ComputeCommands.enqueueWriteImage(ComputeTexture, webcl.TRUE, TexOrigin,
+      TexRegion, 0, image);
+  }
+  catch(ex) {
+    log("Error enqueuing image")
+    log(ex.name)
+    log(ex.stack)
+  }
   // Set global and local work sizes for row kernel
   var local = [ uiNumOutputPix, 1 ];
   var global = [ clu.DivUp(image.height, local[0]) * local[0], 1 ];
@@ -665,15 +665,15 @@ function BoxFilterGPU(image, cmOutputBuffer, r, scale) {
 function main() {
   // loading image
   image = new Image();
-  image.onload=function() { 
+  image.onload=function() {
     console.log("Loaded image: " + image.src);
-    log("Image Width = " + image.width + ", Height = " + image.height + ", bpp = 32");
+    log("Image Width = " + image.width + ", Height = " + image.height + ", bpp = "+image.pitch);
     image.szBuffBytes = image.height * image.pitch;
     Width=image.width;
     Height=image.height;
-    
+
     // init window
-    if(initialize(use_gpu)==WebCL.SUCCESS) {
+    if(initialize(use_gpu)==webcl.SUCCESS) {
       function update() {
         display();
         requestAnimationFrame(update);

@@ -35,7 +35,7 @@ class Device : public WebCLObject
 {
 
 public:
-  static void Init(v8::Handle<v8::Object> target);
+  static void Init(v8::Handle<v8::Object> exports);
 
   static Device *New(cl_device_id did);
   static NAN_METHOD(New);
@@ -44,16 +44,16 @@ public:
 
   static NAN_METHOD(enableExtension);
   bool hasGLSharingEnabled() const { return (enableExtensions & GL_SHARING); }
-  bool hasFP16Enabled() const { return (enableExtensions & FP16); }
-  bool hasFP64Enabled() const { return (enableExtensions & FP64); }
+  bool hasFP16Enabled() const { return (enableExtensions & FP16)==FP16; }
+  bool hasFP64Enabled() const { return (enableExtensions & FP64)==FP64; }
 
   cl_device_id getDevice() const { return device_id; };
-  virtual bool isEqual(void *clObj) { return ((cl_device_id)clObj)==device_id; }
+  virtual bool operator==(void *clObj) { return ((cl_device_id)clObj)==device_id; }
 
 private:
   Device(v8::Handle<v8::Object> wrapper);
 
-  static v8::Persistent<v8::FunctionTemplate> constructor_template;
+  static v8::Persistent<v8::Function> constructor;
 
   cl_device_id device_id;
 
@@ -66,6 +66,9 @@ private:
   	FP16		     = 0x02,
   	FP64		     = 0x04
   };
+
+private:
+  DISABLE_COPY(Device)
 };
 
 } // namespace

@@ -37,22 +37,26 @@ class Sampler : public WebCLObject
 public:
   void Destructor();
 
-  static void Init(v8::Handle<v8::Object> target);
+  static void Init(v8::Handle<v8::Object> exports);
 
-  static Sampler *New(cl_sampler sw);
+  static Sampler *New(cl_sampler sw, WebCLObject *parent);
   static NAN_METHOD(New);
   static NAN_METHOD(getInfo);
   static NAN_METHOD(release);
 
   cl_sampler getSampler() const { return sampler; };
-  virtual bool isEqual(void *clObj) { return ((cl_sampler)clObj)==sampler; }
+  virtual bool operator==(void *clObj) { return ((cl_sampler)clObj)==sampler; }
 
 private:
   Sampler(v8::Handle<v8::Object> wrapper);
+  ~Sampler();
 
-  static v8::Persistent<v8::FunctionTemplate> constructor_template;
+  static v8::Persistent<v8::Function> constructor;
 
   cl_sampler sampler;
+
+private:
+  DISABLE_COPY(Sampler)
 };
 
 } // namespace

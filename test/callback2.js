@@ -26,12 +26,12 @@
 
 var nodejs = (typeof window === 'undefined');
 if(nodejs) {
-  WebCL = require('../webcl');
+  webcl = require('../webcl');
   log = console.log;
   exit = process.exit;
 }
 else
-  WebCL = window.webcl;
+  webcl = window.webcl;
 
 /* CL objects */
 var /* WebCLPlatform */     platform;
@@ -60,12 +60,12 @@ function read_complete(event, data) {
   if(status<0) 
     log('Error: '+status);
 
-  var check = WebCL.TRUE;
+  var check = webcl.TRUE;
   //var str="";
   for(i=0; i<4096; i++) {
     //str+=data[i]+' ';
     if(data[i] != 5.0) {
-      check = WebCL.FALSE;
+      check = webcl.FALSE;
       break;
     }  
   }
@@ -87,7 +87,7 @@ function program_built(err, data) {
 
   /* Create a write-only buffer to hold the output data */
   try {
-    data_buffer = context.createBuffer(WebCL.MEM_WRITE_ONLY, 4096*4);
+    data_buffer = context.createBuffer(webcl.MEM_WRITE_ONLY, 4096*4);
   } catch(ex) {
     log("Couldn't create a buffer. "+ex);
     exit(1);   
@@ -111,7 +111,7 @@ function program_built(err, data) {
 
   /* Enqueue kernel */
   try {
-    kernel_event=new WebCL.WebCLEvent();
+    kernel_event=new webcl.WebCLEvent();
     queue.enqueueTask(kernel , null, kernel_event);
   } catch(ex) {
     log("Couldn't enqueue the kernel. "+ex);
@@ -121,7 +121,7 @@ function program_built(err, data) {
   /* Read the buffer */
   var data=new Float32Array(4096);
   try {
-    read_event=new WebCL.WebCLEvent();
+    read_event=new webcl.WebCLEvent();
     queue.enqueueReadBuffer(data_buffer, false, 0, 4096*4, data, null, read_event);
   } catch(ex) {
     log("Couldn't read the buffer. "+ex);
@@ -130,12 +130,12 @@ function program_built(err, data) {
 
   /* Set event handling routines */
   try {
-    kernel_event.setCallback(WebCL.COMPLETE, kernel_complete, "The kernel finished successfully.");
+    kernel_event.setCallback(webcl.COMPLETE, kernel_complete, "The kernel finished successfully.");
   } catch(ex) {
     log("Couldn't set callback for event. "+ex);
     exit(1);   
   }
-  read_event.setCallback(WebCL.COMPLETE, read_complete, data);
+  read_event.setCallback(webcl.COMPLETE, read_complete, data);
   
   queue.finish(); // wait for everything to finish
   done=true;
@@ -146,17 +146,17 @@ function main() {
   log('creating context');
   
   //Pick platform
-  var platformList=WebCL.getPlatforms();
+  var platformList=webcl.getPlatforms();
   platform=platformList[0];
-  log('using platform: '+platform.getInfo(WebCL.PLATFORM_NAME));
+  log('using platform: '+platform.getInfo(webcl.PLATFORM_NAME));
   
   //Query the set of devices on this platform
-  var devices = platform.getDevices(WebCL.DEVICE_TYPE_GPU);
+  var devices = platform.getDevices(webcl.DEVICE_TYPE_GPU);
 
   // make sure we use a discrete GPU (Intel embedded GPU don't support event correctly)
   device=null;
   for(var i=0;i<devices.length;i++) {
-    var vendor=devices[i].getInfo(WebCL.DEVICE_VENDOR).trim().toUpperCase();
+    var vendor=devices[i].getInfo(webcl.DEVICE_VENDOR).trim().toUpperCase();
     if(vendor==='NVIDIA' || vendor==='AMD' || vendor.indexOf('ADVANCED MICRO DEVICES')>=0) {
       device=devices[i];
       break;
@@ -167,13 +167,11 @@ function main() {
     exit(-1);
   }
 
-  log('using device: '+device.getInfo(WebCL.DEVICE_VENDOR).trim()+
-    ' '+device.getInfo(WebCL.DEVICE_NAME).trim());
+  log('using device: '+device.getInfo(webcl.DEVICE_VENDOR).trim()+
+    ' '+device.getInfo(webcl.DEVICE_NAME).trim());
 
   // create GPU context for this platform
-  context=WebCL.createContext(device ,'Error occured in context', function(err,data){
-    log(data+" : "+err);
-  });
+  context=webcl.createContext(device);
 
   /* Build the program and create a kernel */
   var source = [
@@ -193,10 +191,10 @@ function main() {
 
   /* Build program */
   try {
-    program.build(device, null, 'compil done', program_built);
+    program.build(device, null, program_built);
   } catch(ex) {
     /* Find size of log and print to std output */
-    var info=program.getBuildInfo(device, WebCL.PROGRAM_BUILD_LOG);
+    var info=program.getBuildInfo(device, webcl.PROGRAM_BUILD_LOG);
     log(info);
     exit(1);
   }
@@ -204,13 +202,13 @@ function main() {
   log("main app thread END");
 
   // sleeping the main thread to let events propagate
-  function sleep() {
-    if(!done) {
-      log('sleeping 0.5s');
-      setTimeout(sleep, 500);
-    }
-  }
-  sleep();
+  // function sleep() {
+  //   if(!done) {
+  //     log('sleeping 0.5s');
+  //     setTimeout(sleep, 500);
+  //   }
+  // }
+  // sleep();
 }
 
 main();

@@ -31,6 +31,10 @@
 #include <node.h>
 #include "nan.h"
 #include <string>
+#include <list>
+#include <set>
+#include <map>
+#include <memory>
 #ifdef LOGGING
 #include <iostream>
 #endif
@@ -63,6 +67,8 @@ using namespace std;
     #include <GL/gl.h>
     #include <CL/opencl.h>
     #define strcasecmp _stricmp
+    #define strncasecmp _strnicmp
+    char *strcasestr(const char *s, char *find);
 #else
     #include <GL/gl.h>
     #include <GL/glx.h>
@@ -70,18 +76,21 @@ using namespace std;
 #endif
 
 #ifndef CL_CURRENT_DEVICE_FOR_GL_CONTEXT_KHR
-  #define CL_CURRENT_DEVICE_FOR_GL_CONTEXT_KHR 0x2006 
+  #define CL_CURRENT_DEVICE_FOR_GL_CONTEXT_KHR 0x2006
 #endif
 #ifndef CL_DEVICES_FOR_GL_CONTEXT_KHR
-  #define CL_DEVICES_FOR_GL_CONTEXT_KHR 0x2007 
+  #define CL_DEVICES_FOR_GL_CONTEXT_KHR 0x2007
 #endif
 
+// TODO value not defined in spec
+#define WEBCL_EXTENSION_NOT_ENABLED 0x8000
+
 namespace {
-#define JS_STR(...) v8::String::New(__VA_ARGS__)
-#define JS_INT(val) v8::Integer::New(val)
-#define JS_NUM(val) v8::Number::New(val)
-#define JS_BOOL(val) v8::Boolean::New(val)
-#define JS_RETHROW(tc) v8::Local<v8::Value>::New(tc.Exception());
+#define JS_STR(...) NanNew<v8::String>(__VA_ARGS__)
+#define JS_INT(val) NanNew<v8::Integer>(val)
+#define JS_NUM(val) NanNew<v8::Number>(val)
+#define JS_BOOL(val) NanNew<v8::Boolean>(val)
+#define JS_RETHROW(tc) NanNew<v8::Local<v8::Value> >(tc.Exception());
 
 #define REQ_ARGS(N)                                                     \
   if (args.Length() < (N))                                              \
@@ -107,9 +116,12 @@ namespace {
 #define REQ_ERROR_THROW(error) if (ret == CL_##error) return ThrowException(NanObjectWrapHandle(WebCLException::New(#error, ErrorDesc(CL_##error), CL_##error)));
 
 #define DESTROY_WEBCL_OBJECT(obj)	\
-  obj->Destructor();			\
-  unregisterCLObj(obj);
-  
+  obj->Destructor();
+
+#define DISABLE_COPY(ClassName) \
+  ClassName( const ClassName& other ); /* non construction-copyable */ \
+  ClassName& operator=( const ClassName& ); /* non copyable */
+
 } // namespace
 
 namespace webcl {
@@ -136,11 +148,6 @@ struct Baton {
     }
 };
 
-class WebCLObject;
-void registerCLObj(WebCLObject* obj);
-void unregisterCLObj(WebCLObject* obj);
-void AtExit(void* arg);
-
 namespace CLObjType {
 enum CLObjType {
   None=0,
@@ -154,45 +161,68 @@ enum CLObjType {
   Event,
   MemoryObject,
   Exception,
+  MAX_WEBCL_TYPES
+};
+static const char* CLObjName[] = {
+  "UNKNOWN",
+  "Platform",
+  "Device",
+  "Context",
+  "CommandQueue",
+  "Kernel",
+  "Program",
+  "Sampler",
+  "Event",
+  "MemoryObject",
+  "Exception",
 };
 }
 
-WebCLObject* findCLObj(void* type);
+class WebCLObject;
+void registerCLObj(void *clid, WebCLObject* obj);
+void unregisterCLObj(WebCLObject* obj);
+WebCLObject* findCLObj(void* clid, CLObjType::CLObjType type);
+void onExit();
 
 class WebCLObject : public node::ObjectWrap {
-protected:
-  WebCLObject() : _type(CLObjType::None) {}
-  // virtual ~WebCLObject() {
-  //   // printf("Destructor WebCLObject\n");
-  //   // Destructor();
-  //   // unregisterCLObj(this);
-  // }
-
-#define isA(value, type) ((int)value & (int)type)==(int)type
 public:
-  virtual void Destructor() { 
-#ifdef LOGGING
-    printf("In WebCLObject::Destructor\n"); 
-#endif
+  inline CLObjType::CLObjType getType() const { return _type; }
+
+  inline const char* getCLObjName() const {
+    return _type<CLObjType::MAX_WEBCL_TYPES ? CLObjType::CLObjName[_type] : "\0";
   }
-  CLObjType::CLObjType getType() { return _type; }
-  bool isPlatform() const { return isA(_type, CLObjType::Platform); }
-  bool isDevice() const { return isA(_type, CLObjType::Device); }
-  bool isKernel() const { return isA(_type, CLObjType::Kernel); }
-  bool isCommandQueue() const { return isA(_type, CLObjType::CommandQueue); }
-  bool isMemoryObject() const { return isA(_type, CLObjType::MemoryObject); }
-  bool isProgram() const { return isA(_type, CLObjType::Program); }
-  bool isSampler() const { return isA(_type, CLObjType::Sampler); }
-  bool isEvent() const { return isA(_type, CLObjType::Event); }
-  bool isContext() const { return isA(_type, CLObjType::Context); }
-  virtual bool isEqual(void *clObj) { return false; }
+
+protected:
+  WebCLObject() : _type(CLObjType::None)
+  {}
+
+  virtual ~WebCLObject() {
+  #ifdef LOGGING
+    printf("[~WebCLObject] %s %p is being destroyed\n",getCLObjName(),this);
+  #endif
+    Destructor();
+    unregisterCLObj(this);
+  }
+
+public:
+  virtual void Destructor() {
+  #ifdef LOGGING
+    printf("In WebCLObject::Destructor for %s\n",getCLObjName());
+  #endif
+  }
+
+  virtual bool operator==(void *clid) { return false; }
 
 protected:
   CLObjType::CLObjType _type;
+
+private:
+  DISABLE_COPY(WebCLObject)
 };
 
 } // namespace webcl
 
 #include "exceptions.h"
+#include "manager.h"
 
 #endif

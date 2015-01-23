@@ -33,23 +33,23 @@ using namespace node;
 
 namespace webcl {
 
-Persistent<FunctionTemplate> Sampler::constructor_template;
+Persistent<Function> Sampler::constructor;
 
-void Sampler::Init(Handle<Object> target)
+void Sampler::Init(Handle<Object> exports)
 {
   NanScope();
 
   // constructor
   Local<FunctionTemplate> ctor = FunctionTemplate::New(Sampler::New);
-  NanAssignPersistent(FunctionTemplate, constructor_template, ctor);
   ctor->InstanceTemplate()->SetInternalFieldCount(1);
-  ctor->SetClassName(NanSymbol("WebCLSampler"));
+  ctor->SetClassName(NanNew<String>("WebCLSampler"));
 
   // prototype
   NODE_SET_PROTOTYPE_METHOD(ctor, "_getInfo", getInfo);
   NODE_SET_PROTOTYPE_METHOD(ctor, "_release", release);
 
-  target->Set(NanSymbol("WebCLSampler"), ctor->GetFunction());
+  NanAssignPersistent<Function>(constructor, ctor->GetFunction());
+  exports->Set(NanNew<String>("WebCLSampler"), ctor->GetFunction());
 }
 
 Sampler::Sampler(Handle<Object> wrapper) : sampler(0)
@@ -57,21 +57,35 @@ Sampler::Sampler(Handle<Object> wrapper) : sampler(0)
   _type=CLObjType::Sampler;
 }
 
+Sampler::~Sampler() {
+#ifdef LOGGING
+  printf("In ~Sampler\n");
+#endif
+  // Destructor();
+}
+
 void Sampler::Destructor() {
-  #ifdef LOGGING
-  cout<<"  Destroying CL sampler"<<endl;
-  #endif
-  if(sampler) ::clReleaseSampler(sampler);
-  sampler=0;
+  if(sampler) {
+    cl_uint count;
+    ::clGetSamplerInfo(sampler,CL_SAMPLER_REFERENCE_COUNT,sizeof(cl_uint),&count,NULL);
+#ifdef LOGGING
+    cout<<"  Destroying Sampler, CLrefCount is: "<<count<<endl;
+#endif
+    ::clReleaseSampler(sampler);
+    if(count==1) {
+      unregisterCLObj(this);
+      sampler=0;
+    }
+  }
 }
 
 NAN_METHOD(Sampler::release)
 {
   NanScope();
   Sampler *sampler = ObjectWrap::Unwrap<Sampler>(args.This());
-  
-  DESTROY_WEBCL_OBJECT(sampler);
-  
+
+  sampler->Destructor();
+
   NanReturnUndefined();
 }
 
@@ -84,7 +98,6 @@ NAN_METHOD(Sampler::getInfo)
   switch (param_name) {
   case CL_SAMPLER_ADDRESSING_MODE:
   case CL_SAMPLER_FILTER_MODE:
-  case CL_SAMPLER_NORMALIZED_COORDS:
   case CL_SAMPLER_REFERENCE_COUNT: {
     cl_uint param_value=0;
     cl_int ret=::clGetSamplerInfo(sampler->getSampler(), param_name,sizeof(cl_uint), &param_value, NULL);
@@ -97,6 +110,18 @@ NAN_METHOD(Sampler::getInfo)
     }
     NanReturnValue(Integer::NewFromUnsigned(param_value));
   }
+  case CL_SAMPLER_NORMALIZED_COORDS: {
+    cl_uint param_value=0;
+    cl_int ret=::clGetSamplerInfo(sampler->getSampler(), param_name,sizeof(cl_uint), &param_value, NULL);
+    if (ret != CL_SUCCESS) {
+      REQ_ERROR_THROW(INVALID_VALUE);
+      REQ_ERROR_THROW(INVALID_SAMPLER);
+      REQ_ERROR_THROW(OUT_OF_RESOURCES);
+      REQ_ERROR_THROW(OUT_OF_HOST_MEMORY);
+      return NanThrowError("UNKNOWN ERROR");
+    }
+    NanReturnValue(JS_BOOL((int)param_value));
+  }
   case CL_SAMPLER_CONTEXT:{
     cl_context param_value=0;
     cl_int ret=::clGetSamplerInfo(sampler->getSampler(), param_name,sizeof(cl_context), &param_value, NULL);
@@ -108,18 +133,19 @@ NAN_METHOD(Sampler::getInfo)
       return NanThrowError("UNKNOWN ERROR");
     }
     if(param_value) {
-      WebCLObject *obj=findCLObj((void*)param_value);
-      if(obj) {
-        //::clRetainContext(param_value);
+      WebCLObject *obj=findCLObj((void*)param_value, CLObjType::Context);
+      if(obj)
         NanReturnValue(NanObjectWrapHandle(obj));
-      }
       else
         NanReturnValue(NanObjectWrapHandle(Context::New(param_value)));
     }
     NanReturnUndefined();
   }
-  default:
-    return NanThrowError("UNKNOWN param_name");
+  default: {
+    cl_int ret=CL_INVALID_VALUE;
+    REQ_ERROR_THROW(INVALID_VALUE);
+    NanReturnUndefined();
+  }
   }
 
 }
@@ -132,21 +158,20 @@ NAN_METHOD(Sampler::New)
   NanScope();
   Sampler *s = new Sampler(args.This());
   s->Wrap(args.This());
-  registerCLObj(s);
   NanReturnValue(args.This());
 }
 
-Sampler *Sampler::New(cl_sampler sw)
+Sampler *Sampler::New(cl_sampler sw, WebCLObject *parent)
 {
 
   NanScope();
 
-  Local<Value> arg = Integer::NewFromUnsigned(0);
-  Local<FunctionTemplate> constructorHandle = NanPersistentToLocal(constructor_template);
-  Local<Object> obj = constructorHandle->GetFunction()->NewInstance(1, &arg);
+  Local<Function> cons = NanNew<Function>(constructor);
+  Local<Object> obj = cons->NewInstance();
 
   Sampler *sampler = ObjectWrap::Unwrap<Sampler>(obj);
   sampler->sampler = sw;
+  registerCLObj(sw, sampler);
 
   return sampler;
 }

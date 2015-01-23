@@ -26,12 +26,12 @@
 
 var nodejs = (typeof window === 'undefined');
 if(nodejs) {
-  WebCL = require('../webcl');
+  webcl = require('../webcl');
   log = console.log;
   exit = process.exit;
 }
 else
-  WebCL = window.webcl;
+  webcl = window.webcl;
 
 function read_complete(status, data) {
   log('in read_complete, status: '+status);
@@ -62,13 +62,13 @@ function main() {
   
   var context=null;
   try {
-    context=WebCL.createContext(WebCL.DEVICE_TYPE_GPU);
+    context=webcl.createContext(webcl.DEVICE_TYPE_GPU);
   }
   catch(ex) {
     throw new Error("Can't create CL context. "+ex);
   }
 
-  var devices=context.getInfo(WebCL.CONTEXT_DEVICES);
+  var devices=context.getInfo(webcl.CONTEXT_DEVICES);
   log("Found "+devices.length+" devices");
   var device=devices[0];
 
@@ -94,7 +94,7 @@ function main() {
     program.build(devices);
   } catch(ex) {
     /* Find size of log and print to std output */
-    var info=program.getBuildInfo(devices[0], WebCL.PROGRAM_BUILD_LOG);
+    var info=program.getBuildInfo(devices[0], webcl.PROGRAM_BUILD_LOG);
     log(info);
     exit(1);
   }
@@ -108,7 +108,7 @@ function main() {
 
   /* Create a write-only buffer to hold the output data */
   try {
-    data_buffer = context.createBuffer(WebCL.MEM_WRITE_ONLY, NUM_BYTES);
+    data_buffer = context.createBuffer(webcl.MEM_WRITE_ONLY, NUM_BYTES);
   } catch(ex) {
     log("Couldn't create a buffer. "+ex);
     exit(1);   
@@ -129,7 +129,7 @@ function main() {
 
   /* Create a command queue */
   try {
-    queue = context.createCommandQueue(device, WebCL.QUEUE_PROFILING_ENABLE);
+    queue = context.createCommandQueue(device, webcl.QUEUE_PROFILING_ENABLE);
   } catch(ex) {
     log("Couldn't create a command queue for profiling. "+ex);
   }
@@ -138,7 +138,7 @@ function main() {
   var loop_time=0, loop_start, loop_end;
 
   for(var i=0;i<NUM_ITERATIONS;i++) {
-    var prof_event=new WebCL.WebCLEvent();
+    var prof_event=new webcl.WebCLEvent();
     loop_start=new Date().getTime();
 
     /* Enqueue kernel */
@@ -161,7 +161,7 @@ function main() {
     else {
       /* Create memory map */
       try {
-        mapped_memory = queue.enqueueMapBuffer(data_buffer, true, WebCL.MAP_READ, 0, data.byteLength, null, prof_event);
+        mapped_memory = queue.enqueueMapBuffer(data_buffer, true, webcl.MAP_READ, 0, data.byteLength, null, prof_event);
         if(mapped_memory[0]!=5) {
           Throw("Kernel didn't work or mapping is wrong");
         }
@@ -172,8 +172,8 @@ function main() {
     }
     
     /* Get profiling information */
-    time_start = prof_event.getProfilingInfo(WebCL.PROFILING_COMMAND_START);
-    time_end = prof_event.getProfilingInfo(WebCL.PROFILING_COMMAND_END);
+    time_start = prof_event.getProfilingInfo(webcl.PROFILING_COMMAND_START);
+    time_end = prof_event.getProfilingInfo(webcl.PROFILING_COMMAND_END);
     total_time += time_end - time_start;
     
     if(!PROFILE_READ) {
