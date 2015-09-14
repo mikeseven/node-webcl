@@ -1,3 +1,13 @@
+Important Notes
+===============
+node-webcl will be soon superseeded by [https://github.com/mikeseven/node-opencl](node-opencl). Node-opencl is a reimplementation of node.js bindings to OpenCL:
+
+* true wrapper of OpenCL, not an object-oriented model as WebCL. This makes it easier to develop higher-level API
+* supports OpenCL 1.1, 1.2, 2.0
+* support for Nan2 and Node.JS 4
+* no dependency on external packages such as node-webgl, which was a huge issue to install for many users
+* Lots of unit tests
+
 Introduction
 ============
 This is an implementation of Khronos [WebCL][WEBCL] specification using NodeJS.
