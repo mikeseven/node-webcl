@@ -80,7 +80,7 @@ If you want to use the latest code, retrieve each repo (node-webcl, node-webgl, 
 
 A crash course on WebCL
 =======================
-WebCL is a JavaScript representation of OpenCL 1.1. It is not a straight mapping of OpenCL C methods but rather an object-oriented representation of OpenCL object model. Knowledge of OpenCL is OpenCL is therefore mandatory to be able to develop WebCL programs. See the Books section and/or jump directly into Specifications references at the end of this page.
+WebCL is a JavaScript representation of OpenCL 1.1. It is not a straight mapping of OpenCL C methods but rather an object-oriented representation of OpenCL object model. Knowledge of OpenCL is therefore mandatory to be able to develop WebCL programs. See the Books section and/or jump directly into Specifications references at the end of this page.
 
 There are few steps in creating a WebCL program:
 
